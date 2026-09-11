@@ -240,3 +240,59 @@
 22:14:50.845  +13291 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
 22:14:50.853  +13299 ms  SESJA        --- KONIEC TURY 6b69: Idle ---
 22:15:03.703          ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:15:03.709          ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+22:15:05.357          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 81 94 01 67 00 0E 00 03 00 01 01
+22:15:09.721          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6008
+22:15:09.730          ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+22:15:11.526          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C1 D4 01 68 00 0E 00 03 00 01 01
+22:15:15.748          ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+22:15:15.755          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+22:15:17.287          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+22:15:17.299          ms  ZDJĘCIE      zgłoszenie pominięte - trwa zdjęcie zamówione przez aplikację
+22:15:17.367          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura
+22:15:17.381      +2 ms  SESJA        --- TURA 6920 ---  źródło=BUTTON
+22:15:17.388      +8 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+22:15:17.406     +26 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+22:15:17.419     +39 ms  SESJA        --- KONIEC TURY 6920: Idle ---
+22:15:17.497          ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:15:17.497          ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:15:17.503          ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+22:15:19.043          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 00 18 01 69 00 0E 00 03 00 01 01
+22:15:23.510          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6005
+22:15:23.520          ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+22:15:25.524          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 40 0D 01 6A 00 0E 00 03 00 01 01
+22:15:29.537          ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+22:15:29.544          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+22:15:31.106          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+22:15:31.118          ms  ZDJĘCIE      zgłoszenie pominięte - trwa zdjęcie zamówione przez aplikację
+22:15:39.507          ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+22:15:39.517          ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+22:15:39.539          ms  SESJA        --- KONIEC TURY 6920: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+22:16:22.695          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+22:16:38.755          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 76 12 01 00 10 09 02 00 0F 0F 03 00 10 09 03
+22:16:43.186          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 4B 0B 1A
+22:16:45.245          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 DC 01 6A 00 0F 00 03 00 01 01
+22:16:48.033          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+22:16:48.051          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+22:16:55.278          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=32768 jpeg=true kompletny=false
+22:16:55.281          ms  ZDJĘCIE      zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze
+22:17:05.284          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura (powtórka)
+22:17:05.286          ms  ZDJĘCIE      zdjęcie z przycisku: biorę urwany obraz  bajtów=32768
+22:17:05.288      +1 ms  SESJA        --- TURA 0a15 ---  źródło=BUTTON
+22:17:05.289      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+22:17:05.298     +11 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+22:17:05.309     +22 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:17:05.333     +46 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:17:05.776    +489 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 DC 01 6A 00 0F 00 03 00 01 01
+22:17:05.800    +513 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B B6 12 01 00 10 09 02 00 0F 0F 03 00 10 09 02
+22:18:31.649  +86362 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=32768 pełnaRozdzielczość=false
+22:18:38.672  +93385 ms  ZDJĘCIE      próba 1: droga producenta  jakość=2
+22:18:40.853  +95566 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 80 10 01 6B 00 0F 00 03 00 01 01
+22:18:44.676  +99389 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6003
+22:18:44.679  +99392 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+22:18:46.073 +100786 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+22:18:46.075 +100788 ms  ZDJĘCIE      zgłoszenie pominięte - trwa zdjęcie zamówione przez aplikację
+22:18:47.998 +102711 ms  KONTEKST     zebrany  ms=16097 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+22:18:48.006 +102719 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=7842
+22:18:54.672 +109385 ms  ZDJĘCIE      próba 2: miniatura  notify=true bajtów=16384 jpeg=true kompletny=false
+22:18:54.675 +109388 ms  ZDJĘCIE      oddaję urwany obraz - całego nie udało się pobrać  bajtów=16384
