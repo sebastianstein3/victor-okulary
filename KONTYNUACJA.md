@@ -338,7 +338,7 @@ projekt buduje się 2.3.20. To sito, nie dowód.
 
 Skrypt czyta ostatni zielony commit z pliku `last_green_ref` obok siebie
 (albo ze zmiennej `BASE_REF`). **Aktualizuj go po każdym zielonym buildzie.**
-Na dziś: `86c76822e336ecf08647dca753a39fff34233dbf`.
+Na dziś: `e6ed58b735ce563104c557c34985f1c5741901d8` (build #6, zielony w całości).
 
 Przy pierwszym podejściu porównywałem z `HEAD` — a `HEAD` zawierał już
 wpadkę, którą miałem złapać, więc różnica wyszła pusta i test przepuścił
