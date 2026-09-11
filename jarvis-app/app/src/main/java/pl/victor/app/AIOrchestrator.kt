@@ -687,6 +687,18 @@ class AIOrchestrator(
                             if (current is OrchestratorState.Error) "błąd" else "odpowiedziano"
                         )
                     }
+                    // Okulary dostają po nasłuchu "koniec sesji AI" - to samo
+                    // polecenie gasi im wykrywanie frazy, a włączenie szło RAZ,
+                    // w powitaniu po połączeniu. Bez przypomnienia kolejne
+                    // "hej lens" nie ma do czego trafić, choć przycisk w
+                    // aplikacji działa dalej - i dokładnie tak to zgłoszono.
+                    //
+                    // Tutaj, a nie w finally tury: finally startVoiceTurn
+                    // wykonuje się, ZANIM odpowiedź zostanie wypowiedziana
+                    // (właściwa tura leci własną korutyną), więc okulary
+                    // zaczęłyby nasłuchiwać w trakcie mówienia i usłyszały
+                    // własny głos asystenta.
+                    runCatching { glassesManager.rearmGlassesWakeWord("koniec tury") }
                 }
             }
         }

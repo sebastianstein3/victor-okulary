@@ -1184,6 +1184,39 @@ class VictorManager private constructor(context: Context) {
     }
 
     /**
+     * Przypomina okularom, że mają nasłuchiwać frazy wybudzenia.
+     *
+     * ## Dlaczego to musi iść PO KAŻDEJ turze
+     * Bo po turze wysyłamy im `0x02 0x01 0x0B` - „koniec sesji AI"
+     * ([stopGlassesListening]). Włączenie frazy idzie natomiast RAZ, w powitaniu
+     * po połączeniu. Jeśli koniec sesji gasi także wykrywanie frazy - a wszystko
+     * na to wskazuje - to po pierwszej rozmowie okulary przestają słuchać aż do
+     * ponownego połączenia.
+     *
+     * Zgłoszone dokładnie tak: „po odpowiedzi AI przez długi czas nie można
+     * jeszcze mówić, ale po kliknięciu ikony mikrofonu w apce AI się wybudza" -
+     * czyli droga przez telefon żyje, a droga przez okulary nie. W dzienniku z
+     * 23:07 zgadza się to co do wiersza: wykrywanie frazy zostało włączone raz,
+     * o 23:08:17 (`zgłaszają=true`), i przez cały wieczór NIE MA ani jednej
+     * prośby o rozmowę - wszystkie tury poszły z przycisku.
+     *
+     * Wysyłka jest tania (jedna komenda) i bezpieczna: to ta sama, którą
+     * wysyła powitanie. Gdy fraza jest wyłączona w ustawieniach, nie robimy nic.
+     */
+    fun rearmGlassesWakeWord(reason: String) {
+        if (!isConnected()) return
+        if (!settings.isGlassesWakeWordEnabled()) return
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                "przypominam okularom o frazie wybudzenia",
+                mapOf("powód" to reason)
+            )
+        }
+        setGlassesWakeWord(true)
+    }
+
+    /**
      * Włącza albo wyłącza wykrywanie komendy głosowej PO STRONIE OKULARÓW.
      *
      * To alternatywa dla Picovoice na telefonie: okulary mają własny układ wykrywania
