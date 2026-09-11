@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -921,7 +922,10 @@ class AIOrchestrator(
         runCatching { victorApp?.resumeVoskAfterTurn() }
     }
 
-    private fun claimIdle(takeOver: Boolean = false): Boolean {
+    private fun claimIdle(
+        takeOver: Boolean = false,
+        mayInterruptSpeech: Boolean = false
+    ): Boolean {
         return when (_state.value) {
             is OrchestratorState.Idle -> true
             is OrchestratorState.Completed, is OrchestratorState.Error -> {
@@ -949,7 +953,7 @@ class AIOrchestrator(
                 // Karencja jest po to, żeby podwójne wykrycie TEGO SAMEGO słowa
                 // wybudzenia nie ubijało tury, którą samo przed chwilą zaczęło.
                 val supersede = takeOver && stuckMs > TAKEOVER_GRACE_MS &&
-                    canBeSuperseded(_state.value)
+                    canBeSuperseded(_state.value, mayInterruptSpeech)
                 if (jobFinished || stuckMs > STUCK_TURN_MS || supersede) {
                     if (supersede && !jobFinished) {
                         Log.i(TAG, "Nowe pytanie po $stuckMs ms - przerywam poprzednią turę")
@@ -986,9 +990,20 @@ class AIOrchestrator(
      * We wszystkich pozostałych stanach roboczych - nasłuch, zdjęcie,
      * czekanie na model - użytkownik nie słyszy niczego. Powtórzenie pytania
      * jest wtedy jedynym sensownym odruchem i musi działać.
+     *
+     * ## Wyjątek: przycisk na okularach
+     * Echo dotyczy MOWY, nie palca. Wciśnięcie przycisku jest jednoznaczną
+     * decyzją człowieka podjętą TERAZ i nie ma jak wziąć się z głośnika.
+     * Odrzucanie go dawało dokładnie to, co zgłoszono: „po odpowiedzi blokuje
+     * się wszystko na dłuższą chwilę... nie wywołuje AI przyciskiem".
+     * W dzienniku z 11 września widać to dwa razy jako
+     * `trigger ODRZUCONY - tura już trwa  źródło=BUTTON stan=Streaming`,
+     * a mówienie trwało wtedy od 3 do 16 sekund.
      */
-    private fun canBeSuperseded(state: OrchestratorState): Boolean =
-        state !is OrchestratorState.Streaming
+    private fun canBeSuperseded(
+        state: OrchestratorState,
+        mayInterruptSpeech: Boolean = false
+    ): Boolean = mayInterruptSpeech || state !is OrchestratorState.Streaming
 
     /**
      * Przerywa bieżącą turę na żądanie użytkownika - dotykiem zauszników,
@@ -1259,7 +1274,16 @@ class AIOrchestrator(
                     DiagFormat.Phase.NASŁUCH, "nagranie z okularów",
                     mapOf(
                         "jest" to (captured?.hasAudio == true),
-                        "sekund" to captured?.audioSeconds
+                        "sekund" to captured?.audioSeconds,
+                        // Bez tych czterech liczb „nagranie jest niewyraźne"
+                        // nie ma jak się rozstrzygnąć: nie wiadomo, czy to
+                        // użytkownik mówił cicho, czy dekoder składa szum z
+                        // pakietów, których kształtu nie odgadł.
+                        "pakietów" to captured?.packets,
+                        "rozkodowanych" to captured?.decodedPackets,
+                        "odrzuconych" to captured?.failedPackets,
+                        "przesunięcie" to captured?.payloadOffset,
+                        "ramka" to captured?.packetSize
                     )
                 )
                 val transcribeStartedAt = System.currentTimeMillis()
@@ -1304,6 +1328,40 @@ class AIOrchestrator(
                     // pójść do sieci po listę modeli. Tutaj potrzebujemy tylko
                     // odpowiedzi "czy ten model przyjmuje nagrania", a wyjątek
                     // z korutyny bez catcha wywróciłby aplikację.
+                    // TEKST Z TELEFONU IDZIE PRZED NAGRANIEM. To jest poprawka
+                    // do poprzedniej poprawki i trzeba ją nazwać wprost.
+                    //
+                    // Dziennik z 11 września, dziesięć tur z rzędu, zawsze ten
+                    // sam układ:
+                    //
+                    //   NASŁUCH koniec  odłożone=czy słyszysz co mówię
+                    //   TRANSKRYPCJA z nagrania okularów  droga=Bez transkrypcji
+                    //   SESJA pytanie  tekst=W załączonym nagraniu... nagranie=876860 B
+                    //
+                    // Telefon rozumiał pytanie DOKŁADNIE ("ile to 2 + 2",
+                    // "co widzisz"), a my odkładaliśmy ten tekst i wysyłaliśmy
+                    // modelowi 876 kB dźwięku, na co model odpowiadał, że
+                    // nagranie jest niewyraźne i nie słyszy w nim pytania.
+                    // Zgłoszone jako „na większość pytań AI odpowiada: to
+                    // nagranie jest niewyraźne".
+                    //
+                    // Nagranie do modelu zostaje - ale jako OSTATNIA deska, a
+                    // nie pierwsza. Gotowy tekst bije surowy dźwięk także na
+                    // czasie: odpada wysyłka prawie megabajta, która w dzienniku
+                    // kosztowała od 6 do 40 sekund.
+                    setAsidePhoneTranscript?.let { phoneText ->
+                        Log.i(TAG, "Droga przez okulary nie dała tekstu - biorę tekst z telefonu")
+                        diag.event(
+                            DiagFormat.Phase.TRANSKRYPCJA,
+                            "biorę odłożony tekst z telefonu",
+                            mapOf("tekst" to phoneText.take(60))
+                        )
+                        silentScoTurns = 0
+                        conversationalMode.onAiFinishedSpeaking()
+                        handleUserTrigger(TriggerSource.WAKE_WORD, phoneText)
+                        return@launch
+                    }
+
                     val providerId = settings.getActiveProvider()
                     val modelHearsAudio = settings.hasApiKey(providerId) &&
                         AIProviderFactory.getCapabilitiesFor(providerId).supportsAudio
@@ -1322,18 +1380,6 @@ class AIOrchestrator(
                             AUDIO_QUESTION_PROMPT,
                             audioQuestion = recording
                         )
-                        return@launch
-                    }
-
-                    // OSTATNIA DESKA: tekst z mikrofonu telefonu, odłożony
-                    // wcześniej na rzecz okularów. Zgłoszone jako "czasem
-                    // okulary nasłuchują, ale AI nie odpowiada" - lepsza
-                    // niedoskonała transkrypcja niż brak odpowiedzi.
-                    setAsidePhoneTranscript?.let { phoneText ->
-                        Log.i(TAG, "Droga przez okulary nic nie dała - biorę tekst z telefonu")
-                        silentScoTurns = 0
-                        conversationalMode.onAiFinishedSpeaking()
-                        handleUserTrigger(TriggerSource.WAKE_WORD, phoneText)
                         return@launch
                     }
 
@@ -1498,7 +1544,21 @@ class AIOrchestrator(
                             // jedyne, co usłyszeliśmy - a cisza w odpowiedzi
                             // jest gorsza niż niedoskonała transkrypcja.
                             setAsidePhoneTranscript = usable
-                            RECOGNIZER_GAVE_UP
+                            // ...ale nasłuch KOŃCZYMY. Niepusty wynik znaczy, że
+                            // rozpoznawanie wykryło koniec wypowiedzi - a to
+                            // jedyny sygnał końca, jaki tu mamy.
+                            //
+                            // Dotąd szło stąd RECOGNIZER_GAVE_UP, czyli
+                            // „czekaj, aż okulary ucichną". One nie cichną: w
+                            // dzienniku z 11 września wiersz
+                            // `WAKE okulary nadają dźwięk, choć żadna tura nie
+                            // trwa` pojawia się także MIĘDZY turami, więc
+                            // strumień leci bez przerwy i cisza w nim nie
+                            // nastąpi nigdy. Skutek: KAŻDY nasłuch dobijał do
+                            // twardego limitu 9 s - dziesięć tur z rzędu po
+                            // 8,7-9,0 s. Zgłoszone jako „AI nadal za długo
+                            // nasłuchuje po zadaniu pytania".
+                            PHONE_ENDPOINTED
                         }
                         else -> usable
                     }
@@ -1509,12 +1569,22 @@ class AIOrchestrator(
                 }
             }
 
-            val result = if (heard === RECOGNIZER_GAVE_UP) {
-                Log.i(TAG, "Rozpoznawanie nic nie usłyszało - czekam, aż okulary ucichną")
-                glassesQuiet.await()
-                null
-            } else {
-                heard
+            val result = when {
+                heard === PHONE_ENDPOINTED -> {
+                    // Krótka karencja na ogon wypowiedzi: rozpoznawanie zamyka
+                    // wynik odrobinę wcześniej, niż człowiek kończy mówić, a
+                    // nagranie z okularów zostaje jako zapas i nie ma powodu
+                    // ucinać mu ostatniej sylaby.
+                    Log.i(TAG, "Rozpoznawanie wykryło koniec wypowiedzi - kończę nasłuch")
+                    delay(SPEECH_TAIL_GRACE_MS)
+                    null
+                }
+                heard === RECOGNIZER_GAVE_UP -> {
+                    Log.i(TAG, "Rozpoznawanie nic nie usłyszało - czekam, aż okulary ucichną")
+                    glassesQuiet.await()
+                    null
+                }
+                else -> heard
             }
 
             // Przegrany tor nie ma już nic do zrobienia. Anulowanie zwycięzcy
@@ -1533,6 +1603,12 @@ class AIOrchestrator(
      * "jeden tor odpadł, drugi jeszcze pracuje".
      */
     private val RECOGNIZER_GAVE_UP: String = String("brak-rozpoznania".toCharArray())
+
+    /**
+     * Rozpoznawanie oddało wynik, ale nie ufamy jego TREŚCI - ufamy za to jego
+     * decyzji, że użytkownik skończył mówić. Patrz [listenUntilSpeechEnds].
+     */
+    private val PHONE_ENDPOINTED: String = String("koniec-wypowiedzi".toCharArray())
 
     /**
      * Tekst z mikrofonu telefonu, którego NIE puściliśmy dalej, bo lepszym
@@ -1681,7 +1757,11 @@ class AIOrchestrator(
         // Przycisk na okularach to też świadome działanie użytkownika TERAZ -
         // ma pierwszeństwo tak samo jak wypowiedź. Tury wewnętrzne (powtórka ze
         // zdjęciem) wchodzą na stanie Idle, więc ich to nie dotyczy.
-        if (!claimIdle(takeOver = trigger.mayTakeOverTurn())) {
+        if (!claimIdle(
+                takeOver = trigger.mayTakeOverTurn(),
+                mayInterruptSpeech = trigger.mayInterruptSpeech()
+            )
+        ) {
             Log.w(TAG, "Already processing, ignoring trigger")
             diag.event(
                 DiagFormat.Phase.BŁĄD, "trigger ODRZUCONY - tura już trwa",
@@ -1908,6 +1988,13 @@ class AIOrchestrator(
             // jest SCO. Wtedy je bierzemy - bo odpowiedź z głośnika telefonu w
             // kieszeni jest gorsza niż tryb rozmowy.
             val canUseMedia = audio.canSpeakOverMedia()
+            if (!canUseMedia) {
+                // Bierzemy SCO, bo trzeba - ale przy okazji prosimy okulary,
+                // żeby wróciły do trybu multimediów. Inaczej raz utracony A2DP
+                // nie wraca nigdy: każda tura bierze profil rozmowy, a profil
+                // rozmowy nie pozwala A2DP wstać.
+                glassesManager.requestClassicAudio("brak A2DP przed odpowiedzią")
+            }
             val audioHeld = if (canUseMedia) false else audio.beginConversationRouting()
             diag.event(
                 DiagFormat.Phase.AUDIO,
@@ -3581,6 +3668,12 @@ class AIOrchestrator(
          * To zdanie włącza tę ścieżkę - [shouldRunOcr] szuka w pytaniu słowa
          * „przeczytaj" - i jednocześnie mówi modelowi, czego od niego chcemy.
          */
+        /**
+         * Ile jeszcze nagrywamy z okularów po tym, jak rozpoznawanie mowy
+         * ogłosiło koniec wypowiedzi - patrz [listenUntilSpeechEnds].
+         */
+        private const val SPEECH_TAIL_GRACE_MS = 500L
+
         private const val PHOTO_ON_DEMAND_QUESTION =
             "Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, " +
                 "przeczytaj to, co istotne."
@@ -3631,6 +3724,15 @@ private fun TriggerSource.mayTakeOverTurn(): Boolean =
     this == TriggerSource.BUTTON ||
         this == TriggerSource.WAKE_WORD ||
         this == TriggerSource.VOICE
+
+/**
+ * Czy to wywołanie wolno wpuścić także wtedy, gdy asystent właśnie MÓWI.
+ *
+ * Tylko przycisk. Wypowiedź w tym momencie może być echem własnego głosu
+ * asystenta z głośnika okularów - patrz [AIOrchestrator.canBeSuperseded];
+ * wciśnięty przycisk echem nie jest.
+ */
+private fun TriggerSource.mayInterruptSpeech(): Boolean = this == TriggerSource.BUTTON
 
 /**
  * Akcja oczekująca na potwierdzenie użytkownika.

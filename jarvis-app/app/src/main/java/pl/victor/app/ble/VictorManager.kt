@@ -1198,6 +1198,45 @@ class VictorManager private constructor(context: Context) {
         }.onFailure { Log.w(tag, "aiVoiceWake nie powiodło się", it) }
     }
 
+    /**
+     * Prosi okulary, żeby włączyły swoją klasyczną część audio (A2DP).
+     *
+     * ## Po co, skoro robi to powitanie
+     * Bo powitanie idzie RAZ na połączenie, a profil potrafi odpaść później. W
+     * dzienniku z 11 września `a2dp=false` jest w KAŻDEJ turze, przez całe dwie
+     * godziny - więc od pewnego momentu okulary są dla Androida wyłącznie
+     * zestawem głośnomówiącym. Wtedy jedyną drogą do ich głośnika zostaje
+     * profil rozmowy (SCO), a ten trzyma je w trybie „tylko połączenia" -
+     * dokładnie to, co użytkownik widzi w ustawieniach Bluetooth.
+     *
+     * Wysyłka jest bez czekania na skutek: profil zestawia system, nie my, i
+     * trwa to sekundy. Chodzi o to, żeby KOLEJNA tura miała czym mówić, a nie
+     * żeby wydłużać bieżącą.
+     */
+    fun requestClassicAudio(reason: String) {
+        if (simulator != null) return
+        if (!isConnected()) return
+        val now = System.currentTimeMillis()
+        if (now - lastClassicAudioRequestAtMs < CLASSIC_AUDIO_RETRY_MS) return
+        lastClassicAudioRequestAtMs = now
+        scope.launch {
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                    "proszę okulary o włączenie trybu multimediów",
+                    mapOf("powód" to reason)
+                )
+            }
+            runCatching { largeDataHandler.openBT() }
+                .onFailure { Log.w(tag, "openBT nie powiodło się", it) }
+            runCatching { largeDataHandler.speakSoundSwitch(true) }
+                .onFailure { Log.w(tag, "speakSoundSwitch nie powiodło się", it) }
+        }
+    }
+
+    @Volatile
+    private var lastClassicAudioRequestAtMs = 0L
+
     /** Opis zdarzenia po polsku - na ekran diagnostyczny. */
     private fun describe(event: NotifyEvent): String = when (event) {
         is NotifyEvent.PhotoReady -> when {
@@ -1765,7 +1804,27 @@ class VictorManager private constructor(context: Context) {
         }
     }
 
+    /**
+     * Najlepsza URWANA miniatura z bieżącego przechwytywania.
+     *
+     * ## Skąd wiadomo, że urwane bywają
+     * Z dziennika z 11 września: `zdjęcie z przycisku: miniatura bajtów=32768
+     * jpeg=true kompletny=false`. 32768 to równe 32 kB - transfer kończy się na
+     * okrągłej granicy, a nie na końcu obrazu. Udane zdjęcie z poprzedniego
+     * dziennika miało 18145 B i `kompletny=true`, czyli zmieściło się pod tą
+     * granicą.
+     *
+     * Pół obrazu model przyjmie bez słowa skargi i opisze to, co zdążył
+     * zobaczyć - czyli odpowie na chybił trafił. Dlatego urwana miniatura nie
+     * kończy już przechwytywania: kolejne próby mają szansę oddać cały obraz
+     * (niższa jakość = mniejszy plik). Zostaje jednak w zanadrzu, bo pół
+     * zdjęcia to wciąż więcej niż nic.
+     */
+    @Volatile
+    private var truncatedPhoto: ByteArray? = null
+
     private suspend fun captureAiPhotoInternal(quality: Int): ByteArray? {
+        truncatedPhoto = null
         // PRÓBA 1 - dokładnie ta sekwencja, którą robi aplikacja producenta.
         //
         // ## Co było nie tak
@@ -1929,6 +1988,19 @@ class VictorManager private constructor(context: Context) {
             "Okulary zrobiły zdjęcie, ale nie przysłały go po BLE. Podejdź " +
                 "bliżej telefonu i spróbuj ponownie."
         }
+
+        // Pół obrazu to wciąż więcej niż nic - ale dopiero TUTAJ, gdy żadna
+        // próba nie oddała całego. Patrz [truncatedPhoto].
+        truncatedPhoto?.let { partial ->
+            Log.w(tag, "Oddaję urwaną miniaturę (${partial.size} B) - nic lepszego nie doszło")
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "oddaję urwany obraz - całego nie udało się pobrać",
+                mapOf("bajtów" to partial.size)
+            )
+            lastPhotoFailure = null
+            return partial
+        }
         return null
     }
 
@@ -1986,10 +2058,16 @@ class VictorManager private constructor(context: Context) {
     )
 
     private fun acceptPhoto(bytes: ByteArray): Boolean {
-        if (GlassesProtocol.looksLikeJpeg(bytes)) return true
-        Log.w(tag, "Odebrane ${bytes.size} B nie jest zdjęciem JPEG")
-        lastPhotoFailure = "Okulary przysłały ${bytes.size} B, ale to nie jest " +
-            "zdjęcie - transfer się urwał. Podejdź bliżej telefonu."
+        if (!GlassesProtocol.looksLikeJpeg(bytes)) {
+            Log.w(tag, "Odebrane ${bytes.size} B nie jest zdjęciem JPEG")
+            lastPhotoFailure = "Okulary przysłały ${bytes.size} B, ale to nie jest " +
+                "zdjęcie - transfer się urwał. Podejdź bliżej telefonu."
+            return false
+        }
+        if (GlassesProtocol.isCompleteJpeg(bytes)) return true
+        // Urwany obraz odkładamy i próbujemy dalej - patrz [truncatedPhoto].
+        Log.w(tag, "Miniatura urwana na ${bytes.size} B - próbuję dostać cały obraz")
+        if ((truncatedPhoto?.size ?: 0) < bytes.size) truncatedPhoto = bytes
         return false
     }
 
@@ -2113,15 +2191,51 @@ class VictorManager private constructor(context: Context) {
         // Notify przychodzi, ZANIM plik wyląduje w pamięci - patrz [shootAndWait].
         delay(CAPTURE_SETTLE_MS)
         _photoReady.value = false
+        truncatedPhoto = null
         val photo = receiveThumbnail()
         diag.event(
             pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
             "zdjęcie z przycisku: miniatura",
             thumbnailFields(photo)
         )
-        if (photo == null || !acceptPhoto(photo)) return@withLock false
-        pendingHardwarePhoto = photo
-        true
+        if (photo != null && acceptPhoto(photo)) {
+            pendingHardwarePhoto = photo
+            return@withLock true
+        }
+
+        // Urwany obraz (w dzienniku: 32768 B, `kompletny=false`) - proszę o ten
+        // sam plik jeszcze raz. Zdjęcie leży w pamięci okularów, więc ponowna
+        // prośba nic nie kosztuje i nie każe użytkownikowi drugi raz trzymać
+        // kadru. Tu nie da się zejść z jakości: zdjęcie zrobiły okulary same.
+        if (truncatedPhoto != null) {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze"
+            )
+            val retry = receiveThumbnail()
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "zdjęcie z przycisku: miniatura (powtórka)",
+                thumbnailFields(retry)
+            )
+            if (retry != null && acceptPhoto(retry)) {
+                pendingHardwarePhoto = retry
+                return@withLock true
+            }
+        }
+
+        // Nadal urwany - bierzemy, co jest. Pół obrazu daje modelowi cokolwiek
+        // do powiedzenia, a cisza po wciśnięciu przycisku nie daje nic.
+        truncatedPhoto?.let { partial ->
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "zdjęcie z przycisku: biorę urwany obraz",
+                mapOf("bajtów" to partial.size)
+            )
+            pendingHardwarePhoto = partial
+            return@withLock true
+        }
+        false
     }
 
     /**
@@ -2476,6 +2590,9 @@ class VictorManager private constructor(context: Context) {
 
         /** Jak rzadko zapisywać pakiety przychodzące poza turą. */
         private const val STRAY_MIC_LOG_INTERVAL_MS = 3_000L
+
+        /** Jak często wolno prosić okulary o tryb multimediów - patrz [requestClassicAudio]. */
+        private const val CLASSIC_AUDIO_RETRY_MS = 30_000L
 
         /** Symulowane okulary "znajdują się" po chwili, jak prawdziwy skan BLE. */
         private const val SIMULATED_SCAN_DELAY_MS = 700L

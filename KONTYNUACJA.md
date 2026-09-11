@@ -116,6 +116,47 @@ wystarcza przy szybkim ponownym połączeniu. Że echo nie niesie
 `BLE POŁĄCZONO noweŁącze=true` i po nim para `powitanie okularów - start` /
 `- koniec  frazaWybudzenia=… kanałZapisu=…`.
 
+### 4.-1 Dziennik z 20:15 POTWIERDZA poprzednie poprawki
+
+Pierwszy dziennik z nowego APK i pierwszy, w którym widać, że rzeczy działają:
+
+- `BLE POŁĄCZONO noweŁącze=true` → `powitanie okularów - start/koniec
+  frazaWybudzenia=true kanałZapisu=true` → `WAKE okulary odpowiedziały o
+  frazie wybudzenia żądano=true zgłaszają=true`. Bramka połączenia działa,
+  echo SDK rozpoznane (`noweŁącze=false` 2 s później).
+- **Tury ze źródłem `OKULARY` wreszcie istnieją.** Wcześniej nie było ani jednej.
+- `WAKE okulary nadają dźwięk, choć żadna tura nie trwa` — hipoteza z
+  poprzedniej rundy potwierdzona: okulary nadają strumień także MIĘDZY turami.
+- `zdjęcie z przycisku: pobieram` / `miniatura bajtów=32768 jpeg=true` — droga
+  ręcznego zdjęcia działa i pierwszy raz zostawia ślad.
+- `ROZŁĄCZONO świadome=false` ×2, a 11 s później `POŁĄCZONO noweŁącze=true` —
+  auto-reconnect wraca i konfiguruje okulary od zera.
+
+### 4.0a „To nagranie jest niewyraźne" — ZNALEZIONE, przyczyna była w kolejności
+
+Dziesięć tur z rzędu, zawsze ten sam układ:
+
+```
+NASŁUCH koniec  odłożone=ile to 2 + 2          ← telefon ZROZUMIAŁ
+TRANSKRYPCJA z nagrania okularów  droga=Bez transkrypcji - nagranie do modelu
+SESJA pytanie  tekst=W załączonym nagraniu...  nagranie=871100 B
+```
+
+Telefon rozpoznawał pytanie dokładnie, a my odkładaliśmy ten tekst i wysyłaliśmy
+modelowi prawie megabajt dźwięku, na co model odpowiadał, że nagranie jest
+niewyraźne. Tekst z telefonu był w kodzie OSTATNIĄ deską — PO wysłaniu
+nagrania, czyli nieosiągalną, gdy nagranie istniało.
+
+Teraz kolejność to: transkrypcja z okularów → odłożony tekst z telefonu →
+nagranie do modelu. Przy okazji odpada wysyłka 871 kB, która w dzienniku
+kosztowała od 6 do 40 sekund.
+
+**Czego to NIE tłumaczy:** dlaczego transkrypcja nagrania z okularów zawodzi za
+każdym razem. Dlatego `NASŁUCH nagranie z okularów` zapisuje teraz stan
+dekodowania (`pakietów`, `rozkodowanych`, `odrzuconych`, `przesunięcie`,
+`ramka`). Bez tych liczb nie da się odróżnić cichej mowy od szumu składanego z
+pakietów o nieodgadniętym kształcie.
+
 ### 4.0b Fraza wybudzenia szła do modelu jako pytanie — NAPRAWIONE
 
 > „Wywołuję AI głosowo, okulary reagują, ale aplikacja nic nie robi, jakby nie
