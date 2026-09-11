@@ -296,3 +296,8 @@
 22:18:48.006 +102719 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=7842
 22:18:54.672 +109385 ms  ZDJĘCIE      próba 2: miniatura  notify=true bajtów=16384 jpeg=true kompletny=false
 22:18:54.675 +109388 ms  ZDJĘCIE      oddaję urwany obraz - całego nie udało się pobrać  bajtów=16384
+22:18:57.424 +112137 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=9419
+22:18:57.439 +112152 ms  MODEL        koniec odpowiedzi (302 znaków, 7490 tokenów)  ms=9434
+22:19:07.582 +122295 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 80 10 01 6B 00 0F 00 03 00 01 01
+22:19:12.881 +127594 ms  MOWA         koniec wypowiedzi  ms=15440
+22:19:12.910 +127623 ms  SESJA        --- KONIEC TURY 0a15: odpowiedziano ---
