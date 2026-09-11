@@ -301,3 +301,23 @@
 22:19:07.582 +122295 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 80 10 01 6B 00 0F 00 03 00 01 01
 22:19:12.881 +127594 ms  MOWA         koniec wypowiedzi  ms=15440
 22:19:12.910 +127623 ms  SESJA        --- KONIEC TURY 0a15: odpowiedziano ---
+22:19:21.397          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 76 12 01 00 10 09 02 00 0F 0F 03 00 10 09 03
+22:20:53.639          ms  PRZYCISK     wciśnięto  numer=1
+22:20:53.961          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+22:20:54.538      +1 ms  SESJA        --- TURA 9c43 ---  źródło=OKULARY
+22:20:54.540      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:21:03.196   +8658 ms  NASŁUCH      koniec  ms=8658
+22:21:03.262   +8724 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=13
+22:21:04.665  +10127 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0735 pakietów=454 rozkodowanych=454 odrzuconych=0 przesunięcie=0 ramka=-1
+22:21:10.032  +15494 ms  TRANSKRYPCJA z nagrania okularów  ms=5366 droga=Nasłuch telefonu
+22:21:10.038  +15500 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=871100 B wymuszonyObraz=false
+22:21:10.043  +15505 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+22:21:10.065  +15527 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:21:10.068  +15530 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:21:10.487  +15949 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B B6 12 01 00 10 09 02 00 0F 0F 03 00 10 09 02
+22:21:18.238  +23700 ms  KONTEKST     zebrany  ms=8162 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+22:21:18.256  +23718 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=8394
+22:21:38.524  +43986 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=20270
+22:21:38.552  +44014 ms  MODEL        koniec odpowiedzi (218 znaków, 9116 tokenów)  ms=20298
+22:21:50.307  +55769 ms  MOWA         koniec wypowiedzi  ms=11753
+22:21:50.323  +55785 ms  SESJA        --- KONIEC TURY 9c43: odpowiedziano ---
