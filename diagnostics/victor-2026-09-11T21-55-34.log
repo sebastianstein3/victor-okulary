@@ -1,0 +1,58 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 1)
+21:55:34.873          ms  SESJA        start sesji
+21:56:06.194          ms  BLE          ROZŁĄCZONO  świadome=false
+21:56:12.926          ms  BLE          ROZŁĄCZONO  świadome=false
+21:56:20.805          ms  BLE          ROZŁĄCZONO  świadome=false
+21:56:26.705          ms  BLE          POŁĄCZONO  noweŁącze=true
+21:56:26.710          ms  BLE          powitanie okularów - start
+21:56:26.728          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+21:56:26.998          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 AB 01 62 00 0E 00 03 00 01 01
+21:56:27.000          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+21:56:27.002          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 5B 47 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 01
+21:56:27.004          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+21:56:27.006          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+21:56:27.007          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:56:28.780          ms  BLE          POŁĄCZONO  noweŁącze=false
+21:56:58.299          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 AB 01 62 00 0E 00 03 00 01 01
+21:58:04.878          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 AB 01 62 00 0E 00 03 00 01 01
+21:58:15.585          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 AB 01 62 00 0E 00 03 00 01 01
+22:01:16.034          ms  PRZYCISK     wciśnięto  numer=1
+22:01:16.217          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+22:01:17.048      +0 ms  SESJA        --- TURA 7840 ---  źródło=OKULARY
+22:01:17.049      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:01:23.015   +5967 ms  NASŁUCH      koniec  ms=5967 odłożone=widzisz
+22:01:23.023   +5975 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+22:01:24.430   +7382 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.4335 pakietów=322 rozkodowanych=322 odrzuconych=0 przesunięcie=0 ramka=-1
+22:01:28.307  +11260 ms  TRANSKRYPCJA z nagrania okularów  ms=3875
+22:01:28.310  +11262 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=widzisz
+22:01:28.311  +11263 ms  SESJA        pytanie  tekst=widzisz wymuszonyObraz=false
+22:01:28.324  +11276 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+22:01:28.368  +11320 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:01:28.371  +11323 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:01:28.812  +11764 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+22:01:29.129  +12081 ms  KONTEKST     zebrany  ms=81 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false
+22:01:29.142  +12094 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=158
+22:01:34.591  +17543 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5450
+22:01:34.634  +17586 ms  MODEL        koniec odpowiedzi (110 znaków, 2548 tokenów)  ms=5493
+22:01:40.326  +23278 ms  SESJA        pytanie  tekst=widzisz wymuszonyObraz=true
+22:01:40.334  +23286 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+22:01:40.413  +23365 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:01:40.419  +23371 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+22:01:41.917  +24869 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 80 67 01 63 00 0E 00 03 00 01 01
+22:01:46.429  +29381 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6006
+22:01:46.432  +29385 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+22:01:48.563  +31515 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C1 81 01 64 00 0E 00 03 00 01 01
+22:01:52.436  +35388 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+22:01:52.437  +35389 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+22:01:53.909  +36861 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+22:01:53.912  +36864 ms  ZDJĘCIE      zgłoszenie pominięte - trwa zdjęcie zamówione przez aplikację
+22:02:02.422  +45374 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+22:02:02.425  +45377 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+22:02:02.431  +45383 ms  SESJA        --- KONIEC TURY 7840: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
