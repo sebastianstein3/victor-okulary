@@ -14,20 +14,25 @@
 # wprowadziła zmiana.
 export LANG=C.utf8 LC_ALL=C.utf8
 SP="$(cd "$(dirname "$0")" && pwd)"; K=$SP/kotlinc
-REPO=/home/user/claude-routines
+# Ścieżkę repo zapisuje setup.sh do repo_path. Zmienna REPO ma pierwszeństwo.
+REPO="${REPO:-$(cat "$SP/repo_path" 2>/dev/null)}"
+[ -d "$REPO" ] || { echo "nie znam ścieżki repo - uruchom tools/setup.sh albo ustaw REPO=..."; exit 2; }
 WORK=$SP/uicheck; mkdir -p "$WORK"
 
 # BAZA MUSI BYĆ OSTATNIM ZIELONYM BUILDEM, NIE HEAD-em.
 # Przy pierwszym podejściu porównywałem z HEAD - a HEAD zawierał już wpadkę,
 # którą miałem złapać, więc różnica wyszła pusta i test przepuścił zepsuty kod.
-BASE_REF="${BASE_REF:-$(cat "$SP/last_green_ref" 2>/dev/null || echo HEAD)}"
-echo "baza porównania: $BASE_REF" 
+# Brak pliku NIE może po cichu spaść na HEAD - to jest dokładnie ta awaria,
+# którą opisuje komentarz wyżej. Lepiej się zatrzymać niż przepuścić zepsuty kod.
+BASE_REF="${BASE_REF:-$(cat "$SP/last_green_ref" 2>/dev/null)}"
+[ -n "$BASE_REF" ] || { echo "brak last_green_ref - skopiuj go z tools/ albo ustaw BASE_REF=<sha ostatniego zielonego>"; exit 2; }
+echo "baza porównania: $BASE_REF"
 
 unresolved() {  # $1 = ścieżka pliku do sprawdzenia
   java -cp "$K/kotlin-compiler.jar:$SP/khome/lib/annotations-13.0.jar" \
     org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -kotlin-home "$SP/khome" \
     -classpath "$K/android-all.jar:$K/coroutines.jar:$K/kotlin-stdlib.jar" \
-    -d /tmp/uicheck-out -nowarn "$1" 2>&1 \
+    -d "$SP/work/uicheck-out" -nowarn "$1" 2>&1 \
     | grep -oE "unresolved reference:? '?[A-Za-z_][A-Za-z0-9_]*'?" \
     | sed -E "s/.*[ ']([A-Za-z_][A-Za-z0-9_]*)'?$/\1/" | sort -u
 }

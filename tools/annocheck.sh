@@ -5,7 +5,15 @@
 # jest w harnessie nierozwiazane i wyglada jak zwykly szum. A dwukrotne
 # @Composable wywraca CALY build na kapcie ("not a repeatable annotation type").
 # Zdarzylo sie dwa razy: przy wstawianiu funkcji POMIEDZY adnotacje a deklaracje.
-python3 - "$@" <<'PY'
+# Na Windowsie "python3" to zaslepka Microsoft Store, ktora tylko wypisuje
+# komunikat i konczy sie bledem - skrypt wygladal wtedy na wykonany, a nie
+# sprawdzil niczego. Bierzemy pierwszy interpreter, ktory naprawde dziala.
+PY_BIN=""
+for c in python3 python py; do
+  if command -v "$c" >/dev/null 2>&1 && "$c" -c "" >/dev/null 2>&1; then PY_BIN=$c; break; fi
+done
+[ -n "$PY_BIN" ] || { echo "nie znalazlem dzialajacego Pythona - annocheck pominiety"; exit 2; }
+"$PY_BIN" - "$@" <<'PY'
 import io, sys, glob
 bad = 0
 files = sys.argv[1:] or glob.glob("jarvis-app/app/src/**/*.kt", recursive=True)

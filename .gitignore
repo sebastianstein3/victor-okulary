@@ -24,6 +24,11 @@ captures/
 *.log
 build.log
 
+# Narzędzia lokalne - JDK i środowisko weryfikacji trzymamy WEWNĄTRZ projektu,
+# żeby nic nie rozlewało się po systemie. Katalog jest odtwarzalny skryptem
+# tools/setup.sh, więc nie ma po co go commitować (i tak ma setki MB).
+.local/
+
 # Klucze i sekrety - NIGDY nie commitować
 keystore.properties
 *.jks

@@ -19,9 +19,16 @@
 #   alphacephei.com   - zablokowane
 #   huggingface.co    - zablokowane
 set -e
+# Korzeń repo wywodzimy z położenia tego skryptu (leży w <repo>/tools/), a nie
+# z zaszytej ścieżki - kontener, w którym powstał, miał repo pod
+# /home/user/claude-routines i po przeniesieniu na inne konto nic się nie zgadzało.
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="${1:-$HOME/victor-verify}"
 M=https://repo1.maven.org/maven2
 mkdir -p "$DEST/kotlinc" "$DEST/khome/lib"
+# groupcheck.sh i uicheck.sh działają z $DEST, nie z repo - muszą skądś wziąć
+# jego ścieżkę. Zapisujemy ją obok nich, tak jak last_green_ref.
+echo "$REPO" > "$DEST/repo_path"
 cd "$DEST/kotlinc"
 
 get() { # $1=url $2=nazwa docelowa
@@ -63,7 +70,7 @@ get "$M/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar" hamcrest-core-1.3.
 
 # Vendor SDK okularów - rozpakowany z AAR w repozytorium.
 mkdir -p "$DEST/aar"
-AAR=$(find /home/user/claude-routines/jarvis-app -name "*.aar" | head -1)
+AAR=$(find "$REPO/jarvis-app" -name "*.aar" | head -1)
 if [ -n "$AAR" ]; then
   (cd "$DEST/aar" && unzip -oq "$AAR")
   echo "rozpakowano vendor SDK: $AAR"
@@ -73,8 +80,11 @@ fi
 
 # android.util.Log ma w android-all metody natywne, które w zwykłej JVM
 # rzucają UnsatisfiedLinkError - testy potrzebują atrapy.
-mkdir -p /tmp/logstub/android/util
-cat > /tmp/logstub/android/util/Log.java <<'JAVA'
+#
+# Katalogi robocze idą do $DEST/work, nie do /tmp: na Windowsie /tmp leży poza
+# projektem, a skrypty mają nie zostawiać niczego na zewnątrz.
+mkdir -p "$DEST/work/logstub/android/util"
+cat > "$DEST/work/logstub/android/util/Log.java" <<'JAVA'
 package android.util;
 public class Log {
   public static int v(String t, String m) { return 0; }
@@ -89,10 +99,10 @@ public class Log {
   public static int e(String t, String m, Throwable x) { return 0; }
 }
 JAVA
-javac -d /tmp/logstub /tmp/logstub/android/util/Log.java
+javac -d "$DEST/work/logstub" "$DEST/work/logstub/android/util/Log.java"
 
 echo
 echo "Gotowe: $DEST"
 echo "Skrypty w tools/ zakładają, że leżą OBOK katalogu kotlinc - skopiuj je:"
-echo "  cp /home/user/claude-routines/tools/*.sh $DEST/"
-echo "  cp /home/user/claude-routines/tools/baseline-groupcheck.txt $DEST/gc22.txt"
+echo "  cp $REPO/tools/*.sh $DEST/"
+echo "  cp $REPO/tools/baseline-groupcheck.txt $DEST/gc22.txt"
