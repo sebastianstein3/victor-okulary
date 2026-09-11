@@ -125,7 +125,16 @@ class OpusDecoder(
             // KAŻDYM obiegu dawałby fałszywe "brak dźwięku" przy pierwszym
             // pakiecie, co przy zgadywaniu ramkowania kończyłoby się odrzuceniem
             // poprawnego przesunięcia.
-            val waitUs = if (out.size() == 0) timeoutUs else DEQUEUE_TIMEOUT_US
+            //
+            // Gdy coś już mamy, kolejny obieg czeka ZERO. Stało tu 10 ms i był to
+            // czysty postój: pętla kończy się dopiero na TRY_AGAIN_LATER, więc
+            // KAŻDY pakiet płacił te 10 ms za stwierdzenie, że nic więcej nie
+            // ma. Piętnaście sekund mowy to około 750 pakietów, czyli 7-10 s
+            // stania w miejscu, zanim pytanie w ogóle poleciało do modelu - przy
+            // zgłoszeniu "długo trwa od pytania do odpowiedzi" to była jedna z
+            // największych pojedynczych pozycji. To, co dekoder wypluje chwilę
+            // później, odbierze drain następnego pakietu.
+            val waitUs = if (out.size() == 0) timeoutUs else 0L
             val outIndex = mc.dequeueOutputBuffer(info, waitUs)
             when {
                 outIndex >= 0 -> {

@@ -2329,8 +2329,14 @@ class AIOrchestrator(
                                 // Reszta bufora idzie na głos BEZ znacznika akcji -
                                 // trzymaliśmy go właśnie po to, żeby nie został
                                 // przeczytany na głos.
-                                audio.flushStream { tail ->
-                                    actionDetector.detectAiMarkedActions(tail).first
+                                // Reszta bufora TEŻ liczy się jako wypowiedziane -
+                                // przy krótkiej odpowiedzi bez kropki to jedyne,
+                                // co w ogóle poszło na głos.
+                                if (audio.flushStream { tail ->
+                                        actionDetector.detectAiMarkedActions(tail).first
+                                    }
+                                ) {
+                                    spokenWhileStreaming = true
                                 }
 
                                 // Zapisz do cache pod providerem z Ustawień - patrz komentarz wyżej
@@ -2403,9 +2409,22 @@ class AIOrchestrator(
                     // powtórka leci z forceVision = true, więc drugi raz tu nie wejdzie.
                     if (glassesManager.connectionState.value == ConnectionState.READY) {
                         Log.i(TAG, "Warstwa 1 poprosiła o zdjęcie - powtarzam pytanie z obrazem")
-                        val bridge = responseText.ifBlank { "Chwila, spojrzę." }
                         conversationalMode.onAiStartedSpeaking()
-                        audio.speakAndAwait(bridge, language = language)
+                        // Ta sama zasada co przy zwykłym końcu tury: jeśli
+                        // strumień już to wypowiedział, CZEKAMY na wybrzmienie.
+                        // Wcześniej szło tu speakAndAwait(responseText), czyli
+                        // QUEUE_FLUSH na tekście, który właśnie leciał - ucięcie
+                        // w pół słowa i przeczytanie całości od nowa. To jest ta
+                        // sama usterka, którą af89056 naprawił na głównej
+                        // ścieżce, a tę gałąź pominął.
+                        if (spokenWhileStreaming) {
+                            audio.awaitStreamSpoken()
+                        } else {
+                            audio.speakAndAwait(
+                                responseText.ifBlank { "Chwila, spojrzę." },
+                                language = language
+                            )
+                        }
                         _state.value = OrchestratorState.Idle
                         // Nagranie MUSI polecieć razem z powtórką. Gdy pytanie
                         // przyszło głosem z okularów, `textQuestion` jest tylko
@@ -2772,35 +2791,44 @@ class AIOrchestrator(
         // go teraz naprawdę (patrz executeActionsList). Wcześniej SAFE otwierał
         // formularz w aplikacji kalendarza i to kliknięcie "Zapisz" było całym
         // potwierdzeniem - skoro formularza już nie ma, pytanie musi paść tutaj.
-        val calendarViaApi = actions.firstOrNull() is Action.CreateCalendarEvent &&
+        val calendarViaApi = actions.any { it is Action.CreateCalendarEvent } &&
             directActionExecutor.canWriteCalendarDirectly()
         if (mode == ActionMode.DIRECT || calendarViaApi) {
-            val firstDirect = actions.firstOrNull()
-            if (firstDirect != null) {
-                val confirmation = directActionExecutor.canExecuteDirect(firstDirect)
-                if (confirmation is ActionConfirmation.Required) {
-                    // Zapisz akcje do późniejszego wykonania
-                    _pendingActionConfirmation.value = PendingActionConfirmation(
-                        actions = actions,
-                        title = confirmation.title,
-                        message = confirmation.message,
-                        confirmText = confirmation.confirmText,
-                        cancelText = confirmation.cancelText
-                    )
-                    // Zapytaj GŁOSEM i wysłuchaj odpowiedzi.
-                    //
-                    // Dotąd jedyną drogą było kliknięcie w oknie na telefonie -
-                    // czyli asystent, którego cała reszta działa bez rąk, na
-                    // ostatnim kroku kazał sięgnąć po telefon. Zgłoszone: "żeby
-                    // dało się zatwierdzić głosowo, a nie klikając".
-                    //
-                    // Okno zostaje: gdy odpowiedź jest niejednoznaczna albo nie
-                    // padnie wcale, decyzja ma dokąd wrócić.
-                    listenForConfirmation(
-                        confirmation.title + ". " + confirmation.message
-                    )
-                    return
-                }
+            // POTWIERDZENIE MUSI OBJĄĆ KAŻDĄ AKCJĘ Z LISTY, NIE TYLKO PIERWSZĄ.
+            //
+            // Niżej `executeActionsList(actions)` wykonuje CAŁĄ listę. Pytanie o
+            // samą pierwszą znaczyło, że przy dwóch znacznikach od modelu
+            // użytkownik potwierdzał "Wyślij SMS do Ani?", a przy okazji
+            // wykonywało się połączenie, o które nikt nie zapytał. To jedyne
+            // miejsce w całym przeglądzie, które mogło zrobić coś
+            // nieodwracalnego bez zgody.
+            val required = actions.mapNotNull {
+                directActionExecutor.canExecuteDirect(it) as? ActionConfirmation.Required
+            }
+            if (required.isNotEmpty()) {
+                val single = required.singleOrNull()
+                val title = single?.title ?: "Potwierdź wszystko, co zaraz zrobię"
+                val message = single?.message
+                    ?: required.joinToString("\n") { "• ${it.message}" }
+                // Zapisz akcje do późniejszego wykonania
+                _pendingActionConfirmation.value = PendingActionConfirmation(
+                    actions = actions,
+                    title = title,
+                    message = message,
+                    confirmText = required.first().confirmText,
+                    cancelText = required.first().cancelText
+                )
+                // Zapytaj GŁOSEM i wysłuchaj odpowiedzi.
+                //
+                // Dotąd jedyną drogą było kliknięcie w oknie na telefonie -
+                // czyli asystent, którego cała reszta działa bez rąk, na
+                // ostatnim kroku kazał sięgnąć po telefon. Zgłoszone: "żeby
+                // dało się zatwierdzić głosowo, a nie klikając".
+                //
+                // Okno zostaje: gdy odpowiedź jest niejednoznaczna albo nie
+                // padnie wcale, decyzja ma dokąd wrócić.
+                listenForConfirmation("$title. $message")
+                return
             }
         }
 

@@ -795,12 +795,9 @@ class AudioManager(
         //
         // Model dokleja na końcu wypowiedzi `[[ACTION: type=...]]`. Jest on
         // wycinany dopiero PO zakończeniu strumienia - a my mówimy w trakcie.
-        // Wszystko od pierwszego nawiasu kwadratowego trzymamy więc w buforze:
-        // albo okaże się znacznikiem (i zostanie wycięty), albo zwykłym
-        // tekstem (i pójdzie na głos przy domknięciu strumienia).
+        // Wstrzymujemy więc to, co może być znacznikiem - ale TYLKO to.
         val bufferText = streamBuffer.toString()
-        val safeEnd = bufferText.indexOf('[').let { if (it < 0) bufferText.length else it }
-        val speakable = bufferText.substring(0, safeEnd)
+        val speakable = bufferText.substring(0, StreamSpeech.speakableEnd(bufferText))
 
         val sentenceEndRegex = Regex("""([^.!?\n]*[.!?\n])""")
         var lastEnd = 0
@@ -853,12 +850,24 @@ class AudioManager(
      * @param strip funkcja czyszcząca resztę przed wypowiedzeniem; tu wycinany
      *   jest znacznik akcji, trzymany wcześniej w buforze
      */
-    fun flushStream(strip: (String) -> String = { it }) {
+    /**
+     * @return `true`, gdy resztę bufora ODDANO syntezatorowi.
+     *
+     * Wołający musi to wiedzieć, inaczej uzna, że strumień nic nie powiedział,
+     * i przeczyta całą odpowiedź jeszcze raz - z `QUEUE_FLUSH`, czyli ucinając
+     * w pół słowa to, co właśnie leci. Tak wracał objaw "odpowiada jakby na
+     * inne pytanie" przy odpowiedziach bez kropki przed znacznikiem akcji
+     * ("Jasne [[ACTION: ...]]"), gdzie `addStreamFragment` nie wypowiada nic,
+     * a cała treść wychodzi dopiero tędy.
+     */
+    fun flushStream(strip: (String) -> String = { it }): Boolean {
         val remaining = strip(streamBuffer.toString()).trim()
+        streamBuffer.clear()
         if (remaining.isNotBlank() && remaining.length > 2) {
             queueSentence(remaining)
+            return true
         }
-        streamBuffer.clear()
+        return false
     }
 
     /**

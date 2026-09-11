@@ -75,7 +75,7 @@ class ConversationalMode(
         _enabled.value = true
         active.set(true)
         onActivated()
-        startListeningLoop()
+        startListening()
     }
 
     /**
@@ -99,13 +99,7 @@ class ConversationalMode(
     fun onAiFinishedSpeaking() {
         if (!_enabled.value) return
         Log.d(tag, "AI skończył mówić, startuję nasłuchiwanie...")
-        listenJob?.cancel()
-        listenJob = scope.launch {
-            delay(postAnswerDelayMs)
-            if (active.get()) {
-                startSingleListen()
-            }
-        }
+        startListening(initialDelayMs = postAnswerDelayMs)
     }
 
     /**
@@ -132,20 +126,61 @@ class ConversationalMode(
     private companion object {
         /** Odstęp odpytywania [deliverSpeech] w wariancie zapasowym. */
         const val POLL_INTERVAL_MS = 200L
+
+        /** Przerwa przed ponowieniem nasłuchu, gdy nic nie usłyszeliśmy. */
+        const val RETRY_DELAY_MS = 100L
     }
 
-    private fun startListeningLoop() {
+    /**
+     * Uzbraja nasłuch i ponawia go, DOPÓKI nic nie usłyszeliśmy.
+     *
+     * ## Dlaczego pętla kończy się na pierwszym usłyszanym zdaniu
+     * Bo `onUserSpoke` wraca NATYCHMIAST - odpala tylko korutynę tury. Stara
+     * pętla robiła wtedy `delay(100)` i otwierała mikrofon ponownie, choć tura
+     * dopiero się zaczynała. Przez cały czas myślenia i mówienia mikrofon
+     * nagrywał, w tym WŁASNĄ odpowiedź asystenta czytaną zdanie po zdaniu.
+     * To echo wpadało jako nowe pytanie, `mayTakeOverTurn()` zwracało true i
+     * bieżąca tura była ubijana oraz zastępowana pytaniem złożonym z własnej
+     * odpowiedzi. Stąd "odpowiedzi jakby na inne pytania" i "zawieszanie po
+     * pierwszym pytaniu" - pętla żyje między `enable()` a pierwszym
+     * `onAiFinishedSpeaking()`, więc uderzała właśnie w pierwszą turę.
+     *
+     * Mechanizm wznawiania już istniał i jest jedynym właściwym: nasłuch wraca
+     * w `onAiFinishedSpeaking()`, czyli gdy asystent NAPRAWDĘ skończył mówić.
+     *
+     * @param initialDelayMs cisza przed pierwszym nasłuchem - po odpowiedzi
+     *   asystenta dajemy wybrzmieć końcówce, żeby nie złapać jej ogona
+     */
+    private fun startListening(initialDelayMs: Long = 0L) {
+        listenJob?.cancel()
         listenJob = scope.launch {
+            if (initialDelayMs > 0) delay(initialDelayMs)
+            val startedAt = System.currentTimeMillis()
             while (active.get()) {
-                startSingleListen()
-                if (!active.get()) break
-                delay(100)  // krótka pauza przed ponownym słuchaniem
+                if (startSingleListen()) return@launch
+                // Budżet ciszy liczy się ŁĄCZNIE, a nie na jedno podejście:
+                // rozpoznawanie potrafi oddać pustkę po dwóch sekundach, a to
+                // jest cisza, nie koniec rozmowy. Wcześniej obie sytuacje
+                // dawały null z withTimeoutOrNull i tryb wyłączał się sam po
+                // chwili milczenia, wpisując do dziennika "timeout" po 30 s.
+                if (System.currentTimeMillis() - startedAt >= listenTimeoutMs) {
+                    disable(reason = "brak wypowiedzi przez ${listenTimeoutMs / 1000} s")
+                    return@launch
+                }
+                delay(RETRY_DELAY_MS)
             }
         }
     }
 
-    private suspend fun startSingleListen() {
-        if (!active.get()) return
+    /**
+     * Jedno podejście do nasłuchu.
+     *
+     * @return `true`, gdy nasłuch ma ZAMILKNĄĆ: pytanie poszło do orkiestratora
+     *   (wznowi go `onAiFinishedSpeaking`) albo tryb został wyłączony.
+     *   `false`, gdy nic nie usłyszeliśmy i wołający może spróbować ponownie.
+     */
+    private suspend fun startSingleListen(): Boolean {
+        if (!active.get()) return true
         _isListening.value = true
         _lastActivityTime.value = System.currentTimeMillis()
 
@@ -154,23 +189,24 @@ class ConversationalMode(
                 waitForUserSpeech()
             }
 
-            if (result == null) {
-                Log.d(tag, "Timeout nasłuchiwania - wyłączam tryb")
-                disable(reason = "timeout")
-                return
-            }
+            if (result.isNullOrBlank()) return false
 
             if (isExitCommand(result)) {
                 Log.i(tag, "Exit command: $result")
                 disable(reason = "exit command")
                 audio.speak("Do widzenia", language = "pl")
-                return
+                return true
             }
 
-            // Przetwórz pytanie
+            // Tura przejmuje stąd. Mikrofon MUSI teraz zamilknąć - patrz
+            // uzasadnienie przy [startListening].
             onUserSpoke(result)
+            return true
         } catch (e: Exception) {
             Log.e(tag, "Listen error", e)
+            // Błąd rozpoznawania nie może zostawić trybu głuchym na stałe:
+            // tura nie ruszyła, więc nikt nie zawoła onAiFinishedSpeaking().
+            return false
         } finally {
             _isListening.value = false
         }

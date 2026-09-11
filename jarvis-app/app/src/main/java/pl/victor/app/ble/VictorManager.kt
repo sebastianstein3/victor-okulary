@@ -440,6 +440,8 @@ class VictorManager private constructor(context: Context) {
                     }
                     greetingDone = false
                     connectTimeoutJob?.cancel()
+                    // Subskrypcja mikrofonu padła razem z GATT - patrz [onGattDropped].
+                    onGattDropped()
                     _connectionState.value = ConnectionState.DISCONNECTED
                     _glassesIp.value = null
                     // Wykrywanie frazy żyje w okularach, więc bez połączenia nie
@@ -613,6 +615,11 @@ class VictorManager private constructor(context: Context) {
 
             runCatching { largeDataHandler.initEnable() }
                 .onFailure { Log.w(tag, "initEnable nie powiodło się", it) }
+
+            // Gdy rozłączenie zastało turę w trakcie, odbiorca strumienia wciąż
+            // czeka - subskrypcję trzeba mu odtworzyć, bo sam się o nią nie
+            // upomni. Przy pustej liście to nic nie robi.
+            rearmMicStreamAfterReconnect()
 
             // SDK sam rozgłasza `service_discovered` jeszcze raz, 2,5 s po
             // uzbrojeniu kanału zapisu. Powitanie ma iść raz na połączenie.
@@ -788,17 +795,46 @@ class VictorManager private constructor(context: Context) {
         synchronized(micStreamListeners) {
             micStreamListeners.add(listener)
             if (micStreamActive) return
-            runCatching {
-                largeDataHandler.initPackageNotify { _, rsp ->
-                    val payload = runCatching { rsp?.subData }.getOrNull()
-                    if (payload != null && payload.isNotEmpty()) onMicPacket(payload)
-                }
-                micStreamActive = true
-                Log.i(tag, "Nasłuch strumienia audio z okularów włączony")
-            }.onFailure {
-                micStreamListeners.remove(listener)
-                Log.w(tag, "initPackageNotify nie powiodło się", it)
-            }
+            if (!armMicNotify()) micStreamListeners.remove(listener)
+        }
+    }
+
+    /**
+     * Zamawia w SDK odbiór pakietów mikrofonu.
+     *
+     * Wołane wyłącznie pod blokadą [micStreamListeners].
+     *
+     * @return czy subskrypcja doszła do skutku
+     */
+    private fun armMicNotify(): Boolean = runCatching {
+        largeDataHandler.initPackageNotify { _, rsp ->
+            val payload = runCatching { rsp?.subData }.getOrNull()
+            if (payload != null && payload.isNotEmpty()) onMicPacket(payload)
+        }
+        micStreamActive = true
+        Log.i(tag, "Nasłuch strumienia audio z okularów włączony")
+    }.onFailure { Log.w(tag, "initPackageNotify nie powiodło się", it) }.isSuccess
+
+    /**
+     * Subskrypcja pakietów mikrofonu ginie razem z połączeniem GATT.
+     *
+     * Bez wyzerowania flagi [micStreamActive] rozłączenie zostawiało ją na
+     * `true`, więc po samoczynnym powrocie okularów [addMicStreamListener]
+     * wychodził od razu i NIGDY nie zamawiał subskrypcji ponownie: połączenie
+     * wyglądało na sprawne, a mikrofon milczał do końca życia procesu. Zdarza
+     * się to przy każdym wyjściu z zasięgu, czyli w normalnym używaniu.
+     *
+     * Gdy rozłączenie zastało turę w trakcie, odbiorca jest nadal zapisany -
+     * wtedy odtwarzamy mu subskrypcję od razu po powrocie, bo sam się o nią
+     * nie upomni.
+     */
+    private fun onGattDropped() {
+        synchronized(micStreamListeners) { micStreamActive = false }
+    }
+
+    private fun rearmMicStreamAfterReconnect() {
+        synchronized(micStreamListeners) {
+            if (micStreamListeners.isNotEmpty() && !micStreamActive) armMicNotify()
         }
     }
 

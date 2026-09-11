@@ -309,16 +309,33 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
         }
     }
 
-    private fun startModern(am: AudioManager): Boolean = try {
-        val device = am.availableCommunicationDevices.firstOrNull {
-            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+    private fun startModern(am: AudioManager): Boolean {
+        val device = try {
+            am.availableCommunicationDevices.firstOrNull {
+                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+            }
+        } catch (e: Exception) {
+            Log.w(tag, "Nie udało się odczytać listy urządzeń rozmowy", e)
+            return false
         }
         if (device == null) {
             Log.d(tag, "Brak urządzenia SCO na liście do rozmowy")
-            false
-        } else {
-            previousMode = am.mode
-            am.mode = AudioManager.MODE_IN_COMMUNICATION
+            return false
+        }
+
+        // TRYB ROZMOWY PODNOSIMY DOPIERO TUTAJ I ODDAJEMY GO NA KAŻDEJ DRODZE
+        // WYJŚCIA.
+        //
+        // Wcześniej `mode` był ustawiany PRZED setCommunicationDevice, a wyjątek
+        // z tego wywołania wychodził przez catch BEZ restoreMode. Skoro acquire()
+        // zwracało wtedy false, nikt nie wołał release() - i telefon zostawał w
+        // MODE_IN_COMMUNICATION na stałe, czyli grał "tylko połączenia" zamiast
+        // multimediów, aż do ubicia procesu. To jest trzecia przyczyna tego
+        // zgłoszenia; dwie poprzednie (SCO brane przy każdym nasłuchu i na całą
+        // turę) usunęły commity d219557 i 17b9555.
+        previousMode = am.mode
+        am.mode = AudioManager.MODE_IN_COMMUNICATION
+        return try {
             val ok = am.setCommunicationDevice(device)
             if (ok) {
                 Log.i(tag, "Rozmowa przez ${device.productName}")
@@ -327,10 +344,11 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
                 restoreMode(am)
             }
             ok
+        } catch (e: Exception) {
+            Log.w(tag, "Nie udało się ustawić urządzenia rozmowy", e)
+            restoreMode(am)
+            false
         }
-    } catch (e: Exception) {
-        Log.w(tag, "Nie udało się ustawić urządzenia rozmowy", e)
-        false
     }
 
     private suspend fun startLegacy(am: AudioManager, timeoutMs: Long): Boolean {
