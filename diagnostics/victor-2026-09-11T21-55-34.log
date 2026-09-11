@@ -98,3 +98,34 @@
 22:04:39.251  +73956 ms  MODEL        koniec odpowiedzi (391 znaków, 5332 tokenów)  ms=12262
 22:04:58.666  +93371 ms  MOWA         koniec wypowiedzi  ms=19413
 22:04:58.685  +93390 ms  SESJA        --- KONIEC TURY e696: odpowiedziano ---
+22:05:07.074          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+22:05:37.804          ms  PRZYCISK     wciśnięto  numer=1
+22:05:38.030          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+22:05:38.390      +0 ms  SESJA        --- TURA 0066 ---  źródło=OKULARY
+22:05:38.391      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:05:45.964   +7574 ms  NASŁUCH      koniec  ms=7574 odłożone=zapamiętaj że mam na imię sebastian i mam 28 lat i mieszkam w toruniu
+22:05:45.975   +7585 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+22:05:48.538  +10149 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.6535 pakietów=383 rozkodowanych=383 odrzuconych=0 przesunięcie=0 ramka=-1
+22:05:52.384  +13994 ms  TRANSKRYPCJA z nagrania okularów  ms=3842
+22:05:52.387  +13997 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zapamiętaj że mam na imię sebastian i mam 28 lat i mieszkam 
+22:05:52.389  +13999 ms  SESJA        pytanie  tekst=zapamiętaj że mam na imię sebastian i mam 28 lat i mieszkam w toruniu wymuszonyObraz=false
+22:06:29.632  +51242 ms  PRZYCISK     wciśnięto  numer=1
+22:06:29.871  +51481 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+22:06:30.261      +0 ms  SESJA        --- TURA 76fc ---  źródło=OKULARY
+22:06:30.264      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:06:36.010   +5750 ms  NASŁUCH      koniec  ms=5749 odłożone=do mnie wiesz
+22:06:36.136   +5875 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+22:06:38.228   +7968 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.8535 pakietów=293 rozkodowanych=293 odrzuconych=0 przesunięcie=0 ramka=-1
+22:06:42.299  +12039 ms  TRANSKRYPCJA z nagrania okularów  ms=4057
+22:06:42.303  +12042 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=do mnie wiesz
+22:06:42.305  +12044 ms  SESJA        pytanie  tekst=do mnie wiesz wymuszonyObraz=false
+22:06:42.317  +12056 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+22:06:42.329  +12069 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:06:42.332  +12072 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:06:42.353  +12092 ms  KONTEKST     zebrany  ms=12 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false
+22:06:42.367  +12106 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=1252
+22:06:42.779  +12519 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+22:06:47.489  +17229 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5123
+22:06:47.526  +17265 ms  MODEL        koniec odpowiedzi (195 znaków, 2993 tokenów)  ms=5160
+22:06:58.049  +27789 ms  MOWA         koniec wypowiedzi  ms=10514
+22:06:58.114  +27854 ms  SESJA        --- KONIEC TURY 76fc: odpowiedziano ---
