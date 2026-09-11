@@ -171,3 +171,21 @@
 22:09:11.105  +16262 ms  MODEL        koniec odpowiedzi (202 znaków, 4713 tokenów)  ms=5302
 22:09:21.438  +26595 ms  MOWA         koniec wypowiedzi  ms=10331
 22:09:21.458  +26615 ms  SESJA        --- KONIEC TURY 1d42: odpowiedziano ---
+22:09:29.877          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+22:09:30.644          ms  PRZYCISK     wciśnięto  numer=1
+22:09:30.952          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+22:09:31.289      +0 ms  SESJA        --- TURA 6f8a ---  źródło=OKULARY
+22:09:31.291      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:09:40.283   +8994 ms  NASŁUCH      koniec  ms=8994
+22:09:40.412   +9123 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+22:09:41.624  +10335 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1135 pakietów=456 rozkodowanych=456 odrzuconych=0 przesunięcie=0 ramka=-1
+22:09:46.905  +15617 ms  TRANSKRYPCJA z nagrania okularów  ms=5278
+22:09:46.909  +15620 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=874940 B wymuszonyObraz=false
+22:09:46.912  +15623 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+22:09:46.925  +15636 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:09:46.927  +15638 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:09:47.419  +16130 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+22:09:48.314  +17025 ms  KONTEKST     zebrany  ms=1375 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+22:09:48.321  +17032 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=8393
+22:10:49.080  +77791 ms  MODEL        wysyłam pytanie  dostawca=local próba=2 zdjęć=0 znakówPromptu=8393
+22:10:49.120  +77831 ms  SESJA        --- KONIEC TURY 6f8a: Idle ---
