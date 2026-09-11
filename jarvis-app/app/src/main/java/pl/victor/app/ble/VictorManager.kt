@@ -207,6 +207,17 @@ class VictorManager private constructor(context: Context) {
     @Volatile
     private var hardwarePhotoInProgress = false
 
+    /**
+     * Nazwa okularów w KLASYCZNYM Bluetoothie (część audio), zgłoszona przez
+     * nie same - patrz `syncClassicBluetooth` w powitaniu.
+     *
+     * To inne urządzenie niż to, z którym łączymy się po BLE. Bez tej nazwy
+     * komunikat „włącz multimedia w ustawieniach Bluetooth" nie mówi, KTÓRĄ
+     * pozycję z listy przestawić.
+     */
+    private val _classicAudioName = MutableStateFlow<String?>(null)
+    val classicAudioName: StateFlow<String?> = _classicAudioName.asStateFlow()
+
     /** Kiedy ostatnio nie udało się pobrać oryginału przez Wi-Fi Direct. */
     @Volatile
     private var wifiDirectFailedAtMs = 0L
@@ -690,17 +701,14 @@ class VictorManager private constructor(context: Context) {
             }
             is NotifyEvent.Unknown -> {
                 Log.d(tag, "Notify: nieobsługiwany typ 0x${event.type.toString(16)}")
-                // Do dziennika, nie tylko do logcatu. Bez tego zgłoszenie
-                // „ręczne zdjęcie nie trafia do aplikacji" nie ma jak się
-                // rozstrzygnąć: gdy okulary meldują je ramką, której nie
-                // dekodujemy, dziennik milczy tak samo, jak przy braku ramki.
-                runCatching {
-                    diag.event(
-                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
-                        "nieobsługiwana ramka notify",
-                        mapOf("typ" to "0x${event.type.toString(16)}", "ramka" to hex)
-                    )
-                }
+                // Do dziennika, nie tylko do logcatu - ale NIE za każdym razem.
+                //
+                // Okulary sypią ramką 0x12 kilkadziesiąt razy na minutę. W
+                // dzienniku z 23:07 zajmuje to całe bloki po kilkanaście
+                // wierszy pod rząd i topi w sobie zdarzenia, dla których ten
+                // dziennik powstał. Pierwsze wystąpienie danego typu opisujemy
+                // w całości, kolejne zbieramy i podsumowujemy liczbą.
+                noteUnknownNotify(event.type, hex)
             }
             is NotifyEvent.Malformed -> {
                 Log.w(tag, "Notify: ramka za krótka (${event.size} B)")
@@ -845,6 +853,33 @@ class VictorManager private constructor(context: Context) {
                 .onFailure { Log.w(tag, "openBT nie powiodło się", it) }
             runCatching { largeDataHandler.speakSoundSwitch(true) }
                 .onFailure { Log.w(tag, "speakSoundSwitch nie powiodło się", it) }
+
+            // JAK OKULARY NAZYWAJĄ SIĘ W KLASYCZNYM BLUETOOTHIE.
+            //
+            // `syncClassicBluetooth` jest w AAR producenta od początku i nigdy
+            // jej nie wołaliśmy, a odpowiedź (`ClassBluetoothResponse`) niesie
+            // dokładnie dwie rzeczy, których brakuje przy sprawie „okulary
+            // pokazują się jako «tylko połączenia»": NAZWĘ i ADRES MAC części
+            // audio. To jest INNE urządzenie niż to, z którym gadamy po BLE -
+            // i właśnie dlatego nie dało się dotąd powiedzieć użytkownikowi,
+            // którą pozycję w ustawieniach Bluetooth ma przestawić.
+            //
+            // Czysty odczyt, nic nie ustawia.
+            runCatching {
+                largeDataHandler.syncClassicBluetooth { _, rsp ->
+                    val name = runCatching { rsp?.btName }.getOrNull()
+                    val address = runCatching { rsp?.btAddress }.getOrNull()
+                    Log.i(tag, "Klasyczny Bluetooth okularów: $name ($address)")
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                            "okulary podały swoją część audio",
+                            mapOf("nazwa" to name, "adres" to address)
+                        )
+                    }
+                    _classicAudioName.value = name
+                }
+            }.onFailure { Log.w(tag, "syncClassicBluetooth nie powiodło się", it) }
 
             // Wykrywanie komendy głosowej po stronie okularów - nie wymaga Picovoice.
             // Respektujemy wybór użytkownika, a nie włączamy na sztywno.
@@ -1103,6 +1138,48 @@ class VictorManager private constructor(context: Context) {
         synchronized(micStreamListeners) {
             micStreamListeners.clear()
             unsubscribeMicStream()
+        }
+    }
+
+    /** Ile nieznanych ramek danego typu przyszło od ostatniego wpisu. */
+    private val unknownNotifyCounts = mutableMapOf<Int, Int>()
+    private val unknownNotifyLoggedAt = mutableMapOf<Int, Long>()
+
+    /**
+     * Zapisuje nieznaną ramkę, ale rzadko.
+     *
+     * Pierwsza ramka danego typu idzie do dziennika w całości - to ona jest
+     * ciekawa. Kolejne są zliczane i podsumowywane nie częściej niż raz na
+     * [UNKNOWN_NOTIFY_INTERVAL_MS], żeby nie zasypać wpisów, dla których ten
+     * dziennik istnieje.
+     */
+    private fun noteUnknownNotify(type: Int, hex: String) {
+        val now = System.currentTimeMillis()
+        val (count, lastAt) = synchronized(unknownNotifyCounts) {
+            val c = (unknownNotifyCounts[type] ?: 0) + 1
+            unknownNotifyCounts[type] = c
+            val last = unknownNotifyLoggedAt[type] ?: 0L
+            if (last == 0L || now - last >= UNKNOWN_NOTIFY_INTERVAL_MS) {
+                unknownNotifyLoggedAt[type] = now
+                unknownNotifyCounts[type] = 0
+                c to last
+            } else {
+                return
+            }
+        }
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "nieobsługiwana ramka notify",
+                mapOf(
+                    "typ" to "0x${type.toString(16)}",
+                    "ramka" to hex,
+                    // Przy pierwszym wystąpieniu to zawsze 1; dalej mówi, ile
+                    // ich było od poprzedniego wpisu.
+                    "sztuk" to count,
+                    "pierwsza" to (lastAt == 0L)
+                )
+            )
         }
     }
 
@@ -2587,7 +2664,37 @@ class VictorManager private constructor(context: Context) {
             }
         }
 
-        // 3. IP okularów przychodzi ramką notify 0x08 - groupOwnerAddress to zwykle telefon.
+        // 3. PODAJ OKULAROM ADRES TELEFONU - krok, którego nigdy nie robiliśmy.
+        //
+        // W AAR producenta jest `LargeDataHandler.writeIpToSoc(ip, callback)`:
+        // wysyła pod komendą 0xFC strukturę `WifiInfoReq`, czyli
+        // `[0x02, długość, adres jako UTF-8]`. Aplikacja nie wołała jej ani
+        // razu - czekaliśmy wyłącznie, aż okulary SAME zgłoszą swój adres ramką
+        // notify 0x08. Ten adres nie przychodził (w dzienniku: „sieć stoi, ale
+        // okulary nie podały adresu"), a na tym stoi cała galeria i pełna
+        // rozdzielczość.
+        //
+        // Kolejność jest naturalna: najpierw mówimy okularom, gdzie jesteśmy,
+        // potem czekamy, aż powiedzą, gdzie są one. Wywołanie jest tanie i
+        // nieszkodliwe także wtedy, gdy nie o to chodziło.
+        val phoneIp = wifiTransfer.lastGroupOwnerAddress
+        if (phoneIp != null) {
+            runCatching {
+                largeDataHandler.writeIpToSoc(phoneIp) { _, _ -> }
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                    "Wi-Fi Direct: podałem okularom adres telefonu",
+                    mapOf("ip" to phoneIp)
+                )
+            }.onFailure { Log.w(tag, "writeIpToSoc nie powiodło się", it) }
+        } else {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Wi-Fi Direct: nie znam adresu telefonu w grupie"
+            )
+        }
+
+        // 4. IP okularów przychodzi ramką notify 0x08 - groupOwnerAddress to zwykle telefon.
         val ip = withTimeoutOrNull(IP_TIMEOUT_MS) {
             while (_glassesIp.value == null) {
                 delay(IP_POLL_INTERVAL_MS)
@@ -2816,6 +2923,9 @@ class VictorManager private constructor(context: Context) {
 
         /** Jak rzadko zapisywać pakiety przychodzące poza turą. */
         private const val STRAY_MIC_LOG_INTERVAL_MS = 3_000L
+
+        /** Jak rzadko podsumowywać nieznane ramki notify tego samego typu. */
+        private const val UNKNOWN_NOTIFY_INTERVAL_MS = 60_000L
 
         /** Jak często wolno prosić okulary o tryb multimediów - patrz [requestClassicAudio]. */
         private const val CLASSIC_AUDIO_RETRY_MS = 30_000L

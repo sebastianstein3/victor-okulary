@@ -276,11 +276,31 @@ class GlassesWifiTransfer(context: Context) {
             return false
         }
 
+        // Adres właściciela grupy to adres TELEFONU (zwykle 192.168.49.1).
+        // Okulary muszą go poznać - patrz [groupOwnerAddress].
+        lastGroupOwnerAddress = runCatching { info.groupOwnerAddress?.hostAddress }.getOrNull()
+
         // Bez tego na części telefonów ruch HTTP pójdzie zwykłym Wi-Fi.
         bindProcessToP2pNetwork()
         _state.value = TransferState.CONNECTED
         return true
     }
+
+    /**
+     * Adres telefonu w grupie Wi-Fi Direct - ten, który trzeba PODAĆ OKULAROM.
+     *
+     * ## Skąd wiadomo, że trzeba
+     * Z AAR producenta. `LargeDataHandler.writeIpToSoc(ip, callback)` wysyła
+     * pod komendą `0xFC` strukturę `WifiInfoReq`, czyli `[0x02, długość, ip
+     * jako UTF-8]`. Aplikacja nigdy tego nie wołała: czekaliśmy wyłącznie, aż
+     * okulary SAME podadzą swój adres ramką notify 0x08 - a on nie przychodził
+     * i cała galeria oraz pełna rozdzielczość stały na tym w miejscu.
+     *
+     * `null`, dopóki grupa nie stoi.
+     */
+    @Volatile
+    var lastGroupOwnerAddress: String? = null
+        private set
 
     @SuppressLint("MissingPermission")
     private suspend fun discoverPeers(
