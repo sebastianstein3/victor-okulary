@@ -150,3 +150,24 @@
 22:07:39.918  +26342 ms  MODEL        koniec odpowiedzi (388 znaków, 6147 tokenów)  ms=12172
 22:07:59.436  +45859 ms  MOWA         koniec wypowiedzi  ms=19515
 22:07:59.496  +45920 ms  SESJA        --- KONIEC TURY 5209: odpowiedziano ---
+22:08:49.596          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+22:08:54.185          ms  PRZYCISK     wciśnięto  numer=1
+22:08:54.546          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+22:08:54.844      +1 ms  SESJA        --- TURA 1d42 ---  źródło=OKULARY
+22:08:54.845      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:09:01.156   +6313 ms  NASŁUCH      koniec  ms=6313 odłożone=powiedz mi więcej o moim dotyczącym ikea
+22:09:01.159   +6316 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+22:09:01.717   +6874 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.4535 pakietów=323 rozkodowanych=323 odrzuconych=0 przesunięcie=0 ramka=-1
+22:09:04.385   +9542 ms  TRANSKRYPCJA z nagrania okularów  ms=2667
+22:09:04.387   +9544 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=powiedz mi więcej o moim dotyczącym ikea
+22:09:04.388   +9545 ms  SESJA        pytanie  tekst=powiedz mi więcej o moim dotyczącym ikea wymuszonyObraz=false
+22:09:04.394   +9552 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+22:09:04.405   +9562 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:09:04.408   +9565 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:09:04.817   +9974 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+22:09:05.796  +10953 ms  KONTEKST     zebrany  ms=1383 pamięć=true kalendarz=false poczta=true pogoda=false lokalizacja=false
+22:09:05.803  +10960 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=5610
+22:09:11.096  +16253 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5293
+22:09:11.105  +16262 ms  MODEL        koniec odpowiedzi (202 znaków, 4713 tokenów)  ms=5302
+22:09:21.438  +26595 ms  MOWA         koniec wypowiedzi  ms=10331
+22:09:21.458  +26615 ms  SESJA        --- KONIEC TURY 1d42: odpowiedziano ---
