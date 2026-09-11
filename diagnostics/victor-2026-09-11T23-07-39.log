@@ -427,3 +427,11 @@
 23:36:05.174          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6003
 23:36:05.180          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
 23:36:21.170          ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+23:38:04.884          ms  ZDJĘCIE      próba 1: droga producenta  jakość=2
+23:38:10.890          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6002
+23:38:10.894          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+23:38:26.885          ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+23:38:28.809          ms  ZDJĘCIE      próba 1: droga producenta  jakość=2
+23:38:34.817          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6001
+23:38:34.821          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+23:38:50.811          ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
