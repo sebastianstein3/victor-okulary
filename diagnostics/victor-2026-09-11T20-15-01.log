@@ -121,3 +121,22 @@
 20:20:15.103  +31733 ms  MODEL        koniec odpowiedzi (72 znaków, 8047 tokenów)  ms=11646
 20:20:20.169  +36800 ms  MOWA         koniec wypowiedzi  ms=5058
 20:20:20.228  +36858 ms  SESJA        --- KONIEC TURY 8748: odpowiedziano ---
+20:22:58.421          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:23:59.587          ms  PRZYCISK     wciśnięto  numer=1
+20:23:59.698          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+20:24:00.285      +3 ms  SESJA        --- TURA 31d5 ---  źródło=OKULARY
+20:24:00.289      +7 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+20:24:09.258   +8975 ms  NASŁUCH      koniec  ms=8974 odłożone=dlaczego po jednym pytaniu się zabierzesz na jakiś czas
+20:24:09.406   +9124 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=22
+20:24:13.483  +13200 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1535
+20:24:19.097  +18814 ms  TRANSKRYPCJA z nagrania okularów  ms=5611 droga=Bez transkrypcji - nagranie do modelu
+20:24:19.108  +18825 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=878780 B wymuszonyObraz=false
+20:24:19.118  +18835 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+20:24:19.201  +18918 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:24:19.628  +19345 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+20:24:21.153  +20871 ms  KONTEKST     zebrany  ms=1937 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:24:21.198  +20915 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=9719
+20:25:01.587  +61304 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=40394
+20:25:01.647  +61364 ms  MODEL        koniec odpowiedzi (72 znaków, 15869 tokenów)  ms=40454
+20:25:06.294  +66011 ms  MOWA         koniec wypowiedzi  ms=4644
+20:25:06.354  +66071 ms  SESJA        --- KONIEC TURY 31d5: odpowiedziano ---
