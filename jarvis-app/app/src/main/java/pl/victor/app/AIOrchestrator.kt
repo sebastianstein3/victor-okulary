@@ -27,6 +27,7 @@ import pl.victor.app.actions.DirectActionExecutor
 import pl.victor.app.actions.SmartActionDetector
 import pl.victor.app.audio.AudioManager
 import pl.victor.app.audio.GlassesVoiceCapture
+import pl.victor.app.conversation.WakePhrase
 import pl.victor.app.ble.ButtonAction
 import pl.victor.app.ble.ButtonActionDetector
 import pl.victor.app.ble.ConnectionState
@@ -139,7 +140,7 @@ class AIOrchestrator(
         audio = audio,
         wakeWord = wakeWord,
         speechToText = speechToText,
-        onUserSpoke = { text -> handleUserTrigger(TriggerSource.VOICE, text) },
+        onUserSpoke = { text -> handleSpokenText(text) },
         onActivated = { Log.i(TAG, "Tryb konwersacyjny ON") },
         onDeactivated = { Log.i(TAG, "Tryb konwersacyjny OFF") }
     ).apply {
@@ -1029,6 +1030,46 @@ class AIOrchestrator(
      * a okularów nie zawsze ma się na sobie.
      */
     fun startVoiceQuestion() = startVoiceTurn(fromGlasses = false)
+
+    /**
+     * Wypowiedź usłyszana w trybie ciągłego nasłuchu.
+     *
+     * ## Po co osobne wejście
+     * Bo fraza wybudzenia nie jest pytaniem. W dzienniku z 11 września tura
+     * `e117` poszła do modelu z pytaniem `tekst=okej lens` - czyli samym
+     * wywołaniem. Model dostał kontekst, odpowiedział na nic, tura zajęła
+     * kilkanaście sekund, a prawdziwe pytanie, zadane zaraz po frazie, trafiało
+     * już w turę trwającą. Zgłoszone jako „wywołuję AI głosowo, okulary
+     * reagują, ale aplikacja nic nie robi, jakby nie słyszała".
+     *
+     * Teraz sama fraza OTWIERA NASŁUCH, a fraza z pytaniem („okej lens, jaka
+     * jest pogoda") oddaje modelowi samo pytanie.
+     */
+    private fun handleSpokenText(text: String) {
+        val configured = listOf(settings.getSelectedWakeWord())
+        if (WakePhrase.isOnlyWakePhrase(text, configured)) {
+            diag.event(
+                DiagFormat.Phase.NASŁUCH,
+                "sama fraza wybudzenia - otwieram nasłuch zamiast pytać model",
+                mapOf("usłyszane" to text.take(60))
+            )
+            // fromGlasses = false świadomie: to jest ta sama droga, którą
+            // przeszły wszystkie udane tury z dziennika (mikrofon telefonu po
+            // SCO). Strumień BLE z okularów nie jest jeszcze potwierdzony na
+            // sprzęcie i nie chcę go stawiać na ścieżce, która właśnie zaczęła
+            // działać.
+            startVoiceTurn(fromGlasses = false)
+            return
+        }
+        val question = WakePhrase.stripLeadingWakePhrase(text, configured)
+        if (question != text) {
+            diag.event(
+                DiagFormat.Phase.NASŁUCH, "odcięta fraza wybudzenia",
+                mapOf("usłyszane" to text.take(60), "pytanie" to question.take(60))
+            )
+        }
+        handleUserTrigger(TriggerSource.VOICE, question)
+    }
 
     /**
      * „Pokaż" z ekranu głównego: zrób zdjęcie i powiedz, co na nim jest.

@@ -636,7 +636,26 @@ class VictorManager private constructor(context: Context) {
                 Log.d(tag, "Notify: kąt kamery ${event.angle}")
             is NotifyEvent.AiSessionRequested -> {
                 Log.i(tag, "Notify: okulary proszą o rozmowę (tekst na żywo=${event.realtimeText})")
-                _aiSessionRequest.tryEmit(event.realtimeText)
+                // W dzienniku z 11 września nie ma ANI JEDNEJ tury ze źródłem
+                // OKULARY, choć użytkownik wybudzał je głosem i słyszał ich
+                // reakcję. Bez tego wpisu nie da się rozstrzygnąć, czy prośba
+                // do nas nie dociera, czy dociera i ginie po naszej stronie.
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                        "okulary proszą o rozmowę",
+                        mapOf("tekstNaŻywo" to event.realtimeText)
+                    )
+                }
+                val delivered = _aiSessionRequest.tryEmit(event.realtimeText)
+                if (!delivered) {
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                            "prośby o rozmowę nie było komu odebrać"
+                        )
+                    }
+                }
             }
             is NotifyEvent.Unknown -> {
                 Log.d(tag, "Notify: nieobsługiwany typ 0x${event.type.toString(16)}")
@@ -1082,6 +1101,17 @@ class VictorManager private constructor(context: Context) {
             largeDataHandler.aiVoiceWake(true, enabled) { _, rsp ->
                 val open = runCatching { rsp?.isOpen == true }.getOrDefault(false)
                 Log.i(tag, "Wake word okularów: żądano=$enabled, urządzenie zgłasza=$open")
+                // To jest wiersz, który rozstrzyga zgłoszenie „wywołuję głosowo,
+                // a aplikacja nic nie robi": gdy okulary odpowiadają `false`
+                // albo nie odpowiadają wcale, szukanie usterki w aplikacji jest
+                // szukaniem nie tam.
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                        "okulary odpowiedziały o frazie wybudzenia",
+                        mapOf("żądano" to enabled, "zgłaszają" to open)
+                    )
+                }
                 _glassesWakeWordEnabled.value = open
             }
         }.onFailure { Log.w(tag, "aiVoiceWake nie powiodło się", it) }
@@ -1713,6 +1743,49 @@ class VictorManager private constructor(context: Context) {
             retry?.let { if (acceptPhoto(it)) return it }
         }
 
+        // PRÓBA 1C - TA SAMA KOMENDA, ALE NA BEZPIECZNEJ JAKOŚCI MINIATURY.
+        //
+        // ## Skąd ten wariant
+        // Z dziennika, nie z domysłu. W dwóch dniach testów rozkład jest taki:
+        //
+        // | jakość | migawka potwierdzona ramką 0x02 |
+        // |--------|---------------------------------|
+        // | 2      | 2 na 2 (raz po 1,8 s, raz po 4,4 s) |
+        // | 5      | 0 na 3 (16:17:24, 18:13:53, 18:17:24) |
+        //
+        // Przy piątce okulary nie zgłaszały zdjęcia ANI RAZU - nawet późno.
+        // Najprostsze wyjaśnienie: ten egzemplarz nie przyjmuje komendy
+        // `0x02 0x0B 05 05` i po niej nie wykonuje też migawki. Dowodu nie mam,
+        // więc nie obniżam jakości wszystkim na stałe: próbujemy tak, jak prosił
+        // wołający, a dopiero gdy okulary milczą, schodzimy na wartość, która
+        // w dzienniku zadziałała. Kolejny dziennik rozstrzygnie to jednoznacznie
+        // - jeśli zdjęcia zaczną dochodzić dopiero tędy, wiadomo wszystko.
+        if (!signalled && quality != SAFE_THUMBNAIL_QUALITY) {
+            Log.w(tag, "Brak potwierdzenia przy jakości $quality - schodzę na $SAFE_THUMBNAIL_QUALITY")
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "próba 1c: powtórka na bezpiecznej jakości",
+                mapOf("byłaJakość" to quality, "jestJakość" to SAFE_THUMBNAIL_QUALITY)
+            )
+            send(GlassesProtocol.setAiPhotoQuality(SAFE_THUMBNAIL_QUALITY))
+            _photoReady.value = false
+            send(GlassesProtocol.takePhoto())
+            val safeSignalled = awaitPhotoReady()
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "próba 1c: notify o gotowym zdjęciu",
+                mapOf("przyszło" to safeSignalled)
+            )
+            if (safeSignalled) {
+                val safePhoto = receiveThumbnail(THUMBNAIL_TIMEOUT_MS)
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1c: miniatura",
+                    thumbnailFields(safePhoto)
+                )
+                safePhoto?.let { if (acceptPhoto(it)) return it }
+            }
+        }
+
         // PRÓBA 2 - komenda zdjęcia AI i stałe odczekanie, czyli droga CyanBridge.
         //
         // Zostaje jako zapas dla egzemplarzy, na których to ONA działa - inna
@@ -2313,6 +2386,12 @@ class VictorManager private constructor(context: Context) {
         private const val WIFI_GROUP_SETTLE_MS = 3_000L
 
         private const val DEFAULT_THUMBNAIL_QUALITY = 2
+
+        /**
+         * Jakość, przy której okulary w dzienniku ZAWSZE potwierdzały migawkę.
+         * Wariant ratunkowy - patrz „PRÓBA 1C" w [captureAiPhotoInternal].
+         */
+        private const val SAFE_THUMBNAIL_QUALITY = 2
 
         /** Symulowane okulary "znajdują się" po chwili, jak prawdziwy skan BLE. */
         private const val SIMULATED_SCAN_DELAY_MS = 700L
