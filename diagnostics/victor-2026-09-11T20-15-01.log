@@ -1,0 +1,19 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: true
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 3)
+20:15:01.623          ms  SESJA        start sesji
+20:15:08.449      +0 ms  SESJA        --- TURA bd0a ---  źródło=VOICE
+20:15:08.450      +1 ms  SESJA        pytanie  tekst=już nie wymuszonyObraz=false
+20:15:08.459     +11 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=false
+20:15:08.568    +119 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+20:15:09.237    +788 ms  KONTEKST     zebrany  ms=181 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false
+20:15:09.249    +800 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=158
+20:15:13.570   +5121 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4322
+20:15:13.579   +5130 ms  MODEL        koniec odpowiedzi (119 znaków, 2732 tokenów)  ms=4331
+20:15:19.599  +11150 ms  MOWA         koniec wypowiedzi  ms=6017
+20:15:20.105  +11656 ms  SESJA        --- KONIEC TURY bd0a: odpowiedziano ---
