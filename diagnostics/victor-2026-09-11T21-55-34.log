@@ -129,3 +129,24 @@
 22:06:47.526  +17265 ms  MODEL        koniec odpowiedzi (195 znaków, 2993 tokenów)  ms=5160
 22:06:58.049  +27789 ms  MOWA         koniec wypowiedzi  ms=10514
 22:06:58.114  +27854 ms  SESJA        --- KONIEC TURY 76fc: odpowiedziano ---
+22:07:06.513          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+22:07:12.888          ms  PRZYCISK     wciśnięto  numer=1
+22:07:13.165          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+22:07:13.578      +1 ms  SESJA        --- TURA 5209 ---  źródło=OKULARY
+22:07:13.586      +9 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:07:18.676   +5099 ms  NASŁUCH      koniec  ms=5099 odłożone=przejrzyj moje maile
+22:07:18.699   +5122 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+22:07:20.583   +7006 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.2735 pakietów=264 rozkodowanych=264 odrzuconych=0 przesunięcie=0 ramka=-1
+22:07:24.217  +10640 ms  TRANSKRYPCJA z nagrania okularów  ms=3630
+22:07:24.219  +10642 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=przejrzyj moje maile
+22:07:24.221  +10644 ms  SESJA        pytanie  tekst=przejrzyj moje maile wymuszonyObraz=false
+22:07:24.232  +10655 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+22:07:24.251  +10674 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:07:24.246  +10670 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:07:24.855  +11278 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+22:07:27.708  +14131 ms  KONTEKST     zebrany  ms=3447 pamięć=false kalendarz=false poczta=true pogoda=false lokalizacja=false
+22:07:27.749  +14172 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=4452
+22:07:39.860  +26283 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=12113
+22:07:39.918  +26342 ms  MODEL        koniec odpowiedzi (388 znaków, 6147 tokenów)  ms=12172
+22:07:59.436  +45859 ms  MOWA         koniec wypowiedzi  ms=19515
+22:07:59.496  +45920 ms  SESJA        --- KONIEC TURY 5209: odpowiedziano ---
