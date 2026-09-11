@@ -423,3 +423,7 @@
 23:35:20.792  +10972 ms  MODEL        koniec odpowiedzi (219 znaków, 4985 tokenów)  ms=996
 23:35:32.752  +22932 ms  MOWA         koniec wypowiedzi  ms=11958
 23:35:32.784  +22964 ms  SESJA        --- KONIEC TURY 3f32: odpowiedziano ---
+23:35:59.169          ms  ZDJĘCIE      próba 1: droga producenta  jakość=2
+23:36:05.174          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6003
+23:36:05.180          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+23:36:21.170          ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
