@@ -369,7 +369,7 @@ fun MediaScreen(onBack: () -> Unit) {
                                 } else {
                                     "Dotknij, żeby pobrać"
                                 },
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

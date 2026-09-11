@@ -114,7 +114,7 @@ fun GlassesPanel(
                     Text(
                         "Ostatnio z okularów: ${last.meaning} (${formatTime(last.timestampMs)})",
                         style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

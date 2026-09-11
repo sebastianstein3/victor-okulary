@@ -431,7 +431,7 @@ private fun NoteCard(
                         if (note.createdAtMs > 0L) {
                             Text(
                                 DATE_FORMAT.format(Date(note.createdAtMs)),
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

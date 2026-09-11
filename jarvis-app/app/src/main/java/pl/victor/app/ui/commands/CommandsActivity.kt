@@ -141,7 +141,7 @@ private fun CommandCard(info: CommandCatalog.CommandInfo) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(info.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 if (info.needsGlasses) {
-                    Text("🕶️ wymaga okularów", fontSize = 10.sp)
+                    Text("Wymaga okularów", fontSize = 12.sp)
                 }
             }
             Text(
@@ -154,7 +154,7 @@ private fun CommandCard(info: CommandCatalog.CommandInfo) {
                 info.examples.forEach { example ->
                     SuggestionChip(
                         onClick = {},
-                        label = { Text(example, fontSize = 11.sp) }
+                        label = { Text(example, fontSize = 12.sp) }
                     )
                 }
             }

@@ -95,7 +95,7 @@ fun CapabilitiesPanel(
                             group.examples.forEach { example ->
                                 SuggestionChip(
                                     onClick = { onExample(example) },
-                                    label = { Text(example, fontSize = 11.sp) }
+                                    label = { Text(example, fontSize = 12.sp) }
                                 )
                             }
                         }
@@ -105,7 +105,7 @@ fun CapabilitiesPanel(
                         "To samo działa głosem - przez okulary albo przyciskiem " +
                             "mikrofonu niżej.",
                         style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.size(8.dp))

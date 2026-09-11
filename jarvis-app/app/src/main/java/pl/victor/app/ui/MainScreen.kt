@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -21,8 +22,13 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -188,10 +194,18 @@ fun MainScreen(
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "⚠️",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(end = 8.dp)
+                    // Ikona wektorowa, nie emoji: emoji zależy od kroju pisma
+                    // na urządzeniu, nie da się go przefarbować motywem, a
+                    // czytnik ekranu odczytuje jego nazwę jako słowo.
+                    // contentDescription = null, bo treść ostrzeżenia stoi
+                    // tuż obok - dublowanie zmusza czytnik do dwóch zdań.
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(24.dp)
                     )
                     Text(
                         warning,
@@ -392,15 +406,11 @@ private fun IdleContent(
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🦯", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(
-                    "Asystent niewidomych",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                )
-            }
+            Text(
+                "Asystent niewidomych",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
             Spacer(modifier = Modifier.size(4.dp))
             Text(
                 if (accessibilityMode != pl.victor.app.accessibility.AccessibilityMode.OFF)
@@ -410,35 +420,75 @@ private fun IdleContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.size(8.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Button(
-                    onClick = { orch.accessibility.enableReadText() },
-                    modifier = Modifier.weight(1f),
-                    enabled = accessibilityMode == pl.victor.app.accessibility.AccessibilityMode.OFF
-                ) { Text("📖 Czytaj", fontSize = 11.sp) }
-                Button(
-                    onClick = { orch.accessibility.enableDescribeScene() },
-                    modifier = Modifier.weight(1f),
-                    enabled = accessibilityMode == pl.victor.app.accessibility.AccessibilityMode.OFF
-                ) { Text("👁️ Opisuj", fontSize = 11.sp) }
-                Button(
-                    onClick = { orch.accessibility.enableNavigate() },
-                    modifier = Modifier.weight(1f),
-                    enabled = accessibilityMode == pl.victor.app.accessibility.AccessibilityMode.OFF
-                ) { Text("🧭 Prowadź", fontSize = 11.sp) }
+            // JEDEN POD DRUGIM, NIE OBOK SIEBIE.
+            //
+            // Trzy przyciski w rzędzie mieściły się tylko dlatego, że etykiety
+            // zjechały do 11 sp - czyli poniżej progu czytelności, i to w
+            // panelu przeznaczonym dla osób, które widzą źle albo wcale.
+            // Do tego przy powiększonej czcionce systemowej (a kto nie widzi
+            // dobrze, ten ją powiększa) tekst i tak się urywał.
+            //
+            // W kolumnie każdy przycisk ma pełną szerokość, etykietę w
+            // domyślnym rozmiarze i wysokość co najmniej 48 dp - tyle wynosi
+            // minimalny cel dotyku na Androidzie.
+            val modeButtons = listOf(
+                Triple(
+                    Icons.Default.MenuBook,
+                    "Czytaj tekst",
+                    { orch.accessibility.enableReadText() }
+                ),
+                Triple(
+                    Icons.Default.Visibility,
+                    "Opisuj otoczenie",
+                    { orch.accessibility.enableDescribeScene() }
+                ),
+                Triple(
+                    Icons.Default.Explore,
+                    "Prowadź",
+                    { orch.accessibility.enableNavigate() }
+                )
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                modeButtons.forEach { (icon, label, action) ->
+                    Button(
+                        onClick = action,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
+                        enabled = accessibilityMode ==
+                            pl.victor.app.accessibility.AccessibilityMode.OFF
+                    ) {
+                        // Ikona jest ozdobą przy widocznej etykiecie - czytnik
+                        // ekranu ma przeczytać samą etykietę, nie nazwę glifu.
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(label)
+                    }
+                }
             }
             if (accessibilityMode != pl.victor.app.accessibility.AccessibilityMode.OFF) {
                 Spacer(modifier = Modifier.size(8.dp))
                 Button(
                     onClick = { orch.accessibility.disable() },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     )
-                ) { Text("⏹️ Zatrzymaj tryb") }
+                ) {
+                    Icon(
+                        Icons.Default.Stop,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text("Zatrzymaj tryb")
+                }
             }
         }
     }
