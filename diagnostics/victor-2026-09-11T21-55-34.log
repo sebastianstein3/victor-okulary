@@ -321,3 +321,4 @@
 22:21:38.552  +44014 ms  MODEL        koniec odpowiedzi (218 znaków, 9116 tokenów)  ms=20298
 22:21:50.307  +55769 ms  MOWA         koniec wypowiedzi  ms=11753
 22:21:50.323  +55785 ms  SESJA        --- KONIEC TURY 9c43: odpowiedziano ---
+22:21:58.712          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 76 12 01 00 10 09 02 00 0F 0F 03 00 10 09 03
