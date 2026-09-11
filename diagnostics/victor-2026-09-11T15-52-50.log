@@ -29,3 +29,14 @@
 17:46:17.389  +20096 ms  ZDJĘCIE      próba 2: miniatura  notify=false
 17:46:17.393  +20099 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo.
 17:46:17.396  +20102 ms  SESJA        --- KONIEC TURY 5a0b: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo. ---
+18:07:03.353      +0 ms  SESJA        --- TURA c40c ---  źródło=TEXT_INPUT
+18:07:03.354      +1 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+18:07:03.370     +17 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:07:03.448     +95 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:07:04.457   +1104 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=TEXT_INPUT stan=Thinking
+18:07:04.684   +1331 ms  KONTEKST     zebrany  ms=1214 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+18:07:04.697   +1344 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=10041
+18:07:05.977   +2624 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=TEXT_INPUT stan=Thinking
+18:07:12.265   +8913 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=7569
+18:07:12.515   +9162 ms  MODEL        koniec odpowiedzi (369 znaków, 8341 tokenów)  ms=7819
+18:07:30.729  +27376 ms  SESJA        --- KONIEC TURY c40c: Idle ---
