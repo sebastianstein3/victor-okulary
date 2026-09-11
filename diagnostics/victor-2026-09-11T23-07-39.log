@@ -410,3 +410,16 @@
 23:31:08.031  +11221 ms  MODEL        koniec odpowiedzi (162 znaków, 4958 tokenów)  ms=829
 23:31:16.392  +19581 ms  MOWA         koniec wypowiedzi  ms=8358
 23:31:16.410  +19599 ms  SESJA        --- KONIEC TURY 01c2: odpowiedziano ---
+23:35:09.821      +1 ms  SESJA        --- TURA 3f32 ---  źródło=TELEFON
+23:35:09.825      +5 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+23:35:18.109   +8289 ms  NASŁUCH      koniec  ms=8289 telefonUsłyszał=jaka będzie jutro pogoda w toruniu około godziny 10:00 rano
+23:35:18.112   +8292 ms  NASŁUCH      nagranie z okularów  jest=false
+23:35:18.113   +8293 ms  SESJA        pytanie  tekst=jaka będzie jutro pogoda w toruniu około godziny 10:00 rano wymuszonyObraz=false
+23:35:18.118   +8298 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:35:18.333   +8513 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=true
+23:35:19.782   +9962 ms  KONTEKST     zebrany  ms=1434 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:35:19.797   +9977 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=8059
+23:35:20.587  +10768 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=791
+23:35:20.792  +10972 ms  MODEL        koniec odpowiedzi (219 znaków, 4985 tokenów)  ms=996
+23:35:32.752  +22932 ms  MOWA         koniec wypowiedzi  ms=11958
+23:35:32.784  +22964 ms  SESJA        --- KONIEC TURY 3f32: odpowiedziano ---
