@@ -19,3 +19,13 @@
 17:42:51.047          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie
 17:42:51.049          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie
 17:43:05.089          ms  ZDJĘCIE      próba 2: miniatura  notify=true
+17:45:57.294      +0 ms  SESJA        --- TURA 5a0b ---  źródło=BUTTON
+17:45:57.295      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+17:45:57.301      +7 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+17:45:57.353     +59 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:45:57.366     +72 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+17:46:00.372   +3078 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false
+17:46:00.374   +3080 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+17:46:17.389  +20096 ms  ZDJĘCIE      próba 2: miniatura  notify=false
+17:46:17.393  +20099 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo.
+17:46:17.396  +20102 ms  SESJA        --- KONIEC TURY 5a0b: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo. ---
