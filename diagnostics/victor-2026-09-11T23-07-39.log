@@ -99,3 +99,35 @@
 23:12:34.567  +10049 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=8006
 23:12:34.595  +10077 ms  MODEL        koniec odpowiedzi (257 znaków, 7571 tokenów)  ms=8034
 23:12:48.528  +24011 ms  SESJA        --- KONIEC TURY dfac: Idle ---
+23:12:56.950          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DE CE 12 01 00 10 09 02 00 0F 07 03 00 10 06 03
+23:14:14.143          ms  PRZYCISK     wciśnięto  numer=1
+23:14:14.305          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+23:14:14.927      +0 ms  SESJA        --- TURA 56dd ---  źródło=OKULARY
+23:14:14.929      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:14:19.112   +4185 ms  NASŁUCH      koniec  ms=4185 odłożone=kim jest mariusz pudzianowski
+23:14:19.228   +4301 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+23:14:20.587   +5660 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.4335 pakietów=222 rozkodowanych=221 odrzuconych=1 przesunięcie=0 ramka=-1
+23:14:21.829   +6902 ms  TRANSKRYPCJA z nagrania okularów  ms=1238 droga=Bez transkrypcji - nagranie do modelu
+23:14:21.830   +6903 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=kim jest mariusz pudzianowski
+23:14:21.831   +6904 ms  SESJA        pytanie  tekst=kim jest mariusz pudzianowski wymuszonyObraz=false
+23:14:21.848   +6921 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:14:21.860   +6933 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:14:21.866   +6939 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:14:22.533   +7606 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1F 0E 12 01 00 10 09 02 00 0F 07 03 00 10 06 02
+23:14:23.359   +8432 ms  KONTEKST     zebrany  ms=1485 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:14:23.389   +8462 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=6966
+23:14:31.609  +16682 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=8222
+23:14:31.653  +16726 ms  MODEL        koniec odpowiedzi (278 znaków, 6338 tokenów)  ms=8266
+23:14:38.105  +23178 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1F F1 12 01 00 10 09 02 00 0F 08 03 00 10 06 02
+23:14:39.774  +24848 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 20 12 01 00 10 09 02 00 0F 09 03 00 10 06 02
+23:14:40.131  +25205 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 13 12 01 00 10 09 02 00 0F 0A 03 00 10 06 02
+23:14:40.536  +25609 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1F C2 12 01 00 10 09 02 00 0F 0B 03 00 10 06 02
+23:14:40.898  +25971 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 75 12 01 00 10 09 02 00 0F 0C 03 00 10 06 02
+23:14:41.704  +26777 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1F A4 12 01 00 10 09 02 00 0F 0D 03 00 10 06 02
+23:14:42.062  +27135 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1F 97 12 01 00 10 09 02 00 0F 0E 03 00 10 06 02
+23:14:42.471  +27545 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:14:44.460  +29533 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:14:45.535  +30608 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:14:45.848  +30921 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:14:45.918  +30991 ms  MOWA         koniec wypowiedzi  ms=14263
+23:14:45.945  +31018 ms  SESJA        --- KONIEC TURY 56dd: odpowiedziano ---
