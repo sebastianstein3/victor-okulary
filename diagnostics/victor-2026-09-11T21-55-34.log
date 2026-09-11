@@ -322,3 +322,22 @@
 22:21:50.307  +55769 ms  MOWA         koniec wypowiedzi  ms=11753
 22:21:50.323  +55785 ms  SESJA        --- KONIEC TURY 9c43: odpowiedziano ---
 22:21:58.712          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 76 12 01 00 10 09 02 00 0F 0F 03 00 10 09 03
+22:36:33.019          ms  PRZYCISK     wciśnięto  numer=1
+22:36:33.196          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+22:36:33.982      +1 ms  SESJA        --- TURA 784a ---  źródło=OKULARY
+22:36:33.986      +6 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:36:42.730   +8750 ms  NASŁUCH      koniec  ms=8749
+22:36:42.840   +8859 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+22:36:46.474  +12493 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1535 pakietów=458 rozkodowanych=458 odrzuconych=0 przesunięcie=0 ramka=-1
+22:36:52.297  +18317 ms  TRANSKRYPCJA z nagrania okularów  ms=5819 droga=Bez transkrypcji - nagranie do modelu
+22:36:52.306  +18326 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=878780 B wymuszonyObraz=false
+22:36:52.315  +18334 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+22:36:52.353  +18372 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:36:52.363  +18382 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:36:52.841  +18860 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B B6 12 01 00 10 09 02 00 0F 0F 03 00 10 09 02
+22:36:54.051  +20070 ms  KONTEKST     zebrany  ms=1662 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+22:36:54.101  +20121 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=6450
+22:37:01.180  +27199 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=7081
+22:37:01.213  +27233 ms  MODEL        koniec odpowiedzi (80 znaków, 5927 tokenów)  ms=7115
+22:37:05.941  +31961 ms  MOWA         koniec wypowiedzi  ms=4720
+22:37:05.988  +32008 ms  SESJA        --- KONIEC TURY 784a: odpowiedziano ---
