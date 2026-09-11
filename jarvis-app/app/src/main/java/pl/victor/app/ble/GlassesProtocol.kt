@@ -252,8 +252,37 @@ object GlassesProtocol {
         bytes != null && bytes.size >= JPEG_MAGIC.size &&
             JPEG_MAGIC.indices.all { bytes[it] == JPEG_MAGIC[it] }
 
+    /**
+     * Czy plik ma też znacznik KOŃCA, czyli czy transfer doszedł do końca.
+     *
+     * ## Dlaczego osobno, a nie wewnątrz [looksLikeJpeg]
+     * Bo zaostrzenie warunku PRZYJĘCIA byłoby zgadywaniem o firmwarze, którego
+     * nie mamy jak sprawdzić - a odrzucenie dobrego zdjęcia jest gorsze niż
+     * przyjęcie urwanego. Ta funkcja istnieje po to, żeby dziennik ZAPISAŁ
+     * różnicę: sam nagłówek przechodzi przez [looksLikeJpeg], więc transfer
+     * urwany w jednej trzeciej wyglądał dotąd jak poprawne zdjęcie i nie
+     * zostawiał żadnego śladu. Dopiero mając oba pola w dzienniku da się
+     * rozstrzygnąć, czy zdjęcia nie ma, czy przychodzi połowa.
+     */
+    fun isCompleteJpeg(bytes: ByteArray?): Boolean {
+        if (!looksLikeJpeg(bytes)) return false
+        val b = bytes ?: return false
+        // Krótki ogon po znaczniku końca jest dopuszczalny - firmware bywa, że
+        // dokłada wyrównanie. Szukamy wstecz w ograniczonym oknie, nie po całym
+        // buforze: w danych obrazu 0xFF jest zawsze dopchnięte zerem, więc
+        // FFD9 w środku strumienia nie występuje.
+        val from = maxOf(JPEG_MAGIC.size, b.size - EOI_TAIL_WINDOW)
+        for (i in b.size - 2 downTo from) {
+            if (b[i] == 0xFF.toByte() && b[i + 1] == 0xD9.toByte()) return true
+        }
+        return false
+    }
+
     /** Początek każdego pliku JPEG: SOI plus znacznik. */
     private val JPEG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
+
+    /** Ile bajtów od końca przeszukujemy w poszukiwaniu znacznika końca. */
+    private const val EOI_TAIL_WINDOW = 64
 
     /**
      * Ustawia jakość miniatury, którą okulary produkują dla AI.

@@ -125,4 +125,47 @@ class DiagFormatTest {
         )
         assertTrue(line, "SyD1234567890" !in line)
     }
+
+    // Klucz Picovoice to jedyny sekret w aplikacji bez rozpoznawalnego prefiksu.
+    // Zapisany w base64 rozpadał się na "/" i "+" na fragmenty krótsze niż próg
+    // 32 i przechodził przez siatkę w całości - do publicznego repozytorium.
+
+    @Test
+    fun `klucz w base64 nie trafia do dziennika`() {
+        val out = DiagFormat.redact("klucz=Hs9OqA0sVx7Lm2P/YbNc8Jd1Kf3Hg+Ws0Ya2Ue4IiQq7Lm2Pz9Rt4Vb6N==")
+        assertTrue(out, "YbNc8Jd1Kf3Hg" !in out)
+        assertTrue(out, "Ws0Ya2Ue4IiQq7" !in out)
+        assertTrue(out, "ukryte" in out)
+    }
+
+    @Test
+    fun `base64 zaciemnia sie w calosci a nie we fragmentach`() {
+        val out = DiagFormat.redact("aB3d/efGh1Jk+Lm2No4Pq6Rs8Tu0Vw2Xy4Za6Bc8De==")
+        assertTrue(out, "Rs8Tu0Vw2Xy4" !in out)
+        assertTrue(out, "efGh1Jk" !in out)
+    }
+
+    @Test
+    fun `komunikat Porcupine z kluczem w srodku jest bezpieczny`() {
+        val out = DiagFormat.redact(
+            "PorcupineInvalidArgumentException: AccessKey " +
+                "'Hs9OqA0sVx7Lm2P/YbNc8Jd1Kf3Hg+Ws0Ya2Ue4IiQq7Lm2Pz9Rt4Vb6N==' is invalid"
+        )
+        assertTrue(out, "YbNc8Jd1Kf3Hg" !in out)
+    }
+
+    // Przeciwwaga: po adresie poznaje się, KTÓRE wywołanie zawiodło. Gdyby
+    // siatka na base64 zjadała ścieżki URL-i, dziennik straciłby tę informację.
+
+    @Test
+    fun `sciezka adresu zostaje czytelna`() {
+        val text = "błąd HTTP z https://generativelanguage.googleapis.com/v1beta/models/gemini-flash"
+        assertEquals(text, DiagFormat.redact(text))
+    }
+
+    @Test
+    fun `nazwa modelu zostaje czytelna`() {
+        val text = "model=claude-sonnet-4-20250514 dostawca=anthropic"
+        assertEquals(text, DiagFormat.redact(text))
+    }
 }

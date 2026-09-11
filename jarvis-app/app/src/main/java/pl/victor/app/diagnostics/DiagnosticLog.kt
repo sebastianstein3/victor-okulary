@@ -8,10 +8,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicLong
 
@@ -53,8 +56,15 @@ class DiagnosticLog(context: Context) {
     private val ioDispatcher = Dispatchers.IO.limitedParallelism(1)
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
-    private val clock = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
-    private val fileStamp = SimpleDateFormat("yyyy-MM-dd'T'HH-mm-ss", Locale.US)
+    // DateTimeFormatter, nie SimpleDateFormat: event() jest wołane równolegle z
+    // BLE, audio i orkiestratora, a SimpleDateFormat nie jest bezpieczny
+    // wątkowo - psuł dokładnie tę kolumnę, dla której ten dziennik istnieje.
+    private val clock = DateTimeFormatter
+        .ofPattern("HH:mm:ss.SSS", Locale.US)
+        .withZone(ZoneId.systemDefault())
+    private val fileStamp = DateTimeFormatter
+        .ofPattern("yyyy-MM-dd'T'HH-mm-ss", Locale.US)
+        .withZone(ZoneId.systemDefault())
 
     @Volatile
     private var sessionFile: File? = null
@@ -80,11 +90,15 @@ class DiagnosticLog(context: Context) {
      *   telefonu, którego nie mam, nie znaczy nic
      */
     fun startSession(header: List<String>) {
-        val file = File(dir, "victor-${fileStamp.format(Date())}.log")
+        val file = File(dir, "victor-${fileStamp.format(Instant.now())}.log")
         sessionFile = file
         scope.launch {
             runCatching {
-                file.appendText(header.joinToString("\n", postfix = "\n") { "# $it" })
+                // Nagłówek też przez redact: to jedyny wiersz, który omijał
+                // zaciemnianie, a dokumentacja tej klasy obiecuje KAŻDY.
+                file.appendText(
+                    header.joinToString("\n", postfix = "\n") { "# ${DiagFormat.redact(it)}" }
+                )
             }.onFailure { Log.w(TAG, "Nie udało się otworzyć pliku dziennika", it) }
         }
         event(DiagFormat.Phase.SESJA, "start sesji")
@@ -131,7 +145,7 @@ class DiagnosticLog(context: Context) {
     ) {
         val started = turnStartedAt.get()
         val line = DiagFormat.line(
-            wallClock = clock.format(Date()),
+            wallClock = clock.format(Instant.now()),
             sinceTurnMs = if (started == 0L) null else System.currentTimeMillis() - started,
             phase = phase,
             message = message,
@@ -139,7 +153,9 @@ class DiagnosticLog(context: Context) {
         )
         // Do logcat też - gdy telefon akurat wisi na kablu, to wygodniejsze.
         Log.i(TAG, line)
-        _recent.value = (_recent.value + line).takeLast(MEMORY_LINES)
+        // update{}, nie przypisanie: odczyt-modyfikacja-zapis z kilku wątków
+        // gubił wiersze w podglądzie.
+        _recent.update { (it + line).takeLast(MEMORY_LINES) }
         val file = sessionFile ?: return
         scope.launch {
             runCatching { file.appendText(line + "\n") }
@@ -152,10 +168,16 @@ class DiagnosticLog(context: Context) {
         event(phase, message, mapOf("ms" to System.currentTimeMillis() - startedAtMs))
     }
 
-    /** Cała treść bieżącej sesji - do wysyłki i do podglądu. */
-    fun readSession(): String =
+    /**
+     * Cała treść bieżącej sesji - do wysyłki i do podglądu.
+     *
+     * Suspend, bo plik rośnie przez cały dzień, a obaj wołający siedzą na
+     * Dispatchers.Main: pod wieczór każdy odczyt zacinał interfejs.
+     */
+    suspend fun readSession(): String = withContext(Dispatchers.IO) {
         sessionFile?.takeIf { it.exists() }?.let { runCatching { it.readText() }.getOrNull() }
             ?: ""
+    }
 
     /** Pliki poprzednich sesji, od najnowszej. */
     fun sessions(): List<File> =

@@ -1818,6 +1818,13 @@ class AIOrchestrator(
         }
 
         activeTurnJob = scope.launch {
+            // Powtórka ze zdjęciem to DALSZY CIĄG tego samego pytania użytkownika,
+            // tylko z drugim obiegiem modelu. Bez tej flagi `finally` zamykało
+            // turę zanim powtórka zdążyła ruszyć, a że zamknięcie zeruje licznik,
+            // najdłuższa i najciekawsza tura zapisywała się w dzienniku BEZ
+            // czasów - czyli ginął dokładnie ten pomiar, dla którego dziennik
+            // powstał. Turę zamyka wtedy `finally` powtórki.
+            var handedOffToRetry = false
             // Łącze audio do okularów bierzemy na CAŁĄ turę - i na słuchanie, i
             // na mówienie. Zestawienie SCO trwa nawet kilka sekund, więc
             // podnoszenie go osobno pod każdy fragment rwałoby rozmowę.
@@ -2405,6 +2412,7 @@ class AIOrchestrator(
                         // instrukcją ("odpowiedz na pytanie z nagrania") - bez
                         // dźwięku model dostałby zdjęcie i polecenie odnoszące
                         // się do czegoś, czego nie ma.
+                        handedOffToRetry = true
                         handleUserTrigger(
                             trigger,
                             textQuestion,
@@ -2557,14 +2565,16 @@ class AIOrchestrator(
                 if (audioHeld) audio.endConversationRouting()
                 wakeLock.release(LOCK_TURN)
                 resumeWakeWordMic()
-                diag.endTurn(
-                    when (val st = _state.value) {
-                        is OrchestratorState.Error -> "BŁĄD: ${st.message}"
-                        is OrchestratorState.Completed -> "odpowiedziano"
-                        else -> st::class.simpleName ?: "?"
-                    }
-                )
-                uploadDiagnosticsInBackground()
+                if (!handedOffToRetry) {
+                    diag.endTurn(
+                        when (val st = _state.value) {
+                            is OrchestratorState.Error -> "BŁĄD: ${st.message}"
+                            is OrchestratorState.Completed -> "odpowiedziano"
+                            else -> st::class.simpleName ?: "?"
+                        }
+                    )
+                    uploadDiagnosticsInBackground()
+                }
             }
         }
     }

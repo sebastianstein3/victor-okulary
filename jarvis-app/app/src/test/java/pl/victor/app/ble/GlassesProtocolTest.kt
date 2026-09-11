@@ -77,6 +77,37 @@ class GlassesProtocolTest {
         assertFalse(GlassesProtocol.looksLikeJpeg(null))
     }
 
+    // Urwany transfer ma poprawny nagłówek i dotąd wyglądał jak zdrowe zdjęcie.
+    // To jest ta różnica, której dziennik nie umiał zapisać.
+
+    @Test
+    fun `urwany transfer ma naglowek ale nie jest kompletny`() {
+        val truncated = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) + ByteArray(900)
+        assertTrue(GlassesProtocol.looksLikeJpeg(truncated))
+        assertFalse(GlassesProtocol.isCompleteJpeg(truncated))
+    }
+
+    @Test
+    fun `pelne zdjecie ma znacznik konca`() {
+        val complete = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) +
+            ByteArray(900) + byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+        assertTrue(GlassesProtocol.isCompleteJpeg(complete))
+    }
+
+    @Test
+    fun `krotki ogon po znaczniku konca jest dopuszczalny`() {
+        // Firmware bywa, że dokłada wyrównanie za znacznikiem końca.
+        val padded = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) +
+            ByteArray(900) + byteArrayOf(0xFF.toByte(), 0xD9.toByte()) + ByteArray(8)
+        assertTrue(GlassesProtocol.isCompleteJpeg(padded))
+    }
+
+    @Test
+    fun `to co nie jest JPEG nie jest tez kompletne`() {
+        assertFalse(GlassesProtocol.isCompleteJpeg(byteArrayOf(0x00, 0x01, 0x02)))
+        assertFalse(GlassesProtocol.isCompleteJpeg(null))
+    }
+
     @Test
     fun `zapytanie o liczbe plikow ma dwa bajty`() {
         assertArrayEquals(byteArrayOf(0x02, 0x04), GlassesProtocol.requestMediaCount())

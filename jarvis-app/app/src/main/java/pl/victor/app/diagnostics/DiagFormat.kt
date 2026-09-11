@@ -82,6 +82,20 @@ object DiagFormat {
         Regex("""\bgithub_pat_[A-Za-z0-9_]{20,}"""),
         // Nagłówek Authorization w dowolnej postaci
         Regex("""(?<=Bearer )[A-Za-z0-9_\-.]{16,}"""),
+        // Sekrety zapisane w base64 - taki kształt ma klucz Picovoice, jedyny
+        // w aplikacji bez rozpoznawalnego prefiksu. Siatka niżej ich NIE łapie,
+        // bo jej klasa znaków nie zna "+", "/" ani "=": klucz rozpada się na
+        // fragmenty krótsze niż próg 32 i przechodzi jawnie do publicznego repo.
+        // Wymóg trzech rodzajów znaków (mała, WIELKA, cyfra) trzyma z dala
+        // ścieżki URL-i - te są zwykle samymi małymi literami i mają zostać
+        // czytelne, bo po nich poznaje się, które wywołanie zawiodło.
+        Regex(
+            """(?<![A-Za-z0-9+/=_\-])""" +
+                """(?=[A-Za-z0-9+/=_\-]*[a-z])""" +
+                """(?=[A-Za-z0-9+/=_\-]*[A-Z])""" +
+                """(?=[A-Za-z0-9+/=_\-]*[0-9])""" +
+                """[A-Za-z0-9+/=_\-]{32,}"""
+        ),
         // Siatka bezpieczeństwa: długi ciąg mieszający litery i cyfry.
         Regex("""\b(?=[A-Za-z0-9_\-]{32,}\b)(?=[^\s]*[A-Za-z])(?=[^\s]*[0-9])[A-Za-z0-9_\-]{32,}\b""")
     )

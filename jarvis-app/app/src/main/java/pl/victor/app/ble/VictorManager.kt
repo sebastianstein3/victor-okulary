@@ -1498,7 +1498,7 @@ class VictorManager private constructor(context: Context) {
             val first = receiveThumbnail(THUMBNAIL_TIMEOUT_MS)
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1: miniatura",
-                mapOf("bajtów" to first?.size, "jpeg" to first?.let { GlassesProtocol.looksLikeJpeg(it) })
+                thumbnailFields(first)
             )
             first?.let { if (acceptPhoto(it)) return it }
         }
@@ -1515,7 +1515,10 @@ class VictorManager private constructor(context: Context) {
             Log.w(tag, "Miniatura nie doszła, ale zdjęcie JEST - proszę o nie ponownie")
             diag.event(pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1b: proszę o ten sam plik jeszcze raz")
             val retry = receiveThumbnail(THUMBNAIL_TIMEOUT_MS)
-            diag.event(pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1b: miniatura", mapOf("bajtów" to retry?.size))
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1b: miniatura",
+                thumbnailFields(retry)
+            )
             retry?.let { if (acceptPhoto(it)) return it }
         }
 
@@ -1531,7 +1534,7 @@ class VictorManager private constructor(context: Context) {
         val second = receiveThumbnail(THUMBNAIL_TIMEOUT_MS)
         diag.event(
             pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 2: miniatura",
-            mapOf("notify" to fallbackSignalled, "bajtów" to second?.size)
+            thumbnailFields(second, mapOf("notify" to fallbackSignalled))
         )
         second?.let { if (acceptPhoto(it)) return it }
 
@@ -1545,7 +1548,16 @@ class VictorManager private constructor(context: Context) {
         // jedyną drogą, która nie zależy od kanału komend.
         if (!glassesAnswerCommands) {
             Log.w(tag, "Okulary nie odpowiadają na komendy - proszę o ostatnią miniaturę")
-            receiveThumbnail(THUMBNAIL_TIMEOUT_MS)?.let { if (acceptPhoto(it)) return it }
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "próba 3: ostatnia miniatura bez komendy"
+            )
+            val third = receiveThumbnail(THUMBNAIL_TIMEOUT_MS)
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 3: miniatura",
+                thumbnailFields(third)
+            )
+            third?.let { if (acceptPhoto(it)) return it }
         }
 
         // Bez tego zdania użytkownik dostawał samo "nie udało się pobrać
@@ -1606,6 +1618,24 @@ class VictorManager private constructor(context: Context) {
      * się z nich JPEG. Urwany transfer dawał wcześniej "obraz", na który model
      * odpowiadał o niczym - a to jest nie do odróżnienia od złej odpowiedzi.
      */
+    /**
+     * Pola miniatury do dziennika - JEDNO miejsce, żeby wszystkie próby
+     * zapisywały to samo.
+     *
+     * Wcześniej `jpeg` logowała tylko próba 1, próba 2 sam rozmiar, a próba 3
+     * nic. Przez to hipotezy "nie ma zdjęcia" i "przychodzi połowa" wyglądały w
+     * dzienniku identycznie i nie dało się ich rozróżnić - czyli dziennik nie
+     * odpowiadał na pytanie, dla którego powstał.
+     */
+    private fun thumbnailFields(
+        bytes: ByteArray?,
+        extra: Map<String, Any?> = emptyMap()
+    ): Map<String, Any?> = extra + mapOf(
+        "bajtów" to bytes?.size,
+        "jpeg" to bytes?.let { GlassesProtocol.looksLikeJpeg(it) },
+        "kompletny" to bytes?.let { GlassesProtocol.isCompleteJpeg(it) }
+    )
+
     private fun acceptPhoto(bytes: ByteArray): Boolean {
         if (GlassesProtocol.looksLikeJpeg(bytes)) return true
         Log.w(tag, "Odebrane ${bytes.size} B nie jest zdjęciem JPEG")
