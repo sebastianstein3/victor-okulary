@@ -269,3 +269,23 @@
 23:22:20.649  +42804 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
 23:22:20.658  +42813 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
 23:22:20.682  +42836 ms  SESJA        --- KONIEC TURY ee7b: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+23:22:29.090          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 86 12 01 00 10 09 02 00 0F 0F 03 00 10 06 03
+23:23:02.072          ms  PRZYCISK     wciśnięto  numer=1
+23:23:02.333          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+23:23:02.762      +1 ms  SESJA        --- TURA 3073 ---  źródło=OKULARY
+23:23:02.766      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:23:11.659   +8898 ms  NASŁUCH      koniec  ms=8897
+23:23:11.686   +8924 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+23:23:15.727  +12965 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0735 pakietów=454 rozkodowanych=454 odrzuconych=0 przesunięcie=0 ramka=-1
+23:23:21.286  +18524 ms  TRANSKRYPCJA z nagrania okularów  ms=5555 droga=Nasłuch telefonu
+23:23:21.293  +18531 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=871100 B wymuszonyObraz=false
+23:23:21.301  +18539 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+23:23:21.384  +18622 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:23:21.389  +18627 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:23:22.011  +19249 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:23:26.354  +23592 ms  KONTEKST     zebrany  ms=4948 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:23:26.394  +23633 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=10089
+23:23:39.984  +37222 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=13593
+23:23:40.006  +37245 ms  MODEL        koniec odpowiedzi (73 znaków, 8963 tokenów)  ms=13615
+23:23:43.940  +41179 ms  MOWA         koniec wypowiedzi  ms=3927
+23:23:44.011  +41249 ms  SESJA        --- KONIEC TURY 3073: odpowiedziano ---
