@@ -260,3 +260,42 @@
 20:33:57.313  +18132 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura
 20:33:57.316  +18135 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=BUTTON stan=Streaming
 20:33:57.334  +18153 ms  SESJA        --- KONIEC TURY bfc7: odpowiedziano ---
+20:34:05.713          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:34:09.103          ms  PRZYCISK     wciśnięto  numer=1
+20:34:09.363          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=27
+20:34:09.763      +0 ms  SESJA        --- TURA aae1 ---  źródło=OKULARY
+20:34:09.764      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+20:34:18.732   +8969 ms  NASŁUCH      koniec  ms=8969 odłożone=słyszysz mnie
+20:34:18.800   +9038 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+20:34:22.679  +12916 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1335
+20:34:28.158  +18395 ms  TRANSKRYPCJA z nagrania okularów  ms=5476 droga=Bez transkrypcji - nagranie do modelu
+20:34:28.160  +18397 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=876860 B wymuszonyObraz=false
+20:34:28.162  +18400 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=true
+20:34:28.185  +18422 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:34:28.790  +19027 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+20:34:29.504  +19741 ms  KONTEKST     zebrany  ms=1312 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:34:29.515  +19752 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=11204
+20:34:49.851  +40088 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=20337
+20:34:49.879  +40116 ms  MODEL        koniec odpowiedzi (63 znaków, 12282 tokenów)  ms=20365
+20:34:53.666  +43903 ms  MOWA         koniec wypowiedzi  ms=3785
+20:34:53.823  +44060 ms  SESJA        --- KONIEC TURY aae1: odpowiedziano ---
+20:35:02.232          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:35:06.682          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 AB 01 62 00 0E 00 03 00 01 01
+20:36:00.535          ms  PRZYCISK     wciśnięto  numer=1
+20:36:00.811          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+20:36:01.169      +0 ms  SESJA        --- TURA fd1d ---  źródło=OKULARY
+20:36:01.171      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+20:36:10.112   +8943 ms  NASŁUCH      koniec  ms=8943 odłożone=co widzisz
+20:36:10.117   +8949 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+20:36:12.071  +10902 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0535
+20:36:17.781  +16612 ms  TRANSKRYPCJA z nagrania okularów  ms=5708 droga=Bez transkrypcji - nagranie do modelu
+20:36:17.787  +16618 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=869180 B wymuszonyObraz=false
+20:36:17.792  +16623 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=true
+20:36:17.810  +16641 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:36:18.292  +17123 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+20:36:21.228  +20059 ms  KONTEKST     zebrany  ms=3408 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:36:21.235  +20066 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=11206
+20:36:33.475  +32306 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=12240
+20:36:33.495  +32326 ms  MODEL        koniec odpowiedzi (63 znaków, 7619 tokenów)  ms=12260
+20:36:37.281  +36112 ms  MOWA         koniec wypowiedzi  ms=3785
+20:36:37.300  +36131 ms  SESJA        --- KONIEC TURY fd1d: odpowiedziano ---
