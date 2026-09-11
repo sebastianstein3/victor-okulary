@@ -435,3 +435,16 @@
 23:38:34.817          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6001
 23:38:34.821          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
 23:38:50.811          ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+23:45:31.936      +0 ms  SESJA        --- TURA f16f ---  źródło=TELEFON
+23:45:31.938      +2 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+23:45:36.940   +5004 ms  NASŁUCH      koniec  ms=5004 telefonUsłyszał=kiedy cokolwiek słyszysz
+23:45:36.942   +5006 ms  NASŁUCH      nagranie z okularów  jest=false
+23:45:36.943   +5007 ms  SESJA        pytanie  tekst=kiedy cokolwiek słyszysz wymuszonyObraz=false
+23:45:36.953   +5017 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:45:37.076   +5140 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=true
+23:45:38.870   +6934 ms  KONTEKST     zebrany  ms=1519 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:45:38.884   +6948 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=5943
+23:45:43.298  +11362 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4415
+23:45:43.335  +11399 ms  MODEL        koniec odpowiedzi (261 znaków, 5016 tokenów)  ms=4452
+23:45:57.497  +25561 ms  MOWA         koniec wypowiedzi  ms=14161
+23:45:57.519  +25583 ms  SESJA        --- KONIEC TURY f16f: odpowiedziano ---
