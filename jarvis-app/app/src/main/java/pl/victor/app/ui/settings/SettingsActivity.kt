@@ -3,6 +3,12 @@ package pl.victor.app.ui.settings
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,7 +16,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -75,6 +83,7 @@ import pl.victor.app.google.GoogleAccountManager
 import pl.victor.app.google.GoogleAccountManager.SignInOutcome
 import pl.victor.app.ai.ProviderInfo
 import pl.victor.app.data.ModelInfo
+import pl.victor.app.ui.theme.Motion
 import pl.victor.app.ui.theme.VictorTheme
 
 /**
@@ -192,242 +201,237 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Sekcja: Provider AI
-            ProviderSection(
-                currentProviderId = state.activeProviderId,
-                providers = AIProviderFactory.supportedProviders(),
-                onProviderSelected = { viewModel.setActiveProvider(it) }
-            )
-
-            HorizontalDivider()
-
-            // Sekcja: Model
-            ModelSection(
-                providerId = state.activeProviderId,
-                selectedModelId = state.selectedModelId,
-                onModelSelected = { viewModel.setSelectedModel(it) }
-            )
-
-            HorizontalDivider()
-
-            // Sekcja: Klucze API
-            ProviderKeysSection(
-                providers = AIProviderFactory.supportedProviders(),
-                getKey = { viewModel.getApiKey(it) },
-                onKeyChange = { id, key -> viewModel.setApiKey(id, key) },
-                isTestRunning = state.isTestRunning,
-                onTestClick = { viewModel.testConnection() },
-                onTestProvider = { viewModel.testConnection(it) }
-            )
-
-            HorizontalDivider()
-
-            // Sekcja: Model lokalny (offline)
-            LocalModelSection()
-
-            HorizontalDivider()
-
-            // Sekcja: Opcje AI
-            AIOptionsSection(
-                webSearchEnabled = state.webSearchEnabled,
-                onWebSearchChange = { viewModel.setWebSearchEnabled(it) },
-                responseLanguage = state.responseLanguage,
-                onLanguageChange = { viewModel.setResponseLanguage(it) }
-            )
-
-            HorizontalDivider()
-
-            // Sekcja: Capture
-            CaptureSection(
-                count = state.captureCount,
-                intervalMs = state.captureIntervalMs,
-                onCountChange = { viewModel.setCaptureCount(it) },
-                onIntervalChange = { viewModel.setCaptureInterval(it) }
-            )
-
-            HorizontalDivider()
-
-            // Sekcja: Silnik mowy - PRZED głosami, bo to on decyduje, jakie
-            // głosy są w ogóle dostępne.
-            TtsEngineSection()
-
-            // Sekcja: silnik frazy wybudzenia (Picovoice albo Vosk)
-            WakeEngineSection()
-            Spacer(Modifier.size(8.dp))
-            SpeechSection()
-
-            // Sekcja: Głos TTS
-            VoiceSection(
-                voices = state.availableVoices,
-                currentVoice = state.currentVoice,
-                speechRate = state.ttsSpeechRate,
-                pitch = state.ttsPitch,
-                onVoiceSelected = { viewModel.setTtsVoice(it) },
-                onRateChange = { viewModel.setTtsRate(it) },
-                onPitchChange = { viewModel.setTtsPitch(it) },
-                onTestClick = { viewModel.testVoice() }
-            )
-
-            // Sekcja: Jak pobrać więcej głosów
-            VoiceInstallGuideSection()
-
-            HorizontalDivider()
-
-            // Sekcja: Persona / styl komunikacji
-            PersonaSection(
-                selectedPersonaId = state.selectedPersonaId,
-                customPrompt = state.customPersonaPrompt,
-                onPersonaSelected = { viewModel.setPersona(it) },
-                onCustomPromptChange = { viewModel.setCustomPersonaPrompt(it) }
-            )
-
-            HorizontalDivider()
-
-            // Sekcja: Test skanera QR
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+            // === USTAWIENIA POGRUPOWANE, NIE JEDEN CIĄG ===
+            //
+            // Wcześniej było tu dwadzieścia sekcji jedna pod drugą, rozdzielonych
+            // wyłącznie kreską - i w kolejności, która wzięła się z historii
+            // dopisywania, a nie z sensu. Dwie sekcje o aparacie dzieliło
+            // dziesięć pozycji, a dwie o frazie wybudzenia leżały na dwóch
+            // końcach ekranu. Zgłoszone wprost: "nie ma oddzielnych sekcji do
+            // różnych typów ustawień, tylko wszystko jedno pod drugim".
+            //
+            // Grupy są zwinięte poza pierwszą: model i klucze to jedyna rzecz,
+            // bez której aplikacja nie działa, więc ona jedna jest otwarta od
+            // razu. Reszta czeka, aż ktoś jej poszuka - i teraz da się jej
+            // szukać po nazwie kategorii zamiast przewijaniem.
+            SettingsGroup(
+                title = "Model AI i klucze",
+                subtitle = "Dostawca, model, klucze API, styl odpowiedzi",
+                initiallyExpanded = true
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        "🧪 Narzędzia diagnostyczne",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    )
-                    Spacer(Modifier.size(4.dp))
-                    Text(
-                        "Test ML Kit Barcode Scanner - wybierz zdjęcie z kodem QR z galerii.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    // LocalContext.current da się odczytać tylko w kontekście
-                    // composable - nie wewnątrz lambdy onClick.
-                    val qrTestContext = LocalContext.current
-                    TextButton(
-                        onClick = {
-                            qrTestContext.startActivity(
-                                android.content.Intent(
-                                    qrTestContext,
-                                    pl.victor.app.vision.QRTestActivity::class.java
-                                )
-                            )
-                        }
-                    ) {
-                        Text("🔍 Test skanera QR")
-                    }
+                ProviderSection(
+                    currentProviderId = state.activeProviderId,
+                    providers = AIProviderFactory.supportedProviders(),
+                    onProviderSelected = { viewModel.setActiveProvider(it) }
+                )
+                HorizontalDivider()
+                ModelSection(
+                    providerId = state.activeProviderId,
+                    selectedModelId = state.selectedModelId,
+                    onModelSelected = { viewModel.setSelectedModel(it) }
+                )
+                HorizontalDivider()
+                ProviderKeysSection(
+                    providers = AIProviderFactory.supportedProviders(),
+                    getKey = { viewModel.getApiKey(it) },
+                    onKeyChange = { id, key -> viewModel.setApiKey(id, key) },
+                    isTestRunning = state.isTestRunning,
+                    onTestClick = { viewModel.testConnection() },
+                    onTestProvider = { viewModel.testConnection(it) }
+                )
+                HorizontalDivider()
+                LocalModelSection()
+                HorizontalDivider()
+                AIOptionsSection(
+                    webSearchEnabled = state.webSearchEnabled,
+                    onWebSearchChange = { viewModel.setWebSearchEnabled(it) },
+                    responseLanguage = state.responseLanguage,
+                    onLanguageChange = { viewModel.setResponseLanguage(it) }
+                )
+                HorizontalDivider()
+                PersonaSection(
+                    selectedPersonaId = state.selectedPersonaId,
+                    customPrompt = state.customPersonaPrompt,
+                    onPersonaSelected = { viewModel.setPersona(it) },
+                    onCustomPromptChange = { viewModel.setCustomPersonaPrompt(it) }
+                )
+            }
 
-                    Spacer(Modifier.size(4.dp))
-                    Text(
-                        "Diagnostyka okularów: stan połączenia, surowe ramki notify i tryb " +
-                            "symulacji, który pozwala przejść całą ścieżkę bez sprzętu.",
-                        style = MaterialTheme.typography.bodySmall
+            SettingsGroup(
+                title = "Mowa i głos",
+                subtitle = "Silnik mowy, głos asystenta, rozpoznawanie mowy"
+            ) {
+                // Silnik PRZED głosami, bo to on decyduje, jakie głosy są
+                // w ogóle dostępne.
+                TtsEngineSection()
+                HorizontalDivider()
+                VoiceSection(
+                    voices = state.availableVoices,
+                    currentVoice = state.currentVoice,
+                    speechRate = state.ttsSpeechRate,
+                    pitch = state.ttsPitch,
+                    onVoiceSelected = { viewModel.setTtsVoice(it) },
+                    onRateChange = { viewModel.setTtsRate(it) },
+                    onPitchChange = { viewModel.setTtsPitch(it) },
+                    onTestClick = { viewModel.testVoice() }
+                )
+                VoiceInstallGuideSection()
+                HorizontalDivider()
+                SpeechSection()
+            }
+
+            SettingsGroup(
+                title = "Wybudzanie",
+                subtitle = "Fraza, która budzi asystenta, i silnik jej wykrywania"
+            ) {
+                // Te dwie sekcje leżały na dwóch końcach ekranu, choć jedna
+                // jest ustawieniem drugiej.
+                WakeEngineSection()
+                HorizontalDivider()
+                WakeWordSection(
+                    enabled = state.wakeWordEnabled,
+                    selectedId = state.wakeWordId,
+                    customPhrase = state.customWakeWord,
+                    keywordPath = state.customKeywordPath,
+                    modelPath = state.customModelPath,
+                    picovoiceAccessKey = state.picovoiceAccessKey,
+                    onEnabledChange = { viewModel.setWakeWordEnabled(it) },
+                    onWakeWordSelected = { viewModel.setWakeWordId(it) },
+                    onCustomPhraseChange = { viewModel.setCustomWakeWord(it) },
+                    onPicovoiceKeyChange = { viewModel.setPicovoiceAccessKey(it) },
+                    onKeywordPathChange = { viewModel.setCustomKeywordPath(it) },
+                    onModelPathChange = { viewModel.setCustomModelPath(it) }
+                )
+            }
+
+            SettingsGroup(
+                title = "Aparat i zdjęcia",
+                subtitle = "Ile zdjęć, jak często, w jakiej rozdzielczości"
+            ) {
+                // Obie sekcje o aparacie razem - dotąd dzieliło je dziesięć
+                // innych pozycji.
+                CaptureSection(
+                    count = state.captureCount,
+                    intervalMs = state.captureIntervalMs,
+                    onCountChange = { viewModel.setCaptureCount(it) },
+                    onIntervalChange = { viewModel.setCaptureInterval(it) }
+                )
+                HorizontalDivider()
+                CaptureModeSection()
+            }
+
+            SettingsGroup(
+                title = "Funkcje asystenta",
+                subtitle = "Komendy, kalendarz i poczta, alerty, dostępność"
+            ) {
+                ActionsSection()
+                HorizontalDivider()
+                IntelligenceSection(
+                    onManageGoogleAccount = { onRequestGoogleSignIn() }
+                )
+                HorizontalDivider()
+                ProactiveAlertsSection()
+                DailyBriefingSection()
+                HorizontalDivider()
+                AccessibilitySection()
+            }
+
+            SettingsGroup(
+                title = "Diagnostyka i konfiguracja",
+                subtitle = "Dziennik, tryb symulacji, ponowny onboarding"
+            ) {
+                DiagnosticsLogSection()
+                HorizontalDivider()
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
-                    Spacer(Modifier.size(8.dp))
-                    TextButton(
-                        onClick = {
-                            qrTestContext.startActivity(
-                                android.content.Intent(
-                                    qrTestContext,
-                                    pl.victor.app.ui.diagnostics.DiagnosticsActivity::class.java
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            "🧪 Narzędzia diagnostyczne",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        Spacer(Modifier.size(4.dp))
+                        Text(
+                            "Test ML Kit Barcode Scanner - wybierz zdjęcie z kodem QR z galerii.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        // LocalContext.current da się odczytać tylko w kontekście
+                        // composable - nie wewnątrz lambdy onClick.
+                        val qrTestContext = LocalContext.current
+                        TextButton(
+                            onClick = {
+                                qrTestContext.startActivity(
+                                    android.content.Intent(
+                                        qrTestContext,
+                                        pl.victor.app.vision.QRTestActivity::class.java
+                                    )
                                 )
-                            )
+                            }
+                        ) {
+                            Text("🔍 Test skanera QR")
                         }
-                    ) {
-                        Text("🕶️ Diagnostyka okularów")
+
+                        Spacer(Modifier.size(4.dp))
+                        Text(
+                            "Diagnostyka okularów: stan połączenia, surowe ramki notify i tryb " +
+                                "symulacji, który pozwala przejść całą ścieżkę bez sprzętu.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        TextButton(
+                            onClick = {
+                                qrTestContext.startActivity(
+                                    android.content.Intent(
+                                        qrTestContext,
+                                        pl.victor.app.ui.diagnostics.DiagnosticsActivity::class.java
+                                    )
+                                )
+                            }
+                        ) {
+                            Text("🕶️ Diagnostyka okularów")
+                        }
+                    }
+                }
+                HorizontalDivider()
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            "🔄 Konfiguracja",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        Spacer(Modifier.size(4.dp))
+                        Text(
+                            "Restartuj onboarding (dla siebie lub kogoś nowego)",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        TextButton(
+                            onClick = {
+                                pl.victor.app.VictorApplication.get().settings.resetOnboarding()
+                                val intent = android.content.Intent(
+                                    context,
+                                    pl.victor.app.ui.onboarding.OnboardingActivity::class.java
+                                )
+                                context.startActivity(intent)
+                                (context as? android.app.Activity)?.finish()
+                            }
+                        ) {
+                            Text("🚀 Restartuj onboarding")
+                        }
                     }
                 }
             }
-
-            HorizontalDivider()
-
-            // Sekcja: Akcje (komendy głosowe)
-            ActionsSection()
-
-            HorizontalDivider()
-
-            // Sekcja: Inteligentne funkcje (nowe v1.2)
-            IntelligenceSection(
-                onManageGoogleAccount = { onRequestGoogleSignIn() }
-            )
-
-            HorizontalDivider()
-
-            // Sekcja: Aparat i tryb przechwytywania
-            CaptureModeSection()
-
-            HorizontalDivider()
-
-            // Sekcja: Dziennik diagnostyczny (na czas testów ze sprzętem)
-            DiagnosticsLogSection()
-
-            HorizontalDivider()
-
-            // Sekcja: Dostępność
-            AccessibilitySection()
-
-            HorizontalDivider()
-
-            // Sekcja: Proaktywne alerty
-            ProactiveAlertsSection()
-
-            DailyBriefingSection()
-
-            HorizontalDivider()
-
-            // Sekcja: Onboarding
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        "🔄 Konfiguracja",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    )
-                    Spacer(Modifier.size(4.dp))
-                    Text(
-                        "Restartuj onboarding (dla siebie lub kogoś nowego)",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    TextButton(
-                        onClick = {
-                            pl.victor.app.VictorApplication.get().settings.resetOnboarding()
-                            val intent = android.content.Intent(
-                                context,
-                                pl.victor.app.ui.onboarding.OnboardingActivity::class.java
-                            )
-                            context.startActivity(intent)
-                            (context as? android.app.Activity)?.finish()
-                        }
-                    ) {
-                        Text("🚀 Restartuj onboarding")
-                    }
-                }
-            }
-
-            HorizontalDivider()
-
-            // Sekcja: Wake word (v1.1)
-            WakeWordSection(
-                enabled = state.wakeWordEnabled,
-                selectedId = state.wakeWordId,
-                customPhrase = state.customWakeWord,
-                keywordPath = state.customKeywordPath,
-                modelPath = state.customModelPath,
-                picovoiceAccessKey = state.picovoiceAccessKey,
-                onEnabledChange = { viewModel.setWakeWordEnabled(it) },
-                onWakeWordSelected = { viewModel.setWakeWordId(it) },
-                onCustomPhraseChange = { viewModel.setCustomWakeWord(it) },
-                onPicovoiceKeyChange = { viewModel.setPicovoiceAccessKey(it) },
-                onKeywordPathChange = { viewModel.setCustomKeywordPath(it) },
-                onModelPathChange = { viewModel.setCustomModelPath(it) }
-            )
 
             // Status message
             state.statusMessage?.let { msg ->
@@ -443,6 +447,95 @@ fun SettingsScreen(
 
             Spacer(Modifier.size(24.dp))
             DeveloperOptionsGate()
+        }
+    }
+}
+
+/**
+ * Składana grupa ustawień.
+ *
+ * ## Po co
+ * Ekran ustawień miał dwadzieścia sekcji jedna pod drugą, rozdzielonych samą
+ * kreską. Żeby dojść do frazy wybudzenia, trzeba było przewinąć obok kluczy
+ * API, głosów, person i alertów - a kolejność wzięła się z historii
+ * dopisywania, nie z sensu. Zgłoszone wprost: "nie ma oddzielnych sekcji do
+ * różnych typów ustawień".
+ *
+ * ## Dlaczego zwinięte, a nie tylko nagłówki
+ * Bo same nagłówki nie skracają przewijania - a to ono jest tu problemem.
+ * Zwinięta grupa zajmuje jeden wiersz, więc CAŁA mapa ustawień mieści się na
+ * jednym ekranie i wybór jest jednym dotknięciem zamiast szukaniem wzrokiem.
+ *
+ * Wzór zwijania jest ten sam co w [pl.victor.app.ui.components.CapabilitiesPanel] -
+ * jedna konwencja na całą aplikację, nie dwie.
+ */
+@Composable
+private fun SettingsGroup(
+    title: String,
+    subtitle: String? = null,
+    initiallyExpanded: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Cały wiersz jest celem dotyku, nie sam trójkąt: 48 dp to
+                    // minimum, którego wymaga Android, a nagłówek grupy jest
+                    // elementem, w który trafia się bez patrzenia.
+                    .heightIn(min = 48.dp)
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Text(
+                    if (expanded) "\u25B2" else "\u25BC",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                // Wejście wolniej i miękko, wyjście szybciej i ostro.
+                //
+                // Reguły ze skilla "animate" (delphi-ai, na podstawie kursu
+                // Emila Kowalskiego): element wchodzący dostaje ease-out i
+                // 200-300 ms, wychodzący ease-in i mniej więcej trzy czwarte
+                // tego czasu. Powód jest praktyczny: na wyjście nikt nie patrzy,
+                // a czekanie na nie jest czystym opóźnieniem.
+                //
+                // Krzywe są dokładnie te z jego tabeli, przepisane na
+                // CubicBezierEasing - w Compose nie ma zmiennych CSS, ale
+                // liczby są te same.
+                enter = fadeIn(tween(Motion.ENTER_MS, easing = Motion.EaseOutCubic)) +
+                    expandVertically(tween(Motion.ENTER_MS, easing = Motion.EaseOutCubic)),
+                exit = fadeOut(tween(Motion.EXIT_MS, easing = Motion.EaseInCubic)) +
+                    shrinkVertically(tween(Motion.EXIT_MS, easing = Motion.EaseInCubic))
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Spacer(Modifier.size(8.dp))
+                    content()
+                }
+            }
         }
     }
 }

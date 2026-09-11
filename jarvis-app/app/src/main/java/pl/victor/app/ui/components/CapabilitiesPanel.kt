@@ -1,6 +1,12 @@
 package pl.victor.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import pl.victor.app.ui.theme.Motion
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -81,7 +87,15 @@ fun CapabilitiesPanel(
                 Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.titleMedium)
             }
 
-            AnimatedVisibility(visible = expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                // Te same krzywe i czasy co przy grupach ustawień - patrz
+                // [pl.victor.app.ui.theme.Motion].
+                enter = fadeIn(tween(Motion.ENTER_MS, easing = Motion.EaseOutCubic)) +
+                    expandVertically(tween(Motion.ENTER_MS, easing = Motion.EaseOutCubic)),
+                exit = fadeOut(tween(Motion.EXIT_MS, easing = Motion.EaseInCubic)) +
+                    shrinkVertically(tween(Motion.EXIT_MS, easing = Motion.EaseInCubic))
+            ) {
                 Column {
                     Spacer(Modifier.size(8.dp))
                     CAPABILITIES.forEach { group ->
