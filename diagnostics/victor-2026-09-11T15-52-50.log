@@ -66,3 +66,29 @@
 18:09:12.093  +12863 ms  MODEL        koniec odpowiedzi (316 znaków, 7684 tokenów)  ms=6829
 18:09:32.329  +33099 ms  MOWA         koniec wypowiedzi  ms=20235
 18:09:32.352  +33122 ms  SESJA        --- KONIEC TURY 05d4: odpowiedziano ---
+18:09:33.857      +0 ms  SESJA        --- TURA f823 ---  źródło=TELEFON
+18:09:33.859      +2 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+18:09:39.126   +5269 ms  NASŁUCH      koniec  ms=5269 telefonUsłyszał=a czy jesteś w stanie odpisać do tego google lot
+18:09:39.128   +5271 ms  NASŁUCH      nagranie z okularów  jest=false
+18:09:39.129   +5272 ms  SESJA        pytanie  tekst=a czy jesteś w stanie odpisać do tego google lot wymuszonyObraz=false
+18:09:39.133   +5276 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:09:39.282   +5425 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=true
+18:09:40.607   +6750 ms  KONTEKST     zebrany  ms=1318 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+18:09:40.617   +6760 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=10718
+18:09:46.989  +13132 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6373
+18:09:46.997  +13140 ms  MODEL        koniec odpowiedzi (131 znaków, 8136 tokenów)  ms=6381
+18:09:55.278  +21421 ms  MOWA         koniec wypowiedzi  ms=8279
+18:09:55.290  +21433 ms  SESJA        --- KONIEC TURY f823: odpowiedziano ---
+18:10:55.817      +0 ms  SESJA        --- TURA f028 ---  źródło=TELEFON
+18:10:55.818      +1 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+18:11:02.315   +6498 ms  NASŁUCH      koniec  ms=6498 telefonUsłyszał=odpisz okej wszystko jasne kropka
+18:11:02.316   +6500 ms  NASŁUCH      nagranie z okularów  jest=false
+18:11:02.317   +6500 ms  SESJA        pytanie  tekst=odpisz okej wszystko jasne kropka wymuszonyObraz=false
+18:11:02.321   +6504 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:11:02.482   +6665 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=true
+18:11:03.765   +7948 ms  KONTEKST     zebrany  ms=1275 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false
+18:11:03.776   +7959 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=10434
+18:11:10.032  +14215 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6256
+18:11:10.041  +14224 ms  MODEL        koniec odpowiedzi (256 znaków, 7997 tokenów)  ms=6265
+18:11:18.432  +22615 ms  MOWA         koniec wypowiedzi  ms=8387
+18:11:18.556  +22739 ms  SESJA        --- KONIEC TURY f028: odpowiedziano ---
