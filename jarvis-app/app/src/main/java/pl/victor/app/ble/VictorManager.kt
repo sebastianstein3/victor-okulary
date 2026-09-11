@@ -97,6 +97,9 @@ class VictorManager private constructor(context: Context) {
     /** Nagrania głosowe po BLE - osobny kanał vendor SDK, działa bez Wi-Fi. */
     private val recordings = GlassesRecordings()
 
+    /** Album (zdjęcia, filmy) po BLE - patrz [GlassesAlbum]. */
+    private val album = GlassesAlbum()
+
     /** Własny scope - symulator odgrywa zdarzenia asynchronicznie. */
     private val scope = CoroutineScope(
         SupervisorJob() + Dispatchers.Default +
@@ -2665,6 +2668,39 @@ class VictorManager private constructor(context: Context) {
             return null
         }
         return recordings.download(fileName, fileType)
+    }
+
+    /**
+     * Lista plików albumu POBRANA PO BLE, bez Wi-Fi Direct.
+     *
+     * Odpowiedź na pytanie „jak robiła to stara apka producenta": vendor SDK ma
+     * do albumu osobny kanał szeregowy (`AlbumHandle`) i nie potrzebuje do listy
+     * żadnej sieci. Szczegóły i zastrzeżenia - w [GlassesAlbum].
+     *
+     * @return nazwy plików; pusta lista znaczy „nie tą drogą albo nie ten typ"
+     */
+    suspend fun listAlbumOverBle(
+        fileType: Int = GlassesAlbum.DEFAULT_FILE_TYPE
+    ): List<String> {
+        simulator?.let { return it.mediaFileList() }
+        if (!isConnected()) {
+            Log.w(tag, "listAlbumOverBle: okulary nie są połączone")
+            return emptyList()
+        }
+        val startedAt = System.currentTimeMillis()
+        val names = album.list(fileType)
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "album po BLE: lista plików",
+                mapOf(
+                    "typPliku" to fileType,
+                    "plików" to names.size,
+                    "ms" to (System.currentTimeMillis() - startedAt)
+                )
+            )
+        }
+        return names
     }
 
     /** Kończy sesję transferu: rozłącza Wi-Fi Direct i przywraca domyślny routing. */

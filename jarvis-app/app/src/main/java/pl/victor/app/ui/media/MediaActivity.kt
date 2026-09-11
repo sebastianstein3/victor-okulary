@@ -128,8 +128,29 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
         if (_busy.value) return
         viewModelScope.launch {
             _busy.value = true
-            _status.value = "Podnoszę połączenie Wi-Fi z okularami..."
             try {
+                // NAJPIERW BLE, DOPIERO POTEM WI-FI DIRECT.
+                //
+                // Tak robiła apka producenta i dlatego u niej galeria działała:
+                // vendor SDK ma do albumu osobny kanał szeregowy po BLE
+                // (`AlbumHandle`, usługa de5bf728-…) i listy plików nie bierze
+                // przez sieć. Nasza wersja stała w całości na Wi-Fi Direct, a
+                // ten na tym telefonie nie wstaje - w dzienniku „Wi-Fi Direct
+                // nie oddał oryginału" po 61 i 86 sekundach.
+                //
+                // Kolejność ma znaczenie także dla ceny błędu: próba po BLE
+                // kosztuje kilka sekund i NIE odcina telefonu od internetu,
+                // podczas gdy podniesienie grupy Wi-Fi Direct odcina.
+                _status.value = "Pytam okulary o listę plików..."
+                val overBle = manager.listAlbumOverBle()
+                if (overBle.isNotEmpty()) {
+                    _files.value = MediaLibrary.group(overBle)
+                    _sessionOpen.value = false
+                    _status.value = "Lista pobrana przez Bluetooth - internet w telefonie działa " +
+                        "normalnie. Podgląd pliku może wymagać Wi-Fi."
+                    return@launch
+                }
+                _status.value = "Bluetooth nie podał listy - podnoszę połączenie Wi-Fi z okularami..."
                 if (!manager.openMediaSession()) {
                     // Nieudane otwarcie TEŻ potrafi zostawić podniesioną grupę
                     // P2P, a wtedy telefon zostaje bez internetu - tyle że bez
