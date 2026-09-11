@@ -152,3 +152,51 @@
 23:15:44.860  +26951 ms  MODEL        koniec odpowiedzi (318 znaków, 8430 tokenów)  ms=16751
 23:16:00.547  +42638 ms  MOWA         koniec wypowiedzi  ms=15684
 23:16:00.564  +42655 ms  SESJA        --- KONIEC TURY bbda: odpowiedziano ---
+23:16:04.620      +0 ms  SESJA        --- TURA 61ec ---  źródło=TELEFON
+23:16:04.621      +1 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+23:16:10.280   +5660 ms  NASŁUCH      koniec  ms=5660 telefonUsłyszał=zapamiętaj weronika jest silniejsza niż mariusz pudzianowski
+23:16:10.281   +5661 ms  NASŁUCH      nagranie z okularów  jest=false
+23:16:10.282   +5662 ms  SESJA        pytanie  tekst=zapamiętaj weronika jest silniejsza niż mariusz pudzianowski wymuszonyObraz=false
+23:16:10.318   +5699 ms  SESJA        --- KONIEC TURY 61ec: odpowiedziano ---
+23:16:18.730          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 86 12 01 00 10 09 02 00 0F 0F 03 00 10 06 03
+23:16:20.077          ms  PRZYCISK     wciśnięto  numer=1
+23:16:20.260          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+23:16:20.719      +0 ms  SESJA        --- TURA 913c ---  źródło=OKULARY
+23:16:20.721      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:16:25.099   +4380 ms  NASŁUCH      koniec  ms=4380 odłożone=kto jest silniejszy pudzian czy wernisa
+23:16:25.230   +4511 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+23:16:25.765   +5046 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.4935 pakietów=225 rozkodowanych=225 odrzuconych=0 przesunięcie=0 ramka=-1
+23:16:28.403   +7684 ms  TRANSKRYPCJA z nagrania okularów  ms=2636 droga=Nasłuch telefonu
+23:16:28.405   +7686 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=kto jest silniejszy pudzian czy wernisa
+23:16:28.407   +7688 ms  SESJA        pytanie  tekst=kto jest silniejszy pudzian czy wernisa wymuszonyObraz=false
+23:16:28.415   +7696 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:16:28.425   +7706 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:16:28.427   +7708 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:16:29.209   +8490 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:16:29.840   +9121 ms  KONTEKST     zebrany  ms=1407 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:16:29.848   +9129 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=8246
+23:16:35.484  +14765 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5637
+23:16:35.731  +15012 ms  MODEL        koniec odpowiedzi (166 znaków, 6160 tokenów)  ms=5884
+23:16:44.342  +23624 ms  MOWA         koniec wypowiedzi  ms=8602
+23:16:44.386  +23667 ms  SESJA        --- KONIEC TURY 913c: odpowiedziano ---
+23:17:13.899          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 86 12 01 00 10 09 02 00 0F 0F 03 00 10 06 03
+23:17:22.259          ms  PRZYCISK     wciśnięto  numer=1
+23:17:22.357          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=7
+23:17:22.994      +1 ms  SESJA        --- TURA a0d9 ---  źródło=OKULARY
+23:17:22.999      +5 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:17:28.751   +5758 ms  NASŁUCH      koniec  ms=5757 odłożone=kto wygra 100 lwów czy 100 marupy
+23:17:28.770   +5777 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=21
+23:17:31.422   +8428 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.9535 pakietów=298 rozkodowanych=298 odrzuconych=0 przesunięcie=0 ramka=-1
+23:17:35.399  +12405 ms  TRANSKRYPCJA z nagrania okularów  ms=3973 droga=Nasłuch telefonu
+23:17:35.401  +12408 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=kto wygra 100 lwów czy 100 marupy
+23:17:35.404  +12410 ms  SESJA        pytanie  tekst=kto wygra 100 lwów czy 100 marupy wymuszonyObraz=false
+23:17:35.417  +12423 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:17:35.475  +12481 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:17:35.479  +12485 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:17:35.888  +12894 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:17:38.304  +15311 ms  KONTEKST     zebrany  ms=2804 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:17:38.336  +15343 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=8339
+23:17:58.691  +35698 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=20357
+23:17:58.737  +35743 ms  MODEL        koniec odpowiedzi (221 znaków, 9541 tokenów)  ms=20403
+23:18:11.791  +48797 ms  MOWA         koniec wypowiedzi  ms=13046
+23:18:11.801  +48807 ms  SESJA        --- KONIEC TURY a0d9: odpowiedziano ---
