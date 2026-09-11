@@ -83,3 +83,41 @@
 20:18:14.328  +12374 ms  MODEL        koniec odpowiedzi (103 znaków, 5794 tokenów)  ms=5070
 20:18:21.384  +19431 ms  MOWA         koniec wypowiedzi  ms=7053
 20:18:21.406  +19453 ms  SESJA        --- KONIEC TURY 8318: odpowiedziano ---
+20:18:29.867          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:18:30.943          ms  PRZYCISK     wciśnięto  numer=1
+20:18:31.235          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+20:18:31.668      +1 ms  SESJA        --- TURA 53af ---  źródło=OKULARY
+20:18:31.673      +6 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+20:18:40.514   +8847 ms  NASŁUCH      koniec  ms=8846 odłożone=czy rozumiesz co do ciebie mówię
+20:18:40.689   +9021 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+20:18:44.453  +12785 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0535
+20:18:50.352  +18685 ms  TRANSKRYPCJA z nagrania okularów  ms=5896 droga=Nasłuch telefonu
+20:18:50.363  +18695 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=869180 B wymuszonyObraz=false
+20:18:50.370  +18702 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+20:18:50.428  +18760 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:18:50.811  +19143 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+20:18:52.533  +20866 ms  KONTEKST     zebrany  ms=2084 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:18:52.571  +20903 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=8377
+20:19:03.897  +32230 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=11328
+20:19:03.931  +32264 ms  MODEL        koniec odpowiedzi (60 znaków, 6743 tokenów)  ms=11362
+20:19:07.712  +36045 ms  MOWA         koniec wypowiedzi  ms=3772
+20:19:07.769  +36101 ms  SESJA        --- KONIEC TURY 53af: odpowiedziano ---
+20:19:34.463          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:19:42.662          ms  PRZYCISK     wciśnięto  numer=1
+20:19:42.934          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+20:19:43.370      +0 ms  SESJA        --- TURA 8748 ---  źródło=OKULARY
+20:19:43.374      +5 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+20:19:52.223   +8853 ms  NASŁUCH      koniec  ms=8852 odłożone=czy rozumiesz co do ciebie mówię
+20:19:52.244   +8875 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=11
+20:19:56.240  +12870 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0935
+20:20:01.698  +18329 ms  TRANSKRYPCJA z nagrania okularów  ms=5456 droga=Bez transkrypcji - nagranie do modelu
+20:20:01.712  +18342 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=873020 B wymuszonyObraz=false
+20:20:01.722  +18352 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+20:20:01.798  +18428 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:20:02.381  +19011 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+20:20:03.406  +20036 ms  KONTEKST     zebrany  ms=1590 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:20:03.460  +20091 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=9054
+20:20:15.080  +31711 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=11624
+20:20:15.103  +31733 ms  MODEL        koniec odpowiedzi (72 znaków, 8047 tokenów)  ms=11646
+20:20:20.169  +36800 ms  MOWA         koniec wypowiedzi  ms=5058
+20:20:20.228  +36858 ms  SESJA        --- KONIEC TURY 8748: odpowiedziano ---
