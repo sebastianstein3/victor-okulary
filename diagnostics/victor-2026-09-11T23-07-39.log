@@ -60,3 +60,42 @@
 23:10:01.580  +18165 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=7188
 23:11:02.115  +78702 ms  MODEL        wysyłam pytanie  dostawca=local próba=2 zdjęć=0 znakówPromptu=7188
 23:11:02.152  +78738 ms  SESJA        --- KONIEC TURY b58b: Idle ---
+23:11:10.835          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DE CE 12 01 00 10 09 02 00 0F 07 03 00 10 06 03
+23:11:11.705          ms  PRZYCISK     wciśnięto  numer=1
+23:11:12.005          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+23:11:12.611      +0 ms  SESJA        --- TURA 23ec ---  źródło=OKULARY
+23:11:12.613      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:11:21.292   +8682 ms  NASŁUCH      koniec  ms=8681
+23:11:21.399   +8788 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+23:11:23.839  +11228 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0335 pakietów=452 rozkodowanych=452 odrzuconych=0 przesunięcie=0 ramka=-1
+23:11:29.792  +17181 ms  TRANSKRYPCJA z nagrania okularów  ms=5950 droga=Bez transkrypcji - nagranie do modelu
+23:11:29.800  +17189 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=867260 B wymuszonyObraz=false
+23:11:29.807  +17196 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+23:11:29.819  +17208 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:11:29.823  +17212 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:11:30.364  +17753 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1F 0E 12 01 00 10 09 02 00 0F 07 03 00 10 06 02
+23:11:32.039  +19428 ms  KONTEKST     zebrany  ms=2207 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:11:32.077  +19467 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=7188
+23:11:46.027  +33416 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=13955
+23:11:46.083  +33472 ms  MODEL        koniec odpowiedzi (199 znaków, 7624 tokenów)  ms=14011
+23:11:56.050  +43439 ms  MOWA         koniec wypowiedzi  ms=9965
+23:11:56.073  +43462 ms  SESJA        --- KONIEC TURY 23ec: odpowiedziano ---
+23:12:04.479          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DE CE 12 01 00 10 09 02 00 0F 07 03 00 10 06 03
+23:12:07.680          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+23:12:07.683          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+23:12:14.479          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=16384 jpeg=true kompletny=false
+23:12:14.484          ms  ZDJĘCIE      zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze
+23:12:24.502          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura (powtórka)
+23:12:24.509          ms  ZDJĘCIE      zdjęcie z przycisku: biorę urwany obraz  bajtów=16384
+23:12:24.519      +1 ms  SESJA        --- TURA dfac ---  źródło=BUTTON
+23:12:24.523      +6 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+23:12:24.537     +19 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+23:12:24.655    +137 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:12:24.654    +136 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:12:24.685    +167 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=16384 pełnaRozdzielczość=false
+23:12:25.392    +874 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1F 0E 12 01 00 10 09 02 00 0F 07 03 00 10 06 02
+23:12:26.527   +2010 ms  KONTEKST     zebrany  ms=1684 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:12:26.564   +2046 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=7970
+23:12:34.567  +10049 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=8006
+23:12:34.595  +10077 ms  MODEL        koniec odpowiedzi (257 znaków, 7571 tokenów)  ms=8034
+23:12:48.528  +24011 ms  SESJA        --- KONIEC TURY dfac: Idle ---
