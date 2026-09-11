@@ -299,3 +299,4 @@
 20:36:33.495  +32326 ms  MODEL        koniec odpowiedzi (63 znaków, 7619 tokenów)  ms=12260
 20:36:37.281  +36112 ms  MOWA         koniec wypowiedzi  ms=3785
 20:36:37.300  +36131 ms  SESJA        --- KONIEC TURY fd1d: odpowiedziano ---
+20:36:45.734          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
