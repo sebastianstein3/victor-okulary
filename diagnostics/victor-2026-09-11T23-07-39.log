@@ -237,3 +237,35 @@
 23:20:52.111  +74969 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
 23:20:52.122  +74981 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
 23:20:52.148  +75006 ms  SESJA        --- KONIEC TURY 010d: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+23:21:00.602          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 86 12 01 00 10 09 02 00 0F 0F 03 00 10 06 03
+23:21:37.211          ms  PRZYCISK     wciśnięto  numer=1
+23:21:37.479          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+23:21:37.846      +1 ms  SESJA        --- TURA ee7b ---  źródło=OKULARY
+23:21:37.850      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:21:41.080   +3234 ms  NASŁUCH      koniec  ms=3234 telefonUsłyszał=co to za zwierzę
+23:21:41.443   +3597 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.9935 pakietów=50 rozkodowanych=50 odrzuconych=0 przesunięcie=0 ramka=-1
+23:21:42.784   +4938 ms  TRANSKRYPCJA z nagrania okularów  ms=1337 droga=Nasłuch telefonu
+23:21:42.788   +4942 ms  SESJA        pytanie  tekst=co to za zwierzę wymuszonyObraz=false
+23:21:42.800   +4955 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:21:42.816   +4970 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:21:42.813   +4967 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:21:43.597   +5751 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:21:46.853   +9008 ms  KONTEKST     zebrany  ms=4028 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:21:46.887   +9041 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=8245
+23:21:49.793  +11947 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2908
+23:21:50.081  +12235 ms  MODEL        koniec odpowiedzi (158 znaków, 5625 tokenów)  ms=3197
+23:21:58.515  +20670 ms  SESJA        pytanie  tekst=co to za zwierzę wymuszonyObraz=true
+23:21:58.536  +20690 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+23:21:58.637  +20791 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:21:58.643  +20797 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+23:22:00.752  +22906 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 40 2F 01 6E 00 0F 00 03 00 01 01
+23:22:04.658  +26812 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6008
+23:22:04.672  +26826 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+23:22:06.423  +28577 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 81 E3 01 6F 00 0F 00 03 00 01 01
+23:22:10.688  +32842 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+23:22:10.695  +32849 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+23:22:12.338  +34492 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+23:22:12.350  +34504 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+23:22:20.649  +42804 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+23:22:20.658  +42813 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+23:22:20.682  +42836 ms  SESJA        --- KONIEC TURY ee7b: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
