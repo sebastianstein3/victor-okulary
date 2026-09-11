@@ -334,3 +334,13 @@
 20:45:25.093          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6002
 20:45:25.095          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
 20:45:41.098          ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+20:49:18.861      +0 ms  SESJA        --- TURA fa17 ---  źródło=TEXT_INPUT
+20:49:18.862      +1 ms  SESJA        pytanie  tekst=co ciekawego mogę dziś obejrzeć na netflixie? wymuszonyObraz=false
+20:49:18.866      +5 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+20:49:18.901     +40 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+20:49:21.732   +2871 ms  KONTEKST     zebrany  ms=2823 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:49:21.738   +2877 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=7937
+20:49:33.549  +14688 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=11811
+20:49:34.024  +15164 ms  MODEL        koniec odpowiedzi (308 znaków, 7945 tokenów)  ms=12286
+20:49:55.771  +36910 ms  MOWA         koniec wypowiedzi  ms=21741
+20:49:55.791  +36930 ms  SESJA        --- KONIEC TURY fa17: odpowiedziano ---
