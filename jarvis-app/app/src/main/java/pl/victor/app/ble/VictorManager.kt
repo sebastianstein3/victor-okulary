@@ -696,6 +696,9 @@ class VictorManager private constructor(context: Context) {
      */
     private fun resetPerConnectionState() {
         greetingDone = false
+        // Subskrypcja przypięta do POPRZEDNIEGO łącza już nie istnieje;
+        // onGlassesReady() przypnie ją na nowo.
+        micNotifyPinned = false
         // Subskrypcja mikrofonu żyje w GATT - na nowym łączu jej nie ma,
         // choćby flaga twierdziła inaczej. onGlassesReady() odtworzy ją zaraz
         // przez rearmMicStreamAfterReconnect().
@@ -742,6 +745,7 @@ class VictorManager private constructor(context: Context) {
             // czeka - subskrypcję trzeba mu odtworzyć, bo sam się o nią nie
             // upomni. Przy pustej liście to nic nie robi.
             rearmMicStreamAfterReconnect()
+            pinMicNotifyForConnection()
 
             // SDK sam rozgłasza `service_discovered` jeszcze raz, 2,5 s po
             // uzbrojeniu kanału zapisu. Powitanie ma iść raz na połączenie -
@@ -909,6 +913,32 @@ class VictorManager private constructor(context: Context) {
     @Volatile
     private var micStreamActive = false
 
+    /**
+     * Czy kanał mikrofonu jest przypięty NA CAŁE POŁĄCZENIE, a nie tylko na turę.
+     *
+     * ## Po co
+     * Bo dotąd aplikacja słuchała tego kanału WYŁĄCZNIE w trakcie tury, którą
+     * sama zaczęła. Jeśli okulary po wybudzeniu zaczynają nadawać z własnej
+     * inicjatywy - a użytkownik zgłasza, że „okulary reagują, ale aplikacja nic
+     * nie robi" - to nadają do nikogo.
+     *
+     * Sprawdzone w AAR: `initPackageNotify` tylko wpisuje callback do mapy w
+     * SDK (klucz 89), a `removeGptNotify` tylko go z niej usuwa. Żadne z nich
+     * NIC nie wysyła do okularów, więc przypięcie niczego nie włącza po ich
+     * stronie i nic nie kosztuje - poza tym, że wreszcie widzimy, czy coś
+     * przychodzi.
+     */
+    @Volatile
+    private var micNotifyPinned = false
+
+    /** Kiedy ostatnio zapisaliśmy pakiety przychodzące poza turą. */
+    @Volatile
+    private var lastStrayMicLogAtMs = 0L
+
+    /** Ile pakietów przyszło poza turą od ostatniego wpisu. */
+    @Volatile
+    private var strayMicPackets = 0
+
     /** Odbiorcy pakietów - patrz [addMicStreamListener]. */
     private val micStreamListeners = mutableListOf<(ByteArray) -> Unit>()
 
@@ -986,12 +1016,30 @@ class VictorManager private constructor(context: Context) {
     }
 
     /**
+     * Zostawia nasłuch kanału mikrofonu włączony na całe połączenie.
+     *
+     * Nie prosi okularów o nic - patrz [micNotifyPinned]. Chodzi wyłącznie o to,
+     * żeby pakiety wysłane z ich własnej inicjatywy miały gdzie trafić i
+     * zostawiły ślad w dzienniku.
+     */
+    private fun pinMicNotifyForConnection() {
+        if (simulator != null) return
+        synchronized(micStreamListeners) {
+            strayMicPackets = 0
+            lastStrayMicLogAtMs = 0L
+            if (!micStreamActive && !armMicNotify()) return
+            micNotifyPinned = true
+        }
+    }
+
+    /**
      * Rozdaje pakiet licznikom i wszystkim odbiorcom.
      *
      * Wyjątek jednego odbiorcy nie może uciszyć pozostałych - stąd runCatching
      * wokół każdego wywołania z osobna.
      */
     private fun onMicPacket(payload: ByteArray) {
+        noteStrayMicPacket()
         _micStreamStats.update { stats ->
             stats.copy(
                 packets = stats.packets + 1,
@@ -1027,8 +1075,41 @@ class VictorManager private constructor(context: Context) {
         }
     }
 
+    /**
+     * Pakiet z mikrofonu okularów, którego nikt nie zamawiał.
+     *
+     * To jest wiersz, który rozstrzygnie zgłoszenie „wywołuję głosowo, okulary
+     * reagują, a aplikacja nic nie robi": jeśli okulary po wybudzeniu nadają
+     * mowę, a żadna tura nie trwa, znaczy to, że prośba o rozmowę nie dociera
+     * do nas ramką sterującą i trzeba jej szukać właśnie tutaj.
+     *
+     * Wpis jest rzadki z rozmysłem - pakiety idą kilkadziesiąt razy na sekundę,
+     * a dziennik ma zostać czytelny.
+     */
+    private fun noteStrayMicPacket() {
+        val orphan = synchronized(micStreamListeners) { micStreamListeners.isEmpty() }
+        if (!orphan) return
+        strayMicPackets++
+        val now = System.currentTimeMillis()
+        if (now - lastStrayMicLogAtMs < STRAY_MIC_LOG_INTERVAL_MS) return
+        lastStrayMicLogAtMs = now
+        val count = strayMicPackets
+        strayMicPackets = 0
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                "okulary nadają dźwięk, choć żadna tura nie trwa",
+                mapOf("pakietów" to count)
+            )
+        }
+    }
+
     /** Wołane wyłącznie pod blokadą [micStreamListeners]. */
     private fun unsubscribeMicStream() {
+        // Przypięcie na całe połączenie przebija koniec tury: gdyby tura
+        // zdejmowała subskrypcję, wróciłby dokładnie ten stan, w którym
+        // wybudzenie z okularów nie ma do kogo nadawać.
+        if (micNotifyPinned) return
         if (!micStreamActive) return
         micStreamActive = false
         runCatching { largeDataHandler.removeGptNotify() }
@@ -2392,6 +2473,9 @@ class VictorManager private constructor(context: Context) {
          * Wariant ratunkowy - patrz „PRÓBA 1C" w [captureAiPhotoInternal].
          */
         private const val SAFE_THUMBNAIL_QUALITY = 2
+
+        /** Jak rzadko zapisywać pakiety przychodzące poza turą. */
+        private const val STRAY_MIC_LOG_INTERVAL_MS = 3_000L
 
         /** Symulowane okulary "znajdują się" po chwili, jak prawdziwy skan BLE. */
         private const val SIMULATED_SCAN_DELAY_MS = 700L

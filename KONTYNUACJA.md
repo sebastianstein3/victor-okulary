@@ -116,6 +116,43 @@ wystarcza przy szybkim ponownym połączeniu. Że echo nie niesie
 `BLE POŁĄCZONO noweŁącze=true` i po nim para `powitanie okularów - start` /
 `- koniec  frazaWybudzenia=… kanałZapisu=…`.
 
+### 4.0b Fraza wybudzenia szła do modelu jako pytanie — NAPRAWIONE
+
+> „Wywołuję AI głosowo, okulary reagują, ale aplikacja nic nie robi, jakby nie
+> słyszała."
+
+Dziennik, tura `e117`: `pytanie tekst=okej lens`. Sama fraza wybudzenia poszła
+do modelu jako całe pytanie, z kontekstem na 15 tysięcy znaków. Właściwe
+pytanie trafiało już w turę trwającą — w dzienniku widać wtedy `trigger
+ODRZUCONY - tura już trwa`.
+
+Naprawione w `conversation/WakePhrase.kt` (9 testów): sama fraza otwiera
+nasłuch, fraza z pytaniem oddaje modelowi samo pytanie.
+
+### 4.0c Wybudzenie Z OKULARÓW — NIEROZSTRZYGNIĘTE, ale jest czym
+
+W żadnym dzienniku nie ma tury ze źródłem `OKULARY`. Każda udana tura szła z
+mikrofonu telefonu po SCO. Nie wiadomo jeszcze, czy prośba o rozmowę do
+aplikacji nie dociera, czy dociera i ginie.
+
+Sprawdzone w AAR i wykluczone: nasłuch ramek sterujących jest kompletny —
+`deviceNotifyListener` siedzi pod kluczem 115 w `noClearMap`, którego
+`cleanMap()` nie rusza, a `GlassesDeviceNotifyListener.parseData` rozdaje
+ramkę WSZYSTKIM zapisanym odbiorcom, niezależnie od klucza. Jeśli ramka
+przychodzi, widzimy ją.
+
+Zostaje drugi kanał: `initPackageNotify` (klucz 89), czyli strumień dźwięku.
+Aplikacja słuchała go **wyłącznie w trakcie tury, którą sama zaczęła** — więc
+gdyby okulary po wybudzeniu zaczynały nadawać same, nadawałyby do nikogo.
+Kanał jest teraz przypięty na całe połączenie, a pakiety przychodzące poza turą
+lądują w dzienniku (`WAKE okulary nadają dźwięk, choć żadna tura nie trwa`).
+To nic nie włącza po stronie okularów — `initPackageNotify` i `removeGptNotify`
+tylko dopisują i usuwają callback z mapy w SDK.
+
+**Następny dziennik rozstrzyga to trzema wierszami:** odpowiedź okularów na
+włączenie frazy (`WAKE okulary odpowiedziały o frazie wybudzenia`), ramka z
+prośbą o rozmowę (`WAKE okulary proszą o rozmowę`) i pakiety poza turą.
+
 ### 4.1 Zdjęcia nie są przechwytywane — CZĘŚCIOWO, patrz 4.0
 
 > „Aplikacja dalej nie przechwytuje zdjęć." / „Chyba nie dostają zdjęć, gdy
