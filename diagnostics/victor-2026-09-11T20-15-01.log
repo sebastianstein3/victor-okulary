@@ -233,3 +233,30 @@
 20:31:33.126  +17733 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=BUTTON stan=Streaming
 20:31:40.603  +25210 ms  MOWA         koniec wypowiedzi  ms=8763
 20:31:40.659  +25266 ms  SESJA        --- KONIEC TURY 34d5: odpowiedziano ---
+20:32:19.691          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:32:28.222          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+20:32:28.229          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+20:33:10.764          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+20:33:38.456          ms  PRZYCISK     wciśnięto  numer=1
+20:33:38.475          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+20:33:39.182      +1 ms  SESJA        --- TURA bfc7 ---  źródło=OKULARY
+20:33:39.185      +5 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+20:33:41.645   +2464 ms  NASŁUCH      koniec  ms=2464 odłożone=słyszysz mnie
+20:33:42.005   +2824 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.2935
+20:33:42.909   +3728 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=32768 jpeg=true kompletny=false
+20:33:42.914   +3733 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+20:33:42.922   +3741 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=false wzorzecWidzenia=false wymuszone=true zNagrania=false
+20:33:42.927   +3746 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+20:33:43.547   +4366 ms  TRANSKRYPCJA z nagrania okularów  ms=1536 droga=Bez transkrypcji - nagranie do modelu
+20:33:43.611   +4430 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=124220 B wymuszonyObraz=false
+20:33:43.636   +4456 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=true
+20:33:44.089   +4909 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:33:44.588   +5407 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+20:33:46.014   +6834 ms  KONTEKST     zebrany  ms=1889 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:33:46.063   +6882 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=11198
+20:33:52.499  +13318 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6441
+20:33:52.508  +13327 ms  MODEL        koniec odpowiedzi (63 znaków, 7045 tokenów)  ms=6450
+20:33:57.255  +18075 ms  MOWA         koniec wypowiedzi  ms=4745
+20:33:57.313  +18132 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura
+20:33:57.316  +18135 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=BUTTON stan=Streaming
+20:33:57.334  +18153 ms  SESJA        --- KONIEC TURY bfc7: odpowiedziano ---
