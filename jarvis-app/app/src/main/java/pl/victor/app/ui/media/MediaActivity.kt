@@ -131,6 +131,14 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
             _status.value = "Podnoszę połączenie Wi-Fi z okularami..."
             try {
                 if (!manager.openMediaSession()) {
+                    // Nieudane otwarcie TEŻ potrafi zostawić podniesioną grupę
+                    // P2P, a wtedy telefon zostaje bez internetu - tyle że bez
+                    // ostrzeżenia, które pokazujemy przy otwarciu udanym.
+                    // closeSession() jest bramkowane flagą _sessionOpen, która w
+                    // tym miejscu jeszcze nie jest ustawiona, więc sprzątamy
+                    // wprost. Inaczej po nieudanej próbie przestają działać
+                    // także pytania do modelu - bez widocznego związku z galerią.
+                    manager.endTransferSession()
                     // Przyczyna z VictorManagera, nie jedno zdanie na wszystko:
                     // brak Wi-Fi, brak zgody, nieodnaleziona sieć i brak adresu
                     // to cztery różne awarie i cztery różne rzeczy do zrobienia.

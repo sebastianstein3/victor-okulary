@@ -2048,20 +2048,32 @@ class VictorManager private constructor(context: Context) {
     suspend fun downloadLatestAudio(): ByteArray? = downloadLatest(AUDIO_EXTENSIONS, "audio")
 
     private suspend fun downloadLatest(extensions: List<String>, label: String): ByteArray? {
-        if (!awaitGlassesIp()) return null
-
+        // CZEKANIE NA ADRES MUSI BYĆ WEWNĄTRZ try.
+        //
+        // Stało wyżej, przed blokiem, z własnym `return null` - a to omijało
+        // finally. Skutek był znacznie gorszy niż nieudane pobranie: grupa P2P
+        // zostawała podniesiona, a proces przypięty do sieci okularów, która
+        // nie ma wyjścia na świat. CAŁA aplikacja traciła internet, więc
+        // przestawały działać także pytania do modelu - i wyglądało to jak
+        // "raz zadziałało, potem już nie", bez związku z galerią.
         return try {
-            val matching = getMediaFileList().filter { file ->
-                extensions.any { file.endsWith(it, ignoreCase = true) }
+            if (!awaitGlassesIp()) {
+                null
+            } else {
+                val matching = getMediaFileList().filter { file ->
+                    extensions.any { file.endsWith(it, ignoreCase = true) }
+                }
+                if (matching.isEmpty()) {
+                    Log.w(tag, "Brak plików typu $label na okularach")
+                    null
+                } else {
+                    // Nazwy plików z okularów są sekwencyjne/oparte na czasie -
+                    // największa = najnowsza.
+                    val latest = matching.max()
+                    Log.i(tag, "Pobieranie najnowszego pliku $label: $latest")
+                    downloadFile(latest)
+                }
             }
-            if (matching.isEmpty()) {
-                Log.w(tag, "Brak plików typu $label na okularach")
-                return null
-            }
-            // Nazwy plików z okularów są sekwencyjne/oparte na czasie - największa = najnowsza.
-            val latest = matching.max()
-            Log.i(tag, "Pobieranie najnowszego pliku $label: $latest")
-            downloadFile(latest)
         } catch (e: Exception) {
             Log.e(tag, "Pobieranie pliku $label nie powiodło się", e)
             null

@@ -405,7 +405,13 @@ class DiagnosticsViewModel(application: Application) : AndroidViewModel(applicat
                 step(checkAiProvider())
                 step(checkCamera())
                 step(checkGoogleSignIn())
+                step(checkDiagnosticLog())
+                step(checkCommandChannel())
+                step(checkGlassesStorage())
+                step(checkMediaDownload())
                 report.append('\n').append(verdict(report.toString()))
+                // Część rzeczy nie da się zmierzyć przyciskiem - patrz stała.
+                report.append("\n\n").append(MANUAL_CHECKLIST)
                 _fullCheck.value = report.toString()
             } finally {
                 _busy.value = false
@@ -560,17 +566,151 @@ class DiagnosticsViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    /**
+     * Aparat - z rozróżnieniem URWANEGO transferu.
+     *
+     * Sam nagłówek JPEG nie znaczy, że przyszło całe zdjęcie: transfer urwany w
+     * jednej trzeciej ma poprawne trzy pierwsze bajty i do niedawna przechodził
+     * jako zdrowy obraz. Model dostawał wtedy pół kadru i odpowiadał o niczym,
+     * a z zewnątrz wyglądało to jak "AI zmyśla". To są DWIE różne awarie i
+     * wymagają dwóch różnych rzeczy, więc muszą być rozróżnione tutaj.
+     */
     private suspend fun checkCamera(): String {
         if (manager.connectionState.value != ConnectionState.READY) {
             return "⏭️ 7. Aparat pominięty - okulary nie są połączone."
         }
         val bytes = manager.capturePhoto()
-        return if (bytes != null && bytes.size > 1000) {
-            "✅ 7. Zdjęcie z okularów przyszło (${bytes.size / 1024} kB)"
-        } else {
-            "❌ 7. Zdjęcie NIE przyszło.\n" +
+            ?: return "❌ 7. Zdjęcie NIE przyszło.\n" +
                 "   → Pytania o to, co widzisz, nie zadziałają.\n" +
                 "     Spróbuj rozłączyć i połączyć okulary."
+        val kb = bytes.size / 1024
+        return when {
+            pl.victor.app.ble.GlassesProtocol.isCompleteJpeg(bytes) ->
+                "✅ 7. Zdjęcie z okularów przyszło W CAŁOŚCI ($kb kB)"
+            pl.victor.app.ble.GlassesProtocol.looksLikeJpeg(bytes) ->
+                "⚠️ 7. Zdjęcie przyszło URWANE ($kb kB).\n" +
+                    "   Jest nagłówek JPEG, ale brakuje znacznika końca - transfer\n" +
+                    "   nie doszedł do końca. Model dostanie pół kadru i odpowie\n" +
+                    "   nie na temat.\n" +
+                    "   → Podejdź bliżej telefonu i powtórz."
+            else ->
+                "❌ 7. Przyszło ${bytes.size} B, ale to NIE jest zdjęcie.\n" +
+                    "   → Transfer urwał się na samym początku."
+        }
+    }
+
+    /**
+     * Dziennik diagnostyczny - i to jest teraz pozycja, która blokuje resztę.
+     *
+     * Bez wysyłki nikt poza telefonem nie zobaczy, co się stało, a wszystkie
+     * pytania typu "dlaczego nie zrobiło zdjęcia" wracają do zgadywania.
+     * Sprawdzenie jest ŚWIADOMIE na żywo - próbuje naprawdę wysłać, bo sam
+     * fakt wklejonego tokenu niczego nie dowodzi: token bywa wygasły, bez
+     * uprawnienia do zapisu albo wystawiony na inne repozytorium.
+     */
+    private suspend fun checkDiagnosticLog(): String {
+        val settings = app.settings
+        if (!settings.isDiagnosticLogEnabled()) {
+            return "❌ 9. Dziennik diagnostyczny jest WYŁĄCZONY.\n" +
+                "   → Ustawienia → 🩺 Dziennik diagnostyczny."
+        }
+        val token = settings.getGithubToken()
+        if (token.isBlank()) {
+            return "❌ 9. Brak tokenu - dziennik zostaje w telefonie.\n" +
+                "   → Ustawienia → 🩺 Dziennik diagnostyczny, wklej token\n" +
+                "     z uprawnieniem \"Contents: Read and write\"."
+        }
+        val file = app.diag.currentFile()
+        val content = app.diag.readSession()
+        if (file == null || content.isBlank()) {
+            return "⚠️ 9. Dziennik jest pusty - nie ma jeszcze czego wysłać."
+        }
+        return pl.victor.app.diagnostics.DiagnosticUploader(token)
+            .upload(file.name, content)
+            .fold(
+                onSuccess = { "✅ 9. Dziennik wysłany (${content.length / 1024} kB)" },
+                onFailure = {
+                    "❌ 9. Dziennik NIE poszedł: ${it.message}\n" +
+                        "   → Najczęściej: token wygasł, nie ma uprawnienia\n" +
+                        "     \"Contents: Read and write\" albo dotyczy innego repo."
+                }
+            )
+    }
+
+    /**
+     * Kanał komend osobno od kanału danych.
+     *
+     * Te dwa potrafią żyć niezależnie: zdarzenia przychodzą, a na komendy nie
+     * ma ani jednej odpowiedzi. Bez rozdzielenia obie awarie wyglądają
+     * identycznie - "okulary nie reagują".
+     */
+    private fun checkCommandChannel(): String {
+        if (manager.connectionState.value != ConnectionState.READY) {
+            return "⏭️ 10. Kanał komend pominięty - okulary nie są połączone."
+        }
+        return if (manager.glassesAnswerCommands) {
+            "✅ 10. Okulary odpowiadają na komendy"
+        } else {
+            "⚠️ 10. Okulary nie odpowiedziały jeszcze na ŻADNĄ komendę.\n" +
+                "   Pobieranie plików idzie innym kanałem niż komendy sterujące,\n" +
+                "   więc zdjęcia mogą działać mimo tego. Jeśli działają - padł\n" +
+                "   kanał komend, a nie aparat."
+        }
+    }
+
+    /**
+     * Ile plików leży w pamięci okularów.
+     *
+     * Liczba sama w sobie nic nie znaczy - znaczenie ma jej ZMIANA między
+     * uruchomieniami. Rosnąca oznacza, że pliki zostają w okularach po
+     * pobraniu, więc pamięć kiedyś się zapełni, a wtedy nie da się zrobić
+     * kolejnego zdjęcia. Dlatego wynik trzeba porównać z poprzednim.
+     */
+    private suspend fun checkGlassesStorage(): String {
+        if (manager.connectionState.value != ConnectionState.READY) {
+            return "⏭️ 11. Pamięć okularów pominięta - okulary nie są połączone."
+        }
+        val done = kotlinx.coroutines.CompletableDeferred<Triple<Int, Int, Int>>()
+        manager.requestMediaCount { images, videos, records ->
+            done.complete(Triple(images, videos, records))
+        }
+        val counts = kotlinx.coroutines.withTimeoutOrNull(MEDIA_COUNT_TIMEOUT_MS) { done.await() }
+            ?: return "⚠️ 11. Okulary nie podały liczby plików w " +
+                "${MEDIA_COUNT_TIMEOUT_MS / 1000} s.\n" +
+                "   Patrz pozycja 10 - to może być ten sam kanał komend."
+        val (images, videos, records) = counts
+        return "✅ 11. W pamięci okularów: $images zdjęć, $videos wideo, " +
+            "$records nagrań\n" +
+            "   Zapisz tę liczbę. Jeśli przy następnym sprawdzeniu urośnie,\n" +
+            "   to pliki NIE są kasowane po pobraniu i pamięć się zapełni."
+    }
+
+    /**
+     * Pobieranie PEŁNYCH plików - czyli to, czym żyje galeria w aplikacji.
+     *
+     * To jest inna droga niż miniatura, którą dostaje model: miniatura idzie po
+     * BLE, pełny plik po Wi-Fi Direct. Dlatego AI potrafi opisać zdjęcie,
+     * którego w galerii nie ma - i odwrotnie. Bez rozdzielenia tych dwóch
+     * ścieżek zgłoszenie "nie pobiera multimediów" nie ma jak zostać
+     * rozstrzygnięte.
+     */
+    private suspend fun checkMediaDownload(): String {
+        if (manager.connectionState.value != ConnectionState.READY) {
+            return "⏭️ 12. Pobieranie do galerii pominięte - okulary nie są połączone."
+        }
+        if (manager.ensureTransferMode() == null) {
+            return "❌ 12. Wi-Fi Direct nie wystartował.\n" +
+                "   " + (manager.lastTransferFailure
+                    ?: "Okulary nie zgłosiły adresu w 15 s.") + "\n" +
+                "   → TĄ drogą idą pełne pliki do galerii. Miniatury dla modelu\n" +
+                "     idą po BLE i działają niezależnie, więc AI może widzieć\n" +
+                "     zdjęcia, których w galerii nie ma."
+        }
+        val files = manager.getMediaFileList()
+        return if (files.isEmpty()) {
+            "⚠️ 12. Wi-Fi Direct działa, ale okulary nie zgłosiły żadnych plików."
+        } else {
+            "✅ 12. Wi-Fi Direct działa, okulary widzą ${files.size} plików"
         }
     }
 
@@ -762,6 +902,51 @@ class DiagnosticsViewModel(application: Application) : AndroidViewModel(applicat
      * ekran diagnostyczny ma pokazać błąd, a nie wywalić aplikację.
      */
     private companion object {
+        /** Ile czekamy, aż okulary podadzą liczbę plików. */
+        const val MEDIA_COUNT_TIMEOUT_MS = 8_000L
+
+        /**
+         * Czego żaden przycisk nie zmierzy.
+         *
+         * ## Po co to tutaj, a nie w dokumentacji
+         * Bo czyta się to Z OKULARAMI NA GŁOWIE, w chwili testowania, a nie przy
+         * komputerze. Każda pozycja odpowiada usterce, która była naprawiana
+         * "na ślepo" i której skutek słychać, ale nie widać w żadnym pomiarze.
+         * Bez takiej listy zgłoszenie wraca jako "dalej nie działa", co nie
+         * wskazuje, KTÓRA z kilku poprawek nie zadziałała.
+         */
+        val MANUAL_CHECKLIST = """
+            DO SPRAWDZENIA UCHEM - tego nie zmierzy żaden przycisk.
+            Rób po kolei, po każdej turze dziennik wysyła się sam.
+
+            A. Zadaj JEDNO pytanie i wysłuchaj całej odpowiedzi.
+               • Czy zdania są całe, czy któreś urywa się w pół słowa?
+               • Czy odpowiedź NIE została przeczytana drugi raz od nowa?
+
+            B. Zadaj drugie pytanie zaraz po pierwszym.
+               • Czy odpowiedź dotyczy TEGO pytania, czy czegoś innego?
+               • Czy tura się kończy, czy zawiesza?
+
+            C. Zapytaj "co widzisz".
+               • Czy odpowiedź dotyczy tego, na co patrzysz?
+               • Jeśli opis jest ogólnikowy - patrz pozycja 7 wyżej,
+                 zdjęcie mogło przyjść urwane.
+
+            D. Odejdź, aż okulary się rozłączą, wróć i zadaj pytanie.
+               • Czy mikrofon nadal działa po samoczynnym powrocie?
+
+            E. Po zakończonej turze włącz muzykę z telefonu.
+               • Czy gra przez okulary jak multimedia, czy jak przez telefon?
+
+            F. Powiedz coś, co wywoła akcję ("wyślij SMS do...").
+               • Czy pytanie o potwierdzenie wymienia WSZYSTKO,
+                 co ma się wykonać - a nie tylko pierwszą rzecz?
+
+            G. Zajrzyj do Galerii okularów.
+               • Pliki są w PAMIĘCI OKULARÓW. Aplikacja nic stamtąd nie
+                 kasuje i nic nie pobiera automatycznie - patrz pozycja 11.
+        """.trimIndent()
+
         /** Poniżej tego poziomu nagranie jest praktycznie ciszą. */
         const val QUIET_LEVEL = 0.01
 
