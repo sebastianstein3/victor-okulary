@@ -131,3 +131,24 @@
 23:14:45.848  +30921 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
 23:14:45.918  +30991 ms  MOWA         koniec wypowiedzi  ms=14263
 23:14:45.945  +31018 ms  SESJA        --- KONIEC TURY 56dd: odpowiedziano ---
+23:14:54.353          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 86 12 01 00 10 09 02 00 0F 0F 03 00 10 06 03
+23:15:17.267          ms  PRZYCISK     wciśnięto  numer=1
+23:15:17.528          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+23:15:17.909      +0 ms  SESJA        --- TURA bbda ---  źródło=OKULARY
+23:15:17.912      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:15:22.293   +4384 ms  NASŁUCH      koniec  ms=4384 odłożone=to jest silniejszy pudzian czy weronisza
+23:15:22.371   +4462 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+23:15:23.276   +5367 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.5535 pakietów=228 rozkodowanych=228 odrzuconych=0 przesunięcie=0 ramka=-1
+23:15:26.576   +8667 ms  TRANSKRYPCJA z nagrania okularów  ms=3297 droga=Bez transkrypcji - nagranie do modelu
+23:15:26.578   +8669 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=to jest silniejszy pudzian czy weronisza
+23:15:26.580   +8671 ms  SESJA        pytanie  tekst=to jest silniejszy pudzian czy weronisza wymuszonyObraz=false
+23:15:26.589   +8681 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:15:26.607   +8698 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:15:26.611   +8702 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:15:27.309   +9400 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:15:28.093  +10184 ms  KONTEKST     zebrany  ms=1470 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:15:28.111  +10202 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=7775
+23:15:44.728  +26819 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=16619
+23:15:44.860  +26951 ms  MODEL        koniec odpowiedzi (318 znaków, 8430 tokenów)  ms=16751
+23:16:00.547  +42638 ms  MOWA         koniec wypowiedzi  ms=15684
+23:16:00.564  +42655 ms  SESJA        --- KONIEC TURY bbda: odpowiedziano ---
