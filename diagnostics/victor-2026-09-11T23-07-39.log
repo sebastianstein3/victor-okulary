@@ -289,3 +289,34 @@
 23:23:40.006  +37245 ms  MODEL        koniec odpowiedzi (73 znaków, 8963 tokenów)  ms=13615
 23:23:43.940  +41179 ms  MOWA         koniec wypowiedzi  ms=3927
 23:23:44.011  +41249 ms  SESJA        --- KONIEC TURY 3073: odpowiedziano ---
+23:24:32.192          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 86 12 01 00 10 09 02 00 0F 0F 03 00 10 06 03
+23:24:42.695          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+23:24:42.702          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+23:25:06.532          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=49152 jpeg=true kompletny=false
+23:25:06.533          ms  ZDJĘCIE      zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze
+23:25:11.255          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+23:25:11.260          ms  ZDJĘCIE      zgłoszenie pominięte - trwa już pobieranie zdjęcia z przycisku
+23:25:37.748          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+23:25:37.753          ms  ZDJĘCIE      zgłoszenie pominięte - trwa już pobieranie zdjęcia z przycisku
+23:25:54.839          ms  PRZYCISK     wciśnięto  numer=1
+23:25:54.926          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+23:25:55.529      +3 ms  SESJA        --- TURA 54fd ---  źródło=OKULARY
+23:25:55.534      +6 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:25:57.347   +1819 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura (powtórka)
+23:25:57.358   +1830 ms  ZDJĘCIE      zdjęcie z przycisku: biorę urwany obraz  bajtów=49152
+23:25:57.376   +1848 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+23:25:57.392   +1864 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+23:25:57.712   +2185 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:25:57.728   +2200 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:25:58.149   +2622 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 81 E3 01 6F 00 0F 00 03 00 01 01
+23:25:58.537   +3010 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:26:33.672  +38144 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=35930
+23:26:33.688  +38161 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=49152 pełnaRozdzielczość=false
+23:26:47.897  +52369 ms  KONTEKST     zebrany  ms=14052 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:26:47.914  +52386 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=9135
+23:26:54.524  +58996 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6611
+23:26:54.544  +59016 ms  MODEL        koniec odpowiedzi (313 znaków, 7496 tokenów)  ms=6631
+23:26:57.505  +61977 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 86 12 01 00 10 09 02 00 0F 0F 03 00 10 06 03
+23:26:59.116  +63588 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 5E 47 12 01 00 10 09 02 00 0F 0F 03 00 10 06 01
+23:27:11.153  +75625 ms  MOWA         koniec wypowiedzi  ms=16607
+23:27:11.185  +75657 ms  SESJA        --- KONIEC TURY 54fd: odpowiedziano ---
