@@ -92,3 +92,15 @@
 18:11:10.041  +14224 ms  MODEL        koniec odpowiedzi (256 znaków, 7997 tokenów)  ms=6265
 18:11:18.432  +22615 ms  MOWA         koniec wypowiedzi  ms=8387
 18:11:18.556  +22739 ms  SESJA        --- KONIEC TURY f028: odpowiedziano ---
+18:13:04.781          ms  BLE          POŁĄCZONO
+18:13:06.892          ms  BLE          POŁĄCZONO
+18:13:50.073      +1 ms  SESJA        --- TURA d198 ---  źródło=BUTTON
+18:13:50.074      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+18:13:50.078      +6 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+18:13:50.089     +17 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:13:50.095     +23 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+18:13:53.101   +3029 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false
+18:13:53.106   +3034 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+18:14:10.120  +20048 ms  ZDJĘCIE      próba 2: miniatura  notify=false
+18:14:10.128  +20056 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo.
+18:14:10.132  +20060 ms  SESJA        --- KONIEC TURY d198: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo. ---
