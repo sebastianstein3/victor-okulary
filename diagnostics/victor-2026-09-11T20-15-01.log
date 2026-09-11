@@ -325,3 +325,12 @@
 20:40:15.142  +28044 ms  MODEL        koniec odpowiedzi (63 znaków, 7535 tokenów)  ms=7864
 20:40:19.095  +31997 ms  MOWA         koniec wypowiedzi  ms=3946
 20:40:19.158  +32059 ms  SESJA        --- KONIEC TURY 57cc: odpowiedziano ---
+20:40:27.533          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 3C 12 01 00 10 10 02 00 0F 0F 03 00 10 0A 03
+20:45:02.002          ms  BLE          POŁĄCZONO  noweŁącze=true
+20:45:02.013          ms  BLE          powitanie okularów - start
+20:45:02.050          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+20:45:04.683          ms  BLE          POŁĄCZONO  noweŁącze=false
+20:45:19.089          ms  ZDJĘCIE      próba 1: droga producenta  jakość=2
+20:45:25.093          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6002
+20:45:25.095          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+20:45:41.098          ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
