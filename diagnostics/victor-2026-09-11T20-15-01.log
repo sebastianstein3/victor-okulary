@@ -300,3 +300,28 @@
 20:36:37.281  +36112 ms  MOWA         koniec wypowiedzi  ms=3785
 20:36:37.300  +36131 ms  SESJA        --- KONIEC TURY fd1d: odpowiedziano ---
 20:36:45.734          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:39:27.382          ms  BLE          ROZŁĄCZONO  świadome=false
+20:39:33.434          ms  BLE          ROZŁĄCZONO  świadome=false
+20:39:44.107          ms  BLE          POŁĄCZONO  noweŁącze=true
+20:39:44.117          ms  BLE          powitanie okularów - start
+20:39:44.138          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+20:39:44.456          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+20:39:46.196          ms  BLE          POŁĄCZONO  noweŁącze=false
+20:39:46.222          ms  PRZYCISK     wciśnięto  numer=1
+20:39:46.442          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+20:39:47.100      +1 ms  SESJA        --- TURA 57cc ---  źródło=OKULARY
+20:39:47.102      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+20:39:55.787   +8689 ms  NASŁUCH      koniec  ms=8688
+20:39:55.807   +8709 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+20:39:59.494  +12396 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0535
+20:40:05.292  +18193 ms  TRANSKRYPCJA z nagrania okularów  ms=5795 droga=Bez transkrypcji - nagranie do modelu
+20:40:05.303  +18204 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=869180 B wymuszonyObraz=false
+20:40:05.315  +18216 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+20:40:05.422  +18323 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:40:06.214  +19115 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA FC 12 01 00 10 10 02 00 0F 0F 03 00 10 0A 02
+20:40:07.240  +20141 ms  KONTEKST     zebrany  ms=1789 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:40:07.279  +20180 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=11189
+20:40:15.098  +27999 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=7820
+20:40:15.142  +28044 ms  MODEL        koniec odpowiedzi (63 znaków, 7535 tokenów)  ms=7864
+20:40:19.095  +31997 ms  MOWA         koniec wypowiedzi  ms=3946
+20:40:19.158  +32059 ms  SESJA        --- KONIEC TURY 57cc: odpowiedziano ---
