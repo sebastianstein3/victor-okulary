@@ -7,3 +7,7 @@
 # mikrofon okularów: true
 # źródło zdjęcia: full (dzielnik 3)
 15:52:50.527          ms  SESJA        start sesji
+16:01:46.079          ms  ZDJĘCIE      próba 1: droga producenta  jakość=2
+16:01:47.910          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie
+16:01:47.951          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=true
+16:01:48.874          ms  ZDJĘCIE      próba 1: miniatura  bajtów=18145 jpeg=true kompletny=true
