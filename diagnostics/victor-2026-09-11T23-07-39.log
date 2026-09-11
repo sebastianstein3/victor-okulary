@@ -32,3 +32,31 @@
 23:09:11.370   +7079 ms  MODEL        koniec odpowiedzi (266 znaków, 4400 tokenów)  ms=6130
 23:09:25.122  +20832 ms  MOWA         koniec wypowiedzi  ms=13750
 23:09:25.156  +20866 ms  SESJA        --- KONIEC TURY c179: odpowiedziano ---
+23:09:27.424          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1A 67 12 01 00 10 09 02 00 0F 0E 03 00 10 09 02
+23:09:28.013          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1A 54 12 01 00 10 09 02 00 0F 0D 03 00 10 09 02
+23:09:28.649          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 85 12 01 00 10 09 02 00 0F 0C 03 00 10 09 02
+23:09:29.773          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1A 32 12 01 00 10 09 02 00 0F 0B 03 00 10 09 02
+23:09:30.530          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B E3 12 01 00 10 09 02 00 0F 0A 03 00 10 09 02
+23:09:31.339          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B D0 12 01 00 10 09 02 00 0F 09 03 00 10 09 02
+23:09:32.106          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1A 01 12 01 00 10 09 02 00 0F 08 03 00 10 09 02
+23:09:32.870          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1A FE 12 01 00 10 09 02 00 0F 07 03 00 10 09 02
+23:09:33.689          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA AE 12 01 00 10 09 02 00 0F 07 03 00 10 08 03
+23:09:35.031          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 5E 12 01 00 10 09 02 00 0F 07 03 00 10 07 03
+23:09:35.752          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DE CE 12 01 00 10 09 02 00 0F 07 03 00 10 06 03
+23:09:42.460          ms  PRZYCISK     wciśnięto  numer=1
+23:09:42.744          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+23:09:43.416      +1 ms  SESJA        --- TURA b58b ---  źródło=OKULARY
+23:09:43.417      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:09:52.098   +8683 ms  NASŁUCH      koniec  ms=8682
+23:09:52.289   +8874 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+23:09:52.908   +9493 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1135 pakietów=456 rozkodowanych=456 odrzuconych=0 przesunięcie=0 ramka=-1
+23:09:58.854  +15440 ms  TRANSKRYPCJA z nagrania okularów  ms=5944
+23:09:58.860  +15445 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=874940 B wymuszonyObraz=false
+23:09:58.864  +15449 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+23:09:58.878  +15463 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:09:58.880  +15465 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:09:59.429  +16014 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1F 0E 12 01 00 10 09 02 00 0F 07 03 00 10 06 02
+23:10:01.573  +18158 ms  KONTEKST     zebrany  ms=2687 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+23:10:01.580  +18165 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=7188
+23:11:02.115  +78702 ms  MODEL        wysyłam pytanie  dostawca=local próba=2 zdjęć=0 znakówPromptu=7188
+23:11:02.152  +78738 ms  SESJA        --- KONIEC TURY b58b: Idle ---
