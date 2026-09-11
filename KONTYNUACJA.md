@@ -33,7 +33,7 @@ rozstrzyga się dziennikiem diagnostycznym (sekcja 5), a nie rozumowaniem.
 
 | Rzecz | Adres |
 |---|---|
-| Repozytorium | `rywalrhcmarketing-commits/claude-routines` |
+| Repozytorium | `sebastianstein3/victor-okulary` — **prywatne** |
 | Gałąź robocza | `claude/jarvis-ai-glasses-project-zxsabo` |
 | Kod aplikacji | `jarvis-app/` (projekt Gradle, `pl.victor.app`) |
 | Gałąź na dzienniki | `victor-diagnostics` — **nie buduje się**, celowo |
@@ -196,9 +196,16 @@ zwykłym commitem.
 
 **Co użytkownik musi zrobić raz:** wygenerować token na
 github.com/settings/personal-access-tokens/new — dostęp tylko do
-`claude-routines`, uprawnienie **Contents: Read and write** — i wkleić go w
-**Ustawienia → 🩺 Dziennik diagnostyczny**. Na moment przekazania
-**jeszcze tego nie zrobił**, więc pierwszych dzienników może nie być.
+`victor-okulary`, uprawnienie **Contents: Read and write** — i wkleić go w
+**Ustawienia → 🩺 Dziennik diagnostyczny**.
+
+**Token jest dla TELEFONU, nie dla Ciebie. Nigdy o niego nie proś i nigdy nie
+przyjmuj go w rozmowie.** Telefon potrzebuje go, żeby PISAĆ dzienniki; Ty
+potrzebujesz tylko je CZYTAĆ, a do tego wystarczy zwykły `git fetch`. Jeśli
+użytkownik wklei token w czacie, powiedz mu wprost, żeby go natychmiast
+unieważnił — zapis rozmowy jest kolejnym miejscem, w którym sekret przestaje
+być sekretem. Pisz „wklej token w aplikacji", nigdy „potrzebuję tokenu":
+zdarzyło się, że to drugie sformułowanie sprowokowało wklejenie go tutaj.
 
 ---
 

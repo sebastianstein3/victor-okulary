@@ -109,8 +109,8 @@ class DiagnosticUploader(private val token: String) {
 
     companion object {
         private const val TAG = "DiagnosticUploader"
-        const val OWNER = "rywalrhcmarketing-commits"
-        const val REPO = "claude-routines"
+        const val OWNER = "sebastianstein3"
+        const val REPO = "victor-okulary"
 
         /**
          * Gałąź na dzienniki. Osobna od gałęzi z kodem CELOWO: workflow budujący
