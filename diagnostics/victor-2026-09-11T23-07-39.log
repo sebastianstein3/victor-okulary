@@ -200,3 +200,40 @@
 23:17:58.737  +35743 ms  MODEL        koniec odpowiedzi (221 znaków, 9541 tokenów)  ms=20403
 23:18:11.791  +48797 ms  MOWA         koniec wypowiedzi  ms=13046
 23:18:11.801  +48807 ms  SESJA        --- KONIEC TURY a0d9: odpowiedziano ---
+23:18:18.791          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 80 10 01 6B 00 0F 00 03 00 01 01
+23:18:20.273          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DF 86 12 01 00 10 09 02 00 0F 0F 03 00 10 06 03
+23:19:04.203          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 80 10 01 6B 00 0F 00 03 00 01 01
+23:19:36.419          ms  PRZYCISK     wciśnięto  numer=1
+23:19:36.723          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+23:19:37.142      +1 ms  SESJA        --- TURA 010d ---  źródło=OKULARY
+23:19:37.145      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+23:19:42.164   +5022 ms  NASŁUCH      koniec  ms=5021 odłożone=jakie zwierze widzę
+23:19:42.179   +5037 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+23:19:44.075   +6933 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.2135 pakietów=261 rozkodowanych=261 odrzuconych=0 przesunięcie=0 ramka=-1
+23:19:47.602  +10460 ms  TRANSKRYPCJA z nagrania okularów  ms=3523 droga=Nasłuch telefonu
+23:19:47.605  +10463 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jakie zwierze widzę
+23:19:47.607  +10466 ms  SESJA        pytanie  tekst=jakie zwierze widzę wymuszonyObraz=false
+23:19:47.620  +10478 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:19:47.681  +10539 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:19:47.685  +10543 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:19:48.456  +11314 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1E 46 12 01 00 10 09 02 00 0F 0F 03 00 10 06 02
+23:20:20.436  +43294 ms  KONTEKST     zebrany  ms=32738 pamięć=false kalendarz=true poczta=true pogoda=false lokalizacja=false
+23:20:20.483  +43341 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=7523
+23:20:24.595  +47453 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4115
+23:20:24.626  +47485 ms  MODEL        koniec odpowiedzi (122 znaków, 5340 tokenów)  ms=4146
+23:20:29.967  +52826 ms  SESJA        pytanie  tekst=jakie zwierze widzę wymuszonyObraz=true
+23:20:29.988  +52846 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+23:20:30.096  +52954 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:20:30.094  +52953 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:20:30.106  +52964 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+23:20:32.221  +55079 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C1 F6 01 6C 00 0F 00 03 00 01 01
+23:20:36.117  +58976 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6007
+23:20:36.128  +58986 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+23:20:37.984  +60842 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 00 3A 01 6D 00 0F 00 03 00 01 01
+23:20:42.144  +65003 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+23:20:42.154  +65013 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+23:20:43.791  +66649 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+23:20:43.801  +66660 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+23:20:52.111  +74969 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+23:20:52.122  +74981 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+23:20:52.148  +75006 ms  SESJA        --- KONIEC TURY 010d: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
