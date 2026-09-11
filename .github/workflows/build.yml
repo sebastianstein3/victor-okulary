@@ -104,6 +104,34 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Obraz systemu emulatora rozpakowuje się na dysk runnera, a ten przychodzi
+      # zapchany oprogramowaniem, którego ten workflow nie używa. Bieg
+      # 93732312298 padł DWA RAZY na "No space left on device": emulator nie
+      # wystartował w ogóle, więc nie powstał żaden raport XML i podsumowanie
+      # nieudanych testów wyszło PUSTE. Z zewnątrz wyglądało to jak regresja w
+      # kodzie, której nie było - a to jest najgorszy rodzaj czerwonego biegu,
+      # bo wysyła na poszukiwanie nieistniejącej usterki.
+      #
+      # Największy pojedynczy zysk to NDK (kilka GB). Projekt nie ma kodu
+      # natywnego - vendor SDK okularów jest zwykłym AAR-em - więc NDK nie jest
+      # tu do niczego potrzebne. `df -h` po obu stronach zostaje celowo: gdy to
+      # kiedyś znowu nie wystarczy, log od razu pokaże, ile brakowało.
+      - name: Zwolnij miejsce na dysku
+        run: |
+          echo "--- przed sprzątaniem ---"
+          df -h /
+          sudo rm -rf \
+            /usr/local/lib/android/sdk/ndk \
+            /usr/share/dotnet \
+            /opt/ghc \
+            /usr/local/.ghcup \
+            /usr/local/share/powershell \
+            /usr/share/swift \
+            /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          echo "--- po sprzątaniu ---"
+          df -h /
+
       - name: Cache obrazu AVD
         uses: actions/cache@v4
         id: avd-cache
