@@ -1,0 +1,34 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: thumbnail (dzielnik 2)
+23:07:39.827          ms  SESJA        start sesji
+23:08:17.019          ms  BLE          POŁĄCZONO  noweŁącze=true
+23:08:17.025          ms  BLE          powitanie okularów - start
+23:08:17.038          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+23:08:17.360          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:08:18.994          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 76 12 01 00 10 09 02 00 0F 0F 03 00 10 09 03
+23:08:19.151          ms  BLE          POŁĄCZONO  noweŁącze=false
+23:08:48.831          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+23:08:48.848          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+23:08:54.281          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=16384 jpeg=true kompletny=false
+23:08:54.284          ms  ZDJĘCIE      zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze
+23:09:04.287          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura (powtórka)
+23:09:04.289          ms  ZDJĘCIE      zdjęcie z przycisku: biorę urwany obraz  bajtów=16384
+23:09:04.291      +1 ms  SESJA        --- TURA c179 ---  źródło=BUTTON
+23:09:04.293      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+23:09:04.300      +9 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+23:09:04.342     +51 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:09:04.345     +54 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:09:04.793    +502 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=16384 pełnaRozdzielczość=false
+23:09:04.834    +543 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B B6 12 01 00 10 09 02 00 0F 0F 03 00 10 09 02
+23:09:05.226    +936 ms  KONTEKST     zebrany  ms=45 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false
+23:09:05.241    +950 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=1483
+23:09:11.307   +7016 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6067
+23:09:11.370   +7079 ms  MODEL        koniec odpowiedzi (266 znaków, 4400 tokenów)  ms=6130
+23:09:25.122  +20832 ms  MOWA         koniec wypowiedzi  ms=13750
+23:09:25.156  +20866 ms  SESJA        --- KONIEC TURY c179: odpowiedziano ---
