@@ -211,3 +211,25 @@
 20:30:18.299  +32115 ms  MODEL        koniec odpowiedzi (253 znaków, 8260 tokenów)  ms=6223
 20:30:34.607  +48423 ms  MOWA         koniec wypowiedzi  ms=16306
 20:30:34.629  +48445 ms  SESJA        --- KONIEC TURY b221: odpowiedziano ---
+20:30:43.034          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:31:14.415          ms  PRZYCISK     wciśnięto  numer=1
+20:31:14.583          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+20:31:15.393      +0 ms  SESJA        --- TURA 34d5 ---  źródło=OKULARY
+20:31:15.395      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+20:31:18.806   +3413 ms  NASŁUCH      koniec  ms=3414
+20:31:19.356   +3964 ms  NASŁUCH      nagranie z okularów  jest=true sekund=2.6135
+20:31:21.472   +6079 ms  TRANSKRYPCJA z nagrania okularów  ms=2112 droga=Bez transkrypcji - nagranie do modelu
+20:31:21.482   +6089 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=250940 B wymuszonyObraz=false
+20:31:21.492   +6100 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=true
+20:31:21.530   +6137 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:31:21.813   +6420 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+20:31:21.819   +6426 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+20:31:22.052   +6659 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+20:31:23.254   +7861 ms  KONTEKST     zebrany  ms=1699 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:31:23.292   +7899 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=11936
+20:31:31.807  +16414 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=8518
+20:31:31.833  +16440 ms  MODEL        koniec odpowiedzi (138 znaków, 8154 tokenów)  ms=8544
+20:31:33.121  +17728 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=32768 jpeg=true kompletny=false
+20:31:33.126  +17733 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=BUTTON stan=Streaming
+20:31:40.603  +25210 ms  MOWA         koniec wypowiedzi  ms=8763
+20:31:40.659  +25266 ms  SESJA        --- KONIEC TURY 34d5: odpowiedziano ---
