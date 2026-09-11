@@ -56,3 +56,45 @@
 22:02:02.422  +45374 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
 22:02:02.425  +45377 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
 22:02:02.431  +45383 ms  SESJA        --- KONIEC TURY 7840: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+22:02:10.851          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+22:02:29.877          ms  PRZYCISK     wciśnięto  numer=1
+22:02:30.030          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+22:02:30.547      +1 ms  SESJA        --- TURA 477f ---  źródło=OKULARY
+22:02:30.548      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:02:34.983   +4437 ms  NASŁUCH      koniec  ms=4437 odłożone=jak co zobaczyłeś
+22:02:35.050   +4504 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+22:02:36.436   +5890 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.5735 pakietów=229 rozkodowanych=229 odrzuconych=0 przesunięcie=0 ramka=-1
+22:02:39.780   +9234 ms  TRANSKRYPCJA z nagrania okularów  ms=3340
+22:02:39.781   +9235 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jak co zobaczyłeś
+22:02:39.781   +9236 ms  SESJA        pytanie  tekst=jak co zobaczyłeś wymuszonyObraz=false
+22:02:39.786   +9240 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+22:02:39.799   +9253 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:02:39.798   +9252 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:02:39.856   +9310 ms  KONTEKST     zebrany  ms=52 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false
+22:02:39.863   +9317 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=1156
+22:02:40.316   +9770 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+22:02:47.386  +16841 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=7524
+22:02:47.459  +16914 ms  MODEL        koniec odpowiedzi (192 znaków, 3736 tokenów)  ms=7597
+22:02:56.812  +26266 ms  MOWA         koniec wypowiedzi  ms=9349
+22:02:56.858  +26312 ms  SESJA        --- KONIEC TURY 477f: odpowiedziano ---
+22:03:05.258          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+22:03:07.330          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+22:03:07.334          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+22:03:15.289          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=32768 jpeg=true kompletny=false
+22:03:15.291          ms  ZDJĘCIE      zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze
+22:03:25.293          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura (powtórka)
+22:03:25.294          ms  ZDJĘCIE      zdjęcie z przycisku: biorę urwany obraz  bajtów=32768
+22:03:25.295      +0 ms  SESJA        --- TURA e696 ---  źródło=BUTTON
+22:03:25.296      +1 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+22:03:25.299      +4 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+22:03:25.355     +60 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+22:03:25.356     +61 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+22:03:25.852    +557 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C1 81 01 64 00 0E 00 03 00 01 01
+22:03:25.855    +560 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+22:04:26.538  +61244 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=32768 pełnaRozdzielczość=false
+22:04:26.982  +61687 ms  KONTEKST     zebrany  ms=45 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false
+22:04:26.989  +61694 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=1004
+22:04:38.889  +73594 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=11900
+22:04:39.251  +73956 ms  MODEL        koniec odpowiedzi (391 znaków, 5332 tokenów)  ms=12262
+22:04:58.666  +93371 ms  MOWA         koniec wypowiedzi  ms=19413
+22:04:58.685  +93390 ms  SESJA        --- KONIEC TURY e696: odpowiedziano ---
