@@ -674,6 +674,18 @@ class AIOrchestrator(
                     current is OrchestratorState.Error
                 ) {
                     conversationalMode.onAiFinishedSpeaking()
+                    // Zamknięcie wpisu w dzienniku tą samą drogą i z tego
+                    // samego powodu co wznowienie nasłuchu: wyjść jest
+                    // kilkanaście i każde zapomniane zostawiało turę otwartą.
+                    // W dzienniku z 21:55 widać to na turze 0066 („zapamiętaj,
+                    // że mam na imię...") - jest „pytanie", nie ma „KONIEC
+                    // TURY", a kolejne wiersze liczą czas od tury, która dawno
+                    // się skończyła. Powtórne wywołanie jest nieszkodliwe.
+                    runCatching {
+                        diag.endTurn(
+                            if (current is OrchestratorState.Error) "błąd" else "odpowiedziano"
+                        )
+                    }
                 }
             }
         }
@@ -779,7 +791,15 @@ class AIOrchestrator(
             // przy nieodpowiadających okularach kończyło się serią komend i
             // komunikatem o błędzie zamiast po prostu niczym.
             if (aiVision || fetched) {
-                handleUserTrigger(TriggerSource.BUTTON, PHOTO_ON_DEMAND_QUESTION, forceVision = true)
+                handleUserTrigger(
+                    TriggerSource.BUTTON,
+                    PHOTO_ON_DEMAND_QUESTION,
+                    forceVision = true,
+                    // NIE przerywa mówienia: to nie jest palec na oprawce,
+                    // tylko tura zbudowana z ramki notify. Patrz uzasadnienie
+                    // przy [handleUserTrigger].
+                    allowInterruptSpeech = false
+                )
             }
         }
     }
@@ -974,6 +994,42 @@ class AIOrchestrator(
                     false
                 }
             }
+        }
+    }
+
+    /**
+     * Lista person, powiedziana tak, jak się mówi.
+     *
+     * Czytana z [pl.victor.app.persona.PersonaRegistry] przy każdym pytaniu, a
+     * nie przepisana tutaj - inaczej dopisanie persony w rejestrze zostawiałoby
+     * tę odpowiedź nieaktualną i nikt by tego nie zauważył.
+     */
+    private fun describePersonas(): String {
+        val personas = pl.victor.app.persona.PersonaRegistry.all()
+        val currentId = settings.getSelectedPersonaId()
+        val current = personas.firstOrNull { it.id == currentId }
+        val names = personas.joinToString(", ") { it.name }
+        return buildString {
+            append("Mam ").append(personas.size).append(" styli rozmowy: ").append(names).append(". ")
+            current?.let { append("Teraz używam: ").append(it.name).append(". ") }
+            append("Zmienisz je w Ustawieniach, w grupie Model AI i klucze.")
+        }
+    }
+
+    /**
+     * Co asystent potrafi - z tego samego katalogu, który zasila ekran
+     * „Komendy". Grupy zamiast wyliczanki wszystkiego: pełna lista ma
+     * kilkadziesiąt pozycji i po głosie nikt jej nie wysłucha.
+     */
+    private fun describeCapabilities(): String {
+        val groups = pl.victor.app.actions.CommandCatalog.ALL
+            .groupBy { it.group }
+            .map { (group, commands) -> "${group.title} - ${commands.size}" }
+        return buildString {
+            append("Potrafię ").append(pl.victor.app.actions.CommandCatalog.ALL.size)
+            append(" rzeczy w ").append(groups.size).append(" grupach: ")
+            append(groups.joinToString("; "))
+            append(". Pełna lista z przykładami jest w aplikacji, na ekranie Komendy.")
         }
     }
 
@@ -1752,14 +1808,30 @@ class AIOrchestrator(
         trigger: TriggerSource,
         textQuestion: String = "",
         forceVision: Boolean = false,
-        audioQuestion: ByteArray? = null
+        audioQuestion: ByteArray? = null,
+        /**
+         * Czy to wywołanie wolno wpuścić, gdy asystent właśnie MÓWI.
+         *
+         * ## Dlaczego to parametr, a nie cecha [TriggerSource]
+         * Bo `BUTTON` niesie dwie zupełnie różne rzeczy. Jedna to palec na
+         * oprawce - świadoma decyzja człowieka, która ma przerwać mówienie.
+         * Druga to tura zbudowana z RAMKI „zdjęcie gotowe", której nikt
+         * świadomie nie wywołał.
+         *
+         * Rozróżnienia nie było i w dzienniku z 21:55 widać, co z tego wyszło:
+         * o 22:14:50 i 22:15:17 tura z ramki wywłaszczyła turę, która właśnie
+         * trwała (`KONIEC TURY ...: Idle`), zrobiła własne zdjęcie, okulary
+         * zameldowały je kolejną ramką - i to samo od nowa. Zgłoszone jako
+         * „okulary zaczęły robić zdjęcia przez cały czas".
+         */
+        allowInterruptSpeech: Boolean = trigger.mayInterruptSpeech()
     ) {
         // Przycisk na okularach to też świadome działanie użytkownika TERAZ -
         // ma pierwszeństwo tak samo jak wypowiedź. Tury wewnętrzne (powtórka ze
         // zdjęciem) wchodzą na stanie Idle, więc ich to nie dotyczy.
         if (!claimIdle(
                 takeOver = trigger.mayTakeOverTurn(),
-                mayInterruptSpeech = trigger.mayInterruptSpeech()
+                mayInterruptSpeech = allowInterruptSpeech
             )
         ) {
             Log.w(TAG, "Already processing, ignoring trigger")
@@ -1812,6 +1884,30 @@ class AIOrchestrator(
                 } else {
                     handleActions(listOf(custom), textQuestion)
                 }
+                return
+            }
+
+            // WIEDZA O SOBIE - z katalogu, bez pytania modelu.
+            //
+            // Model nie wie, jakie persony ma aplikacja, bo lista nigdy do
+            // niego nie docierała: w dzienniku z 21:55 na „jakie persony mamy
+            // dostępne" odpowiedział tym, co mu się wydawało. Doklejenie
+            // katalogu do promptu naprawiłoby wiedzę kosztem KAŻDEJ tury -
+            // także tej o pogodzie - a prompt i tak sięga już 11 tysięcy
+            // znaków. Odpowiadamy więc na miejscu, z danych, które aplikacja
+            // ma; tura kończy się w ułamku sekundy zamiast po kilkunastu.
+            pl.victor.app.actions.SelfKnowledge.topicOf(textQuestion)?.let { topic ->
+                val speech = when (topic) {
+                    pl.victor.app.actions.SelfKnowledge.Topic.PERSONAS -> describePersonas()
+                    pl.victor.app.actions.SelfKnowledge.Topic.CAPABILITIES -> describeCapabilities()
+                }
+                Log.i(TAG, "Warstwa 0: pytanie o samego siebie ($topic)")
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "odpowiadam z katalogu, bez modelu",
+                    mapOf("temat" to topic.name)
+                )
+                audio.speak(speech, language = settings.getResponseLanguage())
+                _state.value = OrchestratorState.Completed(speech)
                 return
             }
 

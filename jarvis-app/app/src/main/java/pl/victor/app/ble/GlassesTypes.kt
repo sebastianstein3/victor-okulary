@@ -19,7 +19,21 @@ data class MediaCount(
 data class DiscoveredDevice(
     val address: String,
     val name: String?,
-    val rssi: Int
+    val rssi: Int,
+    /**
+     * Czy to urządzenie, z którym aplikacja już się kiedyś łączyła.
+     *
+     * ## Po co
+     * Skan BLE pokazuje WSZYSTKO, co nadaje w pobliżu - telewizor, słuchawki,
+     * cudzy telefon. Zgłoszone wprost: „znalazł okulary (LG), tylko że to nie
+     * są okulary, których używam". Filtrowanie po nazwie byłoby zgadywaniem:
+     * nie wiemy, jak przedstawia się KAŻDY egzemplarz tych okularów, a ukrycie
+     * tego właściwego jest gorsze niż pokazanie jednego za dużo.
+     *
+     * Dlatego nie ukrywamy niczego, tylko wskazujemy to, o czym wiemy na pewno:
+     * adres, z którym połączenie już raz zadziałało.
+     */
+    val known: Boolean = false
 )
 
 /** Stan połączenia z okularami. */

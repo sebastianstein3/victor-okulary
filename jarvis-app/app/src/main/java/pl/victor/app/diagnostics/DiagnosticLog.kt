@@ -131,8 +131,16 @@ class DiagnosticLog(context: Context) {
         if (turnStartedAt.get() == 0L) startTurn(trigger)
     }
 
-    /** Kończy turę - kolejne wiersze idą już bez licznika. */
+    /**
+     * Kończy turę - kolejne wiersze idą już bez licznika.
+     *
+     * Wywołanie na zamkniętej turze nic nie robi. Dzięki temu zamknięcie da się
+     * wpiąć w jedno miejsce dla WSZYSTKICH dróg wyjścia (patrz obserwator stanu
+     * w [pl.victor.app.AIOrchestrator]) bez ryzyka, że ścieżka, która kończy
+     * turę sama, dopisze drugi wiersz „KONIEC TURY".
+     */
     fun endTurn(outcome: String, fields: Map<String, Any?> = emptyMap()) {
+        if (turnStartedAt.get() == 0L) return
         event(DiagFormat.Phase.SESJA, "--- KONIEC TURY $turnId: $outcome ---", fields)
         turnStartedAt.set(0L)
     }

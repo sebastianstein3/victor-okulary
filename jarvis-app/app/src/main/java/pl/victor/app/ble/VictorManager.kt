@@ -189,6 +189,26 @@ class VictorManager private constructor(context: Context) {
     private var captureInProgress = false
 
     /**
+     * Kiedy SAMI ostatnio kazaliśmy okularom zrobić zdjęcie.
+     *
+     * [captureInProgress] nie wystarcza, bo jest chwilami zgaszony: między
+     * próbami, po wyczerpaniu budżetu czasu i przez cały czas pobierania
+     * zdjęcia z przycisku. Ramka „zdjęcie gotowe", która trafi w taką szczelinę,
+     * wygląda jak wciśnięcie przycisku - i uruchamia turę, która robi kolejne
+     * zdjęcie. Patrz [PhotoNotifyDedupe.isOwnShutter].
+     */
+    @Volatile
+    private var lastShutterCommandAtMs = 0L
+
+    /** Czy trwa pobieranie zdjęcia zrobionego przyciskiem. */
+    @Volatile
+    private var hardwarePhotoInProgress = false
+
+    /** Kiedy ostatnio nie udało się pobrać oryginału przez Wi-Fi Direct. */
+    @Volatile
+    private var wifiDirectFailedAtMs = 0L
+
+    /**
      * Kiedy okulary ostatnio odpowiedziały NA JAKĄKOLWIEK komendę sterującą.
      *
      * ## Po co osobny licznik
@@ -570,11 +590,19 @@ class VictorManager private constructor(context: Context) {
                 // Powtórzoną ramkę trzeba odsiać TUTAJ: niżej zaczyna się
                 // pobieranie miniatury, a dwa pobierania naraz kończą się
                 // dwoma limitami czasu zamiast jednym zdjęciem.
+                val ownShutter = PhotoNotifyDedupe.isOwnShutter(lastShutterCommandAtMs, now)
                 when {
-                    captureInProgress -> runCatching {
+                    captureInProgress || ownShutter -> runCatching {
                         diag.event(
                             pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
-                            "zgłoszenie pominięte - trwa zdjęcie zamówione przez aplikację"
+                            "zgłoszenie pominięte - to odpowiedź na naszą komendę",
+                            mapOf("trwaNasze" to captureInProgress, "poNaszejMigawce" to ownShutter)
+                        )
+                    }
+                    hardwarePhotoInProgress -> runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                            "zgłoszenie pominięte - trwa już pobieranie zdjęcia z przycisku"
                         )
                     }
                     echo -> runCatching {
@@ -1443,18 +1471,24 @@ class VictorManager private constructor(context: Context) {
      * `rssi == null` zachowuje poprzednio znaną siłę sygnału.
      */
     private fun upsertDevice(address: String, name: String?, rssi: Int?) {
+        val knownAddress = runCatching { settings.getLastGlassesAddress() }.getOrNull()
         _discoveredDevices.update { current ->
             val existing = current.firstOrNull { it.address.equals(address, ignoreCase = true) }
             val updated = DiscoveredDevice(
                 address = address,
                 name = name ?: existing?.name,
-                rssi = rssi ?: existing?.rssi ?: 0
+                rssi = rssi ?: existing?.rssi ?: 0,
+                known = knownAddress != null && knownAddress.equals(address, ignoreCase = true)
             )
-            if (existing == null) {
+            val merged = if (existing == null) {
                 current + updated
             } else {
                 current.map { if (it.address.equals(address, ignoreCase = true)) updated else it }
             }
+            // Znane urządzenie na górę, reszta po sile sygnału. Lista skanu
+            // potrafi mieć kilkanaście pozycji i bez tego te właściwe okulary
+            // lądują gdzieś w środku, między telewizorem a cudzymi słuchawkami.
+            merged.sortedWith(compareByDescending<DiscoveredDevice> { it.known }.thenByDescending { it.rssi })
         }
     }
 
@@ -1842,6 +1876,7 @@ class VictorManager private constructor(context: Context) {
         diag.event(pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1: droga producenta", mapOf("jakość" to quality))
         send(GlassesProtocol.setAiPhotoQuality(quality))
         _photoReady.value = false
+        noteOwnShutter()
         send(GlassesProtocol.takePhoto())
         val waitStartedAt = System.currentTimeMillis()
         val signalled = awaitPhotoReady()
@@ -1909,6 +1944,7 @@ class VictorManager private constructor(context: Context) {
             )
             send(GlassesProtocol.setAiPhotoQuality(SAFE_THUMBNAIL_QUALITY))
             _photoReady.value = false
+            noteOwnShutter()
             send(GlassesProtocol.takePhoto())
             val safeSignalled = awaitPhotoReady()
             diag.event(
@@ -2022,6 +2058,7 @@ class VictorManager private constructor(context: Context) {
      * @return czy okulary potwierdziły zdjęcie ramką notify
      */
     private suspend fun shootAndWait(command: ByteArray): Boolean {
+        noteOwnShutter()
         send(command)
         // Tu notify jest WYŁĄCZNIE informacją do komunikatu błędu - o tym, kiedy
         // prosić o dane, decyduje [CAPTURE_SETTLE_MS], które i tak odliczymy.
@@ -2122,9 +2159,44 @@ class VictorManager private constructor(context: Context) {
             return thumbnail
         }
 
+        // BEZPIECZNIK NA WI-FI DIRECT.
+        //
+        // W dzienniku z 21:55 pobranie oryginału kosztowało 61 i 86 sekund - i
+        // za każdym razem skończyło się niczym, więc model i tak dostał
+        // miniaturę. Tura trwała przez to 93 i 127 sekund. Użytkownik zgłosił
+        // to z dwóch stron naraz: „chwilę po odpowiedzi nie można zadać
+        // kolejnego pytania" i „przy diagnostyce mówi, że Wi-Fi Direct nie
+        // wystartował".
+        //
+        // Skoro nie wstaje, nie ma powodu czekać na to samo przy KAŻDYM
+        // zdjęciu. Po nieudanej próbie odpuszczamy na [WIFI_RETRY_AFTER_MS] i
+        // oddajemy miniaturę od razu. Okno jest krótkie: gdy Wi-Fi wróci (inne
+        // miejsce, restart okularów), aplikacja sama spróbuje znowu.
+        val sinceWifiFailure = System.currentTimeMillis() - wifiDirectFailedAtMs
+        if (wifiDirectFailedAtMs > 0L && sinceWifiFailure < WIFI_RETRY_AFTER_MS) {
+            Log.i(tag, "Wi-Fi Direct zawiódł ${sinceWifiFailure / 1000} s temu - zostaję przy miniaturze")
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "pomijam Wi-Fi Direct - ostatnia próba zawiodła",
+                mapOf("sekundTemu" to sinceWifiFailure / 1000)
+            )
+            return thumbnail
+        }
+
+        val wifiStartedAt = System.currentTimeMillis()
         val full = runCatching { downloadLatestPhoto() }
             .onFailure { Log.w(tag, "Pobranie oryginału nie powiodło się", it) }
             .getOrNull()
+        if (full == null) {
+            wifiDirectFailedAtMs = System.currentTimeMillis()
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "Wi-Fi Direct nie oddał oryginału",
+                mapOf("ms" to (System.currentTimeMillis() - wifiStartedAt))
+            )
+        } else {
+            wifiDirectFailedAtMs = 0L
+        }
         if (full != null && full.size > thumbnail.size) {
             // Zmniejszamy PRZED wysłaniem: litery zostają czytelne, a to rozmiar
             // pliku decyduje, jak długo trwa droga do modelu.
@@ -2147,6 +2219,11 @@ class VictorManager private constructor(context: Context) {
      * Gdy notify nie dotrze (starszy firmware), wraca do sztywnego odczekania -
      * dzięki temu przechwytywanie działa tak szybko, jak pozwala sprzęt.
      */
+    /** Zapamiętuje, że migawka poszła od NAS - patrz [lastShutterCommandAtMs]. */
+    private fun noteOwnShutter() {
+        lastShutterCommandAtMs = System.currentTimeMillis()
+    }
+
     private suspend fun awaitPhotoReady(
         timeoutMs: Long = PHOTO_READY_TIMEOUT_MS
     ): Boolean {
@@ -2188,6 +2265,11 @@ class VictorManager private constructor(context: Context) {
             pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
             "zdjęcie z przycisku: pobieram"
         )
+        // Pobranie trwa do dwudziestu sekund z powtórką. Przez cały ten czas
+        // każda ramka „zdjęcie gotowe" musi być odsiana, inaczej dokłada
+        // kolejne pobranie i kolejną turę - patrz [hardwarePhotoInProgress].
+        hardwarePhotoInProgress = true
+        try {
         // Notify przychodzi, ZANIM plik wyląduje w pamięci - patrz [shootAndWait].
         delay(CAPTURE_SETTLE_MS)
         _photoReady.value = false
@@ -2236,6 +2318,13 @@ class VictorManager private constructor(context: Context) {
             return@withLock true
         }
         false
+        } finally {
+            // finally, nie `also` po bloku: `also` nie wykona się przy
+            // ANULOWANIU korutyny, a tura bywa porzucana w połowie. Znacznik
+            // zostałby wtedy podniesiony na zawsze i każde następne zdjęcie z
+            // przycisku byłoby po cichu odsiewane.
+            hardwarePhotoInProgress = false
+        }
     }
 
     /**
@@ -2655,6 +2744,14 @@ class VictorManager private constructor(context: Context) {
          * więc budżet wchodzi dopiero wtedy, gdy coś zawiesi się poza nimi.
          */
         private const val PHOTO_TOTAL_BUDGET_MS = 22_000L
+
+        /**
+         * Jak długo po nieudanym Wi-Fi Direct nie próbujemy go ponownie.
+         *
+         * Trzy minuty, nie więcej: to ma oszczędzić minutę na turze, a nie
+         * wyłączyć pełną rozdzielczość do końca sesji.
+         */
+        private const val WIFI_RETRY_AFTER_MS = 180_000L
 
         private const val IP_TIMEOUT_MS = 15_000L
         private const val IP_POLL_INTERVAL_MS = 100L

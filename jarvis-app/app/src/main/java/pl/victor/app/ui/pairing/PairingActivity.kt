@@ -398,9 +398,23 @@ private fun DeviceCard(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
-                    device.address,
+                    // Skan pokazuje WSZYSTKO, co nadaje w pobliżu - telewizor,
+                    // słuchawki, cudzy telefon. Zgłoszone jako „znalazł okulary
+                    // (LG), tylko że to nie są okulary, których używam".
+                    // Nie ukrywamy niczego (nie wiemy, jak przedstawia się
+                    // każdy egzemplarz), ale mówimy wprost, które urządzenie
+                    // już raz działało.
+                    if (device.known) {
+                        "${device.address} - łączyłeś się już z tym urządzeniem"
+                    } else {
+                        device.address
+                    },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (device.known) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 )
             }
             TextButton(onClick = onClick) {

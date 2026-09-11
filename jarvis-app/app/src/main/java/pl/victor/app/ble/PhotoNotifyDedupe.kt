@@ -40,4 +40,39 @@ object PhotoNotifyDedupe {
         // Ujemny odstęp = zegar skoczył w tył. To nie jest dowód powtórki.
         return elapsed in 0 until WINDOW_MS
     }
+
+    /**
+     * Ile po NASZEJ komendzie migawki uznajemy zgłoszenie „zdjęcie gotowe" za
+     * odpowiedź na nią, a nie za zdjęcie zrobione przez użytkownika.
+     *
+     * ## Skąd to musiało powstać
+     * Z dziennika z 21:55, fragment 22:14:37-22:15:39. Aplikacja wysyła
+     * migawkę, okulary ją wykonują i meldują ramką 0x02. Jeśli w tej jednej
+     * chwili znacznik „trwa nasze zdjęcie" akurat nie stoi - bo próba właśnie
+     * się skończyła, bo budżet czasu wygasł, bo trwa pobieranie POPRZEDNIEGO
+     * zdjęcia - ramka wygląda identycznie jak wciśnięcie przycisku przez
+     * człowieka. Aplikacja startuje wtedy turę „opisz to zdjęcie", ta robi
+     * własną migawkę, okulary meldują ją znowu i całość zaczyna się od nowa.
+     *
+     * Użytkownik słyszy to wprost: „na «co widzisz» okulary zaczęły robić
+     * zdjęcia przez cały czas".
+     *
+     * Okno jest długie, bo ma pokryć CAŁE przechwytywanie z jego budżetem 22 s
+     * i wszystkimi próbami. Koszt pomyłki jest niesymetryczny: zignorowane
+     * zdjęcie z przycisku to jedna stracona tura, a nieodsiane echo własnej
+     * komendy to pętla bez końca.
+     */
+    const val OWN_SHUTTER_WINDOW_MS = 25_000L
+
+    /**
+     * Czy to zgłoszenie jest odpowiedzią na NASZĄ komendę migawki.
+     *
+     * @param lastShutterAtMs kiedy sami ostatnio kazaliśmy zrobić zdjęcie
+     *   (0 = nigdy w tej sesji)
+     */
+    fun isOwnShutter(lastShutterAtMs: Long, nowMs: Long): Boolean {
+        if (lastShutterAtMs <= 0L) return false
+        val elapsed = nowMs - lastShutterAtMs
+        return elapsed in 0 until OWN_SHUTTER_WINDOW_MS
+    }
 }
