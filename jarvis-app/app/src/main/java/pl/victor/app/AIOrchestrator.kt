@@ -762,6 +762,16 @@ class AIOrchestrator(
             if (!fetched) {
                 Log.w(TAG, "Nie udało się pobrać zdjęcia zrobionego przyciskiem")
             }
+            // Gdy okulary nie proszą o opis, a zdjęcia nie udało się pobrać,
+            // wciśnięcie przycisku kończy się CISZĄ - i z zewnątrz wygląda to
+            // jak „aplikacja nie zareagowała". Niech w dzienniku zostanie ślad,
+            // że reakcja była, tylko nie miała na czym stanąć.
+            if (!aiVision && !fetched) {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                    "zdjęcie z przycisku: nie startuję tury - brak zdjęcia i brak prośby o opis"
+                )
+            }
             // Turę uruchamiamy, gdy okulary o opis poprosiły ALBO gdy zdjęcie
             // faktycznie mamy. Bez tego drugiego warunku wciśnięcie przycisku
             // przy nieodpowiadających okularach kończyło się serią komend i

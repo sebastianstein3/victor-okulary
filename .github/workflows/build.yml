@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - claude/jarvis-ai-glasses-project-zxsabo
+      # Gałąź bieżącej sesji. Bez niej push nie uruchamia niczego, a CI jest
+      # JEDYNYM prawdziwym buildem tego projektu - lokalny kompilator w
+      # środowisku agenta nie rozwiąże AndroidX ani Compose.
+      - claude/repo-exploration-jj1wsm
   workflow_dispatch:
 
 jobs:

@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayOutputStream
@@ -217,6 +218,24 @@ class VictorManager private constructor(context: Context) {
     @Volatile
     private var greetingDone = false
 
+    /**
+     * Rozstrzyga, czy „usługi wykryte" to nowe łącze, czy echo SDK.
+     * Powód i dowód z dziennika - w [ConnectionGate].
+     */
+    private val connectionGate = ConnectionGate()
+
+    /** Kiedy okulary ostatnio zgłosiły gotowe zdjęcie - do odsiewania powtórek. */
+    @Volatile
+    private var lastPhotoNotifyAtMs = 0L
+
+    /**
+     * Jedno pobieranie zdjęcia z przycisku naraz.
+     *
+     * Kanał miniatur vendor SDK jest pojedynczy: dwie prośby równolegle to nie
+     * dwa zdjęcia, tylko dwa limity czasu - patrz [PhotoNotifyDedupe].
+     */
+    private val hardwarePhotoLock = kotlinx.coroutines.sync.Mutex()
+
     /** Czy vendor SDK przyjmuje w tej chwili zapisy (komendy) do okularów. */
     val writeChannelArmed: Boolean
         get() = simulator?.let { true }
@@ -373,6 +392,9 @@ class VictorManager private constructor(context: Context) {
             registerDeviceNotifyListener()
             // Odtwórz realny stan - SDK mogło być już połączone (np. po obrocie ekranu).
             val alreadyConnected = BleOperateManager.getInstance().isConnected
+            // Bramka musi wiedzieć o tym łączu, inaczej pierwsze prawdziwe
+            // `service_discovered` po starcie wyglądałoby jak echo.
+            if (alreadyConnected) connectionGate.onServicesDiscovered(System.currentTimeMillis())
             _connectionState.value =
                 if (alreadyConnected) ConnectionState.READY else ConnectionState.DISCONNECTED
             // Gdy okulary są już połączone, BLE_SERVICE_DISCOVERED już nie przyjdzie -
@@ -412,21 +434,28 @@ class VictorManager private constructor(context: Context) {
             when (intent?.action) {
                 BleAction.BLE_START_CONNECT -> {
                     Log.d(tag, "BLE: rozpoczęto łączenie")
+                    connectionGate.onConnecting()
                     _connectionState.value = ConnectionState.CONNECTING
                 }
                 BleAction.BLE_GATT_CONNECTED -> {
                     Log.i(tag, "BLE: GATT połączony")
+                    connectionGate.onConnecting()
                     _connectionState.value = ConnectionState.CONNECTED
                 }
                 BleAction.BLE_SERVICE_DISCOVERED -> {
-                    Log.i(tag, "BLE: usługi wykryte - okulary gotowe")
+                    val freshLink = connectionGate.onServicesDiscovered(System.currentTimeMillis())
+                    Log.i(tag, "BLE: usługi wykryte - okulary gotowe (nowe łącze=$freshLink)")
                     runCatching {
                         diag.event(
-                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE, "POŁĄCZONO"
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE, "POŁĄCZONO",
+                            mapOf("noweŁącze" to freshLink)
                         )
                     }
                     connectTimeoutJob?.cancel()
                     _connectionState.value = ConnectionState.READY
+                    // Nowe łącze = okulary nic o nas nie pamiętają. Wszystko, co
+                    // ustawiamy raz na połączenie, musi ruszyć od zera.
+                    if (freshLink) resetPerConnectionState()
                     onGlassesReady()
                 }
                 BleAction.BLE_GATT_DISCONNECTED -> {
@@ -439,6 +468,7 @@ class VictorManager private constructor(context: Context) {
                         )
                     }
                     greetingDone = false
+                    connectionGate.onDisconnected()
                     connectTimeoutJob?.cancel()
                     // Subskrypcja mikrofonu padła razem z GATT - patrz [onGattDropped].
                     onGattDropped()
@@ -518,17 +548,43 @@ class VictorManager private constructor(context: Context) {
         when (val event = decoded) {
             is NotifyEvent.PhotoReady -> {
                 Log.i(tag, "Notify: zdjęcie gotowe (tryb=${event.mode}, opisz=${event.aiVision})")
+                val now = System.currentTimeMillis()
+                val echo = PhotoNotifyDedupe.isEcho(lastPhotoNotifyAtMs, now)
+                lastPhotoNotifyAtMs = now
                 runCatching {
                     diag.event(
                         pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
-                        "okulary zgłosiły gotowe zdjęcie"
+                        "okulary zgłosiły gotowe zdjęcie",
+                        mapOf(
+                            "tryb" to event.mode,
+                            "opisz" to event.aiVision,
+                            "powtórka" to echo
+                        )
                     )
                 }
                 _photoReady.value = true
                 // Zdjęcia, o które sami nie prosiliśmy, robi użytkownik
                 // przyciskiem na okularach. To jedyna droga, którą drugi
                 // przycisk może cokolwiek uruchomić w aplikacji.
-                if (!captureInProgress) _glassesPhotoTaken.tryEmit(event.aiVision)
+                //
+                // Powtórzoną ramkę trzeba odsiać TUTAJ: niżej zaczyna się
+                // pobieranie miniatury, a dwa pobierania naraz kończą się
+                // dwoma limitami czasu zamiast jednym zdjęciem.
+                when {
+                    captureInProgress -> runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                            "zgłoszenie pominięte - trwa zdjęcie zamówione przez aplikację"
+                        )
+                    }
+                    echo -> runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                            "zgłoszenie pominięte - powtórka tej samej ramki"
+                        )
+                    }
+                    else -> _glassesPhotoTaken.tryEmit(event.aiVision)
+                }
             }
             is NotifyEvent.ButtonPressed -> {
                 runCatching {
@@ -582,11 +638,58 @@ class VictorManager private constructor(context: Context) {
                 Log.i(tag, "Notify: okulary proszą o rozmowę (tekst na żywo=${event.realtimeText})")
                 _aiSessionRequest.tryEmit(event.realtimeText)
             }
-            is NotifyEvent.Unknown ->
+            is NotifyEvent.Unknown -> {
                 Log.d(tag, "Notify: nieobsługiwany typ 0x${event.type.toString(16)}")
-            is NotifyEvent.Malformed ->
+                // Do dziennika, nie tylko do logcatu. Bez tego zgłoszenie
+                // „ręczne zdjęcie nie trafia do aplikacji" nie ma jak się
+                // rozstrzygnąć: gdy okulary meldują je ramką, której nie
+                // dekodujemy, dziennik milczy tak samo, jak przy braku ramki.
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                        "nieobsługiwana ramka notify",
+                        mapOf("typ" to "0x${event.type.toString(16)}", "ramka" to hex)
+                    )
+                }
+            }
+            is NotifyEvent.Malformed -> {
                 Log.w(tag, "Notify: ramka za krótka (${event.size} B)")
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                        "ramka notify za krótka",
+                        mapOf("bajtów" to event.size, "ramka" to hex)
+                    )
+                }
+            }
         }
+    }
+
+    /**
+     * Kasuje wszystko, co dotyczyło POPRZEDNIEGO łącza.
+     *
+     * ## Czego brakowało
+     * Dotąd robiła to wyłącznie ramka `BLE_GATT_DISCONNECTED`. Gdy nie
+     * przyszła - a dziennik z 11 września pokazuje, że nie przyszła - okulary
+     * wracały na nowym łączu, a aplikacja dalej trzymała stan sprzed rozłączenia:
+     * powitanie „już wysłane", mikrofon „już zasubskrybowany", wykrywanie frazy
+     * „już włączone". Żadna z tych rzeczy nie była prawdą po stronie okularów.
+     */
+    private fun resetPerConnectionState() {
+        greetingDone = false
+        // Subskrypcja mikrofonu żyje w GATT - na nowym łączu jej nie ma,
+        // choćby flaga twierdziła inaczej. onGlassesReady() odtworzy ją zaraz
+        // przez rearmMicStreamAfterReconnect().
+        onGattDropped()
+        _photoReady.value = false
+        lastPhotoNotifyAtMs = 0L
+        pendingHardwarePhoto = null
+        // Wykrywanie frazy żyje w okularach - dopóki nie wyślemy go ponownie,
+        // przełącznik w ustawieniach pokazywałby stan sprzed rozłączenia.
+        _glassesWakeWordEnabled.value = false
+        // „Czy okulary odpowiadają na komendy" ma dotyczyć TEGO połączenia -
+        // odpowiedź sprzed godziny nie dowodzi niczego o bieżącym łączu.
+        lastCommandAckAtMs = 0L
     }
 
     /**
@@ -622,9 +725,22 @@ class VictorManager private constructor(context: Context) {
             rearmMicStreamAfterReconnect()
 
             // SDK sam rozgłasza `service_discovered` jeszcze raz, 2,5 s po
-            // uzbrojeniu kanału zapisu. Powitanie ma iść raz na połączenie.
-            if (greetingDone) return@launch
+            // uzbrojeniu kanału zapisu. Powitanie ma iść raz na połączenie -
+            // o tym, czy to echo, czy nowe łącze, rozstrzyga [ConnectionGate].
+            if (greetingDone) {
+                Log.d(tag, "Powitanie już wysłane na tym łączu - pomijam")
+                return@launch
+            }
             greetingDone = true
+            // Bez tego wpisu nie da się odróżnić „powitanie poszło i nie
+            // pomogło" od „powitania w ogóle nie było" - a to była przyczyna
+            // martwych okularów po cichym powrocie połączenia.
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                    "powitanie okularów - start"
+                )
+            }
 
             // Uzbrój mechanizm auto-reconnectu producenta na TEN adres. connectWithScan()
             // w SDK sprawdza pole reConnectMac i bez niego od razu wychodzi.
@@ -678,7 +794,19 @@ class VictorManager private constructor(context: Context) {
 
             // Wykrywanie komendy głosowej po stronie okularów - nie wymaga Picovoice.
             // Respektujemy wybór użytkownika, a nie włączamy na sztywno.
-            setGlassesWakeWord(settings.isGlassesWakeWordEnabled())
+            val wakeWordWanted = settings.isGlassesWakeWordEnabled()
+            setGlassesWakeWord(wakeWordWanted)
+
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                    "powitanie okularów - koniec",
+                    mapOf(
+                        "frazaWybudzenia" to wakeWordWanted,
+                        "kanałZapisu" to writeChannelArmed
+                    )
+                )
+            }
         }
     }
 
@@ -1481,7 +1609,9 @@ class VictorManager private constructor(context: Context) {
      * Robi zdjęcie i pobiera je jako miniaturę przez BLE - bez Wi-Fi Direct.
      * To jest domyślna ścieżka dla V.I.C.T.O.R.: najszybsza droga od migawki do bajtów JPEG.
      *
-     * @param quality wartość jakości miniatury przekazywana do okularów (0-2; wyżej = lepiej)
+     * @param quality jakość miniatury przekazywana do okularów: zakres
+     *   [GlassesProtocol.THUMBNAIL_QUALITY_RANGE], czyli 0-5, wyżej = lepiej
+     *   (opis mówił „0-2", co nie zgadzało się z kodem od czasu rozszerzenia zakresu)
      * @return bajty JPEG albo `null` gdy okulary nie odpowiedziały w czasie
      */
     suspend fun capturePhoto(quality: Int = DEFAULT_THUMBNAIL_QUALITY): ByteArray? {
@@ -1503,7 +1633,22 @@ class VictorManager private constructor(context: Context) {
         _photoReady.value = false
         captureInProgress = true
         try {
-            return captureAiPhotoInternal(quality)
+            val photo = withTimeoutOrNull(PHOTO_TOTAL_BUDGET_MS) {
+                captureAiPhotoInternal(quality)
+            }
+            if (photo == null && lastPhotoFailure == null) {
+                // Wyczerpany budżet to osobna awaria: każda próba z osobna
+                // jeszcze trwała, więc żadna nie zdążyła zapisać powodu.
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                    "przerwane po wyczerpaniu budżetu czasu",
+                    mapOf("ms" to PHOTO_TOTAL_BUDGET_MS)
+                )
+                lastPhotoFailure = "Okulary nie oddały zdjęcia w ciągu " +
+                    "${PHOTO_TOTAL_BUDGET_MS / 1000} sekund. Sprawdź, czy są " +
+                    "połączone i czy nie nagrywają w tej chwili wideo."
+            }
+            return photo
         } finally {
             captureInProgress = false
         }
@@ -1528,8 +1673,18 @@ class VictorManager private constructor(context: Context) {
         send(GlassesProtocol.setAiPhotoQuality(quality))
         _photoReady.value = false
         send(GlassesProtocol.takePhoto())
+        val waitStartedAt = System.currentTimeMillis()
         val signalled = awaitPhotoReady()
-        diag.event(pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1: notify o gotowym zdjęciu", mapOf("przyszło" to signalled))
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+            "próba 1: notify o gotowym zdjęciu",
+            mapOf(
+                "przyszło" to signalled,
+                // Bez tej liczby nie dało się zobaczyć, że limit jest za krótki -
+                // „przyszło=false" wygląda tak samo przy 4 s jak przy ciszy.
+                "ms" to System.currentTimeMillis() - waitStartedAt
+            )
+        )
         if (signalled) {
             val first = receiveThumbnail(THUMBNAIL_TIMEOUT_MS)
             diag.event(
@@ -1642,7 +1797,11 @@ class VictorManager private constructor(context: Context) {
      */
     private suspend fun shootAndWait(command: ByteArray): Boolean {
         send(command)
-        val signalled = awaitPhotoReady()
+        // Tu notify jest WYŁĄCZNIE informacją do komunikatu błędu - o tym, kiedy
+        // prosić o dane, decyduje [CAPTURE_SETTLE_MS], które i tak odliczymy.
+        // Długie czekanie dokładałoby więc sekund ciszy, nie dokładając niczego
+        // do wyniku; decyzję na podstawie notify podejmuje tylko próba 1.
+        val signalled = awaitPhotoReady(PHOTO_READY_INFO_TIMEOUT_MS)
         delay(CAPTURE_SETTLE_MS)
         return signalled
     }
@@ -1756,8 +1915,10 @@ class VictorManager private constructor(context: Context) {
      * Gdy notify nie dotrze (starszy firmware), wraca do sztywnego odczekania -
      * dzięki temu przechwytywanie działa tak szybko, jak pozwala sprzęt.
      */
-    private suspend fun awaitPhotoReady(): Boolean {
-        val signalled = withTimeoutOrNull(PHOTO_READY_TIMEOUT_MS) {
+    private suspend fun awaitPhotoReady(
+        timeoutMs: Long = PHOTO_READY_TIMEOUT_MS
+    ): Boolean {
+        val signalled = withTimeoutOrNull(timeoutMs) {
             while (!_photoReady.value) {
                 delay(PHOTO_READY_POLL_MS)
             }
@@ -1779,18 +1940,34 @@ class VictorManager private constructor(context: Context) {
      *
      * @return `true` gdy udało się pobrać zdjęcie
      */
-    suspend fun fetchPhotoFromHardwareButton(): Boolean {
+    suspend fun fetchPhotoFromHardwareButton(): Boolean = hardwarePhotoLock.withLock {
         if (!isConnected()) {
             Log.w(tag, "fetchPhotoFromHardwareButton: okulary nie są połączone")
-            return false
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "zdjęcie z przycisku pominięte - okulary nie są połączone"
+            )
+            return@withLock false
         }
+        // Cała ta droga nie zostawiała dotąd ANI JEDNEGO wpisu w dzienniku -
+        // przy zgłoszeniu „ręczne zdjęcia nie trafiają do aplikacji" nie było
+        // czym rozstrzygnąć, czy w ogóle się wykonała.
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+            "zdjęcie z przycisku: pobieram"
+        )
         // Notify przychodzi, ZANIM plik wyląduje w pamięci - patrz [shootAndWait].
         delay(CAPTURE_SETTLE_MS)
         _photoReady.value = false
         val photo = receiveThumbnail()
-        if (photo == null || !acceptPhoto(photo)) return false
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+            "zdjęcie z przycisku: miniatura",
+            thumbnailFields(photo)
+        )
+        if (photo == null || !acceptPhoto(photo)) return@withLock false
         pendingHardwarePhoto = photo
-        return true
+        true
     }
 
     /**
@@ -2165,12 +2342,39 @@ class VictorManager private constructor(context: Context) {
         private const val CAPTURE_SETTLE_MS = 4_000L
 
         /**
-         * Ile czekamy na notify 0x02. Krótko, bo to już tylko informacja do
-         * komunikatu błędu - właściwe odliczanie robi [CAPTURE_SETTLE_MS].
+         * Ile czekamy na notify 0x02 o gotowym zdjęciu.
+         *
+         * ## Dlaczego nie trzy sekundy
+         * Bo sprzęt potrafi odpowiedzieć wolniej. W dzienniku z 11 września
+         * udane zdjęcie dostało notify po 1,8 s, ale o 17:42 ta sama komenda
+         * dostała je po ~4,4 s - czyli PO trzysekundowym limicie. Próba 1
+         * została uznana za nieudaną i poleciała druga migawka, chociaż
+         * zdjęcie już się robiło. Stąd brały się „dwa zdjęcia" słyszalne w
+         * okularach i jedno zbędne zdjęcie w ich pamięci.
+         *
+         * Sześć sekund mieści zaobserwowane 4,4 s z zapasem. Że całość nie
+         * urośnie przez to w nieskończoność, pilnuje [PHOTO_TOTAL_BUDGET_MS].
          */
-        private const val PHOTO_READY_TIMEOUT_MS = 3_000L
+        private const val PHOTO_READY_TIMEOUT_MS = 6_000L
+
+        /** Ile czeka na notify wariant zapasowy - patrz [shootAndWait]. */
+        private const val PHOTO_READY_INFO_TIMEOUT_MS = 2_000L
+
         private const val PHOTO_READY_POLL_MS = 50L
         private const val THUMBNAIL_TIMEOUT_MS = 10_000L
+
+        /**
+         * Górna granica CAŁEGO przechwytywania, ze wszystkimi próbami razem.
+         *
+         * Bez niej wydłużenie [PHOTO_READY_TIMEOUT_MS] wydłużyłoby też najgorszy
+         * przypadek - a ten już jest za długi: w dzienniku tura skończyła się
+         * błędem po 20,1 s ciszy.
+         *
+         * To jest bezpiecznik, a nie normalna droga wyjścia: przy wszystkich
+         * limitach z osobna najgorszy przypadek wypada tuż pod tą wartością,
+         * więc budżet wchodzi dopiero wtedy, gdy coś zawiesi się poza nimi.
+         */
+        private const val PHOTO_TOTAL_BUDGET_MS = 22_000L
 
         private const val IP_TIMEOUT_MS = 15_000L
         private const val IP_POLL_INTERVAL_MS = 100L

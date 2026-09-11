@@ -76,7 +76,47 @@ spędzisz najwięcej czasu.
 
 To jest **aktualne zgłoszenie**, z którym zostajesz. Stan na moment przekazania:
 
-### 4.1 Zdjęcia nie są przechwytywane — NIEROZSTRZYGNIĘTE
+### 4.0 Okulary po cichym powrocie połączenia zostawały nieskonfigurowane — ZNALEZIONE Z DZIENNIKA
+
+> „AI nie reaguje i nie robi zdjęć, a jak zrobię ręcznie, to nie trafiają do
+> aplikacji."
+
+**To jest przyczyna wspólna dla całego zgłoszenia** i pierwsza w tym projekcie
+ustalona z danych, a nie z rozumowania. Rozstrzygnął dziennik
+`victor-2026-09-11T15-52-50.log`:
+
+```
+16:01:48.874  ZDJĘCIE  próba 1: miniatura  bajtów=18145 jpeg=true      ← działa
+17:33:49.746  BLE      POŁĄCZONO
+17:33:51.877  BLE      POŁĄCZONO                                       ← echo SDK, 2,1 s później
+17:45:57.353  AUDIO    brak A2DP - biorę profil rozmowy  a2dp=false
+17:46:17.393  ZDJĘCIE  przechwycone  sztuk=0 bajtów=0                  ← i już nic nie działa
+```
+
+W całej sesji **nie ma ani jednego `ROZŁĄCZONO`**. Okulary wróciły na nowym
+łączu, a do aplikacji nie doszła ramka `BLE_GATT_DISCONNECTED` — i to właśnie
+ona jako jedyna kasowała stan „to połączenie jest już skonfigurowane".
+
+Skutek: przy powrocie o 17:33 **całe powitanie zostało pominięte**. Nie poszło
+`openBT()` (stąd `a2dp=false` w dzienniku), nie poszło włączenie frazy
+wybudzenia (stąd „AI nie reaguje"), nie odtworzyła się subskrypcja mikrofonu,
+nie poszły synchronizacje, bez których — jak opisuje komentarz w
+`onGlassesReady()` — okulary przestają wykonywać komendę zdjęcia.
+
+**Naprawione:** decyzję „nowe łącze czy echo SDK" podejmuje teraz
+`ble/ConnectionGate.kt` (7 testów), a `resetPerConnectionState()` kasuje przy
+nowym łączu wszystko, co dotyczyło poprzedniego. Echo rozpoznajemy po dwóch
+znakach naraz — zapowiedzi łączenia i oknie czasu — bo sam upływ czasu nie
+wystarcza przy szybkim ponownym połączeniu. Że echo nie niesie
+`gatt_connected`, jest sprawdzone `javap` na AAR: `setReady()` robi
+`postDelayed(BleOperateManager$3, 2500)`, a ten Runnable rozgłasza wyłącznie
+`service_discovered`.
+
+**Nie zweryfikowane na sprzęcie.** W następnym dzienniku rozstrzyga to wiersz
+`BLE POŁĄCZONO noweŁącze=true` i po nim para `powitanie okularów - start` /
+`- koniec  frazaWybudzenia=… kanałZapisu=…`.
+
+### 4.1 Zdjęcia nie są przechwytywane — CZĘŚCIOWO, patrz 4.0
 
 > „Aplikacja dalej nie przechwytuje zdjęć." / „Chyba nie dostają zdjęć, gdy
 > pytam «co widzisz»."
@@ -93,6 +133,19 @@ przyczynami, które wymagają trzech różnych napraw:
 - okulary nie przyjmują komendy migawki → problem z kanałem komend
 - przyjmują, ale miniatura nie dochodzi → problem z transferem
 - dochodzą bajty, które nie są JPEG-iem → transfer się urywa
+
+Z dziennika wyszły przy okazji dwie rzeczy mniejsze, obie już poprawione:
+
+- **Limit 3 s na notify o gotowym zdjęciu był za krótki.** Udane zdjęcie
+  dostało je po 1,8 s, ale o 17:42 ta sama komenda po ~4,4 s — czyli już po
+  limicie. Próba 1 szła wtedy do kosza i leciała DRUGA migawka; stąd „słychać,
+  że robią się dwa zdjęcia". Teraz 6 s, a całość pilnuje budżet 22 s.
+- **Ramka „zdjęcie gotowe" bywa doręczana dwa razy** (17:42:51.047 i .049 —
+  dwie milisekundy, więc jedna ramka, nie dwa zdjęcia). Powtórka uruchamiała
+  drugie pobieranie miniatury równolegle z pierwszym, tym samym kanałem SDK,
+  i obie kończyły się limitem czasu. To jest najlepszy kandydat na „ręczne
+  zdjęcia nie trafiają do aplikacji". Odsiewa je `ble/PhotoNotifyDedupe.kt`,
+  a samo pobieranie chroni teraz zamek.
 
 Warto też sprawdzić drugi warunek: `wantsToLook` w `AIOrchestrator` wymaga
 `audioQuestion == null`. Gdy pytanie poszło do modelu jako NAGRANIE (bo
