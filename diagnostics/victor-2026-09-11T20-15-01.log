@@ -178,3 +178,36 @@
 20:28:40.934  +50444 ms  MODEL        koniec odpowiedzi (63 znaków, 19500 tokenów)  ms=37921
 20:28:46.034  +55544 ms  MOWA         koniec wypowiedzi  ms=5096
 20:28:46.044  +55554 ms  SESJA        --- KONIEC TURY 7f5c: odpowiedziano ---
+20:28:51.683      +1 ms  SESJA        --- TURA d43f ---  źródło=BUTTON
+20:28:51.684      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+20:28:51.688      +6 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+20:28:51.710     +28 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:28:51.723     +41 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+20:28:53.950   +2268 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 01 BE 01 61 00 0E 00 03 00 01 01
+20:28:57.729   +6047 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6003
+20:28:57.734   +6052 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+20:28:59.308   +7626 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 AB 01 62 00 0E 00 03 00 01 01
+20:29:03.745  +12063 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+20:29:03.748  +12066 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+20:29:05.334  +13653 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+20:29:05.337  +13655 ms  ZDJĘCIE      zgłoszenie pominięte - trwa zdjęcie zamówione przez aplikację
+20:29:13.727  +22045 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+20:29:13.736  +22054 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+20:29:13.740  +22058 ms  SESJA        --- KONIEC TURY d43f: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+20:29:22.215          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 DA 86 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 03
+20:29:39.625          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+20:29:39.631          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+20:29:46.181          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=32768 jpeg=true kompletny=false
+20:29:46.184      +0 ms  SESJA        --- TURA b221 ---  źródło=BUTTON
+20:29:46.185      +1 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+20:29:46.189      +5 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+20:29:46.303    +119 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:29:46.730    +546 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 AB 01 62 00 0E 00 03 00 01 01
+20:29:47.081    +897 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 1B 46 12 01 00 10 09 02 00 0F 0F 03 00 10 0A 02
+20:30:10.358  +24174 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=32768 pełnaRozdzielczość=false
+20:30:12.062  +25878 ms  KONTEKST     zebrany  ms=1353 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+20:30:12.077  +25893 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=11297
+20:30:18.279  +32095 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6203
+20:30:18.299  +32115 ms  MODEL        koniec odpowiedzi (253 znaków, 8260 tokenów)  ms=6223
+20:30:34.607  +48423 ms  MOWA         koniec wypowiedzi  ms=16306
+20:30:34.629  +48445 ms  SESJA        --- KONIEC TURY b221: odpowiedziano ---
