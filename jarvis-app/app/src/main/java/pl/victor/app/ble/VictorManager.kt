@@ -2364,18 +2364,42 @@ class VictorManager private constructor(context: Context) {
 
         val output = ByteArrayOutputStream()
         val complete = CompletableDeferred<Boolean>()
+        // „Koniec transferu" od SDK NIE ZNACZY „koniec obrazu".
+        //
+        // W dzienniku z 23:07 miniatury mają 16384, 32768 i 49152 bajty - co do
+        // bajta jeden, dwa i trzy razy po 16 kB - i wszystkie są oznaczone
+        // `kompletny=false`. Transfer kończy się więc na granicy porcji, a nie
+        // na końcu pliku JPEG. Braliśmy tę flagę za prawdę i oddawaliśmy pół
+        // obrazu; model opisywał to, co zdążył zobaczyć, czyli odpowiadał na
+        // chybił trafił. Zgłoszone jako „zdjęcia chyba czasem nie dochodzą".
+        //
+        // Teraz flaga kończy transfer tylko wtedy, gdy JPEG naprawdę się
+        // domknął. Jeśli nie - czekamy jeszcze chwilę na kolejne porcje i
+        // dopiero potem bierzemy, co jest.
+        // Atomiki, nie zwykłe `var`: pisze je wątek obsługi BLE (callback SDK),
+        // a czyta korutyna czekająca niżej. @Volatile nie wchodzi w grę - w
+        // Kotlinie dotyczy właściwości, nie zmiennych lokalnych.
+        val lastDataAtMs = java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis())
+        val sawEndFlag = java.util.concurrent.atomic.AtomicBoolean(false)
         try {
             var chunks = 0
             largeDataHandler.getPictureThumbnails { _, isComplete, data ->
                 if (data != null && data.isNotEmpty()) {
                     output.write(data)
                     chunks++
+                    lastDataAtMs.set(System.currentTimeMillis())
                 }
                 if (isComplete && !complete.isCompleted) {
                     // Bez tego wpisu "miniatura nie doszła" i "doszła pusta" są
                     // z zewnątrz nie do odróżnienia - a to dwie różne awarie.
                     Log.i(tag, "Miniatura: $chunks kawałków, ${output.size()} B")
-                    complete.complete(output.size() > 0)
+                    val whole = GlassesProtocol.isCompleteJpeg(output.toByteArray())
+                    if (whole) {
+                        complete.complete(true)
+                    } else {
+                        Log.w(tag, "SDK zgłosił koniec, ale JPEG się nie domknął - czekam dalej")
+                        sawEndFlag.set(true)
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -2383,8 +2407,21 @@ class VictorManager private constructor(context: Context) {
             return null
         }
 
-        val ok = withTimeoutOrNull(timeoutMs) { complete.await() }
-        if (ok != true) {
+        val ok = withTimeoutOrNull(timeoutMs) {
+            while (!complete.isCompleted) {
+                // Po zgłoszonym końcu dajemy krótką karencję na doniesienie
+                // reszty obrazu. Gdy nic nie dochodzi, nie ma na co czekać
+                // dłużej - zwłoka jest tu widoczna dla użytkownika.
+                if (sawEndFlag.get() &&
+                    System.currentTimeMillis() - lastDataAtMs.get() > THUMBNAIL_TAIL_GRACE_MS
+                ) {
+                    break
+                }
+                delay(THUMBNAIL_POLL_MS)
+            }
+            true
+        }
+        if (ok != true && output.size() == 0) {
             Log.w(tag, "Transfer miniatury przekroczył limit czasu")
             return null
         }
@@ -2465,6 +2502,16 @@ class VictorManager private constructor(context: Context) {
 
     private suspend fun awaitGlassesIp(): Boolean {
         lastTransferFailure = null
+        // Galeria i pełna rozdzielczość stoją na tej jednej funkcji, a ona
+        // zawodziła bez jednego śladu w dzienniku - zgłoszenie „galeria zdjęć
+        // dalej nie działa" nie miało czym się rozstrzygnąć. Powody rozpoznaje
+        // już [WifiDirectDiagnosis]; brakowało wyłącznie zapisania ich tam,
+        // gdzie mogę je przeczytać.
+        val wifiStartedAt = System.currentTimeMillis()
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Wi-Fi Direct: podnoszę łącze"
+        )
 
         // 1. Poproś okulary o wejście w tryb transferu - zaczną rozgłaszać grupę Wi-Fi Direct.
         enableTransferMode()
@@ -2490,7 +2537,18 @@ class VictorManager private constructor(context: Context) {
                     }
                 }
             }
-            if (!joined) return false
+            if (!joined) {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                    "Wi-Fi Direct: nie dołączyłem do sieci okularów",
+                    mapOf(
+                        "prób" to WIFI_JOIN_ATTEMPTS,
+                        "ms" to (System.currentTimeMillis() - wifiStartedAt),
+                        "powód" to lastTransferFailure
+                    )
+                )
+                return false
+            }
         }
 
         // 3. IP okularów przychodzi ramką notify 0x08 - groupOwnerAddress to zwykle telefon.
@@ -2504,9 +2562,19 @@ class VictorManager private constructor(context: Context) {
             Log.w(tag, "Nie doczekano się IP okularów (ramka notify 0x08)")
             lastTransferFailure = "Telefon dołączył do sieci okularów, ale one nie " +
                 "podały swojego adresu. Zdejmij je i załóż ponownie albo zrestartuj."
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Wi-Fi Direct: sieć stoi, ale okulary nie podały adresu",
+                mapOf("ms" to (System.currentTimeMillis() - wifiStartedAt))
+            )
             return false
         }
         Log.i(tag, "Okulary osiągalne pod $ip")
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Wi-Fi Direct: gotowe",
+            mapOf("ms" to (System.currentTimeMillis() - wifiStartedAt))
+        )
         return true
     }
 
@@ -2731,6 +2799,10 @@ class VictorManager private constructor(context: Context) {
 
         private const val PHOTO_READY_POLL_MS = 50L
         private const val THUMBNAIL_TIMEOUT_MS = 10_000L
+
+        /** Ile po zgłoszonym końcu czekamy jeszcze na domknięcie obrazu. */
+        private const val THUMBNAIL_TAIL_GRACE_MS = 1_500L
+        private const val THUMBNAIL_POLL_MS = 50L
 
         /**
          * Górna granica CAŁEGO przechwytywania, ze wszystkimi próbami razem.

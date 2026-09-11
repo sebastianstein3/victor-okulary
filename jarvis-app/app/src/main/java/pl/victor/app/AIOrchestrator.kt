@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import pl.victor.app.ai.AIProvider
 import pl.victor.app.ai.AIProviderException
 import pl.victor.app.ai.AIProviderFactory
@@ -721,7 +722,7 @@ class AIOrchestrator(
         scope.launch {
             glassesManager.speechInterrupted.collect {
                 Log.i(TAG, "Okulary: użytkownik przerwał wypowiedź")
-                cancelCurrentTurn()
+                cancelCurrentTurn("dotknięcie zauszników")
             }
         }
 
@@ -977,6 +978,13 @@ class AIOrchestrator(
                 if (jobFinished || stuckMs > STUCK_TURN_MS || supersede) {
                     if (supersede && !jobFinished) {
                         Log.i(TAG, "Nowe pytanie po $stuckMs ms - przerywam poprzednią turę")
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.SESJA, "PRZERWANO turę - weszło nowe wywołanie",
+                                mapOf("stan" to _state.value::class.simpleName, "poMs" to stuckMs)
+                            )
+                        }
+                        lastCancelReason = "nowe wywołanie użytkownika"
                         // Bez tego stara odpowiedź dogadałaby się do końca w tle,
                         // nakładając się na nową.
                         runCatching { audio.stopSpeaking() }
@@ -1070,13 +1078,26 @@ class AIOrchestrator(
      * wypowiedziana - czyli "cicho" wyglądałoby na zignorowane. Dlatego kasujemy
      * całą korutynę tury.
      */
-    fun cancelCurrentTurn() {
+    fun cancelCurrentTurn(reason: String = "żądanie użytkownika") {
+        // Bez tego wpisu przerwana tura wyglądała w dzienniku jak tura, która
+        // po prostu ucichła: w dzienniku z 23:07 dwie tury kończą się
+        // „KONIEC TURY ...: Idle" bez ani jednego wiersza o tym, kto je uciął.
+        // Zgłoszone jako „AI przestaje odpowiadać, nawet nie widać, żeby
+        // reagowało" - i dokładnie tego nie dało się rozstrzygnąć.
+        runCatching {
+            diag.event(DiagFormat.Phase.SESJA, "PRZERWANO turę", mapOf("powód" to reason))
+        }
+        lastCancelReason = reason
         audio.stopSpeaking()
         activeTurnJob?.cancel()
         activeTurnJob = null
         _state.value = OrchestratorState.Idle
         conversationalMode.onAiFinishedSpeaking()
     }
+
+    /** Czemu ostatnia tura została przerwana - do wpisu zamykającego. */
+    @Volatile
+    private var lastCancelReason: String? = null
 
     /**
      * Rozmowa zainicjowana przez same okulary - słowem kluczowym albo
@@ -2547,6 +2568,23 @@ class AIOrchestrator(
                     }
                     val attemptProvider = if (attemptIndex == 0) provider else buildProviderForFallback(attemptProviderId)
                     try {
+                        // LIMIT CZASU NA JEDNEGO DOSTAWCĘ.
+                        //
+                        // W dzienniku z 23:07 (tura b58b) Gemini dostał pytanie
+                        // z nagraniem 875 kB i przez 60 SEKUND nie przysłał ani
+                        // jednego fragmentu. Dopiero potem poszła próba na model
+                        // lokalny, a tura skończyła się bez słowa. Z zewnątrz
+                        // dokładnie to, co zgłoszono: „po jakimś czasie AI
+                        // przestaje odpowiadać, nawet nie widać w apce, żeby
+                        // reagowało na pytanie".
+                        //
+                        // Najdłuższa UDANA odpowiedź w tym samym dzienniku
+                        // generowała się 20 s, więc limit zostawia ponad dwa
+                        // razy tyle zapasu. Przekroczenie nie kończy tury: gdy
+                        // coś już przyszło, bierzemy to, co jest; gdy nic - idzie
+                        // wyjątek, czyli ta sama droga co każda inna awaria
+                        // dostawcy, z przejściem na kolejnego włącznie.
+                        val finished = withTimeoutOrNull(MODEL_ATTEMPT_TIMEOUT_MS) {
                         // Streaming - każdy fragment natychmiast mówimy
                         buildStream(attemptProvider).collect { chunk ->
                             accumulatedText.append(chunk.text)
@@ -2602,6 +2640,25 @@ class AIOrchestrator(
                                 _state.value = OrchestratorState.Streaming(accumulatedText.toString())
                             }
                         }  // streamFlow.collect
+                        true
+                        }
+                        if (finished == null) {
+                            diag.event(
+                                DiagFormat.Phase.MODEL, "dostawca nie odpowiedział w czasie",
+                                mapOf(
+                                    "dostawca" to attemptProviderId,
+                                    "ms" to MODEL_ATTEMPT_TIMEOUT_MS,
+                                    "znakówOdpowiedzi" to accumulatedText.length
+                                )
+                            )
+                            if (accumulatedText.isBlank()) {
+                                throw IllegalStateException(
+                                    "Dostawca $attemptProviderId nie odpowiedział w " +
+                                        "${MODEL_ATTEMPT_TIMEOUT_MS / 1000} s"
+                                )
+                            }
+                            Log.w(TAG, "Limit czasu, ale mam ${accumulatedText.length} znaków - biorę je")
+                        }
                         successfulProvider = attemptProvider
                         break  // sukces - koniec prób
                     } catch (e: Exception) {
@@ -2823,9 +2880,14 @@ class AIOrchestrator(
                         when (val st = _state.value) {
                             is OrchestratorState.Error -> "BŁĄD: ${st.message}"
                             is OrchestratorState.Completed -> "odpowiedziano"
-                            else -> st::class.simpleName ?: "?"
+                            // „Idle" nic nie mówiło. Tura, która skończyła się w
+                            // stanie roboczym, NIE DAŁA ODPOWIEDZI - i tak ma
+                            // brzmieć, razem z powodem, jeśli go znamy.
+                            else -> "BEZ ODPOWIEDZI (stan ${st::class.simpleName}" +
+                                (lastCancelReason?.let { ", powód: $it" } ?: "") + ")"
                         }
                     )
+                    lastCancelReason = null
                     uploadDiagnosticsInBackground()
                 }
             }
@@ -3769,6 +3831,14 @@ class AIOrchestrator(
          * ogłosiło koniec wypowiedzi - patrz [listenUntilSpeechEnds].
          */
         private const val SPEECH_TAIL_GRACE_MS = 500L
+
+        /**
+         * Ile czekamy na JEDNEGO dostawcę modelu, zanim uznamy go za martwego.
+         *
+         * Patrz uzasadnienie przy wywołaniu: 60 s ciszy w dzienniku z 23:07,
+         * przy najdłuższej udanej odpowiedzi trwającej 20 s.
+         */
+        private const val MODEL_ATTEMPT_TIMEOUT_MS = 45_000L
 
         private const val PHOTO_ON_DEMAND_QUESTION =
             "Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, " +
