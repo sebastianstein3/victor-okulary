@@ -268,3 +268,10 @@
 00:14:17.561  +28152 ms  MOWA         koniec wypowiedzi  ms=15058
 00:14:17.609  +28198 ms  SESJA        --- KONIEC TURY 05d8: odpowiedziano ---
 00:14:17.621          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+00:14:18.383          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+00:16:37.794          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 4B 57 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 01 sztuk=3 pierwsza=false
+00:16:38.804          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+00:16:40.448          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+00:16:40.450          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+00:16:40.481          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1675
+00:16:42.235          ms  ZDJĘCIE      próba 0: miniatura  bajtów=5576 jpeg=true kompletny=true
