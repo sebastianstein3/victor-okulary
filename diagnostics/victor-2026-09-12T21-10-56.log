@@ -166,3 +166,70 @@
 21:18:53.498  +16385 ms  MOWA         koniec wypowiedzi  ms=5731
 21:18:53.547  +16433 ms  SESJA        --- KONIEC TURY 80bb: odpowiedziano ---
 21:18:53.561          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:18:53.734          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:18:54.820          ms  PRZYCISK     wciśnięto  numer=1
+21:18:55.002          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:18:55.420          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=413
+21:18:55.500      +1 ms  SESJA        --- TURA afa0 ---  źródło=OKULARY
+21:18:55.504      +5 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:19:00.004   +4504 ms  NASŁUCH      koniec  ms=4504 odłożone=dostajesz nagranie głosowe czy tekst
+21:19:00.123   +4623 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+21:19:01.567   +6067 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.0535 pakietów=253 rozkodowanych=253 odrzuconych=0 przesunięcie=0 ramka=-1
+21:19:01.576   +6076 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:19:01.584   +6085 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5053 jestMs=5053
+21:19:01.590   +6090 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=dostajesz nagranie głosowe czy tekst
+21:19:01.594   +6094 ms  SESJA        pytanie  tekst=dostajesz nagranie głosowe czy tekst wymuszonyObraz=false
+21:19:01.603   +6103 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:19:01.613   +6113 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:19:03.315   +7815 ms  KONTEKST     zebrany  ms=1694 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:19:03.359   +7859 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8622
+21:19:06.458  +10959 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3104
+21:19:06.568  +11068 ms  MODEL        koniec odpowiedzi (187 znaków, 5975 tokenów)  ms=3214
+21:19:16.689  +21190 ms  MOWA         koniec wypowiedzi  ms=10112
+21:19:16.734  +21234 ms  SESJA        --- KONIEC TURY afa0: odpowiedziano ---
+21:19:16.749          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:19:16.809          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:19:18.573          ms  PRZYCISK     wciśnięto  numer=1
+21:19:18.857          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:19:19.177          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=311
+21:19:19.303      +1 ms  SESJA        --- TURA 83c2 ---  źródło=OKULARY
+21:19:19.306      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:19:22.778   +3476 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=10 pierwsza=false
+21:19:25.737   +6435 ms  NASŁUCH      koniec  ms=6435 odłożone=jesteś w stanie sprawdzić aktualne nowe gry na game passie na xboksie
+21:19:25.746   +6444 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:19:28.640   +9339 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.9335 pakietów=347 rozkodowanych=346 odrzuconych=1 przesunięcie=0 ramka=-1
+21:19:28.647   +9345 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:19:28.653   +9351 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6933 jestMs=6933
+21:19:28.657   +9355 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jesteś w stanie sprawdzić aktualne nowe gry na game passie n
+21:19:28.659   +9357 ms  SESJA        pytanie  tekst=jesteś w stanie sprawdzić aktualne nowe gry na game passie na xboksie wymuszonyObraz=false
+21:19:28.668   +9366 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:19:28.683   +9381 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:19:30.439  +11137 ms  KONTEKST     zebrany  ms=1744 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:19:30.466  +11164 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8605
+21:19:42.503  +23202 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=12039
+21:19:42.571  +23269 ms  MODEL        koniec odpowiedzi (155 znaków, 9887 tokenów)  ms=12107
+21:19:51.574  +32273 ms  MOWA         koniec wypowiedzi  ms=8998
+21:19:51.635  +32334 ms  SESJA        --- KONIEC TURY 83c2: odpowiedziano ---
+21:19:51.661          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:19:52.513          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:19:55.222          ms  PRZYCISK     wciśnięto  numer=1
+21:19:55.444          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+21:19:55.814          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=361
+21:19:55.871      +1 ms  SESJA        --- TURA 365f ---  źródło=OKULARY
+21:19:55.881     +10 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:19:59.746   +3875 ms  NASŁUCH      koniec  ms=3875 odłożone=w takim razie sprawdź
+21:19:59.759   +3888 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+21:20:01.176   +5305 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.2535 pakietów=213 rozkodowanych=213 odrzuconych=0 przesunięcie=0 ramka=-1
+21:20:01.182   +5311 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:20:01.186   +5316 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4253 jestMs=4253
+21:20:01.190   +5319 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=w takim razie sprawdź
+21:20:01.192   +5321 ms  SESJA        pytanie  tekst=w takim razie sprawdź wymuszonyObraz=false
+21:20:01.200   +5329 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:20:01.216   +5345 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:20:02.900   +7029 ms  KONTEKST     zebrany  ms=1671 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:20:02.939   +7068 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8765
+21:20:09.025  +13155 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6091
+21:20:09.061  +13191 ms  MODEL        koniec odpowiedzi (187 znaków, 7256 tokenów)  ms=6127
+21:20:16.659  +20789 ms  MOWA         koniec wypowiedzi  ms=7585
+21:20:16.856  +20985 ms  SESJA        --- KONIEC TURY 365f: odpowiedziano ---
+21:20:16.867          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
