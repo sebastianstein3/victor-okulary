@@ -283,3 +283,24 @@
 09:43:14.608  +31303 ms  MOWA         koniec wypowiedzi  ms=14115
 09:43:14.671  +31366 ms  SESJA        --- KONIEC TURY ef3e: odpowiedziano ---
 09:43:14.699          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:43:15.427          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:44:10.100          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=2 pierwsza=false
+09:44:28.467          ms  PRZYCISK     wciśnięto  numer=1
+09:44:28.744          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+09:44:29.155      +1 ms  SESJA        --- TURA c514 ---  źródło=OKULARY
+09:44:29.158      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+09:44:38.125   +8971 ms  NASŁUCH      koniec  ms=8970
+09:44:38.251   +9096 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+09:44:42.177  +13022 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1735 pakietów=459 rozkodowanych=459 odrzuconych=0 przesunięcie=0 ramka=-1
+09:44:48.179  +19024 ms  TRANSKRYPCJA z nagrania okularów  ms=5998 droga=Nasłuch telefonu
+09:44:48.188  +19033 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=880700 B wymuszonyObraz=false
+09:44:48.198  +19043 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+09:44:48.286  +19131 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+09:44:48.294  +19139 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+09:44:51.023  +21869 ms  KONTEKST     zebrany  ms=2711 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+09:44:51.072  +21917 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=7928
+09:44:56.161  +27006 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5092
+09:44:56.171  +27016 ms  MODEL        koniec odpowiedzi (284 znaków, 5916 tokenów)  ms=5102
+09:45:10.190  +41035 ms  MOWA         koniec wypowiedzi  ms=14018
+09:45:10.213  +41058 ms  SESJA        --- KONIEC TURY c514: odpowiedziano ---
+09:45:10.215          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
