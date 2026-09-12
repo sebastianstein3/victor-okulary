@@ -547,7 +547,34 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
          * Przesunięcia ładunku, których warto spróbować: goły pakiet, bajt typu
          * lub numeru sekwencji, dwubajtowa długość, czterobajtowy nagłówek.
          */
-        private val CANDIDATE_OFFSETS = intArrayOf(0, 1, 2, 4)
+        /**
+         * Gdzie NAPRAWDĘ zaczyna się Opus w pakiecie z okularów.
+         *
+         * ## To jest odpowiedź na "mikrofon okularów nie słyszy mowy"
+         * Aplikacja producenta czyta ten strumień jako
+         * `copyOfRange(subData, 6, długość)` - stała szóstka, bez zgadywania.
+         * `subData` to dokładnie te same bajty, które dostajemy my.
+         *
+         * Myśmy tego przesunięcia nie znali i zgadywali z listy `0, 1, 2, 4`.
+         * Zgadywanie musiało wybrać źle, bo SZÓSTKI NA TEJ LIŚCIE NIE BYŁO -
+         * a Opus jest tolerancyjny i z przesunięcia 0 rozkodowywał śmieci
+         * jako poprawny dźwięk. Stąd wynik nie do rozszyfrowania z samych
+         * liczników: w dzienniku z 12 września dwadzieścia tur po kolei ma
+         * `rozkodowanych=456 odrzuconych=0 przesunięcie=0`, a model na każde
+         * pytanie odpowiada, że słyszy tylko kroki. Pakiety schodziły co do
+         * sztuki - tyle że dekoder dostawał je przesunięte o sześć bajtów.
+         */
+        private const val KNOWN_PAYLOAD_OFFSET = 6
+
+        /**
+         * Przesunięcia próbowane, GDY [KNOWN_PAYLOAD_OFFSET] nie zadziała.
+         *
+         * Kolejność ma znaczenie większe niż zwykle: test "czy się rozkodowało"
+         * NIE ODRÓŻNIA trafnego przesunięcia od chybionego, bo dekoder przyjmie
+         * jedno i drugie. Pierwsze na liście wygrywa - i dlatego lista zaczyna
+         * się od wartości, którą znamy z aplikacji producenta, a nie od zera.
+         */
+        private val CANDIDATE_OFFSETS = intArrayOf(KNOWN_PAYLOAD_OFFSET, 0, 1, 2, 4)
 
         /** Po tylu pakietach bez trafienia przestajemy zgadywać. */
         private const val MAX_PROBE_PACKETS = 8
