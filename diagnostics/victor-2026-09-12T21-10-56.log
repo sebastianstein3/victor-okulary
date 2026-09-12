@@ -98,3 +98,26 @@
 21:15:28.475  +35392 ms  AUDIO        zwinięte łącze audio tury  ms=1
 21:15:28.483  +35400 ms  SESJA        --- KONIEC TURY 6b9e: odpowiedziano ---
 21:15:28.499          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:15:28.646          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:16:53.467          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=2 pierwsza=false
+21:17:12.999          ms  PRZYCISK     wciśnięto  numer=1
+21:17:13.177          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:17:13.626          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=442
+21:17:13.692      +1 ms  SESJA        --- TURA 24a3 ---  źródło=OKULARY
+21:17:13.695      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:17:18.381   +4690 ms  NASŁUCH      koniec  ms=4690 odłożone=czemu śmierdzą ci stopy
+21:17:18.401   +4710 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+21:17:20.867   +7177 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.2335 pakietów=262 rozkodowanych=262 odrzuconych=0 przesunięcie=0 ramka=-1
+21:17:20.884   +7193 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:17:20.899   +7208 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5233 jestMs=5233
+21:17:20.907   +7216 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=czemu śmierdzą ci stopy
+21:17:20.911   +7220 ms  SESJA        pytanie  tekst=czemu śmierdzą ci stopy wymuszonyObraz=false
+21:17:20.971   +7280 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:17:20.997   +7307 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:17:22.896   +9205 ms  KONTEKST     zebrany  ms=1862 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:17:22.954   +9264 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=7204
+21:17:26.008  +12317 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3055
+21:17:26.052  +12361 ms  MODEL        koniec odpowiedzi (210 znaków, 5358 tokenów)  ms=3100
+21:17:36.822  +23132 ms  MOWA         koniec wypowiedzi  ms=10761
+21:17:36.877  +23186 ms  SESJA        --- KONIEC TURY 24a3: odpowiedziano ---
+21:17:36.902          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
