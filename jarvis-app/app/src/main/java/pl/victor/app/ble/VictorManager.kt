@@ -2119,6 +2119,63 @@ class VictorManager private constructor(context: Context) {
 
     private suspend fun captureAiPhotoInternal(quality: Int): ByteArray? {
         truncatedPhoto = null
+
+        // PRÓBA 0 - KOMENDA ZDJĘCIA AI, CZYLI TA, KTÓRA NA TYM SPRZĘCIE ODPOWIADA.
+        //
+        // ## Źle odczytałem poprzedni dziennik i kosztowało to całe zdjęcia
+        // Twierdziłem, że „droga producenta" przy jakości 2 dostaje potwierdzenie
+        // po 7,5 s, i pod tę liczbę podniosłem limit oczekiwania do dwunastu
+        // sekund. Liczba była prawdziwa, przypisanie fałszywe. Wszystkie cztery
+        // pomiary z 12 września rano wyglądały tak:
+        //
+        //   09:34:12.289  próba 1c: migawka drogą producenta
+        //   09:34:18.313  próba 2: komenda zdjęcia AI
+        //   09:34:19.802  okulary zgłosiły gotowe zdjęcie
+        //
+        // Potwierdzenie przychodziło 1,5 s po PRÓBIE 2, a nie 7,5 s po drodze
+        // producenta. Zmierzyłem odstęp od złej komendy, bo patrzyłem na
+        // pierwszą, która pasowała do hipotezy, zamiast na ostatnią wysłaną.
+        //
+        // Rozkład po poprawnym przypisaniu (sześć prób z 12 września):
+        //   droga producenta:    0 potwierdzeń na 6, także przy jakości 2
+        //   komenda zdjęcia AI:  5 potwierdzeń na 6, wszystkie w 1,5-1,7 s
+        //
+        // ## Dlaczego to ZABIERAŁO zdjęcia, a nie tylko opóźniało
+        // Bo budżet całego przechwytywania to 32 s, a droga producenta zjadała z
+        // niego 24 (dwanaście sekund ciszy, zejście na bezpieczną jakość,
+        // znowu dwanaście). Na komendę, która działa, zostawało osiem - i
+        // miniatura, która potrzebuje 8-10 s, nie miała szans dojść. W dzienniku
+        // widać to co do sekundy: potwierdzenie o 19:51:55,6, budżet wyczerpany
+        // o 19:52:02,0. Transfer został ucięty w połowie, nie zawiódł.
+        //
+        // Kolejność jest więc teraz odwrotna, a droga producenta zostaje jako
+        // zapas - bo to nadal ta, którą robi to aplikacja producenta, i na innym
+        // egzemplarzu może być jedyną działającą.
+        run {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "próba 0: komenda zdjęcia AI", mapOf("jakość" to quality)
+            )
+            _photoReady.value = false
+            noteOwnShutter()
+            send(GlassesProtocol.captureAiPhoto(quality))
+            val startedAt = System.currentTimeMillis()
+            val signalled = awaitPhotoReady()
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "próba 0: notify o gotowym zdjęciu",
+                mapOf("przyszło" to signalled, "ms" to (System.currentTimeMillis() - startedAt))
+            )
+            if (signalled) {
+                val photo = receiveThumbnail(THUMBNAIL_TIMEOUT_MS)
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 0: miniatura",
+                    thumbnailFields(photo)
+                )
+                photo?.let { if (acceptPhoto(it)) return it }
+            }
+        }
+
         // PRÓBA 1 - dokładnie ta sekwencja, którą robi aplikacja producenta.
         //
         // ## Co było nie tak
@@ -3197,21 +3254,19 @@ class VictorManager private constructor(context: Context) {
          * zdjęcie już się robiło. Stąd brały się „dwa zdjęcia" słyszalne w
          * okularach i jedno zbędne zdjęcie w ich pamięci.
          *
-         * ## Skąd dwanaście
-         * Z czterech pomiarów w dzienniku z 12 września. Okulary zgłaszają
-         * gotowe zdjęcie po 7,51 / 7,53 / 7,56 / 7,67 s - za każdym razem TUŻ
-         * PO sześciosekundowym limicie. Rozrzut jest nikły, więc to nie jest
-         * przypadek ani obciążenie: tyle po prostu trwa u nich migawka.
+         * ## Skąd pięć, skoro pisałem tu wcześniej o dwunastu
+         * Bo dwanaście brało się z mojego błędnego odczytu dziennika: przypisałem
+         * potwierdzenia do „drogi producenta", a przyszły one 1,5 s po komendzie
+         * zdjęcia AI wysłanej chwilę wcześniej. Opis tej pomyłki stoi przy
+         * „PRÓBIE 0" w [captureAiPhotoInternal].
          *
-         * Cena tego półtorej sekundy brakującego zapasu była wysoka: każda
-         * próba kończyła się „przyszło=false", leciała następna migawka, a
-         * spóźniony notify był już przypisywany do NIEJ. Stąd trzy dźwięki
-         * zdjęcia przy jednym pytaniu i pusty wynik po budżecie.
-         *
-         * Dwanaście sekund to zaobserwowane 7,7 s plus połowa tyle zapasu. Że
-         * całość nie urośnie w nieskończoność, pilnuje [PHOTO_TOTAL_BUDGET_MS].
+         * Po poprawnym przypisaniu wszystkie pomiary mieszczą się w 1,5-1,7 s.
+         * Pięć sekund daje trzykrotny zapas, a przy dwóch próbach zostawia w
+         * budżecie (32 s) dość czasu na DWA transfery miniatury po 10 s - czego
+         * dwanaście sekund na próbę nie zostawiało i przez co zdjęcie nie miało
+         * jak dojść, choć okulary je zrobiły.
          */
-        private const val PHOTO_READY_TIMEOUT_MS = 12_000L
+        private const val PHOTO_READY_TIMEOUT_MS = 5_000L
 
         /** Ile czeka na notify wariant zapasowy - patrz [shootAndWait]. */
         private const val PHOTO_READY_INFO_TIMEOUT_MS = 2_000L

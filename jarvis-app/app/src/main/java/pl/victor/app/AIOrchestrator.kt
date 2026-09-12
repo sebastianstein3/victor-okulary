@@ -3054,7 +3054,35 @@ class AIOrchestrator(
                 )
                 conversationalMode.onAiFinishedSpeaking()
             } finally {
-                if (audioHeld) audio.endConversationRouting()
+                // ILE TRWA ZWIJANIE ŁĄCZA AUDIO - I CO SIĘ DZIEJE PO NIM.
+                //
+                // Zgłoszone: "przez 10 sekund po odpowiedzi przycisk wywoływania
+                // i «hej lens» nie działają". W dzienniku z 19:39 te przerwy
+                // wynoszą 10,9 / 11,6 / 10,1 s i - co istotne - NIE MA w nich
+                // ani jednej odrzuconej próby. Gdyby to aplikacja odrzucała
+                // wywołanie, byłby wiersz "trigger ODRZUCONY". Nie ma go, więc
+                // ramka przycisku w ogóle do nas nie dociera.
+                //
+                // Podejrzenie pada na to miejsce: odpowiedź idzie przez profil
+                // rozmowy (w każdej turze "brak A2DP - biorę profil rozmowy"),
+                // a zwijanie SCO potrafi na współdzielonym radiu zagłodzić BLE.
+                // Ale to jest HIPOTEZA, nie ustalenie - nie mam w dzienniku ani
+                // jednego wiersza o tym, kiedy łącze faktycznie schodzi.
+                //
+                // Nie zgaduję więc naprawy, tylko dokładam pomiar: znacznik
+                // przed i po, z czasem. Następny dziennik pokaże, czy martwe
+                // dziesięć sekund zaczyna się dokładnie tutaj - a jeśli nie,
+                // przynajmniej wykluczy to miejsce.
+                if (audioHeld) {
+                    val teardownStartedAt = System.currentTimeMillis()
+                    audio.endConversationRouting()
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.AUDIO, "zwinięte łącze audio tury",
+                            mapOf("ms" to (System.currentTimeMillis() - teardownStartedAt))
+                        )
+                    }
+                }
                 wakeLock.release(LOCK_TURN)
                 resumeWakeWordMic()
                 if (!handedOffToRetry) {
