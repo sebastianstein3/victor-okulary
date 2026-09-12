@@ -86,6 +86,35 @@ object VoiceTrim {
         return pcm.copyOfRange(from, to)
     }
 
+    /** Zmierzone tło i szczyt nagrania - do dziennika, nie do decyzji. */
+    class Levels(val floor: Double, val peak: Double) {
+        /** Ile razy szczyt przewyższa tło. Poniżej [PEAK_OVER_FLOOR] nie tniemy. */
+        val ratio: Double get() = if (floor > 0) peak / floor else 0.0
+    }
+
+    /**
+     * Mierzy tło i szczyt bez podejmowania decyzji.
+     *
+     * Istnieje, bo przycinanie w pierwszej wersji NIE ZADZIAŁAŁO ANI RAZU -
+     * czternaście tur w dzienniku z 12 września i wszędzie długość przed równa
+     * długości po. Próg „szczyt trzykrotnie ponad tło" najwyraźniej nie wchodzi
+     * na prawdziwym materiale, a dobieranie nowej wartości po omacku już raz w
+     * tym projekcie kosztowało dzień. Te dwie liczby w dzienniku pozwolą ją
+     * wybrać z pomiaru.
+     *
+     * Przy okazji odpowiadają na drugie pytanie: czy w strumieniu z okularów w
+     * ogóle jest mowa. Nagranie o tle i szczycie prawie równych to szum, nie
+     * wypowiedź.
+     */
+    fun measure(pcm: ByteArray, sampleRate: Int): Levels? {
+        if (sampleRate <= 0) return null
+        val windowBytes = bytesFor(WINDOW_MS, sampleRate)
+        if (windowBytes <= 0 || pcm.size < windowBytes) return null
+        val loudness = windowLoudness(pcm, windowBytes)
+        if (loudness.isEmpty()) return null
+        return Levels(median(loudness), loudness.max())
+    }
+
     /** Skuteczna wartość próbek w kolejnych oknach (RMS). */
     private fun windowLoudness(pcm: ByteArray, windowBytes: Int): DoubleArray {
         val windows = pcm.size / windowBytes

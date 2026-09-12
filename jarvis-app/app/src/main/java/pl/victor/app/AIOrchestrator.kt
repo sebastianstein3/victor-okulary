@@ -1378,22 +1378,56 @@ class AIOrchestrator(
             // jest zablokowany, AI często nie odpowiada".
             pauseWakeWordMic()
             wakeLock.acquire(LOCK_LISTENING, LISTEN_WAKE_LOCK_MS)
-            // ŁĄCZE SCO ZDJĘTE ZE ŚCIEŻKI KRYTYCZNEJ NASŁUCHU.
+            // STRUMIEŃ BLE NIE ZASTĘPUJE MIKROFONU OKULARÓW - I TO BYŁ BŁĄD.
             //
-            // Negocjacja SCO trwa do czterech sekund (SCO_TIMEOUT_MS) i szła
-            // PRZED rozpoczęciem nagrywania. Użytkownik mówił w tym czasie do
-            // asystenta, który jeszcze nie słuchał - stąd "bardzo długo zajmuje
-            // droga od pytania do odebrania go przez AI".
+            // Stało tu: „gdy strumień BLE żyje, dźwięk pytania mamy niezależnie
+            // od SCO", więc profil rozmowy pomijaliśmy, żeby nie płacić do
+            // czterech sekund negocjacji przed nasłuchem. Rozumowanie było
+            // spójne i całkowicie fałszywe w jednym punkcie: strumień BLE NIE
+            // DAJE NAM dźwięku pytania.
             //
-            // A to łącze jest potrzebne do MÓWIENIA, nie do słuchania: gdy
-            // strumień z mikrofonu okularów idzie po BLE, dźwięk pytania mamy
-            // niezależnie od SCO. Zestawia je więc dopiero handleUserTrigger,
-            // przed odpowiedzią - i wtedy negocjacja chowa się za zapytaniem
-            // modelu zamiast za wypowiedzią użytkownika.
+            // Zgłoszone przez użytkownika wprost: „gdy oddalam się od telefonu,
+            // AI mnie nie słyszy - dźwięk z okularów w ogóle nie przechodzi do
+            // telefonu". Dzienniki mówią to samo od ośmiu sesji, tylko nie
+            // umiałem tego przeczytać: transkrypcja nagrania z okularów nie
+            // oddała tekstu ANI RAZU na około czterdzieści prób, a model dostając
+            // to nagranie słyszy „kroki" albo „niewyraźne". Pakiety przychodzą i
+            // dekodują się co do sztuki (456 na 456, zero odrzuconych), ale to,
+            // co z nich wychodzi, nie jest mową.
             //
-            // Gdy strumienia BLE nie ma, kolejność zostaje stara: wtedy SCO jest
-            // JEDYNĄ drogą do mikrofonu okularów i musi stać przed nasłuchem.
-            var held = if (micStreamLive) false else audio.beginConversationRouting()
+            // Skutek był taki, że pytania zbierał WYŁĄCZNIE mikrofon telefonu -
+            // choć w ustawieniach stoi „Pytania mikrofonem okularów". Dopóki
+            // telefon leżał obok, nikt tego nie zauważył. Po odejściu na dwa
+            // metry asystent głuchnie.
+            //
+            // Honorujemy więc ustawienie: jeśli człowiek poprosił o mikrofon
+            // okularów, zestawiamy profil rozmowy - to jedyna droga, która
+            // naprawdę do tego mikrofonu prowadzi. Strumień BLE zostaje jako
+            // dodatkowe nagranie i materiał diagnostyczny, ale niczego już nie
+            // zastępuje.
+            //
+            // Płacimy za to negocjacją przed nasłuchem. To jest świadomy wybór:
+            // kilka sekund rozruchu jest tańsze niż asystent, który nie słyszy
+            // pytania. Czas negocjacji trafia do dziennika - jeśli okaże się
+            // dotkliwy, będzie na czym oprzeć następną decyzję.
+            val wantsGlassesMic = settings.isGlassesMicEnabled()
+            val routingStartedAtMs = System.currentTimeMillis()
+            var held = if (micStreamLive && !wantsGlassesMic) {
+                false
+            } else {
+                audio.beginConversationRouting()
+            }
+            if (held) {
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.AUDIO, "zestawiony profil rozmowy do nasłuchu",
+                        mapOf(
+                            "ms" to (System.currentTimeMillis() - routingStartedAtMs),
+                            "mikrofonOkularów" to wantsGlassesMic
+                        )
+                    )
+                }
+            }
             val overSco = held && audio.isRoutedToBluetooth()
             try {
                 conversationalMode.onAiStartedSpeaking()
@@ -1579,11 +1613,27 @@ class AIOrchestrator(
                                 pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
                             )
                             runCatching {
+                                // Tło i szczyt idą do dziennika, bo pierwsza
+                                // wersja przycinania nie ucięła ANI RAZU i bez
+                                // tych dwóch liczb nie da się dobrać progu
+                                // inaczej niż zgadywaniem. Mówią też, czy w
+                                // strumieniu z okularów w ogóle jest mowa:
+                                // nagranie o tle i szczycie prawie równych to
+                                // szum, nie wypowiedź.
+                                val levels = pl.victor.app.audio.VoiceTrim.measure(
+                                    raw,
+                                    pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
+                                )
                                 diag.event(
                                     DiagFormat.Phase.NASŁUCH, "przycinam nagranie dla modelu",
                                     mapOf(
                                         "byłoMs" to msOf(raw.size),
-                                        "jestMs" to msOf(trimmed.size)
+                                        "jestMs" to msOf(trimmed.size),
+                                        "tło" to levels?.floor?.toInt(),
+                                        "szczyt" to levels?.peak?.toInt(),
+                                        "ile razy" to levels?.ratio?.let {
+                                            (it * 10).toInt() / 10.0
+                                        }
                                     )
                                 )
                             }
