@@ -99,3 +99,33 @@
 09:28:55.666  +23773 ms  MOWA         koniec wypowiedzi  ms=15477
 09:28:55.695  +23802 ms  SESJA        --- KONIEC TURY 4294: odpowiedziano ---
 09:28:55.699          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:28:56.458          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:29:04.166          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=3 pierwsza=false
+09:29:18.089          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=10003
+09:29:18.092          ms  BLE          Wi-Fi Direct: podnoszę łącze
+09:29:18.736          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 76 01 72 00 0F 00 03 00 01 01 sztuk=1 pierwsza=false
+09:30:48.466          ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=90374 powód=Znalazłem okulary ([TV] Samsung 6 Series Gumis), ale telefon nie zdążył się z nimi połączyć. Spróbuj jeszcze raz - przy pierwszym łączeniu bywa potrzebne potwierdzenie na okularach.
+09:31:06.291          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=10000
+09:31:06.293          ms  BLE          Wi-Fi Direct: podnoszę łącze
+09:31:06.910          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 76 01 72 00 0F 00 03 00 01 01 sztuk=1 pierwsza=false
+09:31:40.177          ms  PRZYCISK     wciśnięto  numer=1
+09:31:40.369          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+09:31:40.944      +1 ms  SESJA        --- TURA c244 ---  źródło=OKULARY
+09:31:40.947      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+09:31:47.252   +6309 ms  NASŁUCH      koniec  ms=6309 odłożone=czy mamy coś w notatkach zapisane
+09:31:47.375   +6432 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+09:31:49.066   +8124 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.5535 pakietów=328 rozkodowanych=328 odrzuconych=0 przesunięcie=0 ramka=-1
+09:31:51.008  +10066 ms  TRANSKRYPCJA z nagrania okularów  ms=1938 droga=Nasłuch telefonu
+09:31:51.011  +10068 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=czy mamy coś w notatkach zapisane
+09:31:51.013  +10070 ms  SESJA        pytanie  tekst=czy mamy coś w notatkach zapisane wymuszonyObraz=false
+09:31:51.024  +10081 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+09:31:51.040  +10098 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+09:31:51.043  +10101 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+09:31:51.731  +10788 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=1 pierwsza=false
+09:31:56.019  +15077 ms  KONTEKST     zebrany  ms=4952 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false
+09:31:56.063  +15120 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=3646
+09:31:57.570  +16627 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1510
+09:31:57.680  +16737 ms  MODEL        koniec odpowiedzi (142 znaków, 3347 tokenów)  ms=1620
+09:32:05.866  +24923 ms  MOWA         koniec wypowiedzi  ms=8178
+09:32:05.913  +24970 ms  SESJA        --- KONIEC TURY c244: odpowiedziano ---
+09:32:05.924          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
