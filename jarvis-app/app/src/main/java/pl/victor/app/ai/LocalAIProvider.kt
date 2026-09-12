@@ -11,6 +11,7 @@ import pl.victor.app.localmodel.LlamaCppInferenceEngine
 import pl.victor.app.localmodel.LocalInferenceEngine
 import pl.victor.app.localmodel.LocalModelCatalog
 import pl.victor.app.localmodel.LocalModelStorage
+import pl.victor.app.localmodel.PromptBudget
 import pl.victor.app.localmodel.PromptTemplates
 import pl.victor.app.vision.ScannedCode
 
@@ -103,7 +104,36 @@ class LocalAIProvider(private val context: Context) : AIProvider {
         } else {
             textQuestion + "\n\nZeskanowane kody: " + scannedCodes.joinToString(", ") { it.rawValue }
         }
-        return PromptTemplates.qwenChat(systemPrompt ?: DEFAULT_SYSTEM_PROMPT, userMessage)
+        // PROMPT MUSI SIĘ ZMIEŚCIĆ W OKNIE MODELU - I TO BYŁA PRZYCZYNA CISZY.
+        //
+        // Zgłoszone: "lokalny model AI zupełnie nie odpowiada". Katalog daje
+        // temu modelowi okno 2048 tokenów, a w dzienniku z 12 września prompt
+        // ma `znakówPromptu=8943`. Polski tekst to grubo licząc 3-4 znaki na
+        // token, więc same instrukcje zajmowały 2500-3000 tokenów - WIĘCEJ NIŻ
+        // CAŁE OKNO, zanim model wygenerował choć jeden token odpowiedzi.
+        //
+        // Zaczęło się psuć samo z siebie: we wcześniejszych dziennikach prompt
+        // miał 1709-3646 znaków, a po podłączeniu kalendarza i poczty skoczył do
+        // 7117-8943. Kod modelu lokalnego nie zmienił się ani o wiersz.
+        //
+        // Docinamy KONTEKST, nigdy pytania - patrz [PromptBudget].
+        val budget = PromptBudget.charsFor(LocalModelCatalog.QWEN_0_8B.contextSize)
+        val fittedSystem = PromptBudget.fitContext(
+            context = systemPrompt ?: DEFAULT_SYSTEM_PROMPT,
+            question = userMessage,
+            limitChars = budget
+        )
+        if (fittedSystem.length < (systemPrompt ?: DEFAULT_SYSTEM_PROMPT).length) {
+            Log.i(
+                TAG,
+                "Kontekst skrócony do okna modelu: " +
+                    "${(systemPrompt ?: DEFAULT_SYSTEM_PROMPT).length} -> ${fittedSystem.length} znaków"
+            )
+        }
+        return PromptTemplates.qwenChat(
+            fittedSystem.ifBlank { DEFAULT_SYSTEM_PROMPT },
+            userMessage
+        )
     }
 
     private suspend fun ensureModelLoaded() {
