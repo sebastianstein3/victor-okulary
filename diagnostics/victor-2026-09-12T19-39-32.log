@@ -315,3 +315,39 @@
 19:52:02.019  +53461 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
 19:52:02.046  +53488 ms  SESJA        --- KONIEC TURY a223: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
 19:52:02.076          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:52:02.321          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:54:28.877          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4003
+19:54:32.891          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4002
+19:54:36.894          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4002
+19:54:40.899          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4001
+19:54:44.901          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4001
+19:54:44.902          ms  BLE          Wi-Fi Direct: podnoszę łącze
+19:54:45.451          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 0E 27 01 81 00 0F 00 03 00 01 01 sztuk=2 pierwsza=false
+19:54:50.453          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+19:54:55.571          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=[LG] webOS TV UM7100PLA, Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+19:54:58.755          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=[LG] webOS TV UM7100PLA, Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+19:54:58.757          ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=13855 powód=W pobliżu nie ma sieci okularów. Widzę tylko: [LG] webOS TV UM7100PLA, Smart TV Pro. Upewnij się, że okulary są włączone i blisko telefonu.
+19:56:05.230          ms  ZDJĘCIE      próba 1: droga producenta  jakość=2 proszono=2
+19:56:07.122          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 4E 32 01 82 00 0F 00 03 00 01 01 sztuk=1 pierwsza=false
+19:56:14.115          ms  PRZYCISK     wciśnięto  numer=1
+19:56:14.302          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+19:56:14.949          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=645
+19:56:15.031      +0 ms  SESJA        --- TURA e932 ---  źródło=OKULARY
+19:56:15.032      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+19:56:17.234   +2203 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=12003
+19:56:17.236   +2205 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+19:56:19.255   +4224 ms  NASŁUCH      koniec  ms=4224 odłożone=czy ty słyszysz w ogóle co ja mówię ej aju
+19:56:19.346   +4316 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+19:56:20.295   +5264 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.9535 pakietów=248 rozkodowanych=248 odrzuconych=0 przesunięcie=0 ramka=-1
+19:56:20.298   +5267 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+19:56:20.299   +5268 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=czy ty słyszysz w ogóle co ja mówię ej aju
+19:56:20.299   +5268 ms  SESJA        pytanie  tekst=czy ty słyszysz w ogóle co ja mówię ej aju wymuszonyObraz=false
+19:56:20.304   +5273 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:56:20.311   +5280 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:56:20.324   +5293 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:56:21.057   +6026 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=2 pierwsza=false
+19:56:24.659   +9629 ms  KONTEKST     zebrany  ms=4324 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:56:24.670   +9639 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8515
+19:56:31.845  +16815 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=7176
+19:56:31.869  +16838 ms  MODEL        koniec odpowiedzi (185 znaków, 5859 tokenów)  ms=7200
+19:56:33.255  +18225 ms  ZDJĘCIE      próba 2: miniatura  notify=false
