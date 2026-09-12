@@ -100,3 +100,51 @@
 00:08:39.404          ms  MODEL        dostawca nie odpowiedział w czasie  dostawca=local ms=45000 znakówOdpowiedzi=0
 00:08:39.407          ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=2 zdjęć=0 znakówPromptu=737
 00:08:42.868          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+00:08:42.941          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+00:08:52.415          ms  PRZYCISK     wciśnięto  numer=1
+00:08:52.608          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+00:08:52.997          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=386
+00:08:53.056          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=6 mikrofonOkularów=true
+00:08:53.057      +0 ms  SESJA        --- TURA cf6a ---  źródło=OKULARY
+00:08:53.058      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=false
+00:09:01.729   +8672 ms  NASŁUCH      koniec  ms=8672
+00:09:01.871   +8814 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.9535 pakietów=48 rozkodowanych=48 odrzuconych=0 przesunięcie=6 ramka=-1
+00:09:02.728   +9671 ms  TRANSKRYPCJA z nagrania okularów  ms=856 droga=Nasłuch telefonu
+00:09:02.729   +9672 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=953 jestMs=953 tło=0 szczyt=1443 ile razy=14905.7
+00:09:02.732   +9675 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=91580 B wymuszonyObraz=false
+00:09:02.735   +9678 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+00:09:02.742   +9686 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=true
+00:09:06.311  +13254 ms  KONTEKST     zebrany  ms=3279 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+00:09:06.318  +13261 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=7230
+00:09:10.193  +17136 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3875
+00:09:10.198  +17141 ms  MODEL        koniec odpowiedzi (62 znaków, 5583 tokenów)  ms=3880
+00:09:13.269  +20212 ms  MOWA         koniec wypowiedzi  ms=3069
+00:09:13.308  +20251 ms  SESJA        --- KONIEC TURY cf6a: odpowiedziano ---
+00:09:13.311          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+00:09:13.392          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+00:09:27.066          ms  PRZYCISK     wciśnięto  numer=1
+00:09:27.258          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+00:09:27.712          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=452
+00:09:27.776          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=11 mikrofonOkularów=true
+00:09:27.777      +0 ms  SESJA        --- TURA bb25 ---  źródło=OKULARY
+00:09:27.778      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=false
+00:09:32.373   +4596 ms  NASŁUCH      koniec  ms=4596 telefonUsłyszał=co widzisz
+00:09:32.581   +4804 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.8735 pakietów=44 rozkodowanych=44 odrzuconych=0 przesunięcie=6 ramka=-1
+00:09:33.452   +5675 ms  TRANSKRYPCJA z nagrania okularów  ms=869 droga=Bez transkrypcji - nagranie do modelu
+00:09:33.453   +5676 ms  SESJA        pytanie  tekst=co widzisz wymuszonyObraz=false
+00:09:33.463   +5686 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=false zNagrania=false
+00:09:33.471   +5694 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=true
+00:09:33.479   +5702 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+00:09:34.988   +7211 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+00:09:34.990   +7214 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+00:09:35.043   +7266 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1561
+00:09:41.838  +14061 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=9 pierwsza=false
+00:09:41.966  +14189 ms  ZDJĘCIE      próba 0: miniatura  bajtów=26295 jpeg=true kompletny=true
+00:09:41.991  +14215 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=26295 pełnaRozdzielczość=false
+00:09:43.333  +15556 ms  KONTEKST     zebrany  ms=1320 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+00:09:43.340  +15563 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=1 znakówPromptu=6974
+00:09:49.508  +21731 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6169
+00:09:49.542  +21765 ms  MODEL        koniec odpowiedzi (237 znaków, 6101 tokenów)  ms=6203
+00:10:02.151  +34374 ms  MOWA         koniec wypowiedzi  ms=12599
+00:10:02.207  +34430 ms  SESJA        --- KONIEC TURY bb25: odpowiedziano ---
+00:10:02.218          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
