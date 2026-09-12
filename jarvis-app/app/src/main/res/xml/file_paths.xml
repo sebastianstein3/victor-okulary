@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FileProvider dla eksportu logów Live Stream Lab (Opcje programistyczne).
-     Udostępnia WYŁĄCZNIE filesDir/livestream_lab/ - nie całą przestrzeń apki. -->
+<!-- FileProvider udostępnia WYŁĄCZNIE dwa katalogi, nie całą przestrzeń apki:
+     - livestream_lab/ - eksport logów Live Stream Lab (Opcje programistyczne),
+     - glasses_media/  - kopie robocze plików z okularów, otwierane systemowym
+       odtwarzaczem. Cache, nie files: to materiał do obejrzenia, a nie do
+       trzymania. Do galerii telefonu plik trafia osobno, przez MediaStore. -->
 <paths>
     <files-path name="livestream_lab" path="livestream_lab/" />
+    <cache-path name="glasses_media" path="glasses_media/" />
 </paths>
