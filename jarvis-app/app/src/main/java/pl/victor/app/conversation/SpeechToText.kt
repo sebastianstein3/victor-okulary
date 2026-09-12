@@ -321,6 +321,10 @@ class SpeechToText(private val context: Context) {
     ): Intent = intent(languageTag).apply {
         // Nagranie ma znany koniec (zamknięty potok), więc czekanie na mówcę
         // jest tu bez sensu - te trzy dodatki tylko opóźniłyby wynik.
+        //
+        // [intent] ich dziś nie dokłada (patrz tam, dlaczego), więc te trzy
+        // wiersze niczego nie usuwają. Zostają jako zabezpieczenie: gdyby
+        // kiedyś wróciły do wspólnej intencji, TA droga ma ich nie dostać.
         removeExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS)
         removeExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS)
         removeExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS)
@@ -401,36 +405,40 @@ class SpeechToText(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-            // TE TRZY DODATKI NIGDY NIE DZIAŁAŁY - I TO NIE Z WINY SILNIKA.
+            // NIE USTAWIAMY OKIEN CISZY. TO NIE JEST NIEDOPATRZENIE.
             //
-            // W dokumentacji Androida wszystkie trzy są dodatkami typu INT. U nas
-            // były stałymi typu `Long`, więc `putExtra` wybierało przeciążenie
-            // `putExtra(String, Long)` i zapisywało je jako long. Rozpoznawanie
-            // czyta je przez `getIntExtra`, ten przy niezgodnym typie oddaje
-            // wartość domyślną - i tyle. Żadnego błędu, żadnego ostrzeżenia,
-            // po prostu cisza.
+            // Krótka historia, bo inaczej ktoś (ja) doda je tu po raz trzeci.
             //
-            // Widać to w pomiarze: przy MIN_UTTERANCE_MS = 4000 nasłuch nie
-            // miałby prawa skończyć się przed czterema sekundami, a w dzienniku
-            // z 12 września kończy się po 2,57 s. Nasza wartość nigdy tam nie
-            // dotarła.
+            // Były tu trzy dodatki: minimalna długość wypowiedzi i dwa okna
+            // ciszy. Przez cały czas NIE DZIAŁAŁY - w dokumentacji Androida są
+            // typu `int`, a u nas były stałymi typu `Long`, więc `putExtra`
+            // zapisywało je jako long, a rozpoznawanie czyta je przez
+            // `getIntExtra` i dostawało swoją wartość domyślną. Poprawiłem typ,
+            // uznając to za usterkę.
             //
-            // Dodatki są w API opisane jako niegwarantowane, więc silnik nadal
-            // może je zignorować - ale teraz przynajmniej ma co ignorować.
-            // Wartości dobrane tak, żeby WŁĄCZENIE ich niczego nie wydłużyło
-            // względem dzisiejszego zachowania; patrz opisy stałych.
-            putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
-                MIN_UTTERANCE_MS
-            )
-            putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
-                END_OF_SPEECH_SILENCE_MS
-            )
-            putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
-                END_OF_SPEECH_SILENCE_MS
-            )
+            // Poprawka WŁĄCZYŁA je po raz pierwszy i rozpoznawanie przestało
+            // działać. Dziennik z 12 września, wieczór, nie zostawia tu miejsca
+            // na interpretację:
+            //
+            //   przed zmianą (rano): 12 nasłuchów na 14 oddało tekst, 3,1-7,0 s
+            //   po zmianie (wieczór):  0 nasłuchów na 4 oddało tekst, 8,3-8,7 s
+            //
+            // Osiem i pół sekundy to twardy limit SpeechEnd.MAX_SPEECH_MS, czyli
+            // rozpoznawanie nie wykryło końca wypowiedzi ANI RAZU. Skutek szedł
+            // dalej lawiną: bez tekstu z telefonu pytanie leciało do modelu jako
+            // 880 kB dźwięku, a że nagranie trwało do limitu, było w nim kilka
+            // sekund otoczenia po pytaniu - stąd „w nagraniu słychać tylko
+            // kroki" na każde pytanie.
+            //
+            // Nie wiem, KTÓRA z trzech wartości psuje ten silnik ani dlaczego;
+            // dokumentacja opisuje je jako wskazówki, których silnik może nie
+            // uszanować, i najwyraźniej ten uszanował je w sposób, którego nie
+            // przewidziałem. Dobieranie ich po omacku kosztowałoby kolejny dzień
+            // testów za rzecz, która przedtem działała.
+            //
+            // Zostawiamy więc silnikowi jego własne okna - dokładnie ten stan,
+            // w którym oddawał tekst. Usunięte, a nie przywrócone jako `Long`:
+            // udawanie, że coś ustawiamy, było połową tego zamieszania.
         }
 
     /** Opis kodu błędu - inaczej w logu zostaje sama liczba. */
@@ -460,36 +468,6 @@ class SpeechToText(private val context: Context) {
          * `SpeechRecognizer` potrafi nie oddać sterowania po zajęciu mikrofonu.
          */
         const val DEFAULT_TIMEOUT_MS = 15_000L
-
-        /**
-         * Tyle czasu na rozpoczęcie mówienia, zanim rozpoznawanie się podda.
-         *
-         * INT, NIE LONG - patrz [intent]. Na tym polegał błąd: te wartości
-         * były typu `Long`, więc `putExtra` zapisywało je jako long, a
-         * rozpoznawanie czyta je przez `getIntExtra` i dostawało swoją wartość
-         * domyślną. Wszystkie trzy dodatki były więc po cichu ignorowane od
-         * początku.
-         *
-         * Półtorej sekundy, nie cztery. Cztery były wpisane pod objaw „kończy
-         * się, zanim użytkownik zacznie mówić", ale ten dodatek NIE MÓWI „czekaj
-         * na początek mowy" - mówi „nie przestawaj nagrywać przed upływem tego
-         * czasu". Włączenie go na czterech sekundach zrobiłoby z każdej tury
-         * czterosekundowy nasłuch, także po pytaniu „co widzisz". Dzisiejszy
-         * zmierzony spód to ~2,6 s, więc półtorej sekundy niczego nie wydłuża,
-         * a nadal daje chwilę na zebranie myśli.
-         */
-        private const val MIN_UTTERANCE_MS = 1_500
-
-        /**
-         * Tyle ciszy po wypowiedzi kończy nasłuch - krótsza ucina zdanie w pół.
-         *
-         * Sekunda, nie półtorej. W dzienniku z 12 września „co widzisz" (jakieś
-         * 0,8 s mowy) kończyło nasłuch po 2,57-2,94 s; po odjęciu mowy i obróbki
-         * zostaje okno ciszy rzędu 1,5-1,7 s, czyli wartość WŁASNA silnika - bo
-         * nasza nigdy do niego nie dotarła. Sekunda skraca każdą turę o jakieś
-         * pół sekundy i nadal jest dłuższa niż przerwa na oddech w środku zdania.
-         */
-        private const val END_OF_SPEECH_SILENCE_MS = 1_000
 
         /** 16 bitów na próbkę, mono - tak dekodujemy dźwięk z okularów. */
         private const val BYTES_PER_SAMPLE = 2
