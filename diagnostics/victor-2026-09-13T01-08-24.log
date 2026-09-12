@@ -1,0 +1,62 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 2)
+01:08:24.232          ms  SESJA        start sesji
+01:08:38.447          ms  BLE          ROZŁĄCZONO  świadome=false
+01:08:45.904          ms  BLE          ROZŁĄCZONO  świadome=false
+01:08:52.079          ms  BLE          ROZŁĄCZONO  świadome=false
+01:09:00.082          ms  BLE          ROZŁĄCZONO  świadome=false
+01:09:08.633          ms  BLE          ROZŁĄCZONO  świadome=false
+01:09:13.492          ms  BLE          POŁĄCZONO  noweŁącze=true
+01:09:13.497          ms  BLE          powitanie okularów - start
+01:09:13.515          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+01:09:13.874          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+01:09:15.613          ms  BLE          POŁĄCZONO  noweŁącze=false
+01:09:18.514          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+01:09:24.188          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4004
+01:09:28.193          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4003
+01:09:32.196          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4002
+01:09:36.205          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4006
+01:09:40.212          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4004
+01:09:40.216          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+01:09:41.593          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C6 FE 0B A9 sztuk=1 pierwsza=true
+01:09:41.621          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C1 6F 01 7C 00 0E 00 00 00 01 01 sztuk=1 pierwsza=true
+01:10:20.244          ms  BŁĄD         Hotspot okularów: nie dołączyłem  sieć=W610T_6A7234AD04C5 ms=40028 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+01:10:20.245          ms  BLE          Wi-Fi Direct: podnoszę łącze
+01:10:43.289          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+01:11:04.778          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4002
+01:11:08.786          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4005
+01:11:12.791          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4002
+01:11:16.798          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4005
+01:11:20.806          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4006
+01:11:20.809          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+01:11:22.169          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 4F 0B 15 sztuk=1 pierwsza=false
+01:11:48.140          ms  BLE          Hotspot okularów: gotowe  ms=27331
+01:12:09.672          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4002
+01:12:25.165          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 47 59 0B 23 sztuk=21 pierwsza=false
+01:12:43.404          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C0 9C 01 78 00 0E 00 00 00 01 01 sztuk=2 pierwsza=false
+01:12:54.038          ms  PRZYCISK     wciśnięto  numer=1
+01:12:54.310          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+01:12:54.931          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=619
+01:12:55.164          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=18 mikrofonOkularów=true
+01:12:55.169      +1 ms  SESJA        --- TURA 990c ---  źródło=OKULARY
+01:12:55.171      +3 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+01:12:55.942    +774 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0A C6 12 01 00 10 0C 02 00 0F 0F 03 00 10 0B 02 sztuk=1 pierwsza=true
+01:13:00.733   +5565 ms  NASŁUCH      koniec  ms=5565 telefonUsłyszał=weronika mariusz pudzianowski
+01:13:00.989   +5821 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.5335 pakietów=77 rozkodowanych=77 odrzuconych=0 przesunięcie=6 ramka=-1
+01:13:01.874   +6706 ms  TRANSKRYPCJA z nagrania okularów  ms=884
+01:13:01.876   +6708 ms  SESJA        pytanie  tekst=weronika mariusz pudzianowski wymuszonyObraz=false
+01:13:01.894   +6726 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+01:13:01.934   +6766 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+01:13:02.431   +7263 ms  KONTEKST     zebrany  ms=122 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+01:13:02.449   +7281 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=986
+01:13:07.365  +12197 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4917
+01:13:07.774  +12607 ms  MODEL        koniec odpowiedzi (487 znaków, 3079 tokenów)  ms=5326
+01:13:32.773  +37605 ms  MOWA         koniec wypowiedzi  ms=24996
+01:13:32.819  +37652 ms  SESJA        --- KONIEC TURY 990c: odpowiedziano ---
+01:13:32.823          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
