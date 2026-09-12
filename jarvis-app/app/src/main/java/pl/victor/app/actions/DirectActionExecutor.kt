@@ -56,7 +56,12 @@ class DirectActionExecutor(private val context: Context) {
                 }
                 ActionConfirmation.Required(
                     title = "Wyślij SMS?",
-                    message = "Czy na pewno chcesz wysłać SMS do ${action.to}?\n\n" +
+                    // resolvedName, gdy znamy: przy adresacie zamienionym już na
+                    // numer samo `to` pokazałoby ciąg cyfr, a przy adresacie
+                    // nierozwiązanym - imię, które padło. Jedno i drugie jest
+                    // gorsze niż nazwa z książki adresowej.
+                    message = "Czy na pewno chcesz wysłać SMS do " +
+                            "${action.resolvedName ?: action.to}?\n\n" +
                             "Treść: \"${action.body}\"",
                     confirmText = "📤 Wyślij"
                 )
@@ -67,7 +72,8 @@ class DirectActionExecutor(private val context: Context) {
                 }
                 ActionConfirmation.Required(
                     title = "Zadzwonić?",
-                    message = "Czy na pewno chcesz zadzwonić do ${action.to}?",
+                    message = "Czy na pewno chcesz zadzwonić do " +
+                            "${action.resolvedName ?: action.to}?",
                     confirmText = "📞 Zadzwoń"
                 )
             }
@@ -153,8 +159,8 @@ class DirectActionExecutor(private val context: Context) {
             } else {
                 smsManager.sendTextMessage(phoneNumber, null, action.body, null, null)
             }
-            Log.i(tag, "SMS sent to $phoneNumber (${action.body.length} chars)")
-            ActionResult.Success("Wysłano SMS do ${action.to}")
+            Log.i(tag, "SMS wysłany (${action.body.length} znaków)")
+            ActionResult.Success("Wysłano SMS do ${action.resolvedName ?: action.to}")
         } catch (e: Exception) {
             Log.e(tag, "SmsManager failed", e)
             ActionResult.Failed("Wysyłanie SMS nie powiodło się: ${e.message}")
@@ -176,12 +182,17 @@ class DirectActionExecutor(private val context: Context) {
 
         return try {
             val intent = Intent(Intent.ACTION_CALL).apply {
-                data = Uri.parse("tel:$phoneNumber")
+                // fromParts, nie parse: numery z książki adresowej bywają zapisane
+                // ze spacjami, myślnikami i nawiasami, a bywa też krzyżyk (skróty
+                // do poczty głosowej). Uri.parse traktuje "#" jako początek
+                // fragmentu i ucina numer w tym miejscu - fromParts koduje go
+                // poprawnie.
+                data = Uri.fromParts("tel", phoneNumber, null)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             context.startActivity(intent)
-            Log.i(tag, "Call started to $phoneNumber")
-            ActionResult.Success("Dzwonię do ${action.to}")
+            Log.i(tag, "Połączenie rozpoczęte")
+            ActionResult.Success("Dzwonię do ${action.resolvedName ?: action.to}")
         } catch (e: Exception) {
             Log.e(tag, "Call failed", e)
             ActionResult.Failed("Nie udało się zadzwonić: ${e.message}")

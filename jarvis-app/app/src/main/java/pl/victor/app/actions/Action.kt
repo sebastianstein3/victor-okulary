@@ -16,15 +16,32 @@ sealed class Action {
 
     // === Komunikacja ===
     /** Wyślij SMS do kogoś. Otwiera aplikację SMS z przygotowanym tekstem. */
-    data class SendSms(val to: String, val body: String) : Action() {
+    data class SendSms(
+        val to: String,
+        val body: String,
+        /**
+         * Nazwa kontaktu Z KSIĄŻKI ADRESOWEJ, gdy [to] zostało już zamienione
+         * na numer - albo `null`, gdy nic nie rozwiązywaliśmy.
+         *
+         * Domyślne `null` jest tu celowe: pole dochodzi do istniejącej klasy i
+         * żadne miejsce tworzące akcję nie musi o nim wiedzieć. Bez niego
+         * komunikat po wysłaniu SMS-a mógł powtórzyć wyłącznie imię, KTÓRE
+         * PADŁO - a to nie jest to samo co adresat, do którego SMS poszedł.
+         */
+        val resolvedName: String? = null
+    ) : Action() {
         override val type = ActionType.SEND_SMS
-        override val description = "Wyślij SMS do $to: \"$body\""
+        override val description = "Wyślij SMS do ${resolvedName ?: to}: \"$body\""
     }
 
     /** Zadzwoń do kogoś. Otwiera dialer z numerem. */
-    data class MakeCall(val to: String) : Action() {
+    data class MakeCall(
+        val to: String,
+        /** Patrz [SendSms.resolvedName]. */
+        val resolvedName: String? = null
+    ) : Action() {
         override val type = ActionType.MAKE_CALL
-        override val description = "Zadzwoń do $to"
+        override val description = "Zadzwoń do ${resolvedName ?: to}"
     }
 
     /** Wyślij email. Otwiera Gmail z przygotowanym tematem i treścią. */

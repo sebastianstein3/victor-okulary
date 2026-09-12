@@ -21,6 +21,47 @@ class ContactResolver(private val context: Context) {
 
     private val tag = "ContactResolver"
 
+    /** Kontakt, który naprawdę wybraliśmy - nazwa Z KSIĄŻKI i jego numer. */
+    data class Resolved(val displayName: String, val phoneNumber: String)
+
+    /**
+     * To samo co [findPhoneNumber], ale mówi też, KOGO wybrało.
+     *
+     * ## Po co nazwa, skoro numer wystarcza do zadzwonienia
+     * Bo bez niej nikt - ani człowiek, ani dziennik - nie dowie się, że
+     * wybraliśmy nie tę osobę. Wywołujący dostawał sam numer, więc komunikat po
+     * akcji mógł powtórzyć wyłącznie imię, KTÓRE PADŁO, a nie to, do którego
+     * faktycznie poszedł SMS. Przy dwóch podobnych kontaktach to jest cała
+     * różnica między „wysłano do Ani" a „wysłano do Ani Kowalskiej".
+     */
+    suspend fun findContact(name: String): Resolved? = withContext(Dispatchers.IO) {
+        try {
+            val normalized = ContactMatch.normalize(name)
+            val contactId = findContactId(normalized) ?: return@withContext null
+            val phone = phoneOf(contactId) ?: return@withContext null
+            Resolved(displayNameOf(contactId) ?: name, phone)
+        } catch (e: SecurityException) {
+            Log.w(tag, "READ_CONTACTS permission not granted")
+            null
+        } catch (e: Exception) {
+            Log.e(tag, "Contact lookup failed", e)
+            null
+        }
+    }
+
+    /** Nazwa kontaktu o danym id - do komunikatu i dziennika. */
+    private fun displayNameOf(contactId: Long): String? {
+        val projection = arrayOf(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
+        val selection = "${ContactsContract.Contacts._ID} = ?"
+        context.contentResolver.query(
+            ContactsContract.Contacts.CONTENT_URI,
+            projection, selection, arrayOf(contactId.toString()), null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) return cursor.getString(0)
+        }
+        return null
+    }
+
     /**
      * Szuka kontaktu o podanej nazwie, zwraca numer telefonu lub null.
      */
@@ -83,7 +124,11 @@ class ContactResolver(private val context: Context) {
      */
     private fun searchByName(normalizedName: String): String? {
         val contactId = findContactId(normalizedName) ?: return null
+        return phoneOf(contactId)
+    }
 
+    /** Pierwszy numer telefonu kontaktu o danym id. */
+    private fun phoneOf(contactId: Long): String? {
         val projection = arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER)
         val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND " +
                 "${ContactsContract.Data.MIMETYPE} = ?"

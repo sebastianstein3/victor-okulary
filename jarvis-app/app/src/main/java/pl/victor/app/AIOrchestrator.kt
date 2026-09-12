@@ -224,7 +224,10 @@ class AIOrchestrator(
                 // bez rozwiązania SMS nigdy by nie doszedł do adresata, więc
                 // lepiej zgłosić to wprost niż cicho otworzyć aplikację SMS
                 // z odbiorcą, którego nikt nie rozpozna.
-                contactResolver.findPhoneNumber(action.to)?.let { action.copy(to = it) }
+                contactResolver.findContact(action.to)?.let { found ->
+                    noteResolvedContact(action.to, found)
+                    action.copy(to = found.phoneNumber, resolvedName = found.displayName)
+                }
             }
         }
         is Action.MakeCall -> {
@@ -236,10 +239,31 @@ class AIOrchestrator(
                 // Gdy nie mamy dostępu do książki albo kontaktu nie ma, zostawiamy
                 // oryginalną nazwę zamiast twardo failować - to jedyna ścieżka,
                 // która wcześniej działała bez READ_CONTACTS.
-                contactResolver.findPhoneNumber(action.to)?.let { action.copy(to = it) } ?: action
+                contactResolver.findContact(action.to)?.let { found ->
+                    noteResolvedContact(action.to, found)
+                    action.copy(to = found.phoneNumber, resolvedName = found.displayName)
+                } ?: action
             }
         }
         else -> action
+    }
+
+    /**
+     * Zapisuje w dzienniku, KOGO wybraliśmy z książki adresowej.
+     *
+     * ## Czemu to musi zostawiać ślad
+     * Bo pomyłka w tym miejscu kończy się rozmową albo SMS-em do obcej osoby, a
+     * z zewnątrz wygląda dokładnie tak samo jak trafienie: asystent mówi „dzwonię
+     * do Janusza" i dzwoni. Numer jest w dzienniku ukrywany - wystarczy sama
+     * nazwa, żeby dało się rozstrzygnąć, czy wybór był dobry.
+     */
+    private fun noteResolvedContact(asked: String, found: ContactResolver.Resolved) {
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.AKCJA, "kontakt z książki adresowej",
+                mapOf("proszono" to asked, "wybrano" to found.displayName)
+            )
+        }
     }
 
     private fun languageTagFor(languageCode: String): String = when (languageCode) {
