@@ -309,3 +309,22 @@
 21:22:30.087  +28303 ms  MOWA         koniec wypowiedzi  ms=14639
 21:22:30.143  +28358 ms  SESJA        --- KONIEC TURY 3398: odpowiedziano ---
 21:22:30.156          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:22:31.148          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:22:33.543          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=10 pierwsza=false
+21:22:58.148          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4002
+21:23:02.157          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4003
+21:23:06.167          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4007
+21:23:10.172          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4002
+21:23:14.182          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4006
+21:23:14.184          ms  BLE          Wi-Fi Direct: podnoszę łącze
+21:23:14.739          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 8C 40 01 83 00 11 00 03 00 01 01 sztuk=1 pierwsza=false
+21:23:19.729          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+21:23:22.870          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+21:23:33.949          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+21:23:33.954          ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=19770 powód=W pobliżu nie ma sieci okularów. Widzę tylko: Smart TV Pro. Upewnij się, że okulary są włączone i blisko telefonu.
+21:24:21.965          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 4B 57 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 01 sztuk=1 pierwsza=false
+21:24:22.941          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:24:24.626          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:24:24.629          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:24:24.677          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1735
+21:24:26.430          ms  ZDJĘCIE      próba 0: miniatura  bajtów=14903 jpeg=true kompletny=true
