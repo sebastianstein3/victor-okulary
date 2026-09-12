@@ -1401,19 +1401,63 @@ class AIOrchestrator(
                     )
                 )
                 val transcribeStartedAt = System.currentTimeMillis()
-                val glassesHeard = if (captured?.hasAudio == true) {
-                    captured.pcm?.let { transcribeGlassesAudio(it, languageTagFor(language)) }
-                } else {
-                    null
+                // NIE PRZEPISUJEMY NAGRANIA, GDY TEKST Z TELEFONU JUŻ LEŻY.
+                //
+                // Zamysł był dobry: mikrofon okularów wisi przy ustach, telefon
+                // leży w kieszeni, więc transkrypcja z okularów powinna bić
+                // nasłuch telefonu. Tylko że przez pięć dzienników i około
+                // czterdzieści tur ta droga NIE ODDAŁA TEKSTU ANI RAZU - po
+                // każdym wierszu „z nagrania okularów" idzie „biorę odłożony
+                // tekst z telefonu" albo „nagranie do modelu".
+                //
+                // Kosztowała przy tym 1134, 1795, 1938, 2672 i 3905 ms
+                // (12 września) oraz 5456-5950 ms (11 września wieczorem) - i to
+                // w ciszy między „skończyłem mówić" a „model dostał pytanie",
+                // czyli w miejscu, w którym użytkownik po prostu czeka.
+                //
+                // Czasy rosną z długością nagrania (0,3-0,6 x czas trwania),
+                // więc to nie jest szybka odmowa - jakiś silnik naprawdę mieli
+                // te próbki i oddaje pustkę. Którego brakuje, powie wiersz
+                // niżej: sprawdzenie obu dróg jest darmowe, bo to dwa pytania o
+                // stan, a nie rozpoznawanie.
+                //
+                // Droga zostaje na miejscu dla przypadku, w którym jest JEDYNA:
+                // gdy telefon nic nie usłyszał (kieszeń, kurtka, zablokowany
+                // ekran), odłożonego tekstu nie ma i wtedy próbujemy jak dotąd.
+                val phoneFallback = setAsidePhoneTranscript
+                val glassesHeard = when {
+                    captured?.hasAudio != true -> null
+                    phoneFallback != null -> null
+                    else -> captured.pcm?.let { transcribeGlassesAudio(it, languageTagFor(language)) }
                 }
                 if (captured?.hasAudio == true) {
                     diag.event(
-                        DiagFormat.Phase.TRANSKRYPCJA, "z nagrania okularów",
-                        mapOf(
-                            "ms" to (System.currentTimeMillis() - transcribeStartedAt),
-                            "droga" to _lastTranscriptionSource.value,
-                            "wynik" to glassesHeard?.take(80)
-                        )
+                        DiagFormat.Phase.TRANSKRYPCJA,
+                        if (phoneFallback != null) {
+                            "nagrania z okularów NIE przepisuję - mam tekst z telefonu"
+                        } else {
+                            "z nagrania okularów"
+                        },
+                        if (phoneFallback != null) {
+                            // Dwa pytania o stan, zero rozpoznawania. Bez nich
+                            // „ta droga milczy" i „tej drogi nie ma" wyglądają
+                            // z dziennika identycznie, a to dwie różne naprawy:
+                            // pierwsza to usterka, druga to jeden pakiet języka
+                            // do pobrania w ustawieniach Androida.
+                            mapOf(
+                                "rozpoznawanieNaUrządzeniu" to speechToText.isOnDeviceAvailable(),
+                                "voskGotowy" to runCatching {
+                                    VictorApplication.get().voskWakeWord.isModelReady()
+                                }.getOrDefault(false),
+                                "chmura" to settings.isCloudTranscriptionEnabled()
+                            )
+                        } else {
+                            mapOf(
+                                "ms" to (System.currentTimeMillis() - transcribeStartedAt),
+                                "droga" to _lastTranscriptionSource.value,
+                                "wynik" to glassesHeard?.take(80)
+                            )
+                        }
                     )
                 }
                 if (glassesHeard != null && !heard.isNullOrBlank() && glassesHeard != heard) {
@@ -1464,12 +1508,17 @@ class AIOrchestrator(
                     // czasie: odpada wysyłka prawie megabajta, która w dzienniku
                     // kosztowała od 6 do 40 sekund.
                     setAsidePhoneTranscript?.let { phoneText ->
-                        Log.i(TAG, "Droga przez okulary nie dała tekstu - biorę tekst z telefonu")
+                        Log.i(TAG, "Biorę odłożony tekst z nasłuchu telefonu")
                         diag.event(
                             DiagFormat.Phase.TRANSKRYPCJA,
                             "biorę odłożony tekst z telefonu",
                             mapOf("tekst" to phoneText.take(60))
                         )
+                        // Nagłówek dziennika pokazywał tu drogę z POPRZEDNIEJ
+                        // tury: transcribeGlassesAudio ustawia to pole tylko
+                        // wtedy, gdy sam coś rozpozna, a tutaj właśnie nie
+                        // rozpoznał (albo w ogóle nie był pytany).
+                        _lastTranscriptionSource.value = SOURCE_PHONE
                         silentScoTurns = 0
                         conversationalMode.onAiFinishedSpeaking()
                         handleUserTrigger(TriggerSource.WAKE_WORD, phoneText)
@@ -2447,12 +2496,57 @@ class AIOrchestrator(
                 val translationDeferred =
                     async { runCatching { translateOcrIfRequested(textQuestion, ocrContext) }.getOrNull() }
 
-                val memoryContext = memoryDeferred.await()
-                val calendarContext = calendarDeferred.await()
-                val gmailContext = gmailDeferred.await()
-                val weatherContext = weatherDeferred.await()
-                val locationContext = locationDeferred.await()
-                val translatedOcr = translationDeferred.await()
+                // ...ALE NIE CZEKAMY NA NIE BEZ KOŃCA.
+                //
+                // Równoległość zdejmuje sumowanie czasów, nie zdejmuje
+                // zawieszenia: czekaliśmy na WSZYSTKIE sześć źródeł bez żadnego
+                // sufitu, a `GoogleCalendarService` i `GmailService` nie mają
+                // ustawionego ANI JEDNEGO limitu czasu (lokalizacja to w dodatku
+                // GPS). Jedno źródło, które nie wraca, zatrzymywało całą
+                // odpowiedź na dowolnie długo - i nie zostawiało po sobie śladu,
+                // bo wiersz „zebrany" powstaje dopiero po fakcie.
+                //
+                // W dzienniku zwykle 368-492 ms, ale raz 4952 ms. Dziesięciokrotny
+                // rozrzut przy stałym zestawie źródeł to nie szum, tylko ten sam
+                // mechanizm w łagodnej postaci. Dobry kandydat na zgłoszenie „po
+                // jakimś czasie AI przestaje odpowiadać, nawet nie widać, żeby
+                // reagowało".
+                //
+                // Sufit jest bezpieczny, bo BRAK KONTEKSTU JEST JUŻ DZIŚ NORMALNĄ
+                // SYTUACJĄ: każde źródło może oddać null (wyłączone w
+                // ustawieniach, brak zgody, wygasłe logowanie) i prompt składa
+                // się wtedy z tego, co przyszło. Wygaśnięcie limitu prowadzi
+                // dokładnie w ten sam stan, a nie w jakiś nowy.
+                //
+                // WSPÓLNY TERMIN, nie limit na każde źródło z osobna: sześć
+                // osobnych limitów pozwoliłoby powolnym źródłom zsumować się do
+                // sześciokrotności, a użytkownik czeka na ostatnie z nich. Każde
+                // kolejne czekanie dostaje więc tyle, ile ZOSTAŁO do terminu.
+                val pending = listOf(
+                    memoryDeferred, calendarDeferred, gmailDeferred,
+                    weatherDeferred, locationDeferred, translationDeferred
+                )
+                val contextDeadlineMs = contextStartedAtMs + CONTEXT_BUDGET_MS
+                val gathered = pending.map { deferred ->
+                    // coerceAtLeast(1): przy zerze withTimeoutOrNull wraca od
+                    // razu, NIE WCHODZĄC w blok - a wtedy wyrzucilibyśmy wynik
+                    // źródła, które dawno jest gotowe. Przy jednej milisekundzie
+                    // `await` na gotowym wyniku nie zawiesza się w ogóle.
+                    val leftMs = (contextDeadlineMs - System.currentTimeMillis()).coerceAtLeast(1L)
+                    withTimeoutOrNull(leftMs) { deferred.await() }
+                }
+                // Przerwane czekanie nie kończy samego źródła. Spóźnialec bez
+                // odbiorcy trzymałby przy życiu połączenie sieciowe albo nasłuch
+                // GPS przez cały czas odpowiadania - a jego wynik i tak nie ma
+                // już dokąd trafić.
+                val contextTimedOut = pending.any { it.isActive }
+                pending.forEach { it.cancel() }
+                val memoryContext = gathered[0]
+                val calendarContext = gathered[1]
+                val gmailContext = gathered[2]
+                val weatherContext = gathered[3]
+                val locationContext = gathered[4]
+                val translatedOcr = gathered[5]
                 Log.i(TAG, "Kontekst zebrany w ${System.currentTimeMillis() - contextStartedAtMs} ms")
                 // Pytanie użytkownika: "czy to przez przeszukiwanie informacji o
                 // użytkowniku?". Ten wiersz odpowiada na nie liczbą - i mówi
@@ -2465,7 +2559,11 @@ class AIOrchestrator(
                         "kalendarz" to (calendarContext != null),
                         "poczta" to (gmailContext != null),
                         "pogoda" to (weatherContext != null),
-                        "lokalizacja" to (locationContext != null)
+                        "lokalizacja" to (locationContext != null),
+                        // Bez tego pola „kalendarz=false" znaczy naraz „wyłączony",
+                        // „pusty" i „nie zdążył" - a to trzy różne rzeczy i trzy
+                        // różne naprawy.
+                        "limitCzasu" to contextTimedOut
                     )
                 )
 
@@ -3721,6 +3819,16 @@ class AIOrchestrator(
          * zaczęło - i asystent nie odpowiedziałby nigdy.
          */
         private const val TAKEOVER_GRACE_MS = 1_500L
+
+        /**
+         * Ile łącznie wolno zbierać kontekst, zanim pytanie pójdzie do modelu.
+         *
+         * Sześć sekund, bo pomiar mówi 368-492 ms w normalnej turze i 4952 ms w
+         * najgorszej zaobserwowanej - sufit ma odcinać zawieszenie, a nie
+         * zdrowe, choć powolne źródło. Termin jest WSPÓLNY dla wszystkich
+         * sześciu, patrz miejsce użycia.
+         */
+        private const val CONTEXT_BUDGET_MS = 6_000L
 
         /** Nazwy dróg transkrypcji - patrz [lastTranscriptionSource]. */
         const val SOURCE_CLOUD = "Chmura (Whisper)"
