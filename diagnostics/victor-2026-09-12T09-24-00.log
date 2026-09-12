@@ -163,3 +163,30 @@
 09:34:28.291  +28775 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
 09:34:28.313  +28797 ms  SESJA        --- KONIEC TURY eed1: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
 09:34:28.335          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:34:28.416          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:35:28.216          ms  PRZYCISK     wciśnięto  numer=1
+09:35:28.399          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+09:35:28.849      +0 ms  SESJA        --- TURA b8f3 ---  źródło=OKULARY
+09:35:28.852      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+09:35:34.537   +5689 ms  NASŁUCH      koniec  ms=5688 odłożone=co widzisz
+09:35:34.686   +5838 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+09:35:36.876   +8027 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.7935 pakietów=290 rozkodowanych=290 odrzuconych=0 przesunięcie=0 ramka=-1
+09:35:40.784  +11936 ms  TRANSKRYPCJA z nagrania okularów  ms=3905 droga=Nasłuch telefonu
+09:35:40.788  +11939 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co widzisz
+09:35:40.790  +11941 ms  SESJA        pytanie  tekst=co widzisz wymuszonyObraz=false
+09:35:40.802  +11953 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=false zNagrania=false
+09:35:40.822  +11973 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+09:35:40.818  +11970 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+09:35:40.831  +11983 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+09:35:41.243  +12394 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=2 pierwsza=false
+09:35:42.378  +13530 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 40 85 01 76 00 0F 00 03 00 01 01 sztuk=4 pierwsza=false
+09:35:46.844  +17995 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6007
+09:35:46.853  +18004 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+09:35:52.869  +24021 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+09:35:52.879  +24030 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+09:35:54.528  +25679 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+09:35:54.539  +25691 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+09:36:02.838  +33989 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+09:36:02.848  +34000 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+09:36:02.869  +34021 ms  SESJA        --- KONIEC TURY b8f3: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+09:36:02.885          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
