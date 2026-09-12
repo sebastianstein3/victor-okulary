@@ -37,6 +37,15 @@ class BurstCaptureManager(
     private val MAX_BURST_COUNT = 10
 
     /**
+     * Górna granica czasu na CAŁĄ serię.
+     *
+     * Czterdzieści pięć sekund mieści jedno zdjęcie z pełnym budżetem (32 s)
+     * plus jedno-dwa szybkie, a nie mieści serii samych porażek. Liczy się od
+     * startu serii i jest sprawdzana przed każdym kolejnym zdjęciem.
+     */
+    private val BURST_TOTAL_BUDGET_MS = 45_000L
+
+    /**
      * Główna metoda - przechwytuje multimedia zgodnie z trybem.
      *
      * @return CaptureResult ze zdjęciami lub wideo
@@ -96,7 +105,32 @@ class BurstCaptureManager(
         // o którą prosimy okulary, i limity, do których dopasowujemy wynik.
         val thumbnailQuality = ImageScaler.thumbnailQualityFor(resolution)
 
+        // SERIA MA WSPÓLNY LIMIT CZASU, NIE TYLKO POJEDYNCZE ZDJĘCIE.
+        //
+        // Pojedyncze przechwytywanie ma własny budżet (PHOTO_TOTAL_BUDGET_MS,
+        // 32 s), ale pętla nie miała ŻADNEGO: tryb „Burst 5 zdjęć" przy
+        // niedziałającym aparacie oznaczał pięć razy pełny budżet, czyli ponad
+        // dwie i pół minuty stania z pytaniem bez odpowiedzi. Przy górnej
+        // granicy dziesięciu zdjęć - ponad pięć minut.
+        //
+        // To jest w części moja wina: podnosząc budżet pojedynczego zdjęcia z
+        // 22 na 32 s (bo 22 były mniejsze niż jedna uczciwa próba) podniosłem
+        // tym samym najgorszy przypadek serii o połowę, nie zauważając, że nic
+        // go nie ogranicza.
+        val burstStartedAtMs = System.currentTimeMillis()
+        var attempted = 0
         for (i in 0 until count) {
+            // Sprawdzamy PRZED kolejnym zdjęciem, nie po - przerwanie w połowie
+            // transferu zostawiłoby okulary w trakcie wysyłania.
+            if (i > 0 && System.currentTimeMillis() - burstStartedAtMs > BURST_TOTAL_BUDGET_MS) {
+                Log.w(
+                    tag,
+                    "Seria przerwana po ${System.currentTimeMillis() - burstStartedAtMs} ms " +
+                        "- mam ${images.size} z $count"
+                )
+                break
+            }
+            attempted = i + 1
             Log.d(tag, "Zdjęcie ${i + 1}/$count (przez BLE, jakość $thumbnailQuality)")
             onProgress(i + 1)
 
@@ -113,7 +147,15 @@ class BurstCaptureManager(
                 images.add(photo)
                 photoStorage.saveConversationPhoto(photo, "burst_${i + 1}")
             } else {
-                Log.w(tag, "Nie udało się pobrać zdjęcia ${i + 1}/$count")
+                // PIERWSZA PORAŻKA KOŃCZY SERIĘ.
+                //
+                // capturePhoto nie jest jedną próbą: w środku ma drogę
+                // producenta, zejście na bezpieczną jakość i komendę zdjęcia AI,
+                // a porażka znaczy, że WSZYSTKIE wyczerpały swój budżet. Kolejny
+                // przebieg pętli nie jest nowym eksperymentem, tylko tym samym
+                // powtórzonym - za cenę następnych trzydziestu sekund ciszy.
+                Log.w(tag, "Nie udało się pobrać zdjęcia ${i + 1}/$count - kończę serię")
+                break
             }
 
             if (i < count - 1) {
@@ -125,7 +167,9 @@ class BurstCaptureManager(
             Log.w(tag, "Nie pobrano żadnego zdjęcia z okularów")
         }
 
-        onProgress(count)
+        // Liczba FAKTYCZNIE podjętych prób, nie zaplanowanych: przy serii
+        // przerwanej limitem wskaźnik postępu skakałby inaczej na koniec.
+        onProgress(attempted)
 
         return CaptureResult(
             mode = mode,
