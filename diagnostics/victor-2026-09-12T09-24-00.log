@@ -34,3 +34,31 @@
 09:25:38.747  +20671 ms  MOWA         koniec wypowiedzi  ms=12161
 09:25:38.788  +20712 ms  SESJA        --- KONIEC TURY 05ca: odpowiedziano ---
 09:25:38.791          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:25:38.874          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:27:02.623          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+09:27:02.632          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+09:27:10.826          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=16384 jpeg=true kompletny=false
+09:27:10.828          ms  ZDJĘCIE      zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze
+09:27:20.836          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura (powtórka)
+09:27:20.837          ms  ZDJĘCIE      zdjęcie z przycisku: biorę urwany obraz  bajtów=16384
+09:27:20.839      +1 ms  SESJA        --- TURA 2a24 ---  źródło=BUTTON
+09:27:20.841      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+09:27:20.847      +8 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+09:27:20.867     +28 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+09:27:20.872     +33 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+09:27:20.923     +84 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=16384 pełnaRozdzielczość=false
+09:27:21.159    +320 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+09:27:21.161    +322 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+09:27:21.464    +626 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=5 pierwsza=false
+09:27:21.693    +854 ms  KONTEKST     zebrany  ms=396 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false
+09:27:21.702    +863 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=1 znakówPromptu=3018
+09:27:25.403   +4564 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3702
+09:27:25.457   +4618 ms  MODEL        koniec odpowiedzi (306 znaków, 4532 tokenów)  ms=3756
+09:27:28.864   +8025 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=16384 jpeg=true kompletny=false
+09:27:28.865   +8026 ms  ZDJĘCIE      zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze
+09:27:38.875  +18036 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura (powtórka)
+09:27:38.876  +18037 ms  ZDJĘCIE      zdjęcie z przycisku: biorę urwany obraz  bajtów=16384
+09:27:38.877  +18038 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=BUTTON stan=Streaming
+09:27:41.673  +20835 ms  MOWA         koniec wypowiedzi  ms=16213
+09:27:41.696  +20857 ms  SESJA        --- KONIEC TURY 2a24: odpowiedziano ---
+09:27:41.699          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
