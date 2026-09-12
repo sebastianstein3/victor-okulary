@@ -143,8 +143,72 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         // w diagnostyce, a wybudzenie okularów w jego trakcie jest normalnym
         // przebiegiem (instrukcja na ekranie wprost o to prosi). Ta klasa liczy
         // własne pakiety, więc nie potrzebuje cudzych.
-        glasses.addMicStreamListener(packetListener)
+        //
+        // Z ZALEGŁOŚCIĄ: okulary nadają od chwili wciśnięcia przycisku, a tu
+        // jesteśmy dopiero po ~960 ms (okno na podwójne kliknięcie plus
+        // rozruch). Pakiety z tego odstępu dotąd przepadały razem z pierwszymi
+        // słowami pytania - patrz [pl.victor.app.ble.MicBacklog].
+        val backlog = glasses.addMicStreamListenerWithBacklog(packetListener)
+        adoptBacklog(backlog)
         decoderOk
+    }
+
+    /**
+     * Wstawia dźwięk sprzed startu na POCZĄTEK nagrania i cofa zegary tury.
+     *
+     * ## Czemu można po prostu dopisać pakiety na początek
+     * Bo ta klasa podczas zbierania NIC nie dekoduje - [packetListener] tylko
+     * odkłada bajty, a dekoder rusza dopiero w `stop()`. Nie ma więc stanu
+     * dekodera, który kolejność mogłaby popsuć wstecz; liczy się wyłącznie to,
+     * żeby lista była w kolejności przyjścia. Zaległość przychodzi już w tej
+     * kolejności i jest w całości STARSZA od czegokolwiek, co dojdzie dalej,
+     * bo została odcięta w tej samej chwili, w której podpięliśmy odbiornik.
+     *
+     * ## Czemu zegary trzeba cofnąć, a nie zostawić
+     * Bo pakiety niosą własne znaczniki czasu, a wykrywanie końca wypowiedzi
+     * liczy [voicedMs] z ODSTĘPÓW między nimi. Policzone od „teraz" wyszłyby
+     * zerowe (cała zaległość wpadłaby w jednej chwili), czyli mowa sprzed
+     * startu nie liczyłaby się wcale i nasłuch trwałby dłużej, niż trzeba -
+     * dokładnie ta usterka, którą [awaitSpeechEnd] ma leczyć.
+     *
+     * [startedAtMs] też idzie wstecz, bo człowiek zaczął mówić wtedy, a nie
+     * teraz; inaczej karencja [SpeechEnd.MIN_LISTEN_MS] liczyłaby się od
+     * połowy zdania.
+     */
+    private fun adoptBacklog(backlog: List<pl.victor.app.ble.MicBacklog.Packet>) {
+        if (backlog.isEmpty()) return
+        synchronized(lock) {
+            if (!active) return
+            // NA POCZĄTEK, nie na koniec. Między powrotem z
+            // `addMicStreamListenerWithBacklog` a tym miejscem odbiornik jest
+            // już podpięty, więc wątek BLE mógł zdążyć dołożyć świeży pakiet.
+            // Dopisanie zaległości na koniec ustawiłoby wtedy dźwięk sprzed
+            // startu ZA dźwiękiem po starcie - a pomieszana kolejność ramek to
+            // dla dekodera Opusa szum nie do odróżnienia od zerwanego łącza.
+            // Wstawienie na początek jest poprawne zawsze: zaległość została
+            // odcięta w chwili podpięcia, więc jest starsza od wszystkiego, co
+            // odbiornik może dostać.
+            packets.addAll(0, backlog.map { it.payload })
+            // Czas mowy liczymy z WŁASNYCH odstępów zaległości (n-1 przerw).
+            // Gdyby liczyć go od „teraz", wyszłoby zero - cała zaległość
+            // wpada w jednej chwili - czyli mowa sprzed startu nie liczyłaby
+            // się wcale i nasłuch trwałby dłużej, niż trzeba.
+            for (i in 1 until backlog.size) {
+                voicedMs += SpeechEnd.voicedGap(backlog[i].atMs - backlog[i - 1].atMs)
+            }
+            // maxOf, bo świeży pakiet z wyścigu opisanego wyżej jest NOWSZY niż
+            // cała zaległość - cofnięcie tych znaczników kazałoby wykrywaniu
+            // ciszy liczyć od przeszłości. Tracimy przy tym najwyżej jedną
+            // przerwę między zaległością a pierwszym świeżym pakietem, czyli
+            // kilkadziesiąt milisekund, i to w stronę OSTROŻNĄ: mniej
+            // policzonej mowy znaczy dłuższy nasłuch, nie ucięte pytanie.
+            val lastBacklogAtMs = backlog.last().atMs
+            previousPacketAtMs = maxOf(previousPacketAtMs, lastBacklogAtMs)
+            lastPacketAtMs = maxOf(lastPacketAtMs, lastBacklogAtMs)
+            // Człowiek zaczął mówić wtedy, a nie teraz - inaczej karencja
+            // [SpeechEnd.MIN_LISTEN_MS] liczyłaby się od połowy zdania.
+            startedAtMs = minOf(startedAtMs, backlog.first().atMs)
+        }
     }
 
     /**

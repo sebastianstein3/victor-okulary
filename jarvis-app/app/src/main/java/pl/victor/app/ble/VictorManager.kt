@@ -208,6 +208,24 @@ class VictorManager private constructor(context: Context) {
     private var hardwarePhotoInProgress = false
 
     /**
+     * Dźwięk, który przyszedł, zanim ktokolwiek go słuchał - patrz
+     * [addMicStreamListenerWithBacklog]. Pod blokadą [micStreamListeners].
+     */
+    private val micBacklog = MicBacklog()
+
+    /**
+     * Kiedy użytkownik ostatnio wywołał asystenta - przyciskiem na oprawce albo
+     * frazą wybudzenia.
+     *
+     * Wyznacza granicę, przed którą dźwięk NIE należy już do bieżącego pytania.
+     * Bez niej bufor doklejałby do nowego pytania ogon poprzedniego: okulary
+     * nadają także między turami, co widać w dzienniku jako „okulary nadają
+     * dźwięk, choć żadna tura nie trwa" po zakończonym nasłuchu.
+     */
+    @Volatile
+    private var lastTriggerAtMs = 0L
+
+    /**
      * Jakość miniatury, przy której TE okulary ostatnio potwierdziły migawkę -
      * albo `null`, dopóki się tego nie dowiedzieliśmy.
      *
@@ -648,6 +666,9 @@ class VictorManager private constructor(context: Context) {
                 }
                 if (event.button == GlassesProtocol.AI_BUTTON) {
                     Log.i(tag, "Notify: wciśnięto przycisk AI")
+                    // Od tej chwili dźwięk z okularów należy do pytania, choćby
+                    // nasłuch ruszył dopiero za sekundę - patrz [lastTriggerAtMs].
+                    lastTriggerAtMs = System.currentTimeMillis()
                     _buttonEvent.value = ButtonEvent.ShortClick
                 } else {
                     // Świadomie NIE zgadujemy, co robi. Numer ląduje w
@@ -688,6 +709,9 @@ class VictorManager private constructor(context: Context) {
                 Log.d(tag, "Notify: kąt kamery ${event.angle}")
             is NotifyEvent.AiSessionRequested -> {
                 Log.i(tag, "Notify: okulary proszą o rozmowę (tekst na żywo=${event.realtimeText})")
+                // Tak samo jak przy przycisku - fraza wybudzenia to też chwila,
+                // od której człowiek mówi do asystenta.
+                lastTriggerAtMs = System.currentTimeMillis()
                 // W dzienniku z 11 września nie ma ANI JEDNEJ tury ze źródłem
                 // OKULARY, choć użytkownik wybudzał je głosem i słyszał ich
                 // reakcję. Bez tego wpisu nie da się rozstrzygnąć, czy prośba
@@ -764,6 +788,10 @@ class VictorManager private constructor(context: Context) {
         // Nauczona jakość miniatury opisuje KONKRETNY egzemplarz. Po ponownym
         // połączeniu po drugiej stronie mogą być inne okulary.
         qualityThatAnswered = null
+        // Dźwięk sprzed rozłączenia nie ma nic wspólnego z pytaniem, które
+        // padnie po ponownym połączeniu.
+        synchronized(micStreamListeners) { micBacklog.clear() }
+        lastTriggerAtMs = 0L
     }
 
     /**
@@ -1056,6 +1084,62 @@ class VictorManager private constructor(context: Context) {
     }
 
     /**
+     * To samo, ale oddaje też dźwięk, który przyszedł ZANIM ktokolwiek słuchał.
+     *
+     * Okulary zaczynają nadawać w chwili wciśnięcia przycisku, a nasłuch po
+     * naszej stronie rusza dopiero po ~960 ms - 500 ms zajmuje okno na
+     * rozpoznanie podwójnego kliknięcia, reszta to rozruch. Ten odstęp widać w
+     * dzienniku wprost: „PRZYCISK wciśnięto" o 09:25:17.118, „okulary nadają
+     * dźwięk, choć żadna tura nie trwa" o 09:25:17.246 i dopiero „TURA" o
+     * 09:25:18.076. Pakiety z tego odstępu szły dotąd do kosza razem z
+     * pierwszymi słowami pytania.
+     *
+     * ## Czemu jedna metoda, a nie „weź zaległość" plus „podepnij się"
+     * Bo między jednym a drugim wywołaniem zmieściłby się pakiet: nikt by go
+     * jeszcze nie słuchał (więc trafiłby do bufora), a bufor byłby już oddany
+     * (więc nikt by go nie odebrał). Tu obie rzeczy dzieją się pod jedną
+     * blokadą, więc każdy pakiet trafia dokładnie w jedno miejsce.
+     *
+     * @return pakiety sprzed podpięcia, w kolejności przyjścia, z ich WŁASNYMI
+     *   znacznikami czasu - wołający potrzebuje ich do liczenia, jak długo
+     *   trwała mowa, a nie do odtwarzania
+     */
+    fun addMicStreamListenerWithBacklog(
+        listener: (ByteArray) -> Unit
+    ): List<MicBacklog.Packet> {
+        if (simulator != null) return emptyList()
+        val now = System.currentTimeMillis()
+        val backlog = synchronized(micStreamListeners) {
+            // Wcześniejsze niż wywołanie asystenta nie należy do pytania.
+            // Gdy wywołania nie było (start z aplikacji), zostaje samo okno
+            // czasu - patrz [MicBacklog.drainSince].
+            val taken = micBacklog.drainSince(sinceMs = lastTriggerAtMs, nowMs = now)
+            micStreamListeners.add(listener)
+            if (!micStreamActive && !armMicNotify()) {
+                micStreamListeners.remove(listener)
+                return emptyList()
+            }
+            taken
+        }
+        // Dziennik POZA blokadą: tę samą blokadę bierze wątek BLE przy każdym
+        // pakiecie, a zapis wiersza to wejście-wyjście. Pod blokadą zatrzymałby
+        // strumień mikrofonu na czas zapisu.
+        if (backlog.isNotEmpty()) {
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.NASŁUCH,
+                    "dokładam dźwięk sprzed startu nasłuchu",
+                    mapOf(
+                        "pakietów" to backlog.size,
+                        "ms" to (now - backlog.first().atMs)
+                    )
+                )
+            }
+        }
+        return backlog
+    }
+
+    /**
      * Zamawia w SDK odbiór pakietów mikrofonu.
      *
      * Wołane wyłącznie pod blokadą [micStreamListeners].
@@ -1119,6 +1203,15 @@ class VictorManager private constructor(context: Context) {
      */
     private fun onMicPacket(payload: ByteArray) {
         noteStrayMicPacket()
+        // Gdy nikt nie słucha, pakiet idzie do bufora zamiast do kosza - patrz
+        // [addMicStreamListenerWithBacklog]. WYŁĄCZNIE wtedy: przy aktywnym
+        // odbiorcy ten sam pakiet trafiłby i tu, i do niego, czyli dwa razy do
+        // nagrania, a zdublowane ramki to dla dekodera Opusa szum.
+        synchronized(micStreamListeners) {
+            if (micStreamListeners.isEmpty()) {
+                micBacklog.add(System.currentTimeMillis(), payload.copyOf())
+            }
+        }
         _micStreamStats.update { stats ->
             stats.copy(
                 packets = stats.packets + 1,
