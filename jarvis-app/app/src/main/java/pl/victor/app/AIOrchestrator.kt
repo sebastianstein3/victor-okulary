@@ -266,6 +266,10 @@ class AIOrchestrator(
         }
     }
 
+    /** Ile milisekund dźwięku to tyle bajtów próbek 16-bit mono. */
+    private fun msOf(pcmBytes: Int): Long =
+        pcmBytes.toLong() * 1000L / (pl.victor.app.audio.OpusDecoder.SAMPLE_RATE.toLong() * 2L)
+
     private fun languageTagFor(languageCode: String): String = when (languageCode) {
         "pl" -> "pl-PL"
         "en" -> "en-US"
@@ -1498,7 +1502,44 @@ class AIOrchestrator(
                     // Zanim ogłosimy porażkę: może okulary jednak przysłały
                     // dźwięk po BLE. Jeśli tak i model umie słuchać, pytanie
                     // idzie do niego jako nagranie - bez rozpoznawania mowy.
-                    val recording = captured?.takeIf { it.hasAudio }?.wav
+                    // PRZYTNIJ NAGRANIE DO TEGO, W CZYM KTOŚ MÓWI.
+                    //
+                    // Tu kończą tury, w których rozpoznawanie mowy nie wykryło
+                    // końca wypowiedzi - a wtedy nasłuch dobija do twardego
+                    // sufitu i nagranie ma dziewięć sekund przy pytaniu
+                    // trwającym dwie. Model dostaje materiał, w którym mowa jest
+                    // MNIEJSZOŚCIĄ, i opisuje to, co słychać najwyraźniej.
+                    // Zgłoszone dosłownie: „AI mówi, że słyszy tylko kroki, a
+                    // nikt nawet nie chodzi".
+                    //
+                    // Przycinanie nie rozpoznaje mowy - odcina tylko końce, w
+                    // których nie dzieje się nic, i w razie wątpliwości oddaje
+                    // nagranie bez zmian (patrz [VoiceTrim]). Przy okazji zbija
+                    // wysyłkę z ~875 kB do ułamka tego, co skraca też czekanie.
+                    val recording = captured?.takeIf { it.hasAudio }?.let { capture ->
+                        val raw = capture.pcm
+                        if (raw == null) {
+                            capture.wav
+                        } else {
+                            val trimmed = pl.victor.app.audio.VoiceTrim.trim(
+                                raw,
+                                pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
+                            )
+                            runCatching {
+                                diag.event(
+                                    DiagFormat.Phase.NASŁUCH, "przycinam nagranie dla modelu",
+                                    mapOf(
+                                        "byłoMs" to msOf(raw.size),
+                                        "jestMs" to msOf(trimmed.size)
+                                    )
+                                )
+                            }
+                            pl.victor.app.audio.WavWriter.wrap(
+                                trimmed,
+                                pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
+                            )
+                        }
+                    }
                     val seconds = captured?.audioSeconds ?: 0.0
 
                     // Wszystkie drogi do TEKSTU zostały już przejechane wyżej
