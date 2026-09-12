@@ -358,3 +358,24 @@
 09:51:50.871  +28396 ms  MOWA         koniec wypowiedzi  ms=14787
 09:51:50.927  +28453 ms  SESJA        --- KONIEC TURY 1c99: odpowiedziano ---
 09:51:50.942          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:51:51.576          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:53:01.331          ms  PRZYCISK     wciśnięto  numer=1
+09:53:01.446          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+09:53:02.031      +1 ms  SESJA        --- TURA 9af0 ---  źródło=OKULARY
+09:53:02.038      +8 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+09:53:11.017   +8986 ms  NASŁUCH      koniec  ms=8985
+09:53:11.024   +8993 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+09:53:15.123  +13092 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1535 pakietów=458 rozkodowanych=458 odrzuconych=0 przesunięcie=0 ramka=-1
+09:53:20.930  +18900 ms  TRANSKRYPCJA z nagrania okularów  ms=5804 droga=Nasłuch telefonu
+09:53:20.939  +18909 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=878780 B wymuszonyObraz=false
+09:53:20.947  +18917 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+09:53:21.032  +19001 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+09:53:21.037  +19007 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+09:53:21.456  +19425 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=2 pierwsza=false
+09:53:22.662  +20632 ms  KONTEKST     zebrany  ms=1602 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+09:53:22.697  +20666 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=10028
+09:53:25.713  +23683 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3019
+09:53:25.736  +23705 ms  MODEL        koniec odpowiedzi (63 znaków, 6293 tokenów)  ms=3042
+09:53:31.062  +29032 ms  MOWA         koniec wypowiedzi  ms=5320
+09:53:31.091  +29060 ms  SESJA        --- KONIEC TURY 9af0: odpowiedziano ---
+09:53:31.099          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
