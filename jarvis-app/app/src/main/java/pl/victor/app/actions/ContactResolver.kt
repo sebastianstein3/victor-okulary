@@ -104,63 +104,65 @@ class ContactResolver(private val context: Context) {
     }
 
     /**
-     * Szuka contactId po displayName (fuzzy match).
+     * Szuka contactId po displayName.
+     *
+     * ## Trzy rzeczy naprawione naraz, bo wszystkie siedziały w tych kilkunastu
+     * wierszach
+     *
+     * 1. OGONKI. Było: `DISPLAY_NAME_PRIMARY LIKE %name%`, gdzie `name`
+     *    przychodziło już ZNORMALIZOWANE (bez polskich znaków), a kolumna z
+     *    nazwami ogonki ma. `LIKE '%lukasz%'` nie trafia w „Łukasz", więc żaden
+     *    kontakt z polskim imieniem nie dawał się znaleźć - a to jest aplikacja
+     *    po polsku. Filtrowanie przeniosłem więc z SQL do Kotlina, gdzie obie
+     *    strony da się znormalizować tak samo.
+     *
+     * 2. TYLKO PIERWSZY WIERSZ. Było `if (cursor.moveToFirst())` - jeden wiersz
+     *    i koniec. Gdy zapytanie pasowało do kilku kontaktów, braliśmy ten,
+     *    który akurat wypadł pierwszy; gdy pierwszy nie przechodził testu
+     *    dopasowania, funkcja oddawała `null`, choć dobry kontakt leżał niżej.
+     *
+     * 3. WYBÓR, A NIE PIERWSZE TRAFIENIE. Punktacja i odmowa przy remisie -
+     *    patrz [ContactMatch].
+     *
+     * Kosztem jest odczyt całej książki adresowej zamiast zapytania z `LIKE`.
+     * To dwie kolumny i jedno wywołanie na akcję, na wątku wejścia-wyjścia -
+     * przy tysiącu kontaktów nadal ułamek tego, co kosztuje samo połączenie.
      */
     private fun findContactId(name: String): Long? {
         if (name.isBlank()) return null
-
-        val normalizedName = normalize(name)
 
         val projection = arrayOf(
             ContactsContract.Contacts._ID,
             ContactsContract.Contacts.DISPLAY_NAME_PRIMARY
         )
 
-        // Szukaj contacts które zawierają nazwę
-        val selection = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} LIKE ?"
-        val args = arrayOf("%$name%")
-
+        val candidates = mutableListOf<Pair<Long, String>>()
         context.contentResolver.query(
             ContactsContract.Contacts.CONTENT_URI,
-            projection, selection, args, null
+            projection, null, null, null
         )?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                val id = cursor.getLong(0)
-                val displayName = cursor.getString(1) ?: ""
-                val normalizedDisplay = normalize(displayName)
-
-                // Fuzzy: sprawdź czy nazwa pasuje
-                if (matches(normalizedName, normalizedDisplay)) {
-                    return id
-                }
+            while (cursor.moveToNext()) {
+                val displayName = cursor.getString(1) ?: continue
+                if (displayName.isBlank()) continue
+                candidates.add(cursor.getLong(0) to displayName)
             }
         }
 
-        return null
+        val id = ContactMatch.best(name, candidates)
+        if (id == null) {
+            // Rozróżnienie jest istotne: „nie mam takiego kontaktu" naprawia się
+            // inaczej niż „mam dwóch i nie wiem którego".
+            Log.i(tag, "Nie wybrałem kontaktu dla \"$name\" spośród ${candidates.size}")
+        }
+        return id
     }
 
     /**
-     * Dopasowanie: substring lub startsWith.
+     * Normalizacja żyje teraz w [ContactMatch], żeby obie strony porównania
+     * przechodziły PRZEZ TĘ SAMĄ funkcję. Rozjazd między nimi był przyczyną
+     * usterki z ogonkami.
      */
-    private fun matches(query: String, displayName: String): Boolean {
-        if (query.isBlank() || displayName.isBlank()) return false
-        return displayName.contains(query, ignoreCase = true) ||
-                query.contains(displayName, ignoreCase = true) ||
-                firstNameMatches(query, displayName)
-    }
-
-    private fun firstNameMatches(query: String, displayName: String): Boolean {
-        val firstName = displayName.split(" ").firstOrNull() ?: return false
-        return firstName.equals(query, ignoreCase = true) ||
-                firstName.startsWith(query, ignoreCase = true)
-    }
-
-    private fun normalize(s: String): String {
-        return s.trim().lowercase()
-            .replace("ą", "a").replace("ć", "c").replace("ę", "e")
-            .replace("ł", "l").replace("ń", "n").replace("ó", "o")
-            .replace("ś", "s").replace("ź", "z").replace("ż", "z")
-    }
+    private fun normalize(s: String): String = ContactMatch.normalize(s)
 
     /**
      * Czy `s` wygląda już jak numer telefonu (a nie nazwa kontaktu).
