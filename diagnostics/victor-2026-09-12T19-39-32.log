@@ -210,3 +210,48 @@
 19:47:31.887  +15581 ms  MOWA         koniec wypowiedzi  ms=8408
 19:47:31.906  +15600 ms  SESJA        --- KONIEC TURY fd5e: odpowiedziano ---
 19:47:31.909          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:47:31.993          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:47:55.375          ms  PRZYCISK     wciśnięto  numer=1
+19:47:55.627          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+19:47:55.930          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=297
+19:47:56.003      +0 ms  SESJA        --- TURA e87c ---  źródło=OKULARY
+19:47:56.005      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+19:48:00.514   +4511 ms  NASŁUCH      koniec  ms=4511 odłożone=jaka jest pogoda na malcie
+19:48:00.623   +4620 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+19:48:01.275   +5272 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.9335 pakietów=247 rozkodowanych=247 odrzuconych=0 przesunięcie=0 ramka=-1
+19:48:01.285   +5282 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+19:48:01.288   +5285 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jaka jest pogoda na malcie
+19:48:01.293   +5290 ms  SESJA        pytanie  tekst=jaka jest pogoda na malcie wymuszonyObraz=false
+19:48:01.300   +5297 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:48:01.307   +5304 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:48:01.310   +5307 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:48:02.909   +6906 ms  KONTEKST     zebrany  ms=1593 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:48:02.929   +6926 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8622
+19:48:09.091  +13088 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6161
+19:48:09.122  +13119 ms  MODEL        koniec odpowiedzi (161 znaków, 6929 tokenów)  ms=6193
+19:48:17.719  +21717 ms  MOWA         koniec wypowiedzi  ms=8594
+19:48:17.777  +21774 ms  SESJA        --- KONIEC TURY e87c: odpowiedziano ---
+19:48:17.802          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:48:18.724          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:48:31.825          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=4 pierwsza=false
+19:48:38.080          ms  PRZYCISK     wciśnięto  numer=1
+19:48:38.291          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+19:48:38.691          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=393
+19:48:38.832      +0 ms  SESJA        --- TURA 80bd ---  źródło=OKULARY
+19:48:38.836      +5 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+19:48:42.794   +3962 ms  NASŁUCH      koniec  ms=3962 odłożone=w takim razie sprawdź w internecie pogoda dla malty
+19:48:42.917   +4085 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+19:48:44.134   +5302 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.5535 pakietów=228 rozkodowanych=228 odrzuconych=0 przesunięcie=0 ramka=-1
+19:48:44.140   +5308 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+19:48:44.142   +5310 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=w takim razie sprawdź w internecie pogoda dla malty
+19:48:44.143   +5312 ms  SESJA        pytanie  tekst=w takim razie sprawdź w internecie pogoda dla malty wymuszonyObraz=false
+19:48:44.154   +5322 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:48:44.167   +5335 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:48:44.170   +5338 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:48:48.669   +9838 ms  KONTEKST     zebrany  ms=4487 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:48:48.712   +9880 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8841
+19:48:53.351  +14519 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4642
+19:48:53.459  +14627 ms  MODEL        koniec odpowiedzi (140 znaków, 6600 tokenów)  ms=4751
+19:48:58.698  +19866 ms  MOWA         koniec wypowiedzi  ms=5216
+19:48:58.996  +20164 ms  SESJA        --- KONIEC TURY 80bd: odpowiedziano ---
+19:48:59.007          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
