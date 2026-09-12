@@ -304,3 +304,34 @@
 09:45:10.190  +41035 ms  MOWA         koniec wypowiedzi  ms=14018
 09:45:10.213  +41058 ms  SESJA        --- KONIEC TURY c514: odpowiedziano ---
 09:45:10.215          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:45:10.933          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:45:15.028      +0 ms  SESJA        --- TURA 713f ---  źródło=TELEFON
+09:45:15.030      +3 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+09:45:19.565   +4537 ms  NASŁUCH      koniec  ms=4537 telefonUsłyszał=dodaj notatkę na temat tego muzeum
+09:45:19.566   +4538 ms  NASŁUCH      nagranie z okularów  jest=false
+09:45:19.567   +4539 ms  SESJA        pytanie  tekst=dodaj notatkę na temat tego muzeum wymuszonyObraz=false
+09:45:19.581   +4553 ms  SESJA        --- KONIEC TURY 713f: odpowiedziano ---
+09:45:19.582          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:45:19.707          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:45:28.006          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=2 pierwsza=false
+09:47:44.604          ms  PRZYCISK     wciśnięto  numer=1
+09:47:44.738          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+09:47:45.326      +1 ms  SESJA        --- TURA fcbb ---  źródło=OKULARY
+09:47:45.332      +6 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+09:47:50.407   +5081 ms  NASŁUCH      koniec  ms=5080 odłożone=powiedz mi najciekawsze o najciekawszych atrakcjach podrum
+09:47:50.507   +5181 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+09:47:52.125   +6799 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.2935 pakietów=265 rozkodowanych=265 odrzuconych=0 przesunięcie=0 ramka=-1
+09:47:55.719  +10393 ms  TRANSKRYPCJA z nagrania okularów  ms=3591 droga=Nasłuch telefonu
+09:47:55.723  +10397 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=powiedz mi najciekawsze o najciekawszych atrakcjach podrum
+09:47:55.726  +10400 ms  SESJA        pytanie  tekst=powiedz mi najciekawsze o najciekawszych atrakcjach podrum wymuszonyObraz=false
+09:47:55.739  +10413 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+09:47:55.802  +10476 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+09:47:55.809  +10483 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+09:47:56.530  +11204 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=1 pierwsza=false
+09:47:57.466  +12141 ms  KONTEKST     zebrany  ms=1647 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false
+09:47:57.536  +12211 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8605
+09:48:00.468  +15142 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2936
+09:48:00.654  +15329 ms  MODEL        koniec odpowiedzi (473 znaków, 6057 tokenów)  ms=3122
+09:48:23.688  +38362 ms  MOWA         koniec wypowiedzi  ms=23024
+09:48:23.769  +38443 ms  SESJA        --- KONIEC TURY fcbb: odpowiedziano ---
+09:48:23.790          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
