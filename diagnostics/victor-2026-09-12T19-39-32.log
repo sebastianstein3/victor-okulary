@@ -79,3 +79,48 @@
 19:42:34.180  +41950 ms  MOWA         koniec wypowiedzi  ms=12533
 19:42:34.206  +41976 ms  SESJA        --- KONIEC TURY 8591: odpowiedziano ---
 19:42:34.209          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:42:34.786          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:42:42.661          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=3 pierwsza=false
+19:42:46.304          ms  PRZYCISK     wciśnięto  numer=1
+19:42:46.668          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=7
+19:42:46.882          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=212
+19:42:46.989      +0 ms  SESJA        --- TURA 27b2 ---  źródło=OKULARY
+19:42:46.991      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+19:42:50.855   +3866 ms  NASŁUCH      koniec  ms=3866 odłożone=czy słyszysz co mówię
+19:42:51.070   +4081 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+19:42:51.545   +4556 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.3535 pakietów=218 rozkodowanych=218 odrzuconych=0 przesunięcie=0 ramka=-1
+19:42:51.548   +4559 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+19:42:51.550   +4561 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=czy słyszysz co mówię
+19:42:51.550   +4561 ms  SESJA        pytanie  tekst=czy słyszysz co mówię wymuszonyObraz=false
+19:42:51.567   +4578 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:42:51.577   +4588 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:42:51.579   +4590 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:42:54.681   +7692 ms  KONTEKST     zebrany  ms=3095 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:42:54.690   +7701 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=6903
+19:42:57.162  +10173 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2473
+19:42:57.196  +10207 ms  MODEL        koniec odpowiedzi (215 znaków, 4987 tokenów)  ms=2507
+19:43:08.341  +21352 ms  MOWA         koniec wypowiedzi  ms=11143
+19:43:08.362  +21373 ms  SESJA        --- KONIEC TURY 27b2: odpowiedziano ---
+19:43:08.365          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:43:09.209          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:43:43.044          ms  PRZYCISK     wciśnięto  numer=1
+19:43:43.236          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+19:43:43.591          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=353
+19:43:43.679      +0 ms  SESJA        --- TURA ddd5 ---  źródło=OKULARY
+19:43:43.680      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+19:43:52.351   +8672 ms  NASŁUCH      koniec  ms=8671
+19:43:52.514   +8835 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+19:43:53.517   +9838 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1135 pakietów=456 rozkodowanych=456 odrzuconych=0 przesunięcie=0 ramka=-1
+19:43:58.284  +14606 ms  TRANSKRYPCJA z nagrania okularów  ms=4765 droga=Nasłuch telefonu
+19:43:58.289  +14610 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=874940 B wymuszonyObraz=false
+19:43:58.293  +14614 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+19:43:58.306  +14627 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:43:58.309  +14630 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:43:59.196  +15517 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=3 pierwsza=false
+19:44:00.717  +17039 ms  KONTEKST     zebrany  ms=2402 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:44:00.736  +17057 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8380
+19:44:06.493  +22814 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5758
+19:44:06.505  +22826 ms  MODEL        koniec odpowiedzi (62 znaków, 5687 tokenów)  ms=5770
+19:44:09.967  +26288 ms  MOWA         koniec wypowiedzi  ms=3460
+19:44:09.988  +26309 ms  SESJA        --- KONIEC TURY ddd5: odpowiedziano ---
+19:44:09.991          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
