@@ -1,0 +1,36 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 2)
+19:35:41.881          ms  SESJA        start sesji
+19:36:07.590          ms  BLE          ROZŁĄCZONO  świadome=false
+19:36:15.331          ms  BLE          POŁĄCZONO  noweŁącze=true
+19:36:15.336          ms  BLE          powitanie okularów - start
+19:36:15.353          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+19:36:15.748          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:36:17.489          ms  BLE          POŁĄCZONO  noweŁącze=false
+19:36:20.354          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+19:36:22.181          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=1 pierwsza=true
+19:36:24.302          ms  PRZYCISK     wciśnięto  numer=1
+19:36:24.566          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+19:36:25.199          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=626
+19:36:25.337      +1 ms  SESJA        --- TURA a0ef ---  źródło=OKULARY
+19:36:25.341      +6 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+19:36:33.621   +8285 ms  NASŁUCH      koniec  ms=8285
+19:36:33.780   +8444 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+19:36:37.306  +11971 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0935 pakietów=455 rozkodowanych=455 odrzuconych=0 przesunięcie=0 ramka=-1
+19:36:43.589  +18253 ms  TRANSKRYPCJA z nagrania okularów  ms=6279
+19:36:43.594  +18258 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=873020 B wymuszonyObraz=false
+19:36:43.596  +18260 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+19:36:43.629  +18293 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:36:43.637  +18301 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:36:45.988  +20652 ms  KONTEKST     zebrany  ms=1997 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:36:46.001  +20665 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=6902
+19:36:50.069  +24733 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4069
+19:36:50.124  +24788 ms  MODEL        koniec odpowiedzi (64 znaków, 5301 tokenów)  ms=4124
+19:36:52.760  +27424 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+19:36:52.939  +27603 ms  SESJA        --- KONIEC TURY a0ef: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
