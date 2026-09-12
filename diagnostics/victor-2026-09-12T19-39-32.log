@@ -124,3 +124,26 @@
 19:44:09.967  +26288 ms  MOWA         koniec wypowiedzi  ms=3460
 19:44:09.988  +26309 ms  SESJA        --- KONIEC TURY ddd5: odpowiedziano ---
 19:44:09.991          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:44:10.054          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:45:54.761          ms  PRZYCISK     wciśnięto  numer=1
+19:45:55.048          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+19:45:55.414          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=361
+19:45:55.508      +0 ms  SESJA        --- TURA dc46 ---  źródło=OKULARY
+19:45:55.512      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+19:45:59.397   +3889 ms  NASŁUCH      koniec  ms=3889 odłożone=jaka jest pogoda
+19:45:59.417   +3909 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+19:46:00.409   +4901 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.4135 pakietów=221 rozkodowanych=221 odrzuconych=0 przesunięcie=0 ramka=-1
+19:46:00.415   +4908 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+19:46:00.417   +4909 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jaka jest pogoda
+19:46:00.418   +4910 ms  SESJA        pytanie  tekst=jaka jest pogoda wymuszonyObraz=false
+19:46:00.422   +4914 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:46:00.430   +4922 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:46:00.429   +4921 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:46:00.924   +5416 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=2 pierwsza=false
+19:46:01.946   +6439 ms  KONTEKST     zebrany  ms=1510 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:46:01.966   +6459 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=7496
+19:46:04.275   +8767 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2309
+19:46:04.325   +8817 ms  MODEL        koniec odpowiedzi (193 znaków, 5378 tokenów)  ms=2359
+19:46:14.167  +18659 ms  MOWA         koniec wypowiedzi  ms=9835
+19:46:14.192  +18684 ms  SESJA        --- KONIEC TURY dc46: odpowiedziano ---
+19:46:14.196          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
