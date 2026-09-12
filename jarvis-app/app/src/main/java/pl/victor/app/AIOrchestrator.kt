@@ -1452,7 +1452,13 @@ class AIOrchestrator(
                     mapOf(
                         "strumieńBLE" to micStreamLive,
                         "sco" to overSco,
-                        "mikrofonBT" to !micStreamLive
+                        // Stan RZECZYWISTY, nie wyprowadzony ze strumienia BLE.
+                        // Dotąd stało tu `!micStreamLive`, co nie jest żadnym
+                        // stanem sprzętu: przy żywym strumieniu BLE pole
+                        // pokazywało `mikrofonBT=false` NAWET wtedy, gdy łącze
+                        // SCO stało i mikrofon zestawu był używany. Dwa razy w
+                        // ciągu jednego wieczoru wyprowadziło mnie to na manowce.
+                        "mikrofonBT" to audio.isRoutedToBluetooth()
                     )
                 )
                 // Gdy łącze SCO nie stoi, "mikrofon telefonu" to naprawdę
@@ -1460,12 +1466,26 @@ class AIOrchestrator(
                 // wtedy prawa przebić strumienia z okularów.
                 val heard = listenUntilSpeechEnds(
                     languageTag = languageTagFor(language),
-                    capture = glassesCapture,
+                    // STRUMIEŃ BLE NIE MOŻE ROZSTRZYGAĆ O KOŃCU NASŁUCHU, GDY
+                    // MIKROFON IDZIE PRZEZ SCO.
+                    //
+                    // To druga połowa zgłoszenia "AI czasem mnie nie słyszy" i
+                    // znowu mój skutek uboczny. Odkąd nasłuch zestawia profil
+                    // rozmowy, okulary oddają mikrofon do HFP i PRZESTAJĄ nadawać
+                    // strumień BLE - w dzienniku z 13 września nagranie ma 0,95 s
+                    // przy 8,7 s nasłuchu, a liczba pakietów spadła z 456 do 48.
+                    //
+                    // Wyścig czytał tę ciszę jako "użytkownik skończył mówić" i
+                    // kończył nasłuch po dwóch sekundach z pustym wynikiem. To
+                    // nie była cisza użytkownika, tylko cisza cudzego mikrofonu.
+                    capture = if (overSco) null else glassesCapture,
                     trustPhoneMicrophone = overSco || !fromGlasses,
-                    // Strumień z okularów idzie po BLE - łącze SCO nie jest do
-                    // niczego potrzebne, a jego zestawienie kosztuje sekundy i
-                    // przestawia okulary w tryb "tylko rozmowy".
-                    useBluetoothMic = !micStreamLive
+                    // Skoro łącze SCO i tak stoi, rozpoznawanie ma słuchać
+                    // MIKROFONU OKULARÓW, a nie telefonu w kieszeni. Dotąd było
+                    // tu samo `!micStreamLive`: strumień BLE żył, więc
+                    // rozpoznawanie brało mikrofon telefonu - płaciliśmy za SCO
+                    // i nie korzystaliśmy z niego. Najgorsze z obu stron.
+                    useBluetoothMic = overSco || !micStreamLive
                 )
                 diag.event(
                     DiagFormat.Phase.NASŁUCH, "koniec",
@@ -2377,6 +2397,33 @@ class AIOrchestrator(
                 glassesManager.requestClassicAudio("brak A2DP przed odpowiedzią")
             }
             val audioHeld = if (canUseMedia) false else audio.beginConversationRouting()
+
+            // ZWIŃ PROFIL ROZMOWY, ZANIM ZACZNIESZ MÓWIĆ PRZEZ A2DP.
+            //
+            // To jest przyczyna zgłoszenia "odpowiedzi są ucinane po kilku
+            // słowach", a zarazem moja regresja z poprawki mikrofonu okularów.
+            // W dzienniku z 13 września DZIEWIĘĆ tur na dziesięć ma:
+            //
+            //     mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=true
+            //
+            // Te dwie rzeczy wykluczają się na sprzęcie. SCO to profil rozmowy,
+            // wąskopasmowy - gdy stoi, zestaw Bluetooth jest w trybie rozmowy i
+            // strumień multimediów przez niego nie przechodzi. Wypowiedź szła
+            // więc drogą, która w tym momencie była martwa.
+            //
+            // Samo "nie bierzemy SCO do mowy" (wiersz wyżej) nie wystarcza, bo
+            // SCO nie wzięła mowa - wziął je NASŁUCH, a zwalnia się je z
+            // karencją (patrz BluetoothAudioRouter.release). Karencja jest tam
+            // sensowna: chroni przed rozbieraniem i stawianiem łącza między
+            // pytaniem a pytaniem. Tyle że tu trafia dokładnie w czas mowy.
+            //
+            // Gałąź ciszy kilkaset wierszy wyżej robiła to od dawna i z tego
+            // samego powodu - brakowało tego samego kroku na ścieżce udanej
+            // odpowiedzi.
+            if (canUseMedia && audio.isRoutedToBluetooth()) {
+                audio.resetConversationRouting()
+            }
+
             diag.event(
                 DiagFormat.Phase.AUDIO,
                 if (canUseMedia) "mowa przez A2DP - bez profilu rozmowy"
