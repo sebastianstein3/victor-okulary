@@ -129,3 +129,12 @@
 09:32:05.866  +24923 ms  MOWA         koniec wypowiedzi  ms=8178
 09:32:05.913  +24970 ms  SESJA        --- KONIEC TURY c244: odpowiedziano ---
 09:32:05.924          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:32:05.979          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:33:21.172          ms  ZDJĘCIE      próba 1: droga producenta  jakość=2
+09:33:23.134          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 80 BA 01 73 00 0F 00 03 00 01 01 sztuk=1 pierwsza=false
+09:33:27.175          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6002
+09:33:27.177          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+09:33:28.736          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+09:33:28.739          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+09:33:36.673          ms  ZDJĘCIE      próba 2: miniatura  notify=true bajtów=32768 jpeg=true kompletny=false
+09:33:36.674          ms  ZDJĘCIE      oddaję urwany obraz - całego nie udało się pobrać  bajtów=32768
