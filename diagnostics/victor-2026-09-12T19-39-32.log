@@ -351,3 +351,6 @@
 19:56:31.845  +16815 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=7176
 19:56:31.869  +16838 ms  MODEL        koniec odpowiedzi (185 znaków, 5859 tokenów)  ms=7200
 19:56:33.255  +18225 ms  ZDJĘCIE      próba 2: miniatura  notify=false
+19:56:41.867  +26837 ms  MOWA         koniec wypowiedzi  ms=9996
+19:56:41.890  +26859 ms  SESJA        --- KONIEC TURY e932: odpowiedziano ---
+19:56:41.892          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
