@@ -83,3 +83,26 @@
 18:49:48.668  +19490 ms  MOWA         koniec wypowiedzi  ms=3728
 18:49:48.693  +19515 ms  SESJA        --- KONIEC TURY 75bc: odpowiedziano ---
 18:49:48.697          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:49:48.750          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:50:03.093          ms  PRZYCISK     wciśnięto  numer=1
+18:50:03.284          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:50:03.682          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=393
+18:50:03.753      +0 ms  SESJA        --- TURA 1d07 ---  źródło=OKULARY
+18:50:03.756      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+18:50:09.945   +6193 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=5 pierwsza=false
+18:50:12.412   +8659 ms  NASŁUCH      koniec  ms=8659
+18:50:12.424   +8671 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+18:50:16.079  +12327 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1335 pakietów=457 rozkodowanych=457 odrzuconych=0 przesunięcie=0 ramka=-1
+18:50:21.785  +18032 ms  TRANSKRYPCJA z nagrania okularów  ms=5695 droga=Bez transkrypcji - nagranie do modelu
+18:50:21.788  +18035 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=876860 B wymuszonyObraz=false
+18:50:21.791  +18038 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+18:50:21.804  +18051 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:50:23.274  +19521 ms  KONTEKST     zebrany  ms=1463 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:50:23.285  +19532 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8943
+18:50:25.980  +22227 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2696
+18:50:25.988  +22235 ms  MODEL        koniec odpowiedzi (57 znaków, 5756 tokenów)  ms=2704
+18:50:29.383  +25630 ms  MOWA         koniec wypowiedzi  ms=3393
+18:50:29.511  +25758 ms  SESJA        --- KONIEC TURY 1d07: odpowiedziano ---
+18:50:29.577          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:50:29.675          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:51:15.357          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=4 pierwsza=false
