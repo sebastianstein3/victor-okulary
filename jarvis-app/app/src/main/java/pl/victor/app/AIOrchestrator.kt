@@ -29,6 +29,7 @@ import pl.victor.app.actions.DirectActionExecutor
 import pl.victor.app.actions.SmartActionDetector
 import pl.victor.app.audio.AudioManager
 import pl.victor.app.audio.GlassesVoiceCapture
+import pl.victor.app.conversation.OverheardSpeech
 import pl.victor.app.conversation.WakePhrase
 import pl.victor.app.ble.ButtonAction
 import pl.victor.app.ble.ButtonActionDetector
@@ -613,7 +614,34 @@ class AIOrchestrator(
         }
     }
 
-    fun enableConversationalMode() {
+    /**
+     * Czy trwa rozmowa, w której wolno dopowiadać BEZ frazy wybudzenia.
+     *
+     * Okno otwiera świadome działanie człowieka (fraza wybudzenia, włączenie
+     * nasłuchu) i każda skończona tura - bo „a ile to kosztuje?" tuż po
+     * odpowiedzi jest normalną kontynuacją, a wymaganie tam frazy byłoby
+     * uciążliwe. Poza oknem cisza jest bezpieczniejsza niż odpowiadanie na
+     * cudzą rozmowę.
+     */
+    private fun conversationOpen(): Boolean =
+        System.currentTimeMillis() - conversationOpenedAtMs < CONVERSATION_WINDOW_MS
+
+    @Volatile
+    private var conversationOpenedAtMs = 0L
+
+    /** Otwiera okno dopowiedzi - patrz [conversationOpen]. */
+    private fun openConversationWindow() {
+        conversationOpenedAtMs = System.currentTimeMillis()
+    }
+
+    /**
+     * @param afterUserAction czy nasłuch zaczyna się od ŚWIADOMEGO działania
+     *   człowieka (fraza wybudzenia, przełącznik w ustawieniach). Uruchomienie
+     *   aplikacji nim NIE JEST - i właśnie dlatego ten parametr istnieje:
+     *   inaczej asystent odpowiada na wszystko, co usłyszy po starcie.
+     */
+    fun enableConversationalMode(afterUserAction: Boolean = true) {
+        if (afterUserAction) openConversationWindow()
         // Język mógł się zmienić w ustawieniach od czasu utworzenia orkiestratora.
         conversationalMode.recognitionLanguageTag =
             languageTagFor(settings.getResponseLanguage())
@@ -727,6 +755,10 @@ class AIOrchestrator(
                     // zaczęłyby nasłuchiwać w trakcie mówienia i usłyszały
                     // własny głos asystenta.
                     runCatching { glassesManager.rearmGlassesWakeWord("koniec tury") }
+                    // Skończona tura otwiera okno dopowiedzi: przez najbliższą
+                    // chwilę „a ile to kosztuje?" liczy się bez frazy
+                    // wybudzenia - patrz `conversationOpen`.
+                    openConversationWindow()
                 }
             }
         }
@@ -1179,6 +1211,27 @@ class AIOrchestrator(
      */
     private fun handleSpokenText(text: String) {
         val configured = listOf(settings.getSelectedWakeWord())
+        // BEZ FRAZY I POZA ROZMOWĄ - NIE ODPOWIADAMY.
+        //
+        // Tryb konwersacyjny wstaje razem z aplikacją i od tej chwili słucha bez
+        // przerwy. Brak frazy wybudzenia niczego dotąd nie zatrzymywał: fraza
+        // była OBCINANA, gdy ją znaleziono, ale jej BRAK przepuszczał zdanie
+        // dalej. Skutek widać w dzienniku czternaście sekund po starcie, przy
+        // jeszcze niepodłączonych okularach - do modelu poszła tura z pytaniem
+        // „bardzo by chciał", czyli urywkiem czyjejś rozmowy w pokoju.
+        // Zgłoszone jako „pytam, co widzi, a on odpowiada na pytanie z wczoraj".
+        if (OverheardSpeech.classify(text, configured, conversationOpen()) ==
+            OverheardSpeech.Verdict.IGNORE
+        ) {
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.NASŁUCH,
+                    "usłyszane, ale nie do mnie - brak frazy poza rozmową",
+                    mapOf("usłyszane" to text.take(60))
+                )
+            }
+            return
+        }
         if (WakePhrase.isOnlyWakePhrase(text, configured)) {
             diag.event(
                 DiagFormat.Phase.NASŁUCH,
@@ -3970,6 +4023,16 @@ class AIOrchestrator(
          * sześciu, patrz miejsce użycia.
          */
         private const val CONTEXT_BUDGET_MS = 6_000L
+
+        /**
+         * Jak długo po odpowiedzi (albo po świadomym włączeniu nasłuchu) wolno
+         * dopowiadać bez frazy wybudzenia - patrz `conversationOpen`.
+         *
+         * Czterdzieści pięć sekund: tyle, żeby zdążyć wysłuchać odpowiedzi i
+         * dopytać, i za mało, żeby rozmowa przy stole godzinę później trafiła do
+         * modelu jako pytanie.
+         */
+        private const val CONVERSATION_WINDOW_MS = 45_000L
 
         /** Nazwy dróg transkrypcji - patrz [lastTranscriptionSource]. */
         const val SOURCE_CLOUD = "Chmura (Whisper)"

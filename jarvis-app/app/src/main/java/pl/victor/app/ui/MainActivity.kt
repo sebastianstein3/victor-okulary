@@ -170,9 +170,15 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Aktywuj tryb konwersacyjny jeśli włączony w settings
+        // Aktywuj tryb konwersacyjny jeśli włączony w settings.
+        //
+        // afterUserAction = false: uruchomienie aplikacji NIE JEST poproszeniem
+        // asystenta o rozmowę. Bez tego rozróżnienia nasłuch wstawał razem z
+        // aplikacją i odpowiadał na pierwsze zdanie, jakie usłyszał w pokoju -
+        // w dzienniku z 12 września poszło tak do modelu „bardzo by chciał",
+        // czternaście sekund po starcie.
         if (settings.isConversationalModeEnabled()) {
-            orchestrator.enableConversationalMode()
+            orchestrator.enableConversationalMode(afterUserAction = false)
         }
     }
 
