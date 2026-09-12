@@ -401,13 +401,24 @@ class SpeechToText(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-            // Domyślne okno ciszy bywa krótsze niż sekunda: rozpoznawanie kończy
-            // się, ZANIM użytkownik zdąży zacząć mówić. Przy okularach to
-            // szczególnie dotkliwe - między wybudzeniem a pierwszym słowem mija
-            // chwila na zebranie myśli, a efektem jest ciche "nic nie usłyszałem".
-            // Te trzy dodatki są w API opisane jako niegwarantowane: gdy
-            // rozpoznawanie ich nie uszanuje, zachowa się jak dotąd (nie psują
-            // niczego), a gdy uszanuje - dają czas na wypowiedź.
+            // TE TRZY DODATKI NIGDY NIE DZIAŁAŁY - I TO NIE Z WINY SILNIKA.
+            //
+            // W dokumentacji Androida wszystkie trzy są dodatkami typu INT. U nas
+            // były stałymi typu `Long`, więc `putExtra` wybierało przeciążenie
+            // `putExtra(String, Long)` i zapisywało je jako long. Rozpoznawanie
+            // czyta je przez `getIntExtra`, ten przy niezgodnym typie oddaje
+            // wartość domyślną - i tyle. Żadnego błędu, żadnego ostrzeżenia,
+            // po prostu cisza.
+            //
+            // Widać to w pomiarze: przy MIN_UTTERANCE_MS = 4000 nasłuch nie
+            // miałby prawa skończyć się przed czterema sekundami, a w dzienniku
+            // z 12 września kończy się po 2,57 s. Nasza wartość nigdy tam nie
+            // dotarła.
+            //
+            // Dodatki są w API opisane jako niegwarantowane, więc silnik nadal
+            // może je zignorować - ale teraz przynajmniej ma co ignorować.
+            // Wartości dobrane tak, żeby WŁĄCZENIE ich niczego nie wydłużyło
+            // względem dzisiejszego zachowania; patrz opisy stałych.
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
                 MIN_UTTERANCE_MS
@@ -450,11 +461,35 @@ class SpeechToText(private val context: Context) {
          */
         const val DEFAULT_TIMEOUT_MS = 15_000L
 
-        /** Tyle czasu na rozpoczęcie mówienia, zanim rozpoznawanie się podda. */
-        private const val MIN_UTTERANCE_MS = 4_000L
+        /**
+         * Tyle czasu na rozpoczęcie mówienia, zanim rozpoznawanie się podda.
+         *
+         * INT, NIE LONG - patrz [intent]. Na tym polegał błąd: te wartości
+         * były typu `Long`, więc `putExtra` zapisywało je jako long, a
+         * rozpoznawanie czyta je przez `getIntExtra` i dostawało swoją wartość
+         * domyślną. Wszystkie trzy dodatki były więc po cichu ignorowane od
+         * początku.
+         *
+         * Półtorej sekundy, nie cztery. Cztery były wpisane pod objaw „kończy
+         * się, zanim użytkownik zacznie mówić", ale ten dodatek NIE MÓWI „czekaj
+         * na początek mowy" - mówi „nie przestawaj nagrywać przed upływem tego
+         * czasu". Włączenie go na czterech sekundach zrobiłoby z każdej tury
+         * czterosekundowy nasłuch, także po pytaniu „co widzisz". Dzisiejszy
+         * zmierzony spód to ~2,6 s, więc półtorej sekundy niczego nie wydłuża,
+         * a nadal daje chwilę na zebranie myśli.
+         */
+        private const val MIN_UTTERANCE_MS = 1_500
 
-        /** Tyle ciszy po wypowiedzi kończy nasłuch - krótsza ucina zdanie w pół. */
-        private const val END_OF_SPEECH_SILENCE_MS = 1_500L
+        /**
+         * Tyle ciszy po wypowiedzi kończy nasłuch - krótsza ucina zdanie w pół.
+         *
+         * Sekunda, nie półtorej. W dzienniku z 12 września „co widzisz" (jakieś
+         * 0,8 s mowy) kończyło nasłuch po 2,57-2,94 s; po odjęciu mowy i obróbki
+         * zostaje okno ciszy rzędu 1,5-1,7 s, czyli wartość WŁASNA silnika - bo
+         * nasza nigdy do niego nie dotarła. Sekunda skraca każdą turę o jakieś
+         * pół sekundy i nadal jest dłuższa niż przerwa na oddech w środku zdania.
+         */
+        private const val END_OF_SPEECH_SILENCE_MS = 1_000
 
         /** 16 bitów na próbkę, mono - tak dekodujemy dźwięk z okularów. */
         private const val BYTES_PER_SAMPLE = 2

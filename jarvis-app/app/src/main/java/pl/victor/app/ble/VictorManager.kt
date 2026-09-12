@@ -921,6 +921,26 @@ class VictorManager private constructor(context: Context) {
                     _classicAudioName.value = name
                 }
             }.onFailure { Log.w(tag, "syncClassicBluetooth nie powiodło się", it) }
+            // A GDY NIE ODPOWIEDZĄ - TEŻ TO ZAPISZ.
+            //
+            // W dzienniku z 12 września po tym wywołaniu NIE MA ani jednego
+            // wiersza: callback nie przyszedł. Z zewnątrz wygląda to identycznie
+            // jak "nie zdążyłem wywołać" i jak "wywołanie wyleciało wyjątkiem",
+            // a to trzy różne rzeczy. Bez tego wpisu nie da się rozstrzygnąć,
+            // czy okulary tej komendy nie obsługują - a od tego zależy, czy w
+            // ogóle warto ją dalej wołać.
+            scope.launch {
+                delay(CLASSIC_BT_ANSWER_TIMEOUT_MS)
+                if (_classicAudioName.value == null) {
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                            "okulary NIE podały swojej części audio",
+                            mapOf("poMs" to CLASSIC_BT_ANSWER_TIMEOUT_MS)
+                        )
+                    }
+                }
+            }
 
             // Wykrywanie komendy głosowej po stronie okularów - nie wymaga Picovoice.
             // Respektujemy wybór użytkownika, a nie włączamy na sztywno.
@@ -3108,6 +3128,15 @@ class VictorManager private constructor(context: Context) {
 
         /** Jak często wolno prosić okulary o tryb multimediów - patrz [requestClassicAudio]. */
         private const val CLASSIC_AUDIO_RETRY_MS = 30_000L
+
+        /**
+         * Ile czekamy na odpowiedź o nazwę klasycznego Bluetootha, zanim
+         * zapiszemy w dzienniku, że jej nie ma.
+         *
+         * Pięć sekund: to odczyt jedną ramką, nie transfer. Dłużej znaczy
+         * "nie przyjdzie".
+         */
+        private const val CLASSIC_BT_ANSWER_TIMEOUT_MS = 5_000L
 
         /** Symulowane okulary "znajdują się" po chwili, jak prawdziwy skan BLE. */
         private const val SIMULATED_SCAN_DELAY_MS = 700L

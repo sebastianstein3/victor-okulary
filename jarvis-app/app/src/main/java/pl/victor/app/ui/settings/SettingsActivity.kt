@@ -2788,6 +2788,8 @@ private fun WakeWordSection(
 
     val app = remember { pl.victor.app.VictorApplication.get() }
     var glassesMicEnabled by remember { mutableStateOf(app.settings.isGlassesMicEnabled()) }
+    // Do otwarcia systemowych ustawień Bluetooth - patrz karta niżej.
+    val context = LocalContext.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Komenda głosowa (v1.1)", style = MaterialTheme.typography.titleMedium)
@@ -2879,6 +2881,63 @@ private fun WakeWordSection(
                         }
                     )
                 }
+            }
+        }
+
+        // === GDY OKULARY ZMIENIĄ SIĘ W "SAMO POŁĄCZENIE" ===
+        //
+        // Zgłoszone wprost: "z połączeń i słuchania zmieniają się w ustawieniach
+        // Bluetooth na samo połączenie". W dzienniku widać to w KAŻDEJ turze
+        // jako "brak A2DP - biorę profil rozmowy": asystent mówi wtedy przez
+        // wąskopasmowy kanał rozmów telefonicznych zamiast przez muzyczny, więc
+        // jego głos brzmi gorzej, niż powinien.
+        //
+        // Prosimy o to okulary przy każdym połączeniu (LargeDataHandler.openBT),
+        // ale to nie pomaga i pomóc nie może: o tym, czy profil multimediów jest
+        // włączony dla danego urządzenia, decyduje TELEFON, a przestawienie tego
+        // z aplikacji wymagałoby ukrytego API Androida. Nie idę tą drogą.
+        //
+        // Zostaje jedno dotknięcie zamiast tłumaczenia słowami, gdzie to jest.
+        // Deep-link do KONKRETNEGO urządzenia nie istnieje w publicznym API -
+        // każdy producent trzyma tę stronę gdzie indziej - więc otwieramy listę.
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    "🔊 Okulary milczą albo brzmią jak przez telefon?",
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+                Spacer(Modifier.size(4.dp))
+                Text(
+                    "W ustawieniach Bluetooth telefonu znajdź okulary, wejdź w " +
+                        "ikonę koła zębatego obok nich i włącz \"Dźwięk multimediów\". " +
+                        "Bez tego odpowiedzi idą kanałem rozmów telefonicznych - " +
+                        "słychać je, ale wyraźnie gorzej. Aplikacja nie może " +
+                        "przestawić tego za Ciebie.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.size(6.dp))
+                OutlinedButton(onClick = {
+                    // Gdyby producent nie wystawił ekranu Bluetootha osobno,
+                    // wpadamy w ogólne ustawienia - lepsze niż przycisk, który
+                    // nic nie robi.
+                    val opened = runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.provider.Settings.ACTION_BLUETOOTH_SETTINGS
+                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                        true
+                    }.getOrDefault(false)
+                    if (!opened) {
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_SETTINGS)
+                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                }) { Text("Otwórz ustawienia Bluetooth") }
             }
         }
 

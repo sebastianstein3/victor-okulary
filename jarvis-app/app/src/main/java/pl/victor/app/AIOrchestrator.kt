@@ -1734,12 +1734,22 @@ class AIOrchestrator(
 
             val result = when {
                 heard === PHONE_ENDPOINTED -> {
-                    // Krótka karencja na ogon wypowiedzi: rozpoznawanie zamyka
-                    // wynik odrobinę wcześniej, niż człowiek kończy mówić, a
-                    // nagranie z okularów zostaje jako zapas i nie ma powodu
-                    // ucinać mu ostatniej sylaby.
+                    // KARENCJA NA OGON WYPOWIEDZI ZNIKA, BO NIE MA JUŻ CZEGO
+                    // CHRONIĆ.
+                    //
+                    // Dokładała pół sekundy nagrywania po tym, jak rozpoznawanie
+                    // zamknęło wynik - żeby nagranie z okularów, zostawione jako
+                    // zapas, nie straciło ostatniej sylaby. Ale ten zapas
+                    // przestał istnieć: gdy rozpoznawanie telefonu oddało tekst
+                    // (a PHONE_ENDPOINTED znaczy dokładnie to - jest zwracane w
+                    // tej samej gałęzi, która odkłada tekst), nagrania z okularów
+                    // już nie przepisujemy ani nie wysyłamy do modelu.
+                    //
+                    // Zostawała więc czysta zwłoka: pół sekundy ciszy po każdym
+                    // pytaniu, za nagranie, którego nikt nie przeczyta. Do
+                    // dziennika nagranie i tak trafia, tyle że o pół sekundy
+                    // krótsze.
                     Log.i(TAG, "Rozpoznawanie wykryło koniec wypowiedzi - kończę nasłuch")
-                    delay(SPEECH_TAIL_GRACE_MS)
                     null
                 }
                 heard === RECOGNIZER_GAVE_UP -> {
@@ -3984,12 +3994,6 @@ class AIOrchestrator(
          * To zdanie włącza tę ścieżkę - [shouldRunOcr] szuka w pytaniu słowa
          * „przeczytaj" - i jednocześnie mówi modelowi, czego od niego chcemy.
          */
-        /**
-         * Ile jeszcze nagrywamy z okularów po tym, jak rozpoznawanie mowy
-         * ogłosiło koniec wypowiedzi - patrz [listenUntilSpeechEnds].
-         */
-        private const val SPEECH_TAIL_GRACE_MS = 500L
-
         /**
          * Ile czekamy na JEDNEGO dostawcę modelu, zanim uznamy go za martwego.
          *
