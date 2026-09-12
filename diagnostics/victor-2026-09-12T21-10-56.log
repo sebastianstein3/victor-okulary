@@ -616,3 +616,28 @@
 22:19:18.080  +30897 ms  MOWA         koniec wypowiedzi  ms=6853
 22:19:18.122  +30940 ms  SESJA        --- KONIEC TURY 9a79: odpowiedziano ---
 22:19:18.136          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:19:18.255          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:52:17.431          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+22:52:17.451          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+22:52:44.047          ms  PRZYCISK     wciśnięto  numer=1
+22:52:44.168          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+22:52:44.910          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=22 ms=731
+22:52:45.141      +1 ms  SESJA        --- TURA d694 ---  źródło=OKULARY
+22:52:45.148      +7 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:52:46.107    +966 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 4B 57 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 01 sztuk=6 pierwsza=false
+22:52:48.862   +3721 ms  NASŁUCH      koniec  ms=3722
+22:52:49.215   +4074 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=11335 jpeg=true kompletny=true
+22:52:49.219   +4078 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+22:52:49.230   +4089 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+22:52:49.250   +4109 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:52:49.262   +4121 ms  BLE          Wi-Fi Direct: podnoszę łącze
+22:52:49.597   +4457 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.4535 pakietów=173 rozkodowanych=173 odrzuconych=0 przesunięcie=0 ramka=-1
+22:52:49.647   +4506 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 8C 40 01 83 00 11 00 03 00 01 01 sztuk=1 pierwsza=false
+22:52:52.483   +7342 ms  TRANSKRYPCJA z nagrania okularów  ms=2879 droga=Bez transkrypcji - nagranie do modelu
+22:52:52.494   +7353 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3453 jestMs=3453
+22:52:52.509   +7368 ms  SESJA        PRZERWANO turę - weszło nowe wywołanie  stan=Capturing poMs=3249
+22:52:52.518   +7377 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=331580 B wymuszonyObraz=false
+22:52:52.522   +7381 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+22:52:52.526   +7385 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:52:52.527   +7386 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=3265
+22:52:52.565   +7424 ms  SESJA        --- KONIEC TURY d694: BEZ ODPOWIEDZI (stan Capturing, powód: nowe wywołanie użytkownika) ---
