@@ -34,3 +34,37 @@
 19:36:50.124  +24788 ms  MODEL        koniec odpowiedzi (64 znaków, 5301 tokenów)  ms=4124
 19:36:52.760  +27424 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
 19:36:52.939  +27603 ms  SESJA        --- KONIEC TURY a0ef: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+19:36:59.035      +0 ms  SESJA        --- TURA 95ec ---  źródło=BUTTON
+19:36:59.036      +1 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+19:36:59.041      +6 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+19:36:59.055     +20 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:36:59.061     +26 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+19:37:00.745   +1711 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C0 FA 01 7C 00 0F 00 03 00 01 01 sztuk=1 pierwsza=true
+19:37:11.069  +12035 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=12004
+19:37:11.073  +12039 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+19:37:23.079  +24044 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+19:37:23.083  +24048 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+19:37:24.642  +25607 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+19:37:24.644  +25609 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+19:37:31.062  +32027 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=32000
+19:37:31.468  +32433 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+19:37:31.472  +32437 ms  SESJA        --- KONIEC TURY 95ec: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+19:37:31.499          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:37:31.880          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:37:39.939          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=2 pierwsza=false
+19:37:58.947      +0 ms  SESJA        --- TURA 0aec ---  źródło=BUTTON
+19:37:58.950      +3 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+19:37:58.953      +6 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+19:37:58.974     +27 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+19:37:58.980     +33 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+19:38:01.219   +2272 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 41 23 01 7E 00 0F 00 03 00 01 01 sztuk=2 pierwsza=false
+19:38:10.984  +12037 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=12003
+19:38:10.988  +12041 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+19:38:22.996  +24049 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+19:38:23.002  +24055 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+19:38:24.488  +25541 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+19:38:24.490  +25543 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+19:38:30.981  +32034 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=32000
+19:38:30.983  +32036 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+19:38:30.995  +32048 ms  SESJA        --- KONIEC TURY 0aec: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+19:38:30.999          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
