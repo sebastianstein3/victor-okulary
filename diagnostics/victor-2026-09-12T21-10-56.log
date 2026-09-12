@@ -570,3 +570,49 @@
 22:09:12.163  +31314 ms  MOWA         koniec wypowiedzi  ms=8049
 22:09:12.214  +31364 ms  SESJA        --- KONIEC TURY 222e: odpowiedziano ---
 22:09:12.225          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:09:12.338          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:09:15.037          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+22:09:15.044          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+22:09:21.471          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=10067 jpeg=true kompletny=true
+22:09:21.483      +1 ms  SESJA        --- TURA 0795 ---  źródło=BUTTON
+22:09:21.488      +6 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+22:09:21.503     +21 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+22:09:21.598    +116 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:09:21.611    +129 ms  BLE          Wi-Fi Direct: podnoszę łącze
+22:09:22.009    +527 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 8C 40 01 83 00 11 00 03 00 01 01 sztuk=1 pierwsza=false
+22:09:27.187   +5706 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=[TV] Samsung 6 Series Gumis, [LG] webOS TV UM7100PLA, Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+22:09:32.392  +10910 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=[TV] Samsung 6 Series Gumis, [LG] webOS TV UM7100PLA, Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+22:09:35.569  +14087 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=[TV] Samsung 6 Series Gumis, [LG] webOS TV UM7100PLA, Smart TV Pro szukam=cyan, glass, lens, prism dołączono=false
+22:09:35.574  +14092 ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=13963 powód=W pobliżu nie ma sieci okularów. Widzę tylko: [TV] Samsung 6 Series Gumis, [LG] webOS TV UM7100PLA, Smart TV Pro. Upewnij się, że okulary są włączone i blisko telefonu.
+22:09:35.581  +14099 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=13969
+22:09:35.603  +14121 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=10067 pełnaRozdzielczość=false
+22:09:38.622  +17140 ms  KONTEKST     zebrany  ms=2569 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+22:09:38.658  +17177 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=1 znakówPromptu=7823
+22:09:41.514  +20033 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2858
+22:09:41.560  +20079 ms  MODEL        koniec odpowiedzi (236 znaków, 6409 tokenów)  ms=2904
+22:09:42.627  +21146 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 4B 57 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 01 sztuk=6 pierwsza=false
+22:09:54.047  +32565 ms  MOWA         koniec wypowiedzi  ms=12477
+22:09:54.099  +32617 ms  SESJA        --- KONIEC TURY 0795: odpowiedziano ---
+22:09:54.111          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:09:54.628          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:18:46.503          ms  PRZYCISK     wciśnięto  numer=1
+22:18:46.654          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+22:18:47.116          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=22 ms=455
+22:18:47.184      +1 ms  SESJA        --- TURA 9a79 ---  źródło=OKULARY
+22:18:47.188      +6 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+22:18:47.875    +692 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 4B 57 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 01 sztuk=2 pierwsza=false
+22:18:55.685   +8502 ms  NASŁUCH      koniec  ms=8502
+22:18:55.785   +8602 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=22
+22:19:00.047  +12864 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1135 pakietów=456 rozkodowanych=456 odrzuconych=0 przesunięcie=0 ramka=-1
+22:19:05.428  +18245 ms  TRANSKRYPCJA z nagrania okularów  ms=5377 droga=Bez transkrypcji - nagranie do modelu
+22:19:05.452  +18270 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=9113 jestMs=9113
+22:19:05.464  +18281 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=874940 B wymuszonyObraz=false
+22:19:05.472  +18289 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+22:19:05.538  +18355 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:19:08.398  +21215 ms  KONTEKST     zebrany  ms=2842 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+22:19:08.429  +21246 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8062
+22:19:11.189  +24007 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2761
+22:19:11.218  +24035 ms  MODEL        koniec odpowiedzi (92 znaków, 5510 tokenów)  ms=2790
+22:19:18.080  +30897 ms  MOWA         koniec wypowiedzi  ms=6853
+22:19:18.122  +30940 ms  SESJA        --- KONIEC TURY 9a79: odpowiedziano ---
+22:19:18.136          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
