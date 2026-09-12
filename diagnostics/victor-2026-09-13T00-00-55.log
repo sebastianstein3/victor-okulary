@@ -1,0 +1,36 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 2)
+00:00:55.444          ms  SESJA        start sesji
+00:01:20.505          ms  BLE          ROZŁĄCZONO  świadome=false
+00:01:28.249          ms  BLE          POŁĄCZONO  noweŁącze=true
+00:01:28.259          ms  BLE          powitanie okularów - start
+00:01:28.283          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+00:01:28.561          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 8C 40 01 83 00 11 00 03 00 01 01 sztuk=1 pierwsza=true
+00:01:28.568          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CA 96 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 03 sztuk=1 pierwsza=true
+00:01:28.622          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+00:01:30.369          ms  BLE          POŁĄCZONO  noweŁącze=false
+00:01:33.279          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+00:01:59.679          ms  PRZYCISK     wciśnięto  numer=1
+00:01:59.941          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+00:02:00.584          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=641
+00:02:00.666          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=4 mikrofonOkularów=true
+00:02:00.668      +0 ms  SESJA        --- TURA 7b5f ---  źródło=OKULARY
+00:02:00.669      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=false
+00:02:08.365   +7697 ms  NASŁUCH      koniec  ms=7697 telefonUsłyszał=czy słyszysz co mówię
+00:02:08.610   +7942 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.2335 pakietów=62 rozkodowanych=62 odrzuconych=0 przesunięcie=6 ramka=-1
+00:02:09.550   +8882 ms  TRANSKRYPCJA z nagrania okularów  ms=939
+00:02:09.552   +8884 ms  SESJA        pytanie  tekst=czy słyszysz co mówię wymuszonyObraz=false
+00:02:09.568   +8900 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+00:02:09.603   +8935 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=true
+00:02:15.230  +14562 ms  KONTEKST     zebrany  ms=123 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+00:02:15.240  +14572 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=1232
+00:02:17.838  +17170 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2599
+00:02:17.862  +17194 ms  MODEL        koniec odpowiedzi (145 znaków, 2669 tokenów)  ms=2623
+00:02:26.529  +25861 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+00:02:26.697  +26029 ms  SESJA        --- KONIEC TURY 7b5f: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
