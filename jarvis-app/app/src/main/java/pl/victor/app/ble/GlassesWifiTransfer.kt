@@ -176,20 +176,21 @@ class GlassesWifiTransfer(context: Context) {
 
     // === Połączenie ===
 
-    /**
-     * Łączy telefon z grupą Wi-Fi Direct okularów.
-     *
-     * @param deviceNameHint fragment nazwy urządzenia okularów; gdy `null`,
-     *                       brany jest pierwszy widoczny peer
-     * @return `true` gdy grupa została utworzona i proces przypięty do sieci P2P
-     */
     /** Nazwy urządzeń widzianych przy ostatnim szukaniu - do komunikatu o błędzie. */
     @Volatile
     var lastSeenPeers: List<String> = emptyList()
         private set
 
+    /**
+     * Łączy telefon z grupą Wi-Fi Direct okularów.
+     *
+     * @param deviceNameHints fragmenty nazw, po których poznajemy okulary.
+     *                        Pusta lista znaczy „nie wiem, jak się nazywają" -
+     *                        i wtedy NIE łączymy się z niczym, patrz niżej.
+     * @return `true` gdy grupa została utworzona i proces przypięty do sieci P2P
+     */
     @SuppressLint("MissingPermission")
-    suspend fun connect(deviceNameHint: String? = null): Boolean {
+    suspend fun connect(deviceNameHints: List<String> = emptyList()): Boolean {
         lastFailure = null
         val manager = wifiP2pManager ?: run {
             lastFailure = WifiDirectDiagnosis.preflight(
@@ -249,7 +250,7 @@ class GlassesWifiTransfer(context: Context) {
         // znalazłem sieci okularów" znaczy co innego, gdy nie widać NICZEGO
         // (okulary nie postawiły grupy), a co innego, gdy widać kilka obcych
         // urządzeń (jesteśmy za daleko albo trafiliśmy w cudzą).
-        lastSeenPeers = peers.map { it.deviceName }
+        lastSeenPeers = peers.map { it.deviceName.orEmpty() }
         Log.i(tag, "Widoczne urządzenia Wi-Fi Direct: ${lastSeenPeers.joinToString()}")
         if (peers.isEmpty()) {
             Log.w(tag, "Nie znaleziono urządzeń Wi-Fi Direct")
@@ -260,9 +261,34 @@ class GlassesWifiTransfer(context: Context) {
             return false
         }
 
-        val target = deviceNameHint
-            ?.let { hint -> peers.firstOrNull { it.deviceName.contains(hint, ignoreCase = true) } }
-            ?: peers.first()
+        // NIE ŁĄCZYMY SIĘ Z URZĄDZENIEM, KTÓRE NIE WYGLĄDA NA OKULARY.
+        //
+        // Dotąd, gdy żadna nazwa nie pasowała do podpowiedzi, braliśmy
+        // `peers.first()` - czyli PIERWSZE LEPSZE urządzenie w zasięgu. W
+        // dzienniku z 12 września wyszło to dokładnie tak, jak musiało:
+        // "Znalazłem okulary ([TV] Samsung 6 Series Gumis)" i trzy próby
+        // dołączenia do CUDZEGO TELEWIZORA przez 90 sekund. Przez te 90 sekund
+        // telefon był przypięty do grupy P2P zamiast do internetu, a na
+        // telewizorze obcej osoby wyskakiwało pytanie o parowanie.
+        //
+        // Prośba o połączenie jest widoczna na drugim urządzeniu, więc
+        // „spróbujmy, a nuż to okulary" nie jest tu niewinne. Gdy nic nie
+        // pasuje, mówimy wprost, co widać - i to nazwy z dziennika powiedzą,
+        // jak naprawdę przedstawiają się okulary w Wi-Fi Direct.
+        val target = peers.firstOrNull { peer ->
+            // `deviceName` przychodzi z Javy i bywa puste, gdy rekord
+            // rozgłoszenia nie doszedł w całości - wtedy po prostu nie pasuje.
+            val name = peer.deviceName.orEmpty()
+            deviceNameHints.any { hint -> name.contains(hint, ignoreCase = true) }
+        }
+        if (target == null) {
+            Log.w(tag, "Żadne widoczne urządzenie nie wygląda na okulary")
+            lastFailure = "W pobliżu nie ma sieci okularów. Widzę tylko: " +
+                lastSeenPeers.joinToString() + ". Upewnij się, że okulary są " +
+                "włączone i blisko telefonu."
+            _state.value = TransferState.FAILED
+            return false
+        }
         Log.i(tag, "Łączę z ${target.deviceName} (${target.deviceAddress})")
 
         _state.value = TransferState.CONNECTING

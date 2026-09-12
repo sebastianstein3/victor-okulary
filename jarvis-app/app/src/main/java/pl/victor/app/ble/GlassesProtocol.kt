@@ -264,25 +264,56 @@ object GlassesProtocol {
      * zostawiał żadnego śladu. Dopiero mając oba pola w dzienniku da się
      * rozstrzygnąć, czy zdjęcia nie ma, czy przychodzi połowa.
      */
-    fun isCompleteJpeg(bytes: ByteArray?): Boolean {
-        if (!looksLikeJpeg(bytes)) return false
-        val b = bytes ?: return false
-        // Krótki ogon po znaczniku końca jest dopuszczalny - firmware bywa, że
-        // dokłada wyrównanie. Szukamy wstecz w ograniczonym oknie, nie po całym
-        // buforze: w danych obrazu 0xFF jest zawsze dopchnięte zerem, więc
-        // FFD9 w środku strumienia nie występuje.
-        val from = maxOf(JPEG_MAGIC.size, b.size - EOI_TAIL_WINDOW)
-        for (i in b.size - 2 downTo from) {
-            if (b[i] == 0xFF.toByte() && b[i + 1] == 0xD9.toByte()) return true
+    fun isCompleteJpeg(bytes: ByteArray?): Boolean = endOfJpeg(bytes) >= 0
+
+    /**
+     * Gdzie kończy się obraz - indeks bajtu ZA znacznikiem `FFD9` - albo `-1`,
+     * gdy znacznika nie ma, czyli transfer naprawdę się urwał.
+     *
+     * ## Okno 64 bajtów było za małe i to ono „psuło" zdjęcia
+     * Dziennik z 12 września, cztery tury pod rząd: „nie udało się zrobić
+     * zdjęcia", a wcześniej miniatury o rozmiarach 16384, 32768 i 49152 bajty -
+     * co do bajta jeden, dwa i trzy razy po 16 kB. Prawdziwy JPEG nie kończy
+     * się trzy razy z rzędu równo na granicy 2^14; okulary DOPYCHAJĄ ostatni
+     * blok do pełnego rozmiaru. Znacznik końca leży więc gdzieś w środku tego
+     * dopchnięcia, a nie w ostatnich 64 bajtach - i sprawdzenie kompletności
+     * zawsze wychodziło na „nie".
+     *
+     * Skutek był dokładnie odwrotny do zamierzonego: obraz BYŁ kompletny,
+     * tylko z ogonem zer, a my odrzucaliśmy go i szliśmy w kolejne próby -
+     * stąd trzy migawki pod rząd („słychać nawet 3 zdjęcia") i pusty wynik po
+     * wyczerpaniu budżetu czasu.
+     *
+     * Szukanie po CAŁYM buforze jest bezpieczne, bo w danych obrazu każdy bajt
+     * `FF` jest dopchnięty zerem (byte stuffing) - `FFD9` nie pojawia się w
+     * strumieniu przypadkiem. Idziemy od końca, więc gdy w EXIF siedzi
+     * zagnieżdżona miniatura z własnym `FFD9`, trafiamy w znacznik pliku
+     * zewnętrznego, a nie w jej.
+     */
+    fun endOfJpeg(bytes: ByteArray?): Int {
+        if (!looksLikeJpeg(bytes)) return -1
+        val b = bytes ?: return -1
+        for (i in b.size - 2 downTo JPEG_MAGIC.size) {
+            if (b[i] == 0xFF.toByte() && b[i + 1] == 0xD9.toByte()) return i + 2
         }
-        return false
+        return -1
+    }
+
+    /**
+     * Obcina dopchnięcie za znacznikiem końca. Gdy znacznika nie ma, oddaje
+     * wejście bez zmian - urwany obraz i tak jest lepszy niż żaden.
+     *
+     * Warto obcinać, a nie tylko rozpoznawać: przy miniaturze 16 kB samo
+     * dopchnięcie potrafi być jej połową, a każdy zbędny bajt to token
+     * zapłacony modelowi za ciąg zer.
+     */
+    fun trimToJpegEnd(bytes: ByteArray): ByteArray {
+        val end = endOfJpeg(bytes)
+        return if (end in 1 until bytes.size) bytes.copyOfRange(0, end) else bytes
     }
 
     /** Początek każdego pliku JPEG: SOI plus znacznik. */
     private val JPEG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
-
-    /** Ile bajtów od końca przeszukujemy w poszukiwaniu znacznika końca. */
-    private const val EOI_TAIL_WINDOW = 64
 
     /**
      * Ustawia jakość miniatury, którą okulary produkują dla AI.

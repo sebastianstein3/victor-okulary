@@ -107,7 +107,17 @@ class GlassesAlbum(
         /** SDK inicjalizuje `currFileType` na 0 - najlepszy punkt startu. */
         const val DEFAULT_FILE_TYPE = 0
 
-        private const val LIST_TIMEOUT_MS = 10_000L
+        /**
+         * Ile czekamy na listę przy JEDNYM typie pliku.
+         *
+         * Cztery sekundy, nie dziesięć. Okulary albo odpowiadają ramką `BC 80`
+         * od razu (SDK składa listę z kolejnych ramek i oddaje ją, gdy przyjdzie
+         * ramka o zerowej długości), albo nie odpowiadają wcale - w dzienniku
+         * z 12 września dwie próby stanęły równo na 10,000 i 10,003 s, czyli na
+         * limicie, bez ani jednej ramki. Dziesięć sekund ciszy razy kilka typów
+         * to półtorej minuty patrzenia na pustą galerię.
+         */
+        private const val LIST_TIMEOUT_MS = 4_000L
     }
 }
 

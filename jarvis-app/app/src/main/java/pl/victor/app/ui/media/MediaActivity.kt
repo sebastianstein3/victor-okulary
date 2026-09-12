@@ -142,7 +142,7 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 // kosztuje kilka sekund i NIE odcina telefonu od internetu,
                 // podczas gdy podniesienie grupy Wi-Fi Direct odcina.
                 _status.value = "Pytam okulary o listę plików..."
-                val overBle = manager.listAlbumOverBle()
+                val overBle = manager.findAlbumOverBle()
                 if (overBle.isNotEmpty()) {
                     _files.value = MediaLibrary.group(overBle)
                     _sessionOpen.value = false

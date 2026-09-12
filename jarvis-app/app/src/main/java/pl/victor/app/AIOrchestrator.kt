@@ -1201,7 +1201,32 @@ class AIOrchestrator(
     private fun startVoiceTurn(fromGlasses: Boolean) {
         // takeOver: użytkownik właśnie mówi do asystenta, więc jego nowe pytanie
         // jest ważniejsze niż tura, na którą przestał czekać.
-        if (!claimIdle(takeOver = true)) {
+        //
+        // mayInterruptSpeech: I WAŻNIEJSZE NIŻ ODPOWIEDŹ, KTÓREJ PRZESTAŁ SŁUCHAĆ.
+        //
+        // Tu leży zgłoszenie "po każdej odpowiedzi AI bardzo długo trzeba
+        // czekać, żeby dało się zadać następną". W dzienniku nie ma żadnej
+        // blokady po turze - między "KONIEC TURY" a gotowością mija od 0,1 do
+        // 0,8 s. Ale czytanie odpowiedzi trwa 12-16 sekund (245-306 znaków), a
+        // przez CAŁY ten czas stan to `Streaming` - i `canBeSuperseded`
+        // odrzucało wtedy każde wywołanie, które nie deklarowało prawa do
+        // przerwania mowy. Czyli: wciśnięcie przycisku na oprawce w trakcie
+        // odpowiedzi nie robiło nic, a z zewnątrz wygląda to jak zawieszenie na
+        // kilkanaście sekund po każdym pytaniu.
+        //
+        // To moja regresja z rundy, w której "przycisk przerywa mówienie" stało
+        // się cechą wywołania zamiast cechą źródła - żeby tury zbudowane z ramki
+        // "zdjęcie gotowe" przestały wywłaszczać trwające tury. Tamto było
+        // słuszne i zostaje, ale TA droga to co innego: tędy wchodzi się
+        // WYŁĄCZNIE przez świadome działanie człowieka - palec na zauszniku,
+        // fraza wybudzenia albo ikona mikrofonu w aplikacji. Żadna ramka od
+        // okularów tu nie trafia.
+        //
+        // Echa własnego głosu to nie grozi: tryb konwersacyjny nie nasłuchuje
+        // między `onAiStartedSpeaking` a `onAiFinishedSpeaking`, a fraza
+        // wybudzenia w okularach jest w trakcie tury zgaszona i wraca dopiero
+        // po jej końcu.
+        if (!claimIdle(takeOver = true, mayInterruptSpeech = true)) {
             Log.w(TAG, "Nasłuch zignorowany - poprzednia tura ruszyła przed chwilą")
             return
         }
@@ -2223,10 +2248,23 @@ class AIOrchestrator(
                     // różnych rzeczy: pełna pamięć okularów, zbyt duża
                     // odległość, trwające nagranie wideo.
                     val why = glassesManager.lastPhotoFailure
-                    _state.value = OrchestratorState.Error(
+                    val message =
                         if (why != null) "Nie udało się zrobić zdjęcia. $why"
                         else "Nie udało się pobrać żadnego zdjęcia"
-                    )
+                    _state.value = OrchestratorState.Error(message)
+                    // I POWIEDZ TO NA GŁOS.
+                    //
+                    // Zgłoszone dosłownie: "zrobiło 3 zdjęcia, nie dostałem
+                    // odpowiedzi - przy zablokowanym telefonie (...) odblokowałem
+                    // i mam komunikat, że nie udało się zrobić zdjęcia". Komunikat
+                    // BYŁ, tylko lądował wyłącznie na ekranie, a ekran był zgaszony
+                    // w kieszeni. Z perspektywy człowieka w okularach wygląda to
+                    // identycznie jak zawieszenie: pytanie poszło, zapadła cisza.
+                    //
+                    // Pozostałe wyjścia błędem z tury już mówią (patrz
+                    // [announceTurnFailure]); to jedno się nie załapało, bo wychodzi
+                    // wcześniej, własnym `return@launch`, a nie przez blok catch.
+                    announceTurnFailure(trigger, message)
                     return@launch
                 }
 

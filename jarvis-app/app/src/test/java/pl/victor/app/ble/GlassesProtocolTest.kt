@@ -108,6 +108,60 @@ class GlassesProtocolTest {
         assertFalse(GlassesProtocol.isCompleteJpeg(null))
     }
 
+    // === Dopchnięcie do granicy 16 kB ===
+    //
+    // To jest przypadek Z DZIENNIKA, nie wymyślony: 12 września cztery tury pod
+    // rząd skończyły się "nie udało się zrobić zdjęcia", a miniatury miały
+    // 16384, 32768 i 49152 bajty - równo jeden, dwa i trzy razy po 16 kB.
+    // Okulary dopychają ostatni blok, więc znacznik końca leży tysiące bajtów
+    // przed końcem bufora. Sprawdzanie ostatnich 64 bajtów mówiło "urwane" o
+    // obrazie, który był cały.
+
+    @Test
+    fun `zdjecie dopchniete zerami do 16 kB jest kompletne`() {
+        val image = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) +
+            ByteArray(9_000) + byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+        val padded = image + ByteArray(16_384 - image.size)
+        assertEquals(16_384, padded.size)
+        assertTrue(GlassesProtocol.isCompleteJpeg(padded))
+    }
+
+    @Test
+    fun `obciecie zostawia dokladnie obraz bez dopchniecia`() {
+        val image = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) +
+            ByteArray(9_000) + byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+        val padded = image + ByteArray(16_384 - image.size)
+        assertArrayEquals(image, GlassesProtocol.trimToJpegEnd(padded))
+    }
+
+    @Test
+    fun `obciecie nie rusza obrazu bez dopchniecia`() {
+        val image = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) +
+            ByteArray(100) + byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+        assertArrayEquals(image, GlassesProtocol.trimToJpegEnd(image))
+    }
+
+    @Test
+    fun `obciecie oddaje urwany obraz bez zmian`() {
+        // Gdy znacznika końca NIE MA, transfer naprawdę się urwał. Pół obrazu
+        // jest wtedy lepsze niż nic - i nie wolno go dodatkowo przyciąć.
+        val truncated = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) + ByteArray(900)
+        assertArrayEquals(truncated, GlassesProtocol.trimToJpegEnd(truncated))
+        assertFalse(GlassesProtocol.isCompleteJpeg(truncated))
+    }
+
+    @Test
+    fun `przy zagniezdzonej miniaturze liczy sie znacznik zewnetrzny`() {
+        // W EXIF potrafi siedzieć miniatura - cały JPEG z własnym FFD9. Szukamy
+        // OD KOŃCA, więc trafiamy w znacznik pliku zewnętrznego, a nie w jej.
+        val inner = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) +
+            ByteArray(50) + byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+        val outer = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) +
+            inner + ByteArray(500) + byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+        assertEquals(outer.size, GlassesProtocol.endOfJpeg(outer))
+        assertArrayEquals(outer, GlassesProtocol.trimToJpegEnd(outer))
+    }
+
     @Test
     fun `zapytanie o liczbe plikow ma dwa bajty`() {
         assertArrayEquals(byteArrayOf(0x02, 0x04), GlassesProtocol.requestMediaCount())

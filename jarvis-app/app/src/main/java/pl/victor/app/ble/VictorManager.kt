@@ -208,6 +208,16 @@ class VictorManager private constructor(context: Context) {
     private var hardwarePhotoInProgress = false
 
     /**
+     * Jakość miniatury, przy której TE okulary ostatnio potwierdziły migawkę -
+     * albo `null`, dopóki się tego nie dowiedzieliśmy.
+     *
+     * Nie ustawienie i nie stała: wartość wzięta z zachowania konkretnego
+     * egzemplarza. Patrz „PRÓBA 1" w [captureAiPhotoInternal].
+     */
+    @Volatile
+    private var qualityThatAnswered: Int? = null
+
+    /**
      * Nazwa okularów w KLASYCZNYM Bluetoothie (część audio), zgłoszona przez
      * nie same - patrz `syncClassicBluetooth` w powitaniu.
      *
@@ -751,6 +761,9 @@ class VictorManager private constructor(context: Context) {
         // „Czy okulary odpowiadają na komendy" ma dotyczyć TEGO połączenia -
         // odpowiedź sprzed godziny nie dowodzi niczego o bieżącym łączu.
         lastCommandAckAtMs = 0L
+        // Nauczona jakość miniatury opisuje KONKRETNY egzemplarz. Po ponownym
+        // połączeniu po drugiej stronie mogą być inne okulary.
+        qualityThatAnswered = null
     }
 
     /**
@@ -1986,13 +1999,30 @@ class VictorManager private constructor(context: Context) {
         //      (AIHelperActivity.showImageClarity - lista "jakość obrazu");
         //   2. `0x02 0x01 0x01` - zwykłe zdjęcie (AiChatViewModel.takePicture).
         // Po notify 0x02 prosi o miniaturę NATYCHMIAST, bez odczekania.
-        diag.event(pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1: droga producenta", mapOf("jakość" to quality))
-        send(GlassesProtocol.setAiPhotoQuality(quality))
+        // JAKOŚĆ, KTÓRA NA TYM EGZEMPLARZU FAKTYCZNIE ODPOWIADA.
+        //
+        // Rozkład z dwóch dzienników jest jednoznaczny: przy jakości 2 okulary
+        // potwierdziły migawkę 4 razy na 4 (7,51-7,67 s), przy jakości 5 - ani
+        // razu na pięć prób. Ale na sztywno tego nie wpisuję: to jeden
+        // egzemplarz, a druga sztuka może zachowywać się odwrotnie.
+        //
+        // Zamiast zgadywać, ZAPAMIĘTUJEMY. Pierwsze zdjęcie w sesji płaci pełną
+        // cenę zejścia na bezpieczną jakość (patrz PRÓBA 1C), każde następne
+        // startuje od razu od wartości, która zadziałała. Pamięć żyje tyle, co
+        // połączenie - po ponownym sparowaniu uczymy się od nowa, bo to może
+        // być inne urządzenie.
+        val effectiveQuality = qualityThatAnswered ?: quality
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1: droga producenta",
+            mapOf("jakość" to effectiveQuality, "proszono" to quality)
+        )
+        send(GlassesProtocol.setAiPhotoQuality(effectiveQuality))
         _photoReady.value = false
         noteOwnShutter()
         send(GlassesProtocol.takePhoto())
         val waitStartedAt = System.currentTimeMillis()
         val signalled = awaitPhotoReady()
+        if (signalled) qualityThatAnswered = effectiveQuality
         diag.event(
             pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
             "próba 1: notify o gotowym zdjęciu",
@@ -2012,24 +2042,18 @@ class VictorManager private constructor(context: Context) {
             first?.let { if (acceptPhoto(it)) return it }
         }
 
-        // PRÓBA 1b - JESZCZE RAZ PO TĘ SAMĄ MINIATURĘ, BEZ NOWEJ MIGAWKI.
+        // PRÓBA 1B ZNIKA - DZIENNIK POKAZAŁ, ŻE JEST PUSTA.
         //
-        // Zgłoszone wprost: "słychać, że robią się dwa zdjęcia". Robiły się -
-        // bo gdy pierwszy transfer miniatury nie doszedł, od razu leciała
-        // PRÓBA 2, czyli druga KOMENDA MIGAWKI. Tymczasem zdjęcie już leży w
-        // pamięci okularów: nie doszedł transfer, a nie zdjęcie. Ponowna prośba
-        // o ten sam plik jest darmowa, nie zapełnia pamięci okularów i nie
-        // każe użytkownikowi drugi raz trzymać kadru.
-        if (signalled) {
-            Log.w(tag, "Miniatura nie doszła, ale zdjęcie JEST - proszę o nie ponownie")
-            diag.event(pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1b: proszę o ten sam plik jeszcze raz")
-            val retry = receiveThumbnail(THUMBNAIL_TIMEOUT_MS)
-            diag.event(
-                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE, "próba 1b: miniatura",
-                thumbnailFields(retry)
-            )
-            retry?.let { if (acceptPhoto(it)) return it }
-        }
+        // Zakładała, że zdjęcie leży w pamięci okularów i można poprosić o ten
+        // sam plik drugi raz za darmo. Pomiar mówi co innego: trzy powtórki w
+        // dzienniku z 12 września skończyły się limitem czasu równo po 10,000,
+        // 10,002 i 10,008 s, za każdym razem BEZ JEDNEGO BAJTU. Miniaturę da
+        // się pobrać dokładnie raz - `getPictureThumbnails` startuje od
+        // kawałka 0, a okulary odpowiadają wtedy „łącznie 0 kawałków", na co
+        // SDK po cichu wychodzi (patrz opis [receiveThumbnail]).
+        //
+        // Dziesięć sekund czekania na nic, dwa razy w każdym przechwytywaniu,
+        // to była jedna trzecia całego budżetu.
 
         // PRÓBA 1C - TA SAMA KOMENDA, ALE NA BEZPIECZNEJ JAKOŚCI MINIATURY.
         //
@@ -2048,18 +2072,19 @@ class VictorManager private constructor(context: Context) {
         // wołający, a dopiero gdy okulary milczą, schodzimy na wartość, która
         // w dzienniku zadziałała. Kolejny dziennik rozstrzygnie to jednoznacznie
         // - jeśli zdjęcia zaczną dochodzić dopiero tędy, wiadomo wszystko.
-        if (!signalled && quality != SAFE_THUMBNAIL_QUALITY) {
-            Log.w(tag, "Brak potwierdzenia przy jakości $quality - schodzę na $SAFE_THUMBNAIL_QUALITY")
+        if (!signalled && effectiveQuality != SAFE_THUMBNAIL_QUALITY) {
+            Log.w(tag, "Brak potwierdzenia przy jakości $effectiveQuality - schodzę na $SAFE_THUMBNAIL_QUALITY")
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
                 "próba 1c: powtórka na bezpiecznej jakości",
-                mapOf("byłaJakość" to quality, "jestJakość" to SAFE_THUMBNAIL_QUALITY)
+                mapOf("byłaJakość" to effectiveQuality, "jestJakość" to SAFE_THUMBNAIL_QUALITY)
             )
             send(GlassesProtocol.setAiPhotoQuality(SAFE_THUMBNAIL_QUALITY))
             _photoReady.value = false
             noteOwnShutter()
             send(GlassesProtocol.takePhoto())
             val safeSignalled = awaitPhotoReady()
+            if (safeSignalled) qualityThatAnswered = SAFE_THUMBNAIL_QUALITY
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
                 "próba 1c: notify o gotowym zdjęciu",
@@ -2398,26 +2423,16 @@ class VictorManager private constructor(context: Context) {
             return@withLock true
         }
 
-        // Urwany obraz (w dzienniku: 32768 B, `kompletny=false`) - proszę o ten
-        // sam plik jeszcze raz. Zdjęcie leży w pamięci okularów, więc ponowna
-        // prośba nic nie kosztuje i nie każe użytkownikowi drugi raz trzymać
-        // kadru. Tu nie da się zejść z jakości: zdjęcie zrobiły okulary same.
-        if (truncatedPhoto != null) {
-            diag.event(
-                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
-                "zdjęcie z przycisku: obraz urwany, proszę o ten sam plik raz jeszcze"
-            )
-            val retry = receiveThumbnail()
-            diag.event(
-                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
-                "zdjęcie z przycisku: miniatura (powtórka)",
-                thumbnailFields(retry)
-            )
-            if (retry != null && acceptPhoto(retry)) {
-                pendingHardwarePhoto = retry
-                return@withLock true
-            }
-        }
+        // POWTÓRKA ZNIKA - TA SAMA MIARA, CO PRZY PRÓBIE 1B.
+        //
+        // Zakładała, że zdjęcie leży w pamięci okularów i drugie pobranie jest
+        // darmowe. W dzienniku z 12 września ta powtórka wykonała się trzy razy
+        // i trzy razy skończyła limitem czasu po równo 10 s, oddając zero
+        // bajtów - a potem i tak braliśmy obraz z pierwszego pobrania. Dziesięć
+        // sekund ciszy między migawką a odpowiedzią, za nic.
+        //
+        // Właściwą przyczyną „urwanego obrazu" i tak nie był transfer, tylko
+        // nasze sprawdzenie kompletności - patrz [GlassesProtocol.endOfJpeg].
 
         // Nadal urwany - bierzemy, co jest. Pół obrazu daje modelowi cokolwiek
         // do powiedzenia, a cisza po wciśnięciu przycisku nie daje nic.
@@ -2538,7 +2553,10 @@ class VictorManager private constructor(context: Context) {
             Log.w(tag, "Transfer miniatury przekroczył limit czasu")
             return null
         }
-        return output.toByteArray().takeIf { it.isNotEmpty() }
+        // Obcinamy dopchnięcie do granicy bloku - patrz
+        // [GlassesProtocol.trimToJpegEnd]. Jedno miejsce dla wszystkich prób.
+        val raw = output.toByteArray().takeIf { it.isNotEmpty() } ?: return null
+        return GlassesProtocol.trimToJpegEnd(raw)
     }
 
     // === Pełne pliki przez Wi-Fi Direct (HTTP) ===
@@ -2731,7 +2749,29 @@ class VictorManager private constructor(context: Context) {
         // zajęty poprzednią próbą) nie były wśród nich. Użytkownik dostawał
         // "podejdź bliżej" i podchodził, co oczywiście nic nie dawało.
         // Rozpoznaje je teraz GlassesWifiTransfer - patrz WifiDirectDiagnosis.
-        if (!wifiTransfer.connect(deviceNameHint = WIFI_DEVICE_NAME_HINT)) {
+        // Do podpowiedzi dokładamy nazwę, którą okulary podały O SOBIE
+        // (`syncClassicBluetooth` w powitaniu) - jedyny fragment wzięty z TEGO
+        // egzemplarza, a nie z listy ułożonej z góry. Zwykle jest `null`, bo
+        // okulary na razie na tę komendę nie odpowiadają; wtedy po prostu jej
+        // nie ma i zostają same podpowiedzi ogólne.
+        val hints = (WIFI_DEVICE_NAME_HINTS + listOfNotNull(_classicAudioName.value))
+            .filter { it.isNotBlank() }
+        val joined = wifiTransfer.connect(deviceNameHints = hints)
+        // Nazwy widzianych urządzeń MUSZĄ trafić do dziennika, a nie tylko do
+        // logcata. Bez nich "nie znalazłem okularów" nic nie znaczy: nie
+        // wiadomo, czy okulary w ogóle postawiły sieć, czy tylko nie umiemy ich
+        // rozpoznać po nazwie. To jest dokładnie ta informacja, której
+        // zabrakło, gdy aplikacja dobijała się do cudzego telewizora.
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Wi-Fi Direct: widoczne urządzenia",
+            mapOf(
+                "nazwy" to wifiTransfer.lastSeenPeers.joinToString().ifEmpty { "brak" },
+                "szukam" to hints.joinToString(),
+                "dołączono" to joined
+            )
+        )
+        if (!joined) {
             Log.w(tag, "Nie udało się dołączyć do grupy Wi-Fi Direct okularów")
             lastTransferFailure = wifiTransfer.lastFailure
                 ?: "Nie udało się połączyć z siecią okularów. Spróbuj ponownie."
@@ -2808,6 +2848,34 @@ class VictorManager private constructor(context: Context) {
             )
         }
         return names
+    }
+
+    /**
+     * Szuka listy plików, przechodząc po kolejnych numerach typu.
+     *
+     * ## Czemu przegląd, a nie jedna wartość
+     * `AlbumHandle.start(fileType)` przyjmuje liczbę, której producent nigdzie
+     * nie udokumentował, a SDK inicjalizuje ją na zero. Wzięliśmy więc zero -
+     * i w dzienniku z 12 września obie próby skończyły się limitem czasu, zero
+     * plików, zero ramek w odpowiedzi. To NIE dowodzi, że droga po BLE jest
+     * ślepa: dowodzi, że zero nie jest numerem zdjęć na tym firmwarze.
+     *
+     * Zgadywać dalej pojedynczo nie ma po co - każda runda to dzień czekania na
+     * kolejny dziennik. Przechodzimy więc po kilku pierwszych wartościach i
+     * każdą zapisujemy osobno. Pierwsza, która cokolwiek odda, wygrywa i
+     * kończy przegląd; gdy nie odda żadna, dziennik pokaże komplet prób zamiast
+     * jednej.
+     *
+     * Koszt jest ograniczony: nieodpowiadający typ kosztuje cztery sekundy
+     * (patrz `GlassesAlbum.LIST_TIMEOUT_MS`), a przegląd idzie tylko przy
+     * otwieraniu galerii, nie w turze z pytaniem.
+     */
+    suspend fun findAlbumOverBle(): List<String> {
+        for (fileType in ALBUM_FILE_TYPES) {
+            val names = listAlbumOverBle(fileType)
+            if (names.isNotEmpty()) return names
+        }
+        return emptyList()
     }
 
     /** Kończy sesję transferu: rozłącza Wi-Fi Direct i przywraca domyślny routing. */
@@ -2903,9 +2971,27 @@ class VictorManager private constructor(context: Context) {
 
 
 
-        /** Jakość miniatury: zakres 0..6 wg dokumentacji producenta. */
-        /** Fragment nazwy urządzenia Wi-Fi Direct okularów. */
-        private const val WIFI_DEVICE_NAME_HINT = "cyan"
+        /**
+         * Po czym poznajemy okulary na liście urządzeń Wi-Fi Direct.
+         *
+         * Lista, nie jedno słowo, i BEZ wyjścia awaryjnego „weź pierwsze lepsze":
+         * w dzienniku z 12 września jedyną widoczną nazwą był cudzy telewizor
+         * ("[TV] Samsung 6 Series"), a samo „cyan" do niczego nie pasowało.
+         *
+         * Prawdziwej nazwy tego egzemplarza NADAL NIE ZNAM - i dlatego jej tu
+         * nie ma. Zapisuje ją teraz dziennik („Wi-Fi Direct: widoczne
+         * urządzenia"); dopisze się ją, gdy będzie wiadomo, a nie zanim.
+         */
+        private val WIFI_DEVICE_NAME_HINTS = listOf("cyan", "glass", "lens", "prism")
+
+        /**
+         * Numery typu pliku, po których przechodzi [findAlbumOverBle].
+         *
+         * Pięć wartości, bo tyle mieści się w rozsądnym oczekiwaniu na otwarcie
+         * galerii (5 x 4 s w najgorszym razie). Kolejność od zera, czyli od
+         * wartości, którą SDK ustawia sobie samo.
+         */
+        private val ALBUM_FILE_TYPES = listOf(0, 1, 2, 3, 4)
 
         /** Ile razy próbujemy dołączyć do grupy okularów. */
         private const val WIFI_JOIN_ATTEMPTS = 3
@@ -2968,10 +3054,21 @@ class VictorManager private constructor(context: Context) {
          * zdjęcie już się robiło. Stąd brały się „dwa zdjęcia" słyszalne w
          * okularach i jedno zbędne zdjęcie w ich pamięci.
          *
-         * Sześć sekund mieści zaobserwowane 4,4 s z zapasem. Że całość nie
-         * urośnie przez to w nieskończoność, pilnuje [PHOTO_TOTAL_BUDGET_MS].
+         * ## Skąd dwanaście
+         * Z czterech pomiarów w dzienniku z 12 września. Okulary zgłaszają
+         * gotowe zdjęcie po 7,51 / 7,53 / 7,56 / 7,67 s - za każdym razem TUŻ
+         * PO sześciosekundowym limicie. Rozrzut jest nikły, więc to nie jest
+         * przypadek ani obciążenie: tyle po prostu trwa u nich migawka.
+         *
+         * Cena tego półtorej sekundy brakującego zapasu była wysoka: każda
+         * próba kończyła się „przyszło=false", leciała następna migawka, a
+         * spóźniony notify był już przypisywany do NIEJ. Stąd trzy dźwięki
+         * zdjęcia przy jednym pytaniu i pusty wynik po budżecie.
+         *
+         * Dwanaście sekund to zaobserwowane 7,7 s plus połowa tyle zapasu. Że
+         * całość nie urośnie w nieskończoność, pilnuje [PHOTO_TOTAL_BUDGET_MS].
          */
-        private const val PHOTO_READY_TIMEOUT_MS = 6_000L
+        private const val PHOTO_READY_TIMEOUT_MS = 12_000L
 
         /** Ile czeka na notify wariant zapasowy - patrz [shootAndWait]. */
         private const val PHOTO_READY_INFO_TIMEOUT_MS = 2_000L
@@ -2990,11 +3087,17 @@ class VictorManager private constructor(context: Context) {
          * przypadek - a ten już jest za długi: w dzienniku tura skończyła się
          * błędem po 20,1 s ciszy.
          *
+         * Trzydzieści dwie sekundy, bo dwadzieścia dwie były MNIEJSZE NIŻ JEDNA
+         * UCZCIWA PRÓBA: 7,6 s na notify plus 8-10 s na transfer miniatury to
+         * 16-18 s, a budżet musi jeszcze zmieścić zejście na bezpieczną jakość.
+         * Przy poprzedniej wartości przechwytywanie przerywało się w połowie
+         * drugiej próby i ZAWSZE oddawało pustkę, choćby wszystko inne działało.
+         *
          * To jest bezpiecznik, a nie normalna droga wyjścia: przy wszystkich
          * limitach z osobna najgorszy przypadek wypada tuż pod tą wartością,
          * więc budżet wchodzi dopiero wtedy, gdy coś zawiesi się poza nimi.
          */
-        private const val PHOTO_TOTAL_BUDGET_MS = 22_000L
+        private const val PHOTO_TOTAL_BUDGET_MS = 32_000L
 
         /**
          * Jak długo po nieudanym Wi-Fi Direct nie próbujemy go ponownie.
