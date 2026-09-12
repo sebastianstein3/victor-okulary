@@ -190,3 +190,4 @@
 09:36:02.848  +34000 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
 09:36:02.869  +34021 ms  SESJA        --- KONIEC TURY b8f3: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
 09:36:02.885          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:36:03.008          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
