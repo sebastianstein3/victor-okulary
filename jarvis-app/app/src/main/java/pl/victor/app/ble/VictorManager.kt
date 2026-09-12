@@ -666,6 +666,21 @@ class VictorManager private constructor(context: Context) {
                 }
                 if (event.button == GlassesProtocol.AI_BUTTON) {
                     Log.i(tag, "Notify: wciśnięto przycisk AI")
+                    // TĄ SAMĄ RAMKĄ PRZYCHODZI FRAZA WYBUDZENIA.
+                    //
+                    // Ustalone na sprzęcie 12 września: po powiedzeniu „hej
+                    // lens" w dzienniku pojawia się „PRZYCISK wciśnięto
+                    // numer=1", czyli notify 0x03 - dokładnie to samo, co przy
+                    // dotknięciu zausznika. Osobnej ramki „okulary proszą o
+                    // rozmowę" (0x17/0x18 z SDK producenta) ten egzemplarz NIE
+                    // wysyła nigdy.
+                    //
+                    // Wniosek praktyczny: obie drogi wybudzenia są tu nie do
+                    // odróżnienia i obie działają. Wcześniej wyciągnąłem z
+                    // dzienników wniosek odwrotny („fraza nie dociera") - bo
+                    // szukałem ramki 0x17, a nie sprawdziłem, czy wybudzenie
+                    // głosem nie przychodzi jako przycisk. Przychodzi.
+                    //
                     // Od tej chwili dźwięk z okularów należy do pytania, choćby
                     // nasłuch ruszył dopiero za sekundę - patrz [lastTriggerAtMs].
                     lastTriggerAtMs = System.currentTimeMillis()
@@ -1312,10 +1327,16 @@ class VictorManager private constructor(context: Context) {
     /**
      * Pakiet z mikrofonu okularów, którego nikt nie zamawiał.
      *
-     * To jest wiersz, który rozstrzygnie zgłoszenie „wywołuję głosowo, okulary
-     * reagują, a aplikacja nic nie robi": jeśli okulary po wybudzeniu nadają
-     * mowę, a żadna tura nie trwa, znaczy to, że prośba o rozmowę nie dociera
-     * do nas ramką sterującą i trzeba jej szukać właśnie tutaj.
+     * Powstało, żeby rozstrzygnąć zgłoszenie „wywołuję głosowo, okulary
+     * reagują, a aplikacja nic nie robi" - i rozstrzygnęło, choć inaczej, niż
+     * zakładałem. Wybudzenie głosem PRZYCHODZI, tyle że ramką przycisku (patrz
+     * `NotifyEvent.ButtonPressed` w [handleNotify]), więc te pakiety nie są
+     * śladem zgubionego wybudzenia. To zwykły szum: okulary nadają dźwięk także
+     * między turami, po zakończonym nasłuchu.
+     *
+     * Wiersz zostaje, bo mierzy coś innego i nadal potrzebnego - ile dźwięku
+     * przechodzi obok, gdy nikt nie słucha. Tym samym licznikiem karmi się
+     * bufor pierwszej sekundy pytania (patrz [MicBacklog]).
      *
      * Wpis jest rzadki z rozmysłem - pakiety idą kilkadziesiąt razy na sekundę,
      * a dziennik ma zostać czytelny.

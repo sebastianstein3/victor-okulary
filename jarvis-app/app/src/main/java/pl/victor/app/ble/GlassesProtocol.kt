@@ -113,9 +113,18 @@ object GlassesProtocol {
      *
      * Producent w obu wariantach (0x17 i 0x18) robi to samo: sprawdza sieć,
      * gra dźwięk przez `aiVoicePlay`, czyści kolejkę TTS i startuje
-     * rozpoznawanie mowy. To jest zdarzenie wybudzenia - bez jego obsługi
-     * `aiVoiceWake(true)` włącza detekcję w okularach, ale aplikacja nigdy się
-     * o niej nie dowiaduje.
+     * rozpoznawanie mowy.
+     *
+     * ## NA NASZYM EGZEMPLARZU TA RAMKA NIE PRZYCHODZI - I NIC SIĘ NIE DZIEJE
+     * Sprawdzone na sprzęcie 12 września: po „hej lens" okulary wysyłają
+     * ramkę PRZYCISKU (0x03, numer 1), a nie 0x17 ani 0x18. Wybudzenie głosem
+     * działa więc tą samą drogą co dotknięcie zausznika i nie potrzebuje tych
+     * stałych.
+     *
+     * Zostają, bo opisuje je SDK producenta, a inny egzemplarz albo inna wersja
+     * firmware'u może ich używać - obsługa kosztuje jedną gałąź `when`. Ale
+     * gdy ktoś szuka usterki wybudzenia, NIE jest to miejsce, w którym ona
+     * siedzi: tam patrz na obsługę przycisku.
      */
     const val NOTIFY_AI_SESSION_A = 0x17
 
