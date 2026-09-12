@@ -351,3 +351,24 @@
 21:24:45.997  +14501 ms  SESJA        --- KONIEC TURY feaf: odpowiedziano ---
 21:24:46.001          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
 21:24:46.132          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:25:26.300          ms  PRZYCISK     wciśnięto  numer=1
+21:25:26.500          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:25:26.857          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=354
+21:25:26.914      +0 ms  SESJA        --- TURA 39b0 ---  źródło=OKULARY
+21:25:26.916      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:25:27.245    +332 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 4B 57 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 01 sztuk=6 pierwsza=false
+21:25:30.700   +3786 ms  NASŁUCH      koniec  ms=3786 odłożone=słyszysz cokolwiek
+21:25:30.765   +3851 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:25:31.247   +4333 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.2335 pakietów=212 rozkodowanych=212 odrzuconych=0 przesunięcie=0 ramka=-1
+21:25:31.250   +4336 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:25:31.252   +4338 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4233 jestMs=4233
+21:25:31.253   +4339 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=słyszysz cokolwiek
+21:25:31.254   +4340 ms  SESJA        pytanie  tekst=słyszysz cokolwiek wymuszonyObraz=false
+21:25:31.257   +4343 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:25:31.263   +4349 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:25:32.693   +5779 ms  KONTEKST     zebrany  ms=1425 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:25:32.701   +5787 ms  MODEL        wysyłam pytanie  dostawca=local próba=1 zdjęć=0 znakówPromptu=8435
+21:25:46.370  +19457 ms  MODEL        koniec odpowiedzi (0 znaków, 0 tokenów)  ms=13669
+21:25:53.070  +26156 ms  MOWA         koniec wypowiedzi  ms=6559
+21:25:53.100  +26186 ms  SESJA        --- KONIEC TURY 39b0: odpowiedziano ---
+21:25:53.105          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
