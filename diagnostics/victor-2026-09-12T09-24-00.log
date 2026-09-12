@@ -138,3 +138,28 @@
 09:33:28.739          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
 09:33:36.673          ms  ZDJĘCIE      próba 2: miniatura  notify=true bajtów=32768 jpeg=true kompletny=false
 09:33:36.674          ms  ZDJĘCIE      oddaję urwany obraz - całego nie udało się pobrać  bajtów=32768
+09:33:58.937          ms  PRZYCISK     wciśnięto  numer=1
+09:33:59.105          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+09:33:59.518      +1 ms  SESJA        --- TURA eed1 ---  źródło=OKULARY
+09:33:59.519      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+09:34:02.956   +3439 ms  NASŁUCH      koniec  ms=3439 odłożone=co widzisz
+09:34:02.970   +3453 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+09:34:03.561   +4044 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.4935 pakietów=175 rozkodowanych=175 odrzuconych=0 przesunięcie=0 ramka=-1
+09:34:06.236   +6719 ms  TRANSKRYPCJA z nagrania okularów  ms=2672 droga=Nasłuch telefonu
+09:34:06.238   +6721 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co widzisz
+09:34:06.240   +6723 ms  SESJA        pytanie  tekst=co widzisz wymuszonyObraz=false
+09:34:06.251   +6734 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=false zNagrania=false
+09:34:06.263   +6746 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+09:34:06.267   +6751 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+09:34:06.273   +6756 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5
+09:34:06.849   +7332 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=2 pierwsza=false
+09:34:12.281  +12764 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=6006
+09:34:12.289  +12772 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+09:34:18.304  +18788 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+09:34:18.313  +18796 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+09:34:19.802  +20285 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+09:34:19.812  +20296 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+09:34:28.281  +28764 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=22000
+09:34:28.291  +28775 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+09:34:28.313  +28797 ms  SESJA        --- KONIEC TURY eed1: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 22 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+09:34:28.335          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
