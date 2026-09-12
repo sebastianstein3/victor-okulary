@@ -350,3 +350,4 @@
 21:24:45.981  +14485 ms  MOWA         koniec wypowiedzi  ms=3559
 21:24:45.997  +14501 ms  SESJA        --- KONIEC TURY feaf: odpowiedziano ---
 21:24:46.001          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:24:46.132          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
