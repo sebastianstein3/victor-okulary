@@ -3260,6 +3260,40 @@ class AIOrchestrator(
     private fun handleActions(actions: List<Action>, originalText: String) {
         Log.i(TAG, "Executing ${actions.size} action(s) from: \"$originalText\"")
 
+        // NAJPIERW ROZWIĄŻ KONTAKT, POTEM PYTAJ - nie odwrotnie.
+        //
+        // Kolejność była tu odwrócona i to jest usterka w jedynym miejscu
+        // aplikacji, które powstrzymuje rzeczy nieodwracalne: pytanie o zgodę
+        // budowało się z NAZWY, KTÓRĄ PADŁA („zadzwonić do Janusza?"), a zamiana
+        // nazwy na numer szła dopiero w executeActionsList, PO potwierdzeniu.
+        // Człowiek zatwierdzał więc imię, które sam wypowiedział, a dzwoniło do
+        // kogoś, kogo wybrał dopasowywacz - i nie miał jak tego zauważyć.
+        //
+        // Teraz pytanie niesie nazwę Z KSIĄŻKI ADRESOWEJ. Przy dwóch podobnych
+        // kontaktach to jedyny moment, w którym da się powiedzieć „nie ten".
+        //
+        // Rozwiązywanie jest zawieszalne, więc całość idzie w korutynę. Wołający
+        // i tak nie czekali na wynik - executeActionsList sam startuje własną -
+        // ale kolejność WEWNĄTRZ tej funkcji nie zmienia się ani o krok: nic nie
+        // wykonuje się, dopóki potwierdzenie nie zapadnie.
+        scope.launch {
+            // `?: it` jest tu istotne: nierozwiązany kontakt zostaje surowy i
+            // trafia do executeActionsList, które oddaje dotychczasowe
+            // „Nie znalazłem kontaktu". Rozwiązany ma już numer w `to`, więc
+            // tamtejsze powtórne rozwiązywanie rozpozna go jako numer i nie
+            // pójdzie drugi raz do książki adresowej.
+            val prepared = actions.map { resolveContactIfNeeded(it) ?: it }
+            handlePreparedActions(prepared)
+        }
+    }
+
+    /**
+     * Druga połowa [handleActions], na akcjach z rozwiązanymi już kontaktami.
+     *
+     * Wydzielona wyłącznie po to, żeby bramka potwierdzeń została dokładnie tym,
+     * czym była - jednym ciągiem warunków bez korutyn w środku.
+     */
+    private fun handlePreparedActions(actions: List<Action>) {
         val mode = ActionMode.fromName(settings.getActionMode())
         Log.d(TAG, "Action mode: $mode")
 
@@ -3288,7 +3322,11 @@ class AIOrchestrator(
                 val title = single?.title ?: "Potwierdź wszystko, co zaraz zrobię"
                 val message = single?.message
                     ?: required.joinToString("\n") { "• ${it.message}" }
-                // Zapisz akcje do późniejszego wykonania
+                // Zapisz akcje do późniejszego wykonania.
+                //
+                // TE SAME akcje, które opisało pytanie - z rozwiązanymi już
+                // kontaktami. Gdyby tu wróciła lista sprzed rozwiązania, człowiek
+                // potwierdzałby jedno, a wykonywałoby się drugie.
                 _pendingActionConfirmation.value = PendingActionConfirmation(
                     actions = actions,
                     title = title,
