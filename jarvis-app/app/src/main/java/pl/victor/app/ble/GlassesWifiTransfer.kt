@@ -10,7 +10,10 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.wifi.WifiManager
+import android.net.wifi.WifiNetworkSpecifier
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pInfo
@@ -18,6 +21,7 @@ import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Looper
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
@@ -81,6 +85,7 @@ class GlassesWifiTransfer(context: Context) {
     private var connectionDeferred: CompletableDeferred<WifiP2pInfo>? = null
     private var receiverRegistered = false
     private var boundNetwork: Network? = null
+    private var apCallback: ConnectivityManager.NetworkCallback? = null
 
     /** Czy urządzenie ma uprawnienie wymagane do Wi-Fi Direct. */
     fun hasPermission(): Boolean {
@@ -126,7 +131,7 @@ class GlassesWifiTransfer(context: Context) {
     /** Rozłącza grupę P2P i zwalnia zasoby. */
     @Synchronized
     fun stop() {
-        unbindProcessFromNetwork()
+        leaveAccessPoint()
         removeGroup()
         if (receiverRegistered) {
             runCatching { appContext.unregisterReceiver(p2pReceiver) }
@@ -506,6 +511,128 @@ class GlassesWifiTransfer(context: Context) {
         }
     }.getOrDefault(true)
 
+    // === Hotspot okularów (tryb AP) ===
+
+    /**
+     * Dołącza do hotspotu okularów po nazwie i haśle - BEZ Wi-Fi Direct.
+     *
+     * ## Czemu ta droga istnieje obok grupy P2P
+     * Bo grupa P2P nigdy nie wstała. W sześciu rundach wykrywania telefon
+     * widział wyłącznie cudze telewizory, a okularów ani razu. Aplikacja
+     * producenta ma DWIE ścieżki importu galerii i ta druga - hotspot - nie
+     * wymaga wykrywania niczego: nazwa sieci jest policzalna z nazwy i adresu
+     * BLE (patrz [GlassesProtocol.glassesApSsid]), więc telefon łączy się
+     * wprost, z pominięciem całego frameworku P2P.
+     *
+     * Sieć jest zgłaszana jako [WifiNetworkSpecifier], czyli połączenie
+     * "tylko dla tej aplikacji": nie zmienia domyślnej sieci telefonu, nie
+     * zapisuje się w ustawieniach i znika po [leaveAccessPoint]. Proces jest
+     * do niej przypinany, bo inaczej ruch HTTP idzie dalej siecią domyślną i
+     * do okularów nie dociera.
+     *
+     * @return `true` gdy telefon jest w sieci okularów i ruch idzie przez nią
+     */
+    suspend fun joinAccessPoint(ssid: String, password: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            lastFailure = "Łączenie z hotspotem okularów wymaga Androida 10 lub nowszego."
+            Log.w(tag, "joinAccessPoint: API ${Build.VERSION.SDK_INT} za niskie")
+            return false
+        }
+        val cm = connectivityManager ?: run {
+            lastFailure = "Telefon nie udostępnia usługi sieciowej."
+            return false
+        }
+        if (!isWifiEnabled()) {
+            lastFailure = "Wi-Fi jest wyłączone - włącz je, żeby telefon mógł " +
+                "połączyć się z okularami."
+            return false
+        }
+
+        leaveAccessPoint()
+        _state.value = TransferState.CONNECTING
+        return joinAccessPointQ(cm, ssid, password)
+    }
+
+    /**
+     * Właściwe dołączenie do hotspotu - osobno, bo [WifiNetworkSpecifier]
+     * istnieje dopiero od Androida 10, a aplikacja wspiera 8.0.
+     */
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private suspend fun joinAccessPointQ(
+        cm: ConnectivityManager,
+        ssid: String,
+        password: String
+    ): Boolean {
+        val specifier = WifiNetworkSpecifier.Builder()
+            .setSsid(ssid)
+            .setWpa2Passphrase(password)
+            .build()
+        // Jeden transport, jeden specyfikator i nic więcej - dokładnie tak,
+        // jak robi to aplikacja producenta. Domyślny `NetworkRequest.Builder`
+        // NIE wymaga zdolności INTERNET, więc sieć bez internetu (a taka jest
+        // każda sieć okularów) przechodzi.
+        val request = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .setNetworkSpecifier(specifier)
+            .build()
+
+        val available = CompletableDeferred<Network?>()
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                available.complete(network)
+            }
+
+            override fun onUnavailable() {
+                available.complete(null)
+            }
+
+            override fun onLost(network: Network) {
+                Log.i(TAG, "Sieć okularów zniknęła")
+            }
+        }
+
+        return try {
+            cm.requestNetwork(request, callback)
+            apCallback = callback
+            Log.i(tag, "Czekam na hotspot okularów: $ssid")
+            val network = withTimeoutOrNull(AP_JOIN_TIMEOUT_MS) { available.await() }
+            if (network == null) {
+                lastFailure = "Okulary nie wystawiły sieci \"$ssid\" albo telefon jej " +
+                    "nie przyjął. Zdejmij okulary i załóż ponownie."
+                releaseApCallback()
+                _state.value = TransferState.FAILED
+                false
+            } else {
+                val bound = runCatching { cm.bindProcessToNetwork(network) }
+                    .onFailure { Log.w(tag, "bindProcessToNetwork nie powiodło się", it) }
+                    .getOrDefault(false)
+                if (bound) boundNetwork = network
+                Log.i(tag, "Telefon w sieci okularów (przypięty=$bound)")
+                _state.value = TransferState.CONNECTED
+                true
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "joinAccessPoint nie powiodło się", e)
+            lastFailure = "Nie udało się połączyć z siecią okularów: ${e.message}"
+            releaseApCallback()
+            _state.value = TransferState.FAILED
+            false
+        }
+    }
+
+    /** Opuszcza hotspot okularów i przywraca telefonowi domyślną sieć. */
+    fun leaveAccessPoint() {
+        unbindProcessFromNetwork()
+        releaseApCallback()
+    }
+
+    private fun releaseApCallback() {
+        val callback = apCallback ?: return
+        apCallback = null
+        runCatching { connectivityManager?.unregisterNetworkCallback(callback) }
+            .onFailure { Log.w(tag, "unregisterNetworkCallback nie powiodło się", it) }
+    }
+
     /** Krótka pauza po zestawieniu grupy - serwer HTTP na okularach wstaje z opóźnieniem. */
     suspend fun awaitServerReady() {
         delay(SERVER_WARMUP_MS)
@@ -517,6 +644,15 @@ class GlassesWifiTransfer(context: Context) {
         private const val DISCOVERY_TIMEOUT_MS = 20_000L
         private const val CONNECT_TIMEOUT_MS = 25_000L
         private const val SERVER_WARMUP_MS = 1_500L
+
+        /**
+         * Ile czekać, aż telefon wejdzie do hotspotu okularów.
+         *
+         * Dłużej niż przy zwykłej sieci: okulary podnoszą radio
+         * dopiero po komendzie BLE, a użytkownik musi jeszcze
+         * potwierdzić systemowe okienko "połączyć z siecią?".
+         */
+        private const val AP_JOIN_TIMEOUT_MS = 40_000L
 
         /**
          * Ile czekać na potwierdzenie usunięcia starej grupy P2P. Krótko:

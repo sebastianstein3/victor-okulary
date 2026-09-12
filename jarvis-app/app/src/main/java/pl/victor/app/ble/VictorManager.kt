@@ -3,6 +3,7 @@ package pl.victor.app.ble
 import android.annotation.SuppressLint
 import android.app.Application
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -1880,9 +1881,9 @@ class VictorManager private constructor(context: Context) {
      * Włącza tryb transferu plików (Wi-Fi Direct).
      * IP okularów przyjdzie asynchronicznie jako ramka notify 0x08.
      */
-    fun enableTransferMode() {
-        Log.d(tag, "Włączanie trybu transferu")
-        send(GlassesProtocol.enableTransferMode())
+    fun enableTransferMode(mode: Int = GlassesProtocol.TRANSFER_MODE_AP) {
+        Log.d(tag, "Włączanie trybu transferu (tryb=$mode)")
+        send(GlassesProtocol.enableTransferMode(mode))
     }
 
     /**
@@ -2762,19 +2763,57 @@ class VictorManager private constructor(context: Context) {
         val ip = _glassesIp.value
             ?: throw VictorException("Brak IP okularów - najpierw enableTransferMode()")
 
-        val conn = URL("http://$ip/files/media.config").openConnection() as HttpURLConnection
+        val plain = runCatching { fetchText("http://$ip/files/media.config") }
+        val names = plain.getOrNull()
+            ?.lines()
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            .orEmpty()
+        if (names.isNotEmpty()) return@withContext names
+
+        // DRUGI FORMAT SPISU - okulary bywają w dwóch odmianach.
+        //
+        // Aplikacja producenta wybiera między nimi po polu `configFileType`
+        // z odpowiedzi na zapytanie o liczbę plików. Nasza wersja AAR-a
+        // (2025-07-23) tego pola NIE udostępnia - jest w ramce, ale parser go
+        // nie czyta - więc nie da się zapytać wprost, którą odmianę ma ten
+        // egzemplarz. Zamiast zgadywać, próbujemy po kolei: najpierw zwykły
+        // spis tekstowy, a gdy go nie ma, spis JSON spod innej ścieżki.
+        val json = runCatching {
+            fetchText("http://$ip:80/storage/sd0/C/DCIM/1/vf_list.txt")
+        }.getOrNull()
+        if (json.isNullOrBlank()) {
+            plain.exceptionOrNull()?.let { throw it }
+            return@withContext emptyList()
+        }
+        Log.i(tag, "Spis plików w formacie JSON (vf_list.txt)")
+        parseJsonFileList(json)
+    }
+
+    private fun fetchText(url: String): String {
+        val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = CONNECT_TIMEOUT_MS
         conn.readTimeout = LIST_READ_TIMEOUT_MS
         try {
-            conn.inputStream.bufferedReader(StandardCharsets.UTF_8)
-                .readText()
-                .lines()
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
+            return conn.inputStream.bufferedReader(StandardCharsets.UTF_8).readText()
         } finally {
             conn.disconnect()
         }
     }
+
+    /**
+     * Wyciąga ścieżki plików ze spisu JSON (`vf_list.txt`).
+     *
+     * Kształt: `{"file_list":[{"f":"ścieżka","w":..,"h":..}, ...]}`. Wartość
+     * `f` jest ŚCIEŻKĄ, nie samą nazwą - dlatego [downloadFile] rozpoznaje ją
+     * po ukośniku i buduje z niej inny adres.
+     */
+    private fun parseJsonFileList(json: String): List<String> = runCatching {
+        val list = org.json.JSONObject(json).optJSONArray("file_list") ?: return emptyList()
+        (0 until list.length()).mapNotNull { i ->
+            list.optJSONObject(i)?.optString("f")?.takeIf { it.isNotBlank() }
+        }
+    }.onFailure { Log.w(tag, "Nie udało się odczytać spisu JSON", it) }.getOrDefault(emptyList())
 
     /** Pobiera pojedynczy plik z okularów przez HTTP. */
     suspend fun downloadFile(filename: String): ByteArray = withContext(Dispatchers.IO) {
@@ -2784,7 +2823,15 @@ class VictorManager private constructor(context: Context) {
             ?: throw VictorException("Brak IP okularów - najpierw enableTransferMode()")
 
         Log.d(tag, "Pobieranie $filename z $ip")
-        val conn = URL("http://$ip/files/$filename").openConnection() as HttpURLConnection
+        // Ukośnik w nazwie znaczy, że spis był w formacie JSON i to jest pełna
+        // ścieżka na karcie okularów - taka idzie pod inny adres niż nazwa
+        // pliku ze spisu tekstowego. Patrz [parseJsonFileList].
+        val url = if (filename.contains('/')) {
+            "http://$ip:80/$filename"
+        } else {
+            "http://$ip/files/$filename"
+        }
+        val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = CONNECT_TIMEOUT_MS
         conn.readTimeout = FILE_READ_TIMEOUT_MS
         try {
@@ -2824,6 +2871,120 @@ class VictorManager private constructor(context: Context) {
 
     private suspend fun awaitGlassesIp(): Boolean {
         lastTransferFailure = null
+        if (simulator == null && tryAccessPoint()) return true
+        return awaitGlassesIpOverP2p()
+    }
+
+    /**
+     * Podnosi łącze przez HOTSPOT okularów - pierwsza i podstawowa droga.
+     *
+     * ## Czemu to jest teraz pierwsze, a Wi-Fi Direct zostało zapasowe
+     * Bo Wi-Fi Direct nie zadziałało ani razu, a z aplikacji producenta
+     * wynika, dlaczego mogło nie zadziałać w ogóle: obie jej ścieżki importu
+     * wysyłają komendę trybu transferu z CZWARTYM bajtem (`0x01` grupa,
+     * `0x02` hotspot), a my wysyłaliśmy trzy bajty bez argumentu. Okulary nie
+     * dostawały więc informacji, którą sieć podnieść - i nie podnosiły żadnej.
+     *
+     * Hotspot ma nad grupą P2P tę przewagę, że nie wymaga wykrywania
+     * urządzeń: nazwa sieci wynika z nazwy i adresu BLE okularów, więc
+     * telefon łączy się wprost. To zarazem koniec dobijania się do cudzych
+     * telewizorów, które widzieliśmy w dziennikach z wykrywania P2P.
+     */
+    private suspend fun tryAccessPoint(): Boolean {
+        val startedAt = System.currentTimeMillis()
+        // Adres z POPRZEDNIEJ sesji jest gorszy niż jego brak: czekanie na
+        // ramkę 0x08 kończyłoby się natychmiast, a pobieranie szłoby pod
+        // adres, którego w tej sieci już nie ma.
+        _glassesIp.value = null
+        val name = glassesBleName()
+        val address = lastConnectedAddress ?: settings.getLastGlassesAddress()
+        if (name.isNullOrBlank() || address.isNullOrBlank()) {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "Hotspot okularów: nie znam nazwy sieci",
+                mapOf("nazwaBle" to name, "adres" to address)
+            )
+            return false
+        }
+
+        val ssid = GlassesProtocol.glassesApSsid(name, address)
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Hotspot okularów: podnoszę łącze",
+            mapOf("sieć" to ssid)
+        )
+
+        send(GlassesProtocol.enableTransferMode(GlassesProtocol.TRANSFER_MODE_AP))
+
+        if (!wifiTransfer.joinAccessPoint(ssid, GlassesProtocol.GLASSES_AP_PASSWORD)) {
+            lastTransferFailure = wifiTransfer.lastFailure
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Hotspot okularów: nie dołączyłem",
+                mapOf(
+                    "sieć" to ssid,
+                    "ms" to (System.currentTimeMillis() - startedAt),
+                    "powód" to lastTransferFailure
+                )
+            )
+            return false
+        }
+
+        val ip = awaitReportedIp()
+        if (ip == null) {
+            lastTransferFailure = "Telefon jest w sieci okularów, ale one nie podały " +
+                "swojego adresu. Zdejmij je i załóż ponownie albo zrestartuj."
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Hotspot okularów: sieć stoi, ale brak adresu",
+                mapOf("ms" to (System.currentTimeMillis() - startedAt))
+            )
+            wifiTransfer.leaveAccessPoint()
+            return false
+        }
+
+        // Serwer HTTP na okularach wstaje chwilę po sieci - bez tej pauzy
+        // pierwsze żądanie spisu trafia w pustkę. Tak samo jak w ścieżce P2P.
+        wifiTransfer.awaitServerReady()
+        Log.i(tag, "Okulary osiągalne pod $ip (hotspot)")
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Hotspot okularów: gotowe",
+            mapOf("ms" to (System.currentTimeMillis() - startedAt))
+        )
+        return true
+    }
+
+    /** Czeka na ramkę notify 0x08 z adresem okularów. */
+    private suspend fun awaitReportedIp(): String? = withTimeoutOrNull(IP_TIMEOUT_MS) {
+        while (_glassesIp.value == null) {
+            delay(IP_POLL_INTERVAL_MS)
+        }
+        _glassesIp.value
+    }
+
+    /**
+     * Nazwa BLE okularów - pierwszy człon nazwy ich hotspotu.
+     *
+     * Bierzemy ją z wyników skanu, a gdy tam jej nie ma (po automatycznym
+     * połączeniu skanu nie było), pytamy o nią system: dla znanego urządzenia
+     * Android oddaje zapamiętaną nazwę bez żadnego wyszukiwania.
+     */
+    @SuppressLint("MissingPermission")
+    private fun glassesBleName(): String? {
+        val address = lastConnectedAddress ?: settings.getLastGlassesAddress() ?: return null
+        _discoveredDevices.value
+            .firstOrNull { it.address.equals(address, ignoreCase = true) }
+            ?.name
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+        val adapter = (appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
+        return runCatching { adapter?.getRemoteDevice(address)?.name }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private suspend fun awaitGlassesIpOverP2p(): Boolean {
         // Galeria i pełna rozdzielczość stoją na tej jednej funkcji, a ona
         // zawodziła bez jednego śladu w dzienniku - zgłoszenie „galeria zdjęć
         // dalej nie działa" nie miało czym się rozstrzygnąć. Powody rozpoznaje
@@ -2836,7 +2997,7 @@ class VictorManager private constructor(context: Context) {
         )
 
         // 1. Poproś okulary o wejście w tryb transferu - zaczną rozgłaszać grupę Wi-Fi Direct.
-        enableTransferMode()
+        send(GlassesProtocol.enableTransferMode(GlassesProtocol.TRANSFER_MODE_P2P))
 
         // 2. Dołącz do tej grupy - ale NIE natychmiast.
         //

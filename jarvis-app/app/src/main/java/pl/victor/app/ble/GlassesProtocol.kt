@@ -26,6 +26,12 @@ object GlassesProtocol {
     const val WORK_VIDEO_START = 0x02
     const val WORK_VIDEO_STOP = 0x03
     const val WORK_TRANSFER = 0x04
+
+    /** Argument [WORK_TRANSFER]: okulary stawiają grupę Wi-Fi Direct. */
+    const val TRANSFER_MODE_P2P = 0x01
+
+    /** Argument [WORK_TRANSFER]: okulary stawiają własny hotspot (AP). */
+    const val TRANSFER_MODE_AP = 0x02
     const val WORK_OTA = 0x05
     const val WORK_AI_PHOTO = 0x06
     const val WORK_AUDIO_START = 0x08
@@ -216,8 +222,55 @@ object GlassesProtocol {
 
     /** Każe okularom zakończyć nasłuch - patrz [WORK_AI_SESSION_STOP]. */
     fun stopAiSession(): ByteArray = command(WORK_AI_SESSION_STOP)
-    fun enableTransferMode(): ByteArray = command(WORK_TRANSFER)
+    /**
+     * Włącza na okularach tryb transferu plików.
+     *
+     * ## CZWARTY BAJT - to była przyczyna martwej galerii
+     * Wysyłaliśmy `0x02 0x01 0x04`, czyli komendę BEZ argumentu, i okulary nie
+     * stawiały żadnej sieci: ani grupy Wi-Fi Direct, ani własnego hotspotu.
+     * W dziennikach wyglądało to na "okulary nie chcą rozgłaszać grupy", a w
+     * rzeczywistości nigdy nie dowiedziały się, KTÓRY tryb mają podnieść.
+     *
+     * Aplikacja producenta wysyła w obu swoich ścieżkach cztery bajty:
+     * `0x02 0x01 0x04 0x01` (Wi-Fi Direct) albo `0x02 0x01 0x04 0x02` (hotspot).
+     * Jedyne dwa wywołania tej komendy w całej tamtej aplikacji to
+     * `importAlbum()` i `importAlbumAp()` - i każde podaje swój tryb.
+     *
+     * @param mode [TRANSFER_MODE_P2P] albo [TRANSFER_MODE_AP]
+     */
+    fun enableTransferMode(mode: Int = TRANSFER_MODE_AP): ByteArray =
+        byteArrayOf(0x02, 0x01, WORK_TRANSFER.toByte(), mode.toByte())
+
     fun resetP2p(): ByteArray = command(WORK_RESET_P2P)
+
+    // === Hotspot okularów (tryb AP) ===
+
+    /**
+     * Hasło do hotspotu okularów.
+     *
+     * Stałe w firmware - nie jest nigdzie negocjowane ani konfigurowane.
+     */
+    const val GLASSES_AP_PASSWORD = "123456789"
+
+    /**
+     * Nazwa sieci (SSID), którą okulary rozgłaszają po [TRANSFER_MODE_AP].
+     *
+     * Reguła jest w całości po stronie telefonu - okulary NIE podają jej
+     * żadną komendą. Składa się z fragmentu nazwy BLE i adresu MAC bez
+     * dwukropków. Gdy nazwa zawiera podkreślenia, bierzemy jej ostatni
+     * człon (albo pierwszy, gdy członów są dokładnie dwa) i ucinamy go do
+     * 20 znaków; bez podkreślenia idzie cała nazwa.
+     *
+     * @param bleName nazwa urządzenia BLE, taka jak w skanie
+     * @param bleAddress adres MAC urządzenia BLE (z dwukropkami lub bez)
+     */
+    fun glassesApSsid(bleName: String, bleAddress: String): String {
+        val mac = bleAddress.replace(":", "")
+        if (!bleName.contains("_")) return bleName + "_" + mac
+        val parts = bleName.split("_")
+        val head = if (parts.size > 2) parts.last() else parts[0]
+        return head.take(20) + "_" + mac
+    }
 
     /** Eksperymentalna, niepotwierdzona komenda - patrz [WORK_EXPERIMENTAL_07]. */
     fun experimental07(): ByteArray = command(WORK_EXPERIMENTAL_07)
@@ -385,7 +438,12 @@ object GlassesProtocol {
             WORK_PHOTO -> "Zdjęcie"
             WORK_VIDEO_START -> "Start nagrywania wideo"
             WORK_VIDEO_STOP -> "Stop nagrywania wideo"
-            WORK_TRANSFER -> "Tryb transferu (Wi-Fi Direct)"
+            WORK_TRANSFER -> "Tryb transferu plików" + when {
+                command.size < 4 -> " (BEZ WYBORU SIECI)"
+                command[3].toInt() == TRANSFER_MODE_P2P -> " (Wi-Fi Direct)"
+                command[3].toInt() == TRANSFER_MODE_AP -> " (hotspot)"
+                else -> " (tryb ${command[3].toInt() and 0xFF})"
+            }
             WORK_OTA -> "Aktualizacja firmware (OTA)"
             WORK_AI_PHOTO -> "Zdjęcie AI z miniaturą" +
                 if (command.size > 3) " (jakość ${command[3].toInt() and 0xFF})" else ""

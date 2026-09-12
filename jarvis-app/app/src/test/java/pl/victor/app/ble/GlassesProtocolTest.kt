@@ -37,8 +37,65 @@ class GlassesProtocolTest {
     }
 
     @Test
-    fun `tryb transferu to 02 01 04`() {
-        assertArrayEquals(byteArrayOf(0x02, 0x01, 0x04), GlassesProtocol.enableTransferMode())
+    fun `tryb transferu ma czwarty bajt z wyborem sieci`() {
+        // Bez czwartego bajtu okulary nie podnoszą ŻADNEJ sieci - ani grupy
+        // Wi-Fi Direct, ani hotspotu. Ten test pilnuje dokładnie tego bajtu.
+        assertArrayEquals(
+            byteArrayOf(0x02, 0x01, 0x04, 0x01),
+            GlassesProtocol.enableTransferMode(GlassesProtocol.TRANSFER_MODE_P2P)
+        )
+        assertArrayEquals(
+            byteArrayOf(0x02, 0x01, 0x04, 0x02),
+            GlassesProtocol.enableTransferMode(GlassesProtocol.TRANSFER_MODE_AP)
+        )
+    }
+
+    @Test
+    fun `domyslnym trybem transferu jest hotspot`() {
+        assertArrayEquals(
+            byteArrayOf(0x02, 0x01, 0x04, 0x02),
+            GlassesProtocol.enableTransferMode()
+        )
+    }
+
+    @Test
+    fun `nazwa hotspotu bez podkreslenia bierze cala nazwe`() {
+        assertEquals(
+            "Prism_AABBCCDDEEFF",
+            GlassesProtocol.glassesApSsid("Prism", "AA:BB:CC:DD:EE:FF")
+        )
+    }
+
+    @Test
+    fun `nazwa hotspotu z dwoma czlonami bierze pierwszy`() {
+        assertEquals(
+            "HeyCyan_AABBCCDDEEFF",
+            GlassesProtocol.glassesApSsid("HeyCyan_A1", "AA:BB:CC:DD:EE:FF")
+        )
+    }
+
+    @Test
+    fun `nazwa hotspotu z wieloma czlonami bierze ostatni`() {
+        assertEquals(
+            "X1_AABBCCDDEEFF",
+            GlassesProtocol.glassesApSsid("Hey_Cyan_X1", "AA:BB:CC:DD:EE:FF")
+        )
+    }
+
+    @Test
+    fun `nazwa hotspotu ucina czlon do 20 znakow`() {
+        assertEquals(
+            "ABCDEFGHIJKLMNOPQRST_AABBCCDDEEFF",
+            GlassesProtocol.glassesApSsid("Hey_Glass_ABCDEFGHIJKLMNOPQRSTUVWX", "AA:BB:CC:DD:EE:FF")
+        )
+    }
+
+    @Test
+    fun `adres bez dwukropkow daje ten sam hotspot`() {
+        assertEquals(
+            GlassesProtocol.glassesApSsid("Prism", "AA:BB:CC:DD:EE:FF"),
+            GlassesProtocol.glassesApSsid("Prism", "AABBCCDDEEFF")
+        )
     }
 
     @Test
