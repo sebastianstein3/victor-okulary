@@ -36,3 +36,7 @@
 18:48:09.831  +15623 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=7146
 18:48:14.618  +20410 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4788
 18:48:14.636  +20428 ms  ZDJĘCIE      próba 2: miniatura  notify=false
+18:48:14.699  +20491 ms  MODEL        koniec odpowiedzi (64 znaków, 5507 tokenów)  ms=4869
+18:48:18.564  +24356 ms  MOWA         koniec wypowiedzi  ms=3863
+18:48:18.603  +24395 ms  SESJA        --- KONIEC TURY b442: odpowiedziano ---
+18:48:18.608          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
