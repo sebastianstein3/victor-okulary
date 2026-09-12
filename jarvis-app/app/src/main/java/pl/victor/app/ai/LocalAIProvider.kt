@@ -55,8 +55,17 @@ class LocalAIProvider(private val context: Context) : AIProvider {
         warnIfUnsupportedMedia(images)
         ensureModelLoaded()
         val prompt = buildPrompt(textQuestion, scannedCodes, systemPrompt)
+        val startedAt = System.currentTimeMillis()
+        diag("model lokalny: generuję", mapOf("znakówPromptu" to prompt.length))
         val result = engine.generate(prompt, MAX_TOKENS) {}
             .getOrElse { e -> throw toProviderException(e) }
+        diag(
+            "model lokalny: koniec generowania",
+            mapOf(
+                "ms" to (System.currentTimeMillis() - startedAt),
+                "tokenów" to result.tokenCount
+            )
+        )
         return AIResponse(text = result.fullText.trim(), tokensUsed = result.tokenCount, providerId = id)
     }
 
@@ -72,9 +81,28 @@ class LocalAIProvider(private val context: Context) : AIProvider {
             warnIfUnsupportedMedia(images)
             ensureModelLoaded()
             val prompt = buildPrompt(textQuestion, scannedCodes, systemPrompt)
+            val startedAt = System.currentTimeMillis()
+            diag("model lokalny: generuję", mapOf("znakówPromptu" to prompt.length))
+            var firstTokenAt = 0L
             val result = engine.generate(prompt, MAX_TOKENS) { token ->
+                // Pierwszy token oddziela "model się zaciął" od "model liczy
+                // wolno". Bez tej liczby obie sytuacje wyglądają identycznie.
+                if (firstTokenAt == 0L) {
+                    firstTokenAt = System.currentTimeMillis()
+                    diag(
+                        "model lokalny: PIERWSZY TOKEN",
+                        mapOf("ms" to (firstTokenAt - startedAt))
+                    )
+                }
                 trySend(AIResponseChunk(text = token, isFinal = false))
             }
+            diag(
+                "model lokalny: koniec generowania",
+                mapOf(
+                    "ms" to (System.currentTimeMillis() - startedAt),
+                    "byłPierwszyToken" to (firstTokenAt > 0L)
+                )
+            )
             result.fold(
                 onSuccess = { gen ->
                     trySend(AIResponseChunk(text = "", isFinal = true, tokensUsed = gen.tokenCount))
@@ -147,8 +175,57 @@ class LocalAIProvider(private val context: Context) : AIProvider {
             )
         }
         val file = LocalModelStorage.targetFile(context, entry)
+
+        // ŁADOWANIE MODELU MUSI BYĆ WIDOCZNE W DZIENNIKU OSOBNO OD GENEROWANIA.
+        //
+        // W dzienniku z 13 września między "wysyłam pytanie dostawca=local" a
+        // "dostawca nie odpowiedział w czasie" mija STO DZIESIĘĆ sekund, mimo
+        // że limit wynosi 45. To znaczy, że limit nie mógł przerwać pracy:
+        // `launchCompletion` i `startEngine` to blokujące wywołania natywne, a
+        // korutyna sprawdza anulowanie wyłącznie w punktach zawieszenia, których
+        // wewnątrz takiego wywołania nie ma.
+        //
+        // Z samego "nie odpowiedział" nie da się rozstrzygnąć, czy stanęło na
+        // ładowaniu modelu, czy na generowaniu - a to dwie różne naprawy. Te
+        // dwa wiersze są po to, żeby następny dziennik to rozstrzygnął.
+        val startedAt = System.currentTimeMillis()
+        diag("model lokalny: ładuję plik", mapOf("okno" to entry.contextSize))
         engine.loadModel(file.absolutePath, entry.contextSize).getOrElse { e ->
+            diag(
+                "model lokalny: NIE UDAŁO SIĘ załadować",
+                mapOf("ms" to (System.currentTimeMillis() - startedAt), "błąd" to e.message)
+            )
             throw toProviderException(e)
+        }
+        diag(
+            "model lokalny: plik załadowany",
+            mapOf("ms" to (System.currentTimeMillis() - startedAt))
+        )
+    }
+
+    /**
+     * Ładuje model do pamięci ZANIM padnie pierwsze pytanie.
+     *
+     * Bez tego pierwsze pytanie płaci za wczytanie całego pliku modelu, a to na
+     * telefonie trwa dziesiątki sekund - i mieści się w tym limicie czasu na
+     * odpowiedź, choć nie ma z odpowiadaniem nic wspólnego. Użytkownik widzi
+     * wtedy "model lokalny w ogóle nie działa", bo pierwsza próba zawsze pada,
+     * a do drugiej rzadko kto dochodzi.
+     *
+     * Wołane, gdy dostawcą jest model lokalny - nie zawsze: trzymanie go w
+     * pamięci kosztuje kilkaset megabajtów, których nie ma po co zajmować
+     * komuś, kto korzysta z chmury.
+     */
+    suspend fun warmUp(): Result<Unit> = runCatching { ensureModelLoaded() }
+
+    private fun diag(message: String, fields: Map<String, Any?> = emptyMap()) {
+        Log.i(TAG, message + " " + fields)
+        runCatching {
+            pl.victor.app.VictorApplication.get().diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.MODEL,
+                message,
+                fields
+            )
         }
     }
 

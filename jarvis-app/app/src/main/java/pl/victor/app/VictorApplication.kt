@@ -139,6 +139,33 @@ class VictorApplication : Application() {
         // (async, nie blokuje UI)
         modelDiscovery.checkActive()
 
+        // MODEL LOKALNY WCZYTUJEMY ZAWCZASU, NIE PRZY PIERWSZYM PYTANIU.
+        //
+        // Zgłoszone dwa razy: "model lokalny w ogóle nie działa". W dzienniku z
+        // 13 września między "wysyłam pytanie dostawca=local" a "dostawca nie
+        // odpowiedział w czasie" mija sto dziesięć sekund przy limicie
+        // czterdziestu pięciu - czyli limit nie zdołał niczego przerwać, bo
+        // wczytywanie modelu to blokujące wywołanie natywne.
+        //
+        // Pierwsze pytanie płaciło więc za wczytanie całego pliku modelu i z
+        // tego powodu padało ZAWSZE, choć z odpowiadaniem nie miało to nic
+        // wspólnego. Do drugiej próby rzadko kto dochodzi.
+        //
+        // Tylko gdy to model lokalny jest dostawcą: trzymanie go w pamięci
+        // kosztuje kilkaset megabajtów, których nie ma po co zajmować komuś,
+        // kto korzysta z chmury.
+        if (settings.getActiveProvider() == LOCAL_PROVIDER_ID) {
+            appScope.launch {
+                val warmed = pl.victor.app.ai.LocalAIProvider(this@VictorApplication).warmUp()
+                Log.i(
+                    TAG,
+                    if (warmed.isSuccess) "Model lokalny wczytany zawczasu"
+                    else "Nie udało się wczytać modelu lokalnego zawczasu: " +
+                        "${warmed.exceptionOrNull()?.message}"
+                )
+            }
+        }
+
         // Jeśli wake word jest włączony - uruchom
         if (settings.isWakeWordEnabled()) {
             val accessKey = settings.getPicovoiceAccessKey()
@@ -319,6 +346,9 @@ class VictorApplication : Application() {
 
     companion object {
         private const val TAG = "VictorApp"
+
+        /** Identyfikator dostawcy „model lokalny" - patrz [pl.victor.app.ai.LocalAIProvider.id]. */
+        private const val LOCAL_PROVIDER_ID = "local"
 
         private var instance: VictorApplication? = null
 
