@@ -2152,6 +2152,54 @@ class VictorManager private constructor(context: Context) {
         }
     }
 
+    /** Liczniki plików na okularach, odczytane teraz. */
+    suspend fun mediaCountNow(timeoutMs: Long = MEDIA_COUNT_TIMEOUT_MS): MediaCount? {
+        val answer = CompletableDeferred<MediaCount?>()
+        requestMediaCount { i, v, r -> answer.complete(MediaCount(i, v, r)) }
+        return withTimeoutOrNull(timeoutMs) { answer.await() }
+    }
+
+    /**
+     * Prosi okulary o zwolnienie pamięci po imporcie - i MIERZY skutek.
+     *
+     * ## Czemu pomiar jest tu częścią operacji
+     * Bo znaczenie tej komendy jest hipotezą. Wiemy, że producent wysyła ją po
+     * każdym zakończonym imporcie i że przy pełnej pamięci odsyła użytkownika
+     * właśnie do importu - ale nie wiemy, czy kasuje pliki, czy tylko oznacza
+     * je jako zsynchronizowane. Liczniki przed i po rozstrzygają to jednym
+     * użyciem, a bez nich zostalibyśmy z tą samą niewiedzą po każdym kolejnym.
+     *
+     * Komenda NIE jest wysyłana automatycznie po imporcie i nie powinna być,
+     * dopóki pomiar nie powie, co robi: jeśli kasuje, to nieodwracalnie.
+     *
+     * @return liczniki przed i po, do pokazania użytkownikowi
+     */
+    suspend fun releaseGlassesStorage(): Pair<MediaCount?, MediaCount?> {
+        val before = mediaCountNow()
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Zwolnienie pamięci: liczniki PRZED",
+            mapOf(
+                "zdjęć" to before?.images,
+                "wideo" to before?.videos,
+                "nagrań" to before?.records
+            )
+        )
+        send(GlassesProtocol.releaseStorage())
+        delay(RELEASE_STORAGE_SETTLE_MS)
+        val after = mediaCountNow()
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Zwolnienie pamięci: liczniki PO",
+            mapOf(
+                "zdjęć" to after?.images,
+                "wideo" to after?.videos,
+                "nagrań" to after?.records
+            )
+        )
+        return before to after
+    }
+
     /** Prosi okulary o aktualny poziom baterii - odpowiedź wraca jako notify 0x05. */
     fun requestBatteryLevel() {
         Log.d(tag, "Zapytanie o baterię")
@@ -3635,6 +3683,12 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile czekać na odpowiedź okularów na komendę trybu transferu. */
         private const val TRANSFER_ANSWER_TIMEOUT_MS = 5_000L
+
+        /** Ile czekać na liczniki plików. */
+        private const val MEDIA_COUNT_TIMEOUT_MS = 6_000L
+
+        /** Ile dać okularom na wykonanie zwolnienia pamięci przed odczytem. */
+        private const val RELEASE_STORAGE_SETTLE_MS = 3_000L
 
         /** Ile dać okularom na pozbieranie się po resecie łącza. */
         private const val TRANSFER_RESET_SETTLE_MS = 2_000L

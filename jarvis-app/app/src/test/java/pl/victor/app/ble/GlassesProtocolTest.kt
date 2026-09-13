@@ -595,4 +595,9 @@ class GlassesProtocolTest {
         assertEquals("rtsp://192.168.49.1:8554/ch0", GlassesProtocol.rtspUrl("192.168.49.1"))
     }
 
+    @Test
+    fun `zwolnienie pamieci to 02 01 09`() {
+        assertArrayEquals(byteArrayOf(0x02, 0x01, 0x09), GlassesProtocol.releaseStorage())
+    }
+
 }

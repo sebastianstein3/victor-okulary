@@ -77,6 +77,29 @@ object GlassesProtocol {
     const val WORK_AUDIO_START = 0x08
 
     /**
+     * Zwolnienie pamięci okularów po zakończonym imporcie.
+     *
+     * ## Na jakiej podstawie
+     * Aplikacja producenta wysyła tę komendę DOKŁADNIE RAZ - w
+     * `fileDownloadComplete`, po pobraniu kompletu plików, razem z
+     * rozłączeniem Wi-Fi. Odpowiedź ignoruje (callback jest pusty).
+     *
+     * Trzy poszlaki mówią, że to zwalnianie pamięci:
+     * - komunikat producenta przy pełnej pamięci brzmi "zaimportuj zdjęcia i
+     *   filmy przez aplikację i spróbuj ponownie", czyli import JEST u nich
+     *   lekarstwem na zapełnione okulary,
+     * - zapytanie o liczniki ([requestMediaCount]) zwraca liczbę plików
+     *   NIEZSYNCHRONIZOWANYCH, więc coś musi tę flagę ustawiać,
+     * - to jedyna komenda wysyłana po imporcie i nigdzie indziej.
+     *
+     * ## Czego nie wiemy
+     * Czy kasuje pliki, czy tylko oznacza je jako zsynchronizowane. Różnica
+     * jest nieodwracalna, więc komenda NIE jest wysyłana automatycznie -
+     * rozstrzygnie ją pomiar liczników przed i po, przy świadomym kliknięciu.
+     */
+    const val WORK_RELEASE_STORAGE = 0x09
+
+    /**
      * Koniec sesji AI po stronie okularów.
      *
      * ## Skąd to wiemy
@@ -282,6 +305,9 @@ object GlassesProtocol {
         byteArrayOf(0x02, 0x01, WORK_TRANSFER.toByte(), mode.toByte())
 
     fun resetP2p(): ByteArray = command(WORK_RESET_P2P)
+
+    /** Zwalnia pamięć okularów po imporcie - patrz [WORK_RELEASE_STORAGE]. */
+    fun releaseStorage(): ByteArray = command(WORK_RELEASE_STORAGE)
 
     // === Odpowiedź na komendę trybu transferu ===
 
