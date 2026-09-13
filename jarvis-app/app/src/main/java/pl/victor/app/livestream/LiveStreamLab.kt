@@ -115,56 +115,51 @@ class LiveStreamLab(context: Context) {
         probeJob?.cancel()
         probeJob = null
         releasePlayer()
-        victor.endTransferSession()
+        // Komendą, nie samym rozłączeniem sieci: okulary zostawione w trybie
+        // podglądu odmówią następnym razem - tak samo jak przy transferze.
+        victor.stopLivePreview()
         _state.value = LabState.Idle
-        log.append("INFO", "Zatrzymano - zwolniono odtwarzacz i sieć P2P")
+        log.append("INFO", "Zatrzymano - wyłączyłem podgląd i zwolniłem sieć")
     }
 
     private suspend fun runProbe() {
-        log.append("INFO", "Start: łączenie P2P bez wysłanej komendy (pasywnie)")
+        // KONIEC ZGADYWANIA - ZNAMY KOMENDĘ.
+        //
+        // Ta klasa powstała, gdy nie wiedzieliśmy, czym się włącza strumień:
+        // łączyła się biernie i sprawdzała czternaście kombinacji portu i
+        // ścieżki, licząc, że trafi. Adres trafiała od początku (port 8554,
+        // ścieżka `ch0`), ale serwer nigdy nie odpowiadał, bo nikt go nie
+        // uruchomił.
+        //
+        // Komenda to `0x02 0x01 0x14 <rodzaj sieci>` - ten sam kształt co przy
+        // trybie transferu plików. Zgadywaliśmy ją wśród bajtów 0x07 i 0x0D.
+        log.append("INFO", "Start: włączam podgląd na żywo komendą 0x14")
         _state.value = LabState.ConnectingP2p
 
-        val connected = victor.awaitGlassesIpPassive()
-        val ip = victor.glassesIp.value
-        if (!connected || ip == null) {
-            log.append("ERROR", "Nie udało się połączyć P2P albo dostać IP okularów")
-            _state.value = LabState.Error("Brak połączenia P2P albo IP okularów")
-            return
-        }
-
-        log.append("INFO", "Okulary osiągalne pod $ip - szukam serwera RTSP")
-        _state.value = LabState.ProbingRtsp(ip)
-
-        val url = probeRtsp(ip)
+        val url = victor.startLivePreview()
         if (url == null) {
-            val attempts = RTSP_PORTS.size * STREAM_PATHS.size
-            log.append("ERROR", "Nie znaleziono serwera RTSP pod $ip (sprawdzono $attempts kombinacji)")
-            _state.value = LabState.Error("Brak serwera RTSP - tryb 8 prawdopodobnie nieaktywny")
+            val reason = victor.lastTransferFailure ?: "nieznany powód"
+            log.append("ERROR", "Nie udało się podnieść podglądu: $reason")
+            _state.value = LabState.Error(reason)
             return
         }
 
-        log.append("SUCCESS", "Strumień znaleziony: $url")
+        log.append("INFO", "Strumień pod $url - uruchamiam odtwarzacz")
+        _state.value = LabState.ProbingRtsp(url)
+
+        if (!tryPlayUrl(url)) {
+            log.append(
+                "ERROR",
+                "Sieć stoi i adres jest znany, ale odtwarzacz nie odebrał obrazu"
+            )
+            _state.value = LabState.Error("Strumień nie ruszył pod $url")
+            return
+        }
+
+        log.append("SUCCESS", "Obraz leci: $url")
         _state.value = LabState.Playing(url)
     }
 
-    private suspend fun probeRtsp(ip: String): String? {
-        for (port in RTSP_PORTS) {
-            val open = withContext(Dispatchers.IO) { isPortOpen(ip, port) }
-            log.append("RTSP_PROBE", "Port $port: ${if (open) "otwarty" else "zamknięty"}")
-            if (!open) continue
-
-            for (path in STREAM_PATHS) {
-                val url = if (path.isEmpty()) "rtsp://$ip:$port/" else "rtsp://$ip:$port/$path"
-                log.append("RTSP_PROBE", "Próba: $url")
-                if (tryPlayUrl(url)) return url
-            }
-        }
-        return null
-    }
-
-    // Media3 oznacza swoje wsparcie RTSP jako eksperymentalne; to jest właśnie
-    // ten zamierzony, świadomy przypadek użycia.
-    @SuppressLint("UnsafeOptInUsageError")
     private suspend fun tryPlayUrl(url: String): Boolean = withContext(Dispatchers.Main) {
         val result = withTimeoutOrNull(PROBE_TIMEOUT_MS) {
             suspendCancellableCoroutine { cont ->
@@ -212,12 +207,6 @@ class LiveStreamLab(context: Context) {
         result ?: false
     }
 
-    private fun isPortOpen(host: String, port: Int): Boolean = try {
-        Socket().use { it.connect(InetSocketAddress(host, port), PORT_CHECK_TIMEOUT_MS) }
-        true
-    } catch (e: IOException) {
-        false
-    }
 
     private fun releasePlayer() {
         exoPlayer?.release()
@@ -227,10 +216,6 @@ class LiveStreamLab(context: Context) {
     companion object {
         private const val PROBE_TIMEOUT_MS = 3_000L
         private const val PORT_CHECK_TIMEOUT_MS = 2_000
-        private val RTSP_PORTS = intArrayOf(554, 8554)
-        private val STREAM_PATHS = arrayOf(
-            "testH264VideoStreamer", "live", "stream", "video", "ch0", "h264", ""
-        )
     }
 }
 
@@ -238,7 +223,8 @@ class LiveStreamLab(context: Context) {
 sealed class LabState {
     object Idle : LabState()
     object ConnectingP2p : LabState()
-    data class ProbingRtsp(val ip: String) : LabState()
+    /** Sieć stoi, adres strumienia znany - czekamy na pierwszą klatkę. */
+    data class ProbingRtsp(val url: String) : LabState()
     data class Playing(val url: String) : LabState()
     data class Error(val message: String) : LabState()
 }

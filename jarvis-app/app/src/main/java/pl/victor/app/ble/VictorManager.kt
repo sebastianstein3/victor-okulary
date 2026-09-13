@@ -1898,8 +1898,19 @@ class VictorManager private constructor(context: Context) {
     suspend fun requestTransferMode(
         mode: Int,
         timeoutMs: Long = TRANSFER_ANSWER_TIMEOUT_MS
+    ): TransferModeAnswer? = requestNetworkMode(GlassesProtocol.enableTransferMode(mode), timeoutMs)
+
+    /**
+     * Wysyła komendę podnoszącą sieć na okularach i czeka na odpowiedź.
+     *
+     * Wspólna dla trybu transferu plików i dla podglądu na żywo, bo obie
+     * komendy mają tę samą budowę (`0x02 0x01 <tryb pracy> <rodzaj sieci>`) i tę
+     * samą odpowiedź, z której czytamy przeszkody.
+     */
+    private suspend fun requestNetworkMode(
+        bytes: ByteArray,
+        timeoutMs: Long = TRANSFER_ANSWER_TIMEOUT_MS
     ): TransferModeAnswer? {
-        val bytes = GlassesProtocol.enableTransferMode(mode)
         _lastCommand.value = GlassesProtocol.describeCommand(bytes)
         if (simulator != null) return TransferModeAnswer(0, GlassesProtocol.TRANSFER_READY)
 
@@ -1950,6 +1961,102 @@ class VictorManager private constructor(context: Context) {
         }
     }
 
+    // === Podgląd na żywo z kamery ===
+
+    /**
+     * Podnosi podgląd na żywo i zwraca adres strumienia.
+     *
+     * ## Czemu to jest krótkie
+     * Bo cała trudna część już istnieje. Podgląd potrzebuje dokładnie tego
+     * samego, co galeria: sieci z okularami i ich adresu. Różni się jedną
+     * komendą i tym, że zamiast HTTP idzie po nim RTSP.
+     *
+     * Strumień oglądaliśmy zresztą już wcześniej - panel Live Stream Lab
+     * sprawdzał port 8554 i ścieżkę `ch0`, czyli trafnie. Nie ruszał, bo
+     * nikt nie wysyłał komendy, która go włącza.
+     *
+     * @return adres RTSP albo `null`, gdy nie udało się podnieść łącza
+     */
+    suspend fun startLivePreview(): String? {
+        lastTransferFailure = null
+        val startedAt = System.currentTimeMillis()
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Podgląd na żywo: podnoszę"
+        )
+
+        val answer = requestNetworkMode(
+            GlassesProtocol.startLivePreview(GlassesProtocol.TRANSFER_MODE_AP)
+        )
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Podgląd na żywo: odpowiedź na komendę",
+            mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng)
+        )
+        val refusal = answer?.let { GlassesProtocol.transferRefusalReason(it.workTypeIng) }
+        if (refusal != null) {
+            lastTransferFailure = refusal
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Podgląd na żywo: okulary odmówiły",
+                mapOf("stan" to answer?.workTypeIng, "powód" to refusal)
+            )
+            return null
+        }
+
+        // Sieć i adres zdobywamy tą samą drogą co przy galerii. `_glassesIp`
+        // czyścimy, bo adres z poprzedniej sesji wskazywałby na nieistniejącą
+        // już sieć, a odtwarzacz czekałby na strumień pod martwym adresem.
+        _glassesIp.value = null
+        val name = glassesBleName()
+        val address = lastConnectedAddress ?: settings.getLastGlassesAddress()
+        if (name.isNullOrBlank() || address.isNullOrBlank()) {
+            lastTransferFailure = "Nie znam nazwy sieci okularów."
+            return null
+        }
+        val ssid = GlassesProtocol.glassesApSsid(name, address)
+        if (!wifiTransfer.joinAccessPoint(ssid, GlassesProtocol.GLASSES_AP_PASSWORD)) {
+            lastTransferFailure = wifiTransfer.lastFailure
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Podgląd na żywo: nie dołączyłem do sieci",
+                mapOf("sieć" to ssid, "powód" to lastTransferFailure)
+            )
+            return null
+        }
+        val ip = awaitReportedIp()
+        if (ip == null) {
+            lastTransferFailure = "Okulary nie podały swojego adresu."
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Podgląd na żywo: brak adresu okularów"
+            )
+            wifiTransfer.leaveAccessPoint()
+            return null
+        }
+        wifiTransfer.awaitServerReady()
+        val url = GlassesProtocol.rtspUrl(ip)
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Podgląd na żywo: gotowe",
+            mapOf("adres" to url, "ms" to (System.currentTimeMillis() - startedAt))
+        )
+        return url
+    }
+
+    /**
+     * Kończy podgląd na żywo i zwalnia sieć.
+     *
+     * Komenda idzie NAWET gdy podgląd się nie udał: okulary mogły zdążyć wejść
+     * w ten tryb, a zostawione w nim odmówią następnym razem - dokładnie tak,
+     * jak przy trybie transferu.
+     */
+    fun stopLivePreview() {
+        send(GlassesProtocol.stopLivePreview())
+        if (simulator == null) wifiTransfer.stop()
+        _glassesIp.value = null
+    }
+
     /** Resetuje połączenie P2P na okularach (gdy transfer się zawiesi). */
     fun resetP2p() {
         Log.d(tag, "Reset P2P")
@@ -1982,39 +2089,6 @@ class VictorManager private constructor(context: Context) {
         send(GlassesProtocol.restartDevice(), onResponse)
     }
 
-    /**
-     * Łączy z grupą Wi-Fi Direct okularów BEZ wysyłania żadnej komendy sterującej
-     * najpierw - w przeciwieństwie do [awaitGlassesIp], który zaczyna od
-     * `enableTransferMode()`.
-     *
-     * To mirror pasywnego flow z CyanBridge (`LivePreviewManager.kt`): jeśli tryb 8
-     * (live streaming) zostanie aktywowany zewnętrznie, okulary same rozgłoszą grupę
-     * P2P (firmware ładuje moduł WLAN przed startem binarki streamującej) - nie trzeba
-     * (i nie powinno się) najpierw włączać trybu transferu plików.
-     *
-     * @return `true` gdy telefon dołączył do grupy i dostał IP okularów (ramka 0x08)
-     */
-    suspend fun awaitGlassesIpPassive(): Boolean {
-        if (simulator != null) {
-            return withTimeoutOrNull(IP_TIMEOUT_MS) {
-                while (_glassesIp.value == null) delay(IP_POLL_INTERVAL_MS)
-                true
-            } ?: false
-        }
-        if (!joinWifiDirectGroup()) return false
-        val ip = withTimeoutOrNull(IP_TIMEOUT_MS) {
-            while (_glassesIp.value == null) {
-                delay(IP_POLL_INTERVAL_MS)
-            }
-            _glassesIp.value
-        }
-        if (ip == null) {
-            Log.w(tag, "[Live Stream Lab] Nie doczekano się IP okularów (ramka notify 0x08)")
-            return false
-        }
-        Log.i(tag, "[Live Stream Lab] Okulary osiągalne pod $ip (bez wysłanej komendy)")
-        return true
-    }
 
     /**
      * Robi zdjęcie okularami.

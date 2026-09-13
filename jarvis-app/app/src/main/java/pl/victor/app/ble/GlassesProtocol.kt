@@ -32,6 +32,46 @@ object GlassesProtocol {
 
     /** Argument [WORK_TRANSFER]: okulary stawiają własny hotspot (AP). */
     const val TRANSFER_MODE_AP = 0x02
+
+    /**
+     * Podgląd na żywo z kamery okularów.
+     *
+     * ## Skąd to wiemy i czemu wcześniej nie działało
+     * Podgląd stawia na okularach zwykły serwer RTSP - patrz [rtspUrl]. Adres
+     * odgadliśmy już wcześniej (panel Live Stream Lab sprawdzał port 8554 i
+     * ścieżkę `ch0`, czyli trafnie), ale strumień nigdy nie ruszał, bo
+     * BRAKOWAŁO KOMENDY, która go włącza. Zgadywaliśmy ją wśród bajtów 0x07 i
+     * 0x0D; prawdziwa to 0x14, z tym samym argumentem sieci co tryb transferu.
+     *
+     * To jest dokładnie ten sam błąd, co przy galerii: poprawny adres, brak
+     * komendy włączającej.
+     */
+    const val WORK_LIVE_PREVIEW = 0x14
+
+    /** Zakończenie podglądu na żywo. */
+    const val WORK_LIVE_PREVIEW_STOP = 0x15
+
+    /**
+     * Włącza podgląd na żywo.
+     *
+     * @param mode [TRANSFER_MODE_P2P] albo [TRANSFER_MODE_AP] - ta sama para co
+     *   przy trybie transferu, bo podgląd potrzebuje takiej samej sieci
+     */
+    fun startLivePreview(mode: Int = TRANSFER_MODE_AP): ByteArray =
+        byteArrayOf(0x02, 0x01, WORK_LIVE_PREVIEW.toByte(), mode.toByte())
+
+    /** Kończy podgląd na żywo. */
+    fun stopLivePreview(): ByteArray =
+        byteArrayOf(0x02, 0x01, WORK_LIVE_PREVIEW_STOP.toByte(), 0x01)
+
+    /** Port serwera RTSP na okularach. */
+    const val RTSP_PORT = 8554
+
+    /** Ścieżka strumienia - okulary mają jeden kanał. */
+    const val RTSP_PATH = "ch0"
+
+    /** Adres strumienia podglądu na żywo. */
+    fun rtspUrl(ip: String): String = "rtsp://$ip:$RTSP_PORT/$RTSP_PATH"
     const val WORK_OTA = 0x05
     const val WORK_AI_PHOTO = 0x06
     const val WORK_AUDIO_START = 0x08

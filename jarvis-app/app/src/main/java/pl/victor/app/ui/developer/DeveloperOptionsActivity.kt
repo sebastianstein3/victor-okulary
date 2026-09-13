@@ -244,7 +244,7 @@ private fun CommandConfirmDialog(
 private fun stateLabel(state: LabState): String = when (state) {
     is LabState.Idle -> "Bezczynny"
     is LabState.ConnectingP2p -> "Łączenie Wi-Fi Direct..."
-    is LabState.ProbingRtsp -> "Szukam RTSP na ${state.ip}..."
+    is LabState.ProbingRtsp -> "Czekam na obraz: ${state.url}"
     is LabState.Playing -> "Odtwarzam: ${state.url}"
     is LabState.Error -> "Błąd: ${state.message}"
 }

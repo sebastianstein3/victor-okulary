@@ -573,4 +573,26 @@ class GlassesProtocolTest {
         assertNull(GlassesProtocol.transferRefusalReason(99))
     }
 
+    @Test
+    fun `podglad na zywo to 02 01 14 z trybem sieci`() {
+        assertArrayEquals(
+            byteArrayOf(0x02, 0x01, 0x14, 0x02),
+            GlassesProtocol.startLivePreview(GlassesProtocol.TRANSFER_MODE_AP)
+        )
+        assertArrayEquals(
+            byteArrayOf(0x02, 0x01, 0x14, 0x01),
+            GlassesProtocol.startLivePreview(GlassesProtocol.TRANSFER_MODE_P2P)
+        )
+    }
+
+    @Test
+    fun `koniec podgladu to 02 01 15 01`() {
+        assertArrayEquals(byteArrayOf(0x02, 0x01, 0x15, 0x01), GlassesProtocol.stopLivePreview())
+    }
+
+    @Test
+    fun `adres strumienia`() {
+        assertEquals("rtsp://192.168.49.1:8554/ch0", GlassesProtocol.rtspUrl("192.168.49.1"))
+    }
+
 }
