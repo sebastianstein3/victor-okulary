@@ -2129,7 +2129,12 @@ class AIOrchestrator(
          * zameldowały je kolejną ramką - i to samo od nowa. Zgłoszone jako
          * „okulary zaczęły robić zdjęcia przez cały czas".
          */
-        allowInterruptSpeech: Boolean = trigger.mayInterruptSpeech()
+        allowInterruptSpeech: Boolean = trigger.mayInterruptSpeech(),
+        /**
+         * Czy odpowiedź modelu ma trafić do notatnika zamiast być tylko
+         * wypowiedzianą odpowiedzią - patrz [pl.victor.app.notes.Notes.describeRequest].
+         */
+        saveAsNote: Boolean = false
     ) {
         // Przycisk na okularach to też świadome działanie użytkownika TERAZ -
         // ma pierwszeństwo tak samo jak wypowiedź. Tury wewnętrzne (powtórka ze
@@ -2247,6 +2252,52 @@ class AIOrchestrator(
                 Log.i(TAG, "Warstwa 0: wyliczenie faktów")
                 audio.speak(speech, language = settings.getResponseLanguage())
                 _state.value = OrchestratorState.Completed(speech)
+                return
+            }
+
+            // NOTATKA, KTÓREJ TREŚĆ PISZE MODEL - sprawdzana PRZED zwykłą.
+            //
+            // "Zrób notatkę o tym zamku" nie jest notatką o treści "o tym
+            // zamku". Taka wypowiedź nie NIESIE treści, tylko ODSYŁA - do tego,
+            // na co użytkownik patrzy, albo do tego, co przed chwilą usłyszał.
+            // Zwykła ścieżka zapisałaby sam odsyłacz i wyglądałoby to na
+            // działającą funkcję, dopóki ktoś nie zajrzy do notatnika.
+            //
+            // Kolejność jest tu warunkiem poprawności, a nie preferencją: obie
+            // funkcje łapią te same zwroty otwierające, więc ta bardziej
+            // szczegółowa musi być pierwsza.
+            pl.victor.app.notes.Notes.describeRequest(textQuestion)?.let { request ->
+                when (request.source) {
+                    pl.victor.app.notes.Notes.Source.LAST_ANSWER -> {
+                        val material = _lastResponse.value?.text
+                        if (material.isNullOrBlank()) {
+                            // Cicha porażka byłaby tu najgorsza: użytkownik
+                            // odchodzi przekonany, że ma notatkę.
+                            val speech = "Nie mam jeszcze z czego zrobić notatki - " +
+                                "najpierw o coś zapytaj."
+                            audio.speak(speech, language = settings.getResponseLanguage())
+                            _state.value = OrchestratorState.Completed(speech)
+                            return
+                        }
+                        Log.i(TAG, "Warstwa 0: notatka z ostatniej odpowiedzi")
+                        handleUserTrigger(
+                            trigger,
+                            pl.victor.app.notes.Notes.noteFromTextPrompt(
+                                material, request.topic
+                            ),
+                            saveAsNote = true
+                        )
+                    }
+                    pl.victor.app.notes.Notes.Source.SIGHT -> {
+                        Log.i(TAG, "Warstwa 0: notatka z tego, co widzą okulary")
+                        handleUserTrigger(
+                            trigger,
+                            pl.victor.app.notes.Notes.noteFromSightPrompt(request.topic),
+                            forceVision = true,
+                            saveAsNote = true
+                        )
+                    }
+                }
                 return
             }
 
@@ -3214,6 +3265,27 @@ class AIOrchestrator(
                     history.trimTo(settings.getHistoryLimit())
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to save history", e)
+                }
+
+                // ODPOWIEDŹ MODELU JAKO NOTATKA.
+                //
+                // Zapis idzie PO wypowiedzeniu, a nie zamiast: użytkownik i tak
+                // usłyszy, co zostało zapisane, bo prompt każe modelowi oddać
+                // samą treść notatki. Krótkie potwierdzenie na końcu jest po to,
+                // żeby dało się odróżnić notatkę zapisaną od zwykłej odpowiedzi.
+                if (saveAsNote) {
+                    val written = pl.victor.app.notes.Notes.acceptWritten(response.text)
+                    val confirmation = if (written == null) {
+                        // Model nie dał się użyć - i trzeba to powiedzieć wprost.
+                        // Milczenie znaczyłoby dla użytkownika "zapisane".
+                        Log.w(TAG, "Model nie napisał treści nadającej się na notatkę")
+                        "Nie udało mi się z tego zrobić notatki."
+                    } else {
+                        val notes = settings.addNote(written)
+                        Log.i(TAG, "Notatka napisana przez model zapisana")
+                        "Zapisane. Masz teraz ${notes.size} notatek."
+                    }
+                    audio.speak(confirmation, language = settings.getResponseLanguage())
                 }
 
                 _state.value = OrchestratorState.Completed(response.text)

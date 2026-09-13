@@ -171,4 +171,127 @@ class NotesTest {
         val many = (1..15).map { Notes.Note("Notatka $it", 0) }
         assertTrue(Notes.speak(many).contains("Resztę zobaczysz w aplikacji"))
     }
+    // === Notatka pisana przez model ===
+
+    @Test
+    fun `zrob z tego notatke bierze material z ostatniej odpowiedzi`() {
+        val request = Notes.describeRequest("Zrób z tego notatkę")
+        assertEquals(Notes.Source.LAST_ANSWER, request?.source)
+    }
+
+    @Test
+    fun `zrob notatke o tym zamku idzie po zdjecie`() {
+        val request = Notes.describeRequest("Zrób notatkę o tym zamku")
+        assertEquals(Notes.Source.SIGHT, request?.source)
+        assertEquals("o tym zamku", request?.topic)
+    }
+
+    @Test
+    fun `odsylacz miedzy czasownikiem a slowem notatka`() {
+        // Szyk, którym pada ta prośba najczęściej.
+        assertEquals(
+            Notes.Source.LAST_ANSWER,
+            Notes.describeRequest("Zrób z tego notatkę")?.source
+        )
+        assertEquals(
+            Notes.Source.SIGHT,
+            Notes.describeRequest("Zapisz o tym notatkę")?.source
+        )
+    }
+
+    @Test
+    fun `ten sam szyk z innym rzeczownikiem to nie notatka`() {
+        // "Zrób z tego zdjęcie" ma tę samą budowę i NIE jest notatką.
+        assertNull(Notes.describeRequest("Zrób z tego zdjęcie"))
+    }
+
+    @Test
+    fun `zanotuj co widzisz idzie po zdjecie`() {
+        assertEquals(
+            Notes.Source.SIGHT,
+            Notes.describeRequest("Zanotuj co widzisz")?.source
+        )
+    }
+
+    @Test
+    fun `zwykla notatka nie jest prosba o napisanie`() {
+        // To jest sedno: dyktowana treść MUSI iść dawną drogą i zapisać się
+        // dosłownie. Gdyby tu wyszło cokolwiek innego, zwykłe notatki
+        // zaczęłyby być przepisywane przez model.
+        assertNull(Notes.describeRequest("Zapisz, że muszę kupić mleko i chleb"))
+        assertNull(Notes.describeRequest("Notatka: oddać książkę do biblioteki"))
+    }
+
+    @Test
+    fun `granica slowa chroni przed falszywym trafieniem`() {
+        // "o tym" nie może łapać "o tymczasowym" - inaczej zamiast zapisać
+        // notatkę poszlibyśmy robić zdjęcie.
+        assertNull(Notes.describeRequest("Zapisz o tymczasowym rozwiązaniu w pracy"))
+    }
+
+    @Test
+    fun `kalendarz ma pierwszenstwo`() {
+        assertNull(Notes.describeRequest("Zapisz spotkanie o tym projekcie"))
+    }
+
+    @Test
+    fun `sam zwrot bez odsylacza to nie jest prosba o napisanie`() {
+        assertNull(Notes.describeRequest("Zrób notatkę"))
+        assertNull(Notes.describeRequest(""))
+    }
+
+    @Test
+    fun `tresc od modelu jest przyjmowana i zaczyna sie wielka litera`() {
+        assertEquals(
+            "Zamek w Malborku, największy ceglany zamek na świecie.",
+            Notes.acceptWritten("zamek w Malborku, największy ceglany zamek na świecie.")
+        )
+    }
+
+    @Test
+    fun `cudzyslowy sa obcinane`() {
+        assertEquals("Coś ważnego do zapamiętania", Notes.acceptWritten("\"Coś ważnego do zapamiętania\""))
+    }
+
+    @Test
+    fun `odmowa modelu nie staje sie notatka`() {
+        assertNull(Notes.acceptWritten("Nie mogę określić, co jest na zdjęciu."))
+        assertNull(Notes.acceptWritten("Przepraszam, ale zdjęcie jest nieczytelne."))
+        assertNull(Notes.acceptWritten("Niestety nie rozpoznaję tego obiektu."))
+    }
+
+    @Test
+    fun `pustka i wypracowanie sa odrzucane`() {
+        assertNull(Notes.acceptWritten(null))
+        assertNull(Notes.acceptWritten("   "))
+        assertNull(Notes.acceptWritten("ok"))
+        assertNull(Notes.acceptWritten("a".repeat(601)))
+    }
+
+    @Test
+    fun `polecenie dla modelu nie jest prosba o notatke`() {
+        // ZABEZPIECZENIE PRZED PĘTLĄ. Orkiestrator wysyła te polecenia z
+        // powrotem przez warstwę 0 jako zwykłe pytanie. Gdyby któreś z nich
+        // dało się rozpoznać jako prośbę o notatkę, aplikacja zapętliłaby się
+        // na wysyłaniu samej siebie do modelu.
+        assertNull(Notes.describeRequest(Notes.noteFromSightPrompt("o tym zamku")))
+        assertNull(Notes.describeRequest(Notes.noteFromSightPrompt(null)))
+        assertNull(Notes.describeRequest(Notes.noteFromTextPrompt("cokolwiek", "z tego")))
+        assertNull(Notes.extract(Notes.noteFromSightPrompt("o tym zamku")))
+        assertNull(Notes.extract(Notes.noteFromTextPrompt("cokolwiek", "z tego")))
+    }
+
+    @Test
+    fun `polecenie dla zdjecia zabrania opisywania zdjecia`() {
+        val prompt = Notes.noteFromSightPrompt("o tym zamku")
+        assertTrue(prompt.contains("o tym zamku"))
+        assertTrue(prompt.lowercase().contains("na zdjęciu widać"))
+    }
+
+    @Test
+    fun `polecenie dla tekstu niesie material`() {
+        val prompt = Notes.noteFromTextPrompt("Malbork zbudowano w XIII wieku.", null)
+        assertTrue(prompt.contains("Malbork zbudowano w XIII wieku."))
+    }
+
 }

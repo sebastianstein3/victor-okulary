@@ -280,6 +280,238 @@ object Notes {
             "SAMĄ treścią notatki, jednym zdaniem, bez cudzysłowów i bez wstępu.\n\n" +
             raw
 
+    // === Notatka NAPISANA przez model, a nie podyktowana ===
+
+    /**
+     * Skąd wziąć materiał na notatkę, której użytkownik nie podyktował.
+     *
+     * ## Po co to w ogóle jest
+     * Bo "zrób notatkę o tym zamku" nie jest notatką o treści "o tym zamku".
+     * [extract] traktuje wszystko po zwrocie otwierającym jako treść i zapisuje
+     * ją dosłownie - przy dyktowaniu ("zapisz, że mam kupić mleko") jest to
+     * dokładnie właściwe, a tutaj daje zapis bez sensu. Różnica jest w tym, że
+     * ta wypowiedź nie NIESIE treści, tylko ODSYŁA do czegoś poza sobą:
+     * do zamku, na który użytkownik patrzy, albo do tego, co przed chwilą
+     * usłyszał.
+     */
+    enum class Source {
+        /** Materiałem jest ostatnia odpowiedź asystenta - "zrób z tego notatkę". */
+        LAST_ANSWER,
+
+        /** Materiałem jest to, co widzą okulary - "zrób notatkę o tym zamku". */
+        SIGHT
+    }
+
+    /**
+     * @param source skąd wziąć materiał
+     * @param topic fraza, którą podał użytkownik ("o tym zamku") albo `null`;
+     *   idzie do modelu jako wskazówka, o czym ma być notatka
+     */
+    data class Described(val source: Source, val topic: String?)
+
+    /**
+     * Zwroty odsyłające do TEGO, CO ASYSTENT WŁAŚNIE POWIEDZIAŁ.
+     *
+     * Kolejność od najdłuższego, bo "z tego co mówiłeś" zawiera "z tego".
+     */
+    private val LAST_ANSWER_REFERENCES = listOf(
+        "z tego co powiedziałeś",
+        "z tego co powiedziales",
+        "z tego co mówiłeś",
+        "z tego co mowiles",
+        "z tej odpowiedzi",
+        "z ostatniej odpowiedzi",
+        "z tej rozmowy",
+        "z tego wszystkiego",
+        "z tego"
+    ).sortedByDescending { it.length }
+
+    /**
+     * Zwroty odsyłające do TEGO, NA CO UŻYTKOWNIK PATRZY.
+     *
+     * "o tym" i "o tej" są tu z rozmysłem bez dalszego ciągu: po nich prawie
+     * zawsze idzie rzeczownik ("o tym zamku", "o tej tablicy"), a tego nie ma
+     * po co wyliczać - wystarczy, że wypowiedź zaczyna się od wskazania.
+     */
+    private val SIGHT_REFERENCES = listOf(
+        "co widzisz",
+        "co tu widać",
+        "co tu widac",
+        "z tego co widzisz",
+        "z tego widoku",
+        "o tym",
+        "o tej",
+        "o tych",
+        "z tego zdjęcia",
+        "z tego zdjecia"
+    ).sortedByDescending { it.length }
+
+    /**
+     * Rozpoznaje prośbę o notatkę, której treść ma NAPISAĆ model.
+     *
+     * Sprawdzana PRZED [extract] i tylko dlatego działa: obie funkcje łapią te
+     * same zwroty otwierające, więc ta bardziej szczegółowa musi mieć
+     * pierwszeństwo. Gdy zwróci `null`, nic się nie zmienia i wypowiedź idzie
+     * dawną drogą.
+     *
+     * @return skąd wziąć materiał, albo `null` gdy to zwykła notatka lub nie
+     *   notatka w ogóle
+     */
+    fun describeRequest(text: String): Described? {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return null
+        val lower = trimmed.lowercase()
+
+        // Kalendarz ma pierwszeństwo tak samo jak w [extract] - inaczej
+        // "zapisz spotkanie o tym projekcie" trafiłoby tutaj.
+        if (CALENDAR_WORDS.any { lower.contains(it) }) return null
+
+        // SZYK PIERWSZY: "zrób notatkę O TYM ZAMKU" - odsyłacz idzie po całym
+        // zwrocie otwierającym.
+        PREFIXES.firstOrNull { startsWithPrefix(lower, it) }?.let { prefix ->
+            val rest = trimmed.substring(prefix.length).trimStart { it in SEPARATORS }.trim()
+            sourceOf(rest)?.let { return Described(it, rest) }
+        }
+
+        // SZYK DRUGI: "zrób Z TEGO notatkę" - odsyłacz stoi MIĘDZY czasownikiem
+        // a słowem "notatka".
+        //
+        // Tego szyku nie złapie żadna lista zwrotów otwierających, bo one
+        // zakładają, że po czasowniku od razu idzie rzeczownik. A jest to szyk
+        // całkiem naturalny i to właśnie nim padła prośba, od której ta funkcja
+        // powstała.
+        NOTE_VERBS.firstOrNull { startsWithPrefix(lower, it) }?.let { verb ->
+            val afterVerb = trimmed.substring(verb.length).trimStart { it in SEPARATORS }.trim()
+            val reference = ALL_REFERENCES.firstOrNull {
+                startsWithReference(afterVerb.lowercase(), it)
+            } ?: return@let
+            // Po odsyłaczu ma zostać SAMO słowo "notatkę" i nic więcej.
+            // Bez tego warunku "zrób z tego zdjęcie" byłoby notatką.
+            val tail = afterVerb.substring(reference.length)
+                .trim { it in SEPARATORS || it in ".!?" }
+                .lowercase()
+            if (tail !in NOTE_NOUNS) return@let
+            val source =
+                if (reference in LAST_ANSWER_REFERENCES) Source.LAST_ANSWER else Source.SIGHT
+            return Described(source, afterVerb)
+        }
+
+        return null
+    }
+
+    /** Do którego źródła odsyła treść, albo `null` gdy do żadnego. */
+    private fun sourceOf(rest: String): Source? {
+        if (rest.isEmpty()) return null
+        val lower = rest.lowercase()
+        if (LAST_ANSWER_REFERENCES.any { startsWithReference(lower, it) }) {
+            return Source.LAST_ANSWER
+        }
+        if (SIGHT_REFERENCES.any { startsWithReference(lower, it) }) return Source.SIGHT
+        return null
+    }
+
+    /** Czasowniki, po których może stać odsyłacz, a dopiero potem "notatkę". */
+    private val NOTE_VERBS = listOf(
+        "zrób", "zrob", "zapisz", "zanotuj", "sporządź", "sporzadz", "stwórz", "stworz"
+    ).sortedByDescending { it.length }
+
+    /** Rzeczowniki zamykające szyk drugi - patrz [describeRequest]. */
+    private val NOTE_NOUNS = setOf(
+        "notatkę", "notatke", "notatka", "notatki", "notkę", "notke", "notka"
+    )
+
+    private val ALL_REFERENCES =
+        (LAST_ANSWER_REFERENCES + SIGHT_REFERENCES).sortedByDescending { it.length }
+
+    /**
+     * Czy treść zaczyna się od zwrotu odsyłającego, zakończonego granicą słowa.
+     *
+     * Granica jest tu konieczna z tego samego powodu co w [startsWithPrefix]:
+     * bez niej "o tym" łapałoby "o tymczasowym rozwiązaniu", czyli zwykłą
+     * notatkę, i zamiast ją zapisać - poszlibyśmy po zdjęcie.
+     */
+    private fun startsWithReference(lower: String, reference: String): Boolean {
+        if (!lower.startsWith(reference)) return false
+        if (lower.length == reference.length) return true
+        return lower[reference.length] in SEPARATORS
+    }
+
+    /**
+     * Polecenie: napisz notatkę na podstawie gotowego tekstu.
+     *
+     * Inaczej niż [tidyPrompt], tutaj model MA pisać od siebie - to jest sens
+     * tej funkcji. Ale ma pisać NOTATKĘ: rzecz do przeczytania za tydzień,
+     * bez wstępu i bez zwracania się do czytelnika.
+     */
+    fun noteFromTextPrompt(material: String, topic: String?): String = buildString {
+        append("Napisz zwięzłą notatkę na podstawie poniższego tekstu. ")
+        append("Zapisz konkrety: nazwy, liczby, daty, fakty warte zapamiętania. ")
+        if (!topic.isNullOrBlank()) {
+            append("Użytkownik poprosił o notatkę tak: \"")
+            append(topic)
+            append("\" - trzymaj się tego tematu. ")
+        }
+        append("Najwyżej trzy zdania. Nie zaczynaj od wstępu w rodzaju ")
+        append("\"Oto notatka\" ani \"Na podstawie tekstu\". ")
+        append("Nie zwracaj się do czytelnika. Odpowiedz samą treścią notatki.\n\n")
+        append(material)
+    }
+
+    /**
+     * Polecenie: napisz notatkę o tym, co widać na zdjęciu.
+     *
+     * Zakaz opisywania zdjęcia jako zdjęcia jest tu istotny: "na zdjęciu widzę
+     * zamek z czerwonej cegły" jest opisem obrazka, a notatka ma być o ZAMKU.
+     * Za tydzień nikt nie będzie pamiętał, że powstała ze zdjęcia.
+     */
+    fun noteFromSightPrompt(topic: String?): String = buildString {
+        append("Napisz zwięzłą notatkę o tym, co widać na zdjęciu. ")
+        if (!topic.isNullOrBlank()) {
+            append("Użytkownik poprosił o notatkę tak: \"")
+            append(topic)
+            append("\" - trzymaj się tego tematu. ")
+        }
+        append("Zapisz konkrety: co to jest, nazwy własne, napisy, liczby, ")
+        append("cechy warte zapamiętania. Jeśli rozpoznajesz konkretne miejsce ")
+        append("lub obiekt, nazwij go. Najwyżej trzy zdania. ")
+        append("NIE pisz \"na zdjęciu widać\" ani \"widzę\" - notatka ma być o rzeczy, ")
+        append("nie o zdjęciu. Nie zaczynaj od wstępu. Odpowiedz samą treścią notatki.")
+    }
+
+    /**
+     * Czy to, co model napisał, nadaje się na notatkę.
+     *
+     * Kryteria są inne niż w [acceptTidied] i muszą być: tam model miał NIE
+     * dopisywać, a tu dopisywanie jest całym zadaniem. Odrzucamy więc tylko to,
+     * co nie jest notatką - pustkę, odmowę i wypracowanie.
+     *
+     * @return treść gotowa do zapisania albo `null`, gdy model nie dał się użyć
+     */
+    fun acceptWritten(written: String?): String? {
+        val candidate = written?.trim()?.trim('"', '\u201e', '\u201d')?.trim().orEmpty()
+        if (candidate.length < MIN_WRITTEN) return null
+        if (candidate.length > MAX_WRITTEN) return null
+        // Model, który nie umiał odpowiedzieć, mówi to zdaniem zaczynającym się
+        // od przeprosin albo od "nie". Taka "notatka" jest gorsza niż jej brak,
+        // bo wygląda w spisie jak zapisana myśl.
+        val lower = candidate.lowercase()
+        if (REFUSALS.any { lower.startsWith(it) }) return null
+        return candidate.replaceFirstChar { it.uppercase() }
+    }
+
+    private const val MIN_WRITTEN = 10
+
+    /**
+     * Notatka dłuższa niż to jest wypracowaniem, nie notatką. Prosiliśmy o trzy
+     * zdania; tyle miejsca wystarcza na cztery długie.
+     */
+    private const val MAX_WRITTEN = 600
+
+    private val REFUSALS = listOf(
+        "nie mogę", "nie moge", "nie jestem w stanie", "przepraszam",
+        "niestety", "nie widzę", "nie widze", "brak "
+    )
+
     /** Polecenie streszczające jedną notatkę. */
     fun summaryPrompt(text: String): String =
         "Streść poniższą notatkę w jednym, najwyżej dwóch zdaniach. Wypisz " +
