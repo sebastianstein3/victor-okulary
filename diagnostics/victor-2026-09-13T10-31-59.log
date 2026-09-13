@@ -1,0 +1,35 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 2)
+10:31:59.788          ms  SESJA        start sesji
+10:32:59.717          ms  BLE          POŁĄCZONO  noweŁącze=true
+10:32:59.721          ms  BLE          powitanie okularów - start
+10:32:59.734          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+10:33:00.025          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+10:33:01.811          ms  BLE          POŁĄCZONO  noweŁącze=false
+10:33:04.740          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+10:33:21.823          ms  PRZYCISK     wciśnięto  numer=1
+10:33:22.082          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+10:33:22.764          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=680
+10:33:22.867          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=14 mikrofonOkularów=true
+10:33:22.870      +0 ms  SESJA        --- TURA a666 ---  źródło=OKULARY
+10:33:22.872      +2 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+10:33:23.389    +519 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 56 12 01 00 10 0C 02 00 0F 0F 03 00 10 0A 02 sztuk=1 pierwsza=true
+10:33:28.506   +5636 ms  NASŁUCH      koniec  ms=5636 telefonUsłyszał=dziennik zrób mi podsumowanie takie na starcie
+10:33:28.771   +5901 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.1935 pakietów=60 rozkodowanych=60 odrzuconych=0 przesunięcie=6 ramka=-1
+10:33:30.215   +7345 ms  TRANSKRYPCJA z nagrania okularów  ms=1442
+10:33:30.217   +7347 ms  SESJA        pytanie  tekst=dziennik zrób mi podsumowanie takie na starcie wymuszonyObraz=false
+10:33:30.245   +7375 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+10:33:30.303   +7433 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+10:33:30.845   +7975 ms  KONTEKST     zebrany  ms=136 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+10:33:30.860   +7990 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=545
+10:33:34.685  +11816 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3826
+10:33:34.952  +12082 ms  MODEL        koniec odpowiedzi (455 znaków, 3048 tokenów)  ms=4093
+10:33:57.990  +35120 ms  MOWA         koniec wypowiedzi  ms=23035
+10:33:58.033  +35163 ms  SESJA        --- KONIEC TURY a666: odpowiedziano ---
+10:33:58.037          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
