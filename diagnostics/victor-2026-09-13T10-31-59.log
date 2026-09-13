@@ -617,3 +617,32 @@
 11:03:05.037          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5004
 11:03:05.039          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
 11:03:21.055          ms  ZDJĘCIE      próba 2: miniatura  notify=false
+11:04:30.605          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=20 mikrofonOkularów=true
+11:04:30.657      +0 ms  SESJA        --- TURA 5106 ---  źródło=TELEFON
+11:04:30.658      +1 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+11:04:36.913   +6256 ms  NASŁUCH      koniec  ms=6256 telefonUsłyszał=hejo
+11:04:36.915   +6258 ms  NASŁUCH      nagranie z okularów  jest=false
+11:04:36.915   +6258 ms  SESJA        pytanie  tekst=hejo wymuszonyObraz=false
+11:04:36.928   +6271 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+11:04:37.082   +6425 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+11:04:38.523   +7866 ms  KONTEKST     zebrany  ms=1431 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+11:04:38.533   +7876 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=15487
+11:04:42.267  +11610 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3735
+11:04:42.337  +11680 ms  MODEL        koniec odpowiedzi (223 znaków, 8648 tokenów)  ms=3805
+11:04:44.211  +13554 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+11:04:44.328  +13672 ms  SESJA        --- KONIEC TURY 5106: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+11:05:06.226          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=5 mikrofonOkularów=true
+11:05:06.262      +0 ms  SESJA        --- TURA 5a7d ---  źródło=TELEFON
+11:05:06.263      +1 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+11:05:15.894   +9632 ms  NASŁUCH      koniec  ms=9632 telefonUsłyszał=czy weronika może być najpotężniejszą postacią multiwersum marvela
+11:05:15.895   +9633 ms  NASŁUCH      nagranie z okularów  jest=false
+11:05:15.896   +9634 ms  SESJA        pytanie  tekst=czy weronika może być najpotężniejszą postacią multiwersum marvela wymuszonyObraz=false
+11:05:15.901   +9639 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+11:05:16.074   +9813 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+11:05:17.414  +11152 ms  KONTEKST     zebrany  ms=1328 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+11:05:17.424  +11162 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=15749
+11:05:22.403  +16141 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4980
+11:05:22.754  +16492 ms  MODEL        koniec odpowiedzi (628 znaków, 9187 tokenów)  ms=5331
+11:05:53.234  +46972 ms  MOWA         koniec wypowiedzi  ms=30477
+11:05:53.255  +46993 ms  SESJA        --- KONIEC TURY 5a7d: odpowiedziano ---
+11:05:53.258          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
