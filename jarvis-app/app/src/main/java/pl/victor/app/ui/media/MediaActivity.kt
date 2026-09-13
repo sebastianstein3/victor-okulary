@@ -73,6 +73,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.victor.app.VictorApplication
 import pl.victor.app.ble.MediaLibrary
+import pl.victor.app.media.MediaArchive
+import pl.victor.app.media.MediaItem
+import pl.victor.app.media.groupForDisplay
 import pl.victor.app.ui.theme.VictorTheme
 import java.io.File
 
@@ -122,11 +125,12 @@ class MediaActivity : ComponentActivity() {
 class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
 
     private val manager = (app as VictorApplication).glassesManager
+    private val archive = MediaArchive(app)
 
-    private val _files = MutableStateFlow<List<Pair<MediaLibrary.Kind, List<MediaLibrary.Item>>>>(
+    private val _files = MutableStateFlow<List<Pair<MediaLibrary.Kind, List<MediaItem>>>>(
         emptyList()
     )
-    val files: StateFlow<List<Pair<MediaLibrary.Kind, List<MediaLibrary.Item>>>> =
+    val files: StateFlow<List<Pair<MediaLibrary.Kind, List<MediaItem>>>> =
         _files.asStateFlow()
 
     private val _busy = MutableStateFlow(false)
@@ -156,6 +160,28 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
     private val _saving = MutableStateFlow<SaveProgress?>(null)
     val saving: StateFlow<SaveProgress?> = _saving.asStateFlow()
 
+    init {
+        // ARCHIWUM WCZYTUJE SIĘ OD RAZU, BEZ OKULARÓW.
+        //
+        // To jest cała różnica między galerią a spisem, który trzeba odtwarzać:
+        // po wejściu na ekran widać wszystko, co kiedykolwiek było - z
+        // miniaturami - i dopiero jeśli ktoś chce NOWYCH plików, podnosimy sieć.
+        //
+        // Blok stoi PO wszystkich polach stanu i to jest tu warunek poprawności,
+        // nie porządek: `viewModelScope.launch` potrafi ruszyć natychmiast na
+        // wątku głównym, a `refreshFromArchive` czyta `_status`. Wyżej czytałby
+        // pole jeszcze niezainicjalizowane.
+        viewModelScope.launch { refreshFromArchive() }
+    }
+
+    private suspend fun refreshFromArchive() {
+        val items = archive.all()
+        _files.value = groupForDisplay(items)
+        if (items.isEmpty() && _status.value == null) {
+            _status.value = "Galeria jest pusta. Połącz się z okularami, żeby wczytać pliki."
+        }
+    }
+
     /**
      * Nazwy, o których miniaturę już poproszono.
      *
@@ -173,7 +199,7 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
      * okularów. Skutek byłby odwrotny do zamierzonego: wszystkie miniatury
      * pojawiłyby się na końcu, zamiast po kolei od góry.
      */
-    private val thumbnailQueue = ArrayDeque<MediaLibrary.Item>()
+    private val thumbnailQueue = ArrayDeque<MediaItem>()
     private var thumbnailWorkerRunning = false
 
     fun load() {
@@ -184,7 +210,8 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 _status.value = "Pytam okulary o listę plików..."
                 val overBle = manager.findAlbumOverBle()
                 if (overBle.isNotEmpty()) {
-                    _files.value = MediaLibrary.group(overBle)
+                    archive.rememberListing(overBle)
+                    refreshFromArchive()
                     _sessionOpen.value = false
                     _status.value = "Lista pobrana przez Bluetooth - internet w telefonie działa " +
                         "normalnie. Podgląd pliku może wymagać Wi-Fi."
@@ -201,7 +228,8 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 _sessionOpen.value = true
                 _status.value = "Wczytuję listę plików..."
                 val names = manager.getMediaFileList()
-                _files.value = MediaLibrary.group(names)
+                archive.rememberListing(names)
+                refreshFromArchive()
                 _status.value = if (names.isEmpty()) {
                     "Okulary nie mają jeszcze żadnych plików."
                 } else {
@@ -224,9 +252,25 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
      * Wołane przez siatkę przy każdym złożeniu kafelka, więc musi być tanie i
      * odporne na powtórzenia - stąd [requestedThumbnails].
      */
-    fun requestThumbnail(item: MediaLibrary.Item) {
+    fun requestThumbnail(item: MediaItem) {
         if (item.kind != MediaLibrary.Kind.PHOTO) return
         if (!requestedThumbnails.add(item.name)) return
+        // Miniatura z dysku jest darmowa - pobranie kosztuje kilka megabajtów
+        // przez łącze okularów, więc sięgamy po nie dopiero, gdy na dysku nic
+        // nie ma. To jest główny zysk z archiwum przy drugim wejściu na ekran.
+        val cached = item.thumbnailPath
+        if (cached != null) {
+            viewModelScope.launch {
+                val bitmap = withContext(Dispatchers.IO) {
+                    runCatching { android.graphics.BitmapFactory.decodeFile(cached) }.getOrNull()
+                }
+                if (bitmap != null) _thumbnails.update { it + (item.name to bitmap) }
+            }
+            return
+        }
+        // Pliku, którego nie ma już na okularach, nie da się pobrać - a próba
+        // skończyłaby się czterdziestoma sekundami czekania na każdy taki kafelek.
+        if (!item.stillOnGlasses) return
         thumbnailQueue.addLast(item)
         startThumbnailWorker()
     }
@@ -246,6 +290,9 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     }.getOrNull()
                     if (bitmap != null) {
                         _thumbnails.update { it + (item.name to bitmap) }
+                        // Na dysk, żeby następne wejście na ekran nie musiało
+                        // pobierać tych samych megabajtów jeszcze raz.
+                        archive.saveThumbnail(item.name, bitmap)
                     } else {
                         // Nieudana miniatura zostaje "zamówiona": ponawianie w
                         // pętli przewijania zajęłoby łącze na okrągło, a plik
@@ -270,8 +317,20 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
      * a napisanie tego od nowa dałoby gorszy odtwarzacz mniejszym kosztem
      * tylko pozornie.
      */
-    fun open(item: MediaLibrary.Item) {
+    fun open(item: MediaItem) {
         if (_busy.value) return
+        if (!item.stillOnGlasses) {
+            // Plik zniknął ze sprzętu - w archiwum została po nim miniatura i
+            // wpis. Próba pobrania skończyłaby się czterdziestoma sekundami
+            // czekania i komunikatem o sieci, który nie miałby z tym nic
+            // wspólnego.
+            _status.value = if (item.savedToPhone) {
+                "${item.displayName} nie ma już na okularach - otwórz go w galerii telefonu."
+            } else {
+                "${item.displayName} nie ma już na okularach, a nie został zapisany w telefonie."
+            }
+            return
+        }
         viewModelScope.launch {
             _busy.value = true
             _status.value = "Pobieram ${item.name}..."
@@ -343,6 +402,8 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
             _busy.value = true
             try {
                 withContext(Dispatchers.IO) { writeToGallery(name, bytes) }
+                archive.markSavedToPhone(name)
+                refreshFromArchive()
                 _status.value = "Zapisano $name w telefonie."
             } catch (e: Exception) {
                 _status.value = "Nie udało się zapisać: ${e.message}"
@@ -386,8 +447,14 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                         val bytes = manager.downloadFile(item.name)
                         withContext(Dispatchers.IO) { writeToGallery(item.name, bytes) }
                     }.isSuccess
-                    if (ok) saved++ else failed++
+                    if (ok) {
+                        saved++
+                        archive.markSavedToPhone(item.name)
+                    } else {
+                        failed++
+                    }
                 }
+                refreshFromArchive()
                 _status.value = buildString {
                     append("Zapisano $saved z ${all.size}")
                     if (skipped > 0) append(", pominięto $skipped już zapisanych")
@@ -511,9 +578,12 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                         "Liczniki się nie zmieniły (${before.total} plików). " +
                             "Ta komenda nie zwalnia pamięci na tym egzemplarzu."
                 }
-                // Lista na ekranie odnosi się teraz do stanu sprzed operacji.
+                // Pliki znikły z okularów, ale ZOSTAJĄ w galerii telefonu -
+                // o to w tej funkcji chodziło. Oznaczamy je tylko jako nieobecne
+                // na sprzęcie.
                 if (after != null && before != null && after.total < before.total) {
-                    _files.value = emptyList()
+                    archive.rememberGlassesEmptied()
+                    refreshFromArchive()
                 }
             } catch (e: Exception) {
                 _status.value = "Nie udało się: ${e.message}"
@@ -771,7 +841,7 @@ fun MediaScreen(onBack: () -> Unit) {
  */
 @Composable
 private fun MediaTile(
-    item: MediaLibrary.Item,
+    item: MediaItem,
     thumbnail: Bitmap?,
     enabled: Boolean,
     onRequestThumbnail: () -> Unit,
@@ -806,11 +876,29 @@ private fun MediaTile(
             }
         }
         Text(
-            item.name.substringAfterLast('/'),
+            item.displayName,
             style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 2.dp)
         )
+        // Dwie rzeczy, które użytkownik musi widzieć bez otwierania pliku:
+        // czy jest już w telefonie i czy da się go jeszcze pobrać z okularów.
+        // Bez tego "Zapisz wszystko" wygląda jak ruletka, a kafelek pliku,
+        // którego na sprzęcie nie ma, niczym się nie różni od reszty.
+        val badge = when {
+            item.savedToPhone && !item.stillOnGlasses -> "w telefonie"
+            item.savedToPhone -> "zapisany"
+            !item.stillOnGlasses -> "tylko podgląd"
+            else -> null
+        }
+        if (badge != null) {
+            Text(
+                badge,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
     }
 }

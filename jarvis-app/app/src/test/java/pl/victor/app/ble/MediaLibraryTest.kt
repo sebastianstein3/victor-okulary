@@ -19,31 +19,7 @@ class MediaLibraryTest {
         assertEquals(MediaLibrary.Kind.OTHER, MediaLibrary.kindOf("media.config"))
     }
 
-    @Test
-    fun `najnowsze na gorze`() {
-        // Nazwy są sekwencyjne, więc malejąco po nazwie = najnowsze pierwsze.
-        val grouped = MediaLibrary.group(listOf("IMG_0001.jpg", "IMG_0003.jpg", "IMG_0002.jpg"))
-        val photos = grouped.single { it.first == MediaLibrary.Kind.PHOTO }.second
-        assertEquals(listOf("IMG_0003.jpg", "IMG_0002.jpg", "IMG_0001.jpg"), photos.map { it.name })
-    }
 
-    @Test
-    fun `puste grupy nie trafiaja do wyniku`() {
-        // Pusta zakładka "Wideo" wygląda jak awaria, a znaczy tylko tyle, że
-        // nikt nie nagrywał.
-        val grouped = MediaLibrary.group(listOf("IMG_0001.jpg"))
-        assertEquals(1, grouped.size)
-        assertEquals(MediaLibrary.Kind.PHOTO, grouped.first().first)
-    }
 
-    @Test
-    fun `puste nazwy sa pomijane`() {
-        assertTrue(MediaLibrary.group(listOf("", "   ")).isEmpty())
-    }
 
-    @Test
-    fun `tylko zdjecia da sie pokazac na ekranie`() {
-        assertTrue(MediaLibrary.isViewable(MediaLibrary.Item("a.jpg", MediaLibrary.Kind.PHOTO)))
-        assertFalse(MediaLibrary.isViewable(MediaLibrary.Item("a.mp4", MediaLibrary.Kind.VIDEO)))
-    }
 }
