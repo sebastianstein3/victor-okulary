@@ -212,6 +212,11 @@
             android:label="Galeria okularów" />
 
         <activity
+            android:name=".ui.livepreview.LivePreviewActivity"
+            android:exported="false"
+            android:label="Podgląd na żywo" />
+
+        <activity
             android:name=".ui.commands.CommandsActivity"
             android:exported="false"
             android:label="Komendy" />

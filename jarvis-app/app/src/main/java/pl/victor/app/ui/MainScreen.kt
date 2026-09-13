@@ -360,6 +360,19 @@ private fun IdleContent(
         }
     )
 
+    // === Podgląd na żywo ===
+    Spacer(modifier = Modifier.height(12.dp))
+    androidx.compose.material3.OutlinedButton(
+        onClick = {
+            context.startActivity(
+                Intent(context, pl.victor.app.ui.livepreview.LivePreviewActivity::class.java)
+            )
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        androidx.compose.material3.Text("Podgląd na żywo z kamery")
+    }
+
     // === Notatki ===
     Spacer(modifier = Modifier.height(12.dp))
     androidx.compose.material3.OutlinedButton(
