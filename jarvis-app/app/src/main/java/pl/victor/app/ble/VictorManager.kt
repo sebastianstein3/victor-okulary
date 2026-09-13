@@ -1877,6 +1877,48 @@ class VictorManager private constructor(context: Context) {
         }
     }
 
+    /** Odpowiedź okularów na komendę trybu transferu. */
+    data class TransferModeAnswer(val errorCode: Int, val workTypeIng: Int)
+
+    /**
+     * Prosi okulary o tryb transferu i CZEKA na ich odpowiedź.
+     *
+     * ## Czemu czekanie jest tu konieczne
+     * Bo okulary odpowiadają, czy mogą - i jeśli nie, to czemu. Aplikacja
+     * producenta czyta z tej odpowiedzi `workTypeIng` i dopiero przy wartości
+     * [GlassesProtocol.TRANSFER_READY] zaczyna łączyć się z siecią.
+     *
+     * My wysyłaliśmy komendę i od razu szliśmy szukać sieci. W dzienniku z 13
+     * września widać, czym to się kończyło: czterdzieści sekund czekania i
+     * komunikat "okulary nie wystawiły sieci" - podczas gdy okulary przez cały
+     * ten czas mówiły, że są zajęte czym innym.
+     *
+     * @return odpowiedź albo `null`, gdy okulary nie odezwały się w limicie
+     */
+    suspend fun requestTransferMode(
+        mode: Int,
+        timeoutMs: Long = TRANSFER_ANSWER_TIMEOUT_MS
+    ): TransferModeAnswer? {
+        val bytes = GlassesProtocol.enableTransferMode(mode)
+        _lastCommand.value = GlassesProtocol.describeCommand(bytes)
+        if (simulator != null) return TransferModeAnswer(0, GlassesProtocol.TRANSFER_READY)
+
+        armWriteChannel("komenda trybu transferu")
+        val answer = CompletableDeferred<TransferModeAnswer?>()
+        try {
+            largeDataHandler.glassesControl(bytes) { _, response ->
+                lastCommandAckAtMs = System.currentTimeMillis()
+                val error = runCatching { response?.errorCode ?: 0 }.getOrDefault(0)
+                val working = runCatching { response?.workTypeIng ?: 0 }.getOrDefault(0)
+                answer.complete(TransferModeAnswer(error, working))
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Komenda trybu transferu nie powiodła się", e)
+            return null
+        }
+        return withTimeoutOrNull(timeoutMs) { answer.await() }
+    }
+
     /**
      * Włącza tryb transferu plików (Wi-Fi Direct).
      * IP okularów przyjdzie asynchronicznie jako ramka notify 0x08.
@@ -2914,7 +2956,56 @@ class VictorManager private constructor(context: Context) {
             mapOf("sieć" to ssid)
         )
 
-        send(GlassesProtocol.enableTransferMode(GlassesProtocol.TRANSFER_MODE_AP))
+        // NAJPIERW ZAPYTAJ, CZY OKULARY MOGĄ - I POSŁUCHAJ ODPOWIEDZI.
+        var answer = requestTransferMode(GlassesProtocol.TRANSFER_MODE_AP)
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Hotspot okularów: odpowiedź na komendę",
+            mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng)
+        )
+
+        // OKULARY UTKNIĘTE W TRYBIE TRANSFERU - WYPROWADŹ JE SAM.
+        //
+        // To jest najczęstszy powód i zarazem jedyny, z którym da się coś
+        // zrobić bez udziału użytkownika: po poprzedniej próbie okulary zostają
+        // w trybie przesyłania i odmawiają wejścia w niego ponownie. Producent
+        // każe w tym miejscu zrestartować okulary; komenda resetu łącza robi to
+        // samo mniejszym kosztem i jest bezpieczna - nie dotyka plików.
+        if (answer?.workTypeIng == GlassesProtocol.TRANSFER_STUCK) {
+            Log.i(tag, "Okulary utknęły w trybie transferu - resetuję łącze")
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "Hotspot okularów: wyprowadzam z zaklinowanego trybu transferu"
+            )
+            send(GlassesProtocol.resetP2p())
+            delay(TRANSFER_RESET_SETTLE_MS)
+            answer = requestTransferMode(GlassesProtocol.TRANSFER_MODE_AP)
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "Hotspot okularów: odpowiedź po resecie",
+                mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng)
+            )
+        }
+
+        // PRZESZKODA PO STRONIE OKULARÓW - POWIEDZ, KTÓRA.
+        //
+        // Jeden komunikat na wszystko wysyłałby użytkownika w złą stronę:
+        // nagrywanie zatrzymuje się inaczej niż tryb rozmowy, a aktualizacji
+        // oprogramowania nie przerywa się wcale.
+        val refusal = answer?.let { GlassesProtocol.transferRefusalReason(it.workTypeIng) }
+        if (refusal != null && answer?.workTypeIng != GlassesProtocol.TRANSFER_STUCK) {
+            lastTransferFailure = refusal
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Hotspot okularów: okulary odmówiły",
+                mapOf(
+                    "stan" to answer?.workTypeIng,
+                    "powód" to refusal,
+                    "ms" to (System.currentTimeMillis() - startedAt)
+                )
+            )
+            return false
+        }
 
         if (!wifiTransfer.joinAccessPoint(ssid, GlassesProtocol.GLASSES_AP_PASSWORD)) {
             lastTransferFailure = wifiTransfer.lastFailure
@@ -3467,6 +3558,12 @@ class VictorManager private constructor(context: Context) {
         private const val WIFI_RETRY_AFTER_MS = 180_000L
 
         private const val IP_TIMEOUT_MS = 15_000L
+
+        /** Ile czekać na odpowiedź okularów na komendę trybu transferu. */
+        private const val TRANSFER_ANSWER_TIMEOUT_MS = 5_000L
+
+        /** Ile dać okularom na pozbieranie się po resecie łącza. */
+        private const val TRANSFER_RESET_SETTLE_MS = 2_000L
         private const val IP_POLL_INTERVAL_MS = 100L
 
         private const val CONNECT_TIMEOUT_MS = 5_000

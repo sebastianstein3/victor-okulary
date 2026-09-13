@@ -546,4 +546,31 @@ class GlassesProtocolTest {
         assertEquals("(pusta komenda)", GlassesProtocol.describeCommand(byteArrayOf()))
     }
 
+    @Test
+    fun `gotowosc do transferu nie jest przeszkoda`() {
+        assertNull(GlassesProtocol.transferRefusalReason(GlassesProtocol.TRANSFER_READY))
+    }
+
+    @Test
+    fun `kazda przeszkoda ma wlasny powod`() {
+        // Jeden komunikat na wszystko wysyłałby użytkownika w złą stronę -
+        // nagrywanie zatrzymuje się inaczej niż tryb rozmowy.
+        val reasons = listOf(1, 2, 4, 5, 6, 7, 8)
+            .mapNotNull { GlassesProtocol.transferRefusalReason(it) }
+        assertEquals(7, reasons.size)
+        assertTrue(reasons.all { it.isNotBlank() })
+    }
+
+    @Test
+    fun `utkniecie w trybie transferu jest rozpoznawane`() {
+        val reason = GlassesProtocol.transferRefusalReason(GlassesProtocol.TRANSFER_STUCK)
+        assertTrue(reason!!.contains("poprzedniej próbie"))
+    }
+
+    @Test
+    fun `nieznana wartosc nie wymysla przeszkody`() {
+        assertNull(GlassesProtocol.transferRefusalReason(0))
+        assertNull(GlassesProtocol.transferRefusalReason(99))
+    }
+
 }

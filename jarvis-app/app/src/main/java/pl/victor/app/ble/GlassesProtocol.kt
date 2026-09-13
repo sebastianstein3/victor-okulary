@@ -243,6 +243,46 @@ object GlassesProtocol {
 
     fun resetP2p(): ByteArray = command(WORK_RESET_P2P)
 
+    // === Odpowiedź na komendę trybu transferu ===
+
+    /**
+     * `workTypeIng == 666` w odpowiedzi znaczy "sieć stoi, możesz się łączyć".
+     *
+     * Aplikacja producenta czeka na tę wartość ZANIM spróbuje dołączyć do
+     * sieci. My łączyliśmy się od razu po wysłaniu komendy - i w dzienniku z
+     * 13 września widać, czym to się kończy: czterdzieści sekund czekania na
+     * sieć, której okulary jeszcze (albo już) nie postawiły.
+     */
+    const val TRANSFER_READY = 666
+
+    /** `workTypeIng == 4`: okulary UTKNĘŁY w trybie transferu z poprzedniej próby. */
+    const val TRANSFER_STUCK = 4
+
+    /**
+     * Czemu okulary odmówiły wejścia w tryb transferu - zdaniem dla użytkownika.
+     *
+     * ## Skąd te powody
+     * Z aplikacji producenta, która czyta `workTypeIng` z odpowiedzi i pokazuje
+     * dla każdej wartości inny komunikat. My tej odpowiedzi nie czytaliśmy w
+     * ogóle: wysyłaliśmy komendę i czekaliśmy czterdzieści sekund w ciemno, po
+     * czym mówiliśmy "okulary nie wystawiły sieci". A okulary przez cały ten
+     * czas MÓWIŁY, czemu nie mogą - tylko nikt nie słuchał.
+     *
+     * @return powód po polsku albo `null`, gdy nie ma przeszkody
+     */
+    fun transferRefusalReason(workTypeIng: Int): String? = when (workTypeIng) {
+        TRANSFER_READY -> null
+        1, 6 -> "Okulary robią właśnie zdjęcie. Zaczekaj, aż skończą."
+        2 -> "Okulary nagrywają wideo. Zatrzymaj nagrywanie i spróbuj ponownie."
+        TRANSFER_STUCK ->
+            "Okulary zostały w trybie przesyłania po poprzedniej próbie. " +
+                "Próbuję je z niego wyprowadzić."
+        5 -> "Okulary aktualizują oprogramowanie. Zaczekaj, aż skończą."
+        7 -> "Okulary są w trybie rozmowy z asystentem. Zakończ ją i spróbuj ponownie."
+        8 -> "Okulary nagrywają dźwięk. Zatrzymaj nagrywanie i spróbuj ponownie."
+        else -> null
+    }
+
     // === Hotspot okularów (tryb AP) ===
 
     /**
