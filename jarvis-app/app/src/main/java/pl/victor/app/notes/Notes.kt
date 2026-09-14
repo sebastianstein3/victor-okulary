@@ -182,24 +182,97 @@ object Notes {
      * @return sekcja albo `null`, gdy nie ma ani jednej notatki - pusta sekcja
      *   tylko zajmowałaby miejsce w poleceniu
      */
-    fun buildPromptContext(notes: List<Note>, nowMs: Long = System.currentTimeMillis()): String? {
+    fun buildPromptContext(
+        notes: List<Note>,
+        nowMs: Long = System.currentTimeMillis(),
+        noteLimit: Int = PROMPT_NOTE_LIMIT,
+        charLimit: Int = PROMPT_CHAR_LIMIT
+    ): String? {
         if (notes.isEmpty()) return null
+        val lines = renderLines(notes, nowMs, noteLimit, charLimit)
+        val shown = lines.size
+        val hidden = notes.size - shown
         return buildString {
             append("=== NOTATKI UŻYTKOWNIKA ===\n")
-            notes.forEach { note ->
-                append("- ")
-                if (note.createdAtMs > 0L) {
-                    append('[').append(stamp(note.createdAtMs, nowMs)).append("] ")
-                }
-                append(note.text).append('\n')
-            }
+            lines.forEach { append(it).append('\n') }
             append("To są notatki zapisane przez użytkownika, najnowsze pierwsze. ")
             append("W nawiasie kwadratowym jest data zapisania notatki. ")
             append("Odpowiadaj na ich podstawie, gdy pyta, co ma zapisane, do zrobienia ")
             append("albo do kupienia, i korzystaj z dat, gdy pyta o konkretny dzień. ")
             append("Nie wymyślaj notatek, których tu nie ma.")
+            if (hidden > 0) {
+                // BEZ TEGO ZDANIA OBCIĘCIE JEST GORSZE NIŻ KOSZT, KTÓRY OSZCZĘDZA.
+                //
+                // Model, który dostaje sześćdziesiąt notatek z dwustu i nie wie o
+                // tym, odpowiada na pytanie o starszą z pełnym przekonaniem:
+                // "nie masz nic takiego zapisanego". Notatka istnieje, a
+                // użytkownik dostaje zaprzeczenie - i nie ma jak się domyślić,
+                // że pyta o coś, czego asystent po prostu nie widzi.
+                append(" WIDZISZ $shown NAJNOWSZYCH Z ${notes.size} NOTATEK. ")
+                append("Gdy pytanie dotyczy czegoś, czego tu nie ma, NIE twierdź, ")
+                append("że użytkownik tego nie zapisał - powiedz, że widzisz tylko ")
+                append("najnowsze notatki i poproś o doprecyzowanie albo o ")
+                append("sprawdzenie listy w aplikacji.")
+            }
         }
     }
+
+    /**
+     * Wybiera notatki, które zmieszczą się w poleceniu, i składa je w wiersze.
+     *
+     * ## Czemu w ogóle obcinamy
+     * Bo lista notatek nie miała ŻADNEGO ograniczenia: każda notatka szła do
+     * modelu przy każdym pytaniu, które ich dotknęło. Przy kilku to nic nie
+     * kosztuje i tak jest dziś. Przy trzystu koszt rośnie liniowo, ale gorsze
+     * jest co innego - jakość siada wcześniej niż cena, bo model ma znaleźć tę
+     * jedną właściwą notatkę wśród trzystu. Model lokalny obrywa jeszcze
+     * wcześniej: ma własny budżet znaków i po cichu przycina kontekst.
+     *
+     * ## Dwa limity, nie jeden
+     * Liczba notatek nie mówi nic o ich długości - jedna notatka na trzy tysiące
+     * znaków przepełniłaby polecenie mimo limitu "sześćdziesiąt sztuk". Dlatego
+     * kończymy na tym z dwóch progów, który wypadnie pierwszy.
+     *
+     * Jedna notatka wchodzi ZAWSZE, nawet gdy sama przekracza limit znaków:
+     * pusty wybór przy niepustej liście notatek byłby gorszy od przekroczenia
+     * budżetu o kilkaset znaków.
+     */
+    private fun renderLines(
+        notes: List<Note>,
+        nowMs: Long,
+        noteLimit: Int,
+        charLimit: Int
+    ): List<String> {
+        val lines = mutableListOf<String>()
+        var used = 0
+        for (note in notes.take(noteLimit.coerceAtLeast(1))) {
+            val line = buildString {
+                append("- ")
+                if (note.createdAtMs > 0L) {
+                    append('[').append(stamp(note.createdAtMs, nowMs)).append("] ")
+                }
+                append(note.text)
+            }
+            if (lines.isNotEmpty() && used + line.length > charLimit) break
+            lines += line
+            used += line.length + 1
+        }
+        return lines
+    }
+
+    /**
+     * Ile notatek najwyżej trafia do polecenia.
+     *
+     * Hojnie: dziś użytkownik ma ich kilka, więc ten próg nigdy nie zadziała, a
+     * przy kilkuset uchroni przed cichym rozdęciem polecenia. Gdy notatek
+     * będzie regularnie więcej, właściwą odpowiedzią jest WYBÓR trafnych
+     * (TF-IDF, ten sam co w [pl.victor.app.memory.LongTermMemory]), a nie
+     * podnoszenie tej liczby.
+     */
+    const val PROMPT_NOTE_LIMIT = 60
+
+    /** Ile znaków najwyżej zajmą same notatki - patrz [renderLines]. */
+    const val PROMPT_CHAR_LIMIT = 6_000
 
     /** Data notatki: dokładna do liczenia i słowna do czytania. */
     private fun stamp(createdAtMs: Long, nowMs: Long): String {

@@ -326,4 +326,76 @@ class NotesTest {
         assertNull(Notes.describeRequest("Zanotuj, żeby o tym pamiętać"))
     }
 
+
+    // --- Limit notatek w poleceniu ---
+    //
+    // Lista notatek nie miała żadnego ograniczenia. Przy kilku to nic nie
+    // kosztuje, przy trzystu model ma znaleźć jedną właściwą wśród trzystu.
+
+    private fun note(text: String, daysAgo: Long = 0) =
+        Notes.Note(text, NOW - daysAgo * 86_400_000L)
+
+    private val NOW = 1_760_000_000_000L
+
+    @Test
+    fun `krotka lista wchodzi w calosci i bez ostrzezenia`() {
+        val ctx = Notes.buildPromptContext(
+            listOf(note("kupić mleko"), note("oddać książkę")), NOW
+        )!!
+        assertTrue(ctx.contains("kupić mleko"))
+        assertTrue(ctx.contains("oddać książkę"))
+        assertFalse(ctx, ctx.contains("NAJNOWSZYCH Z"))
+    }
+
+    @Test
+    fun `dluga lista jest obcinana do limitu`() {
+        val notes = (1..200).map { note("notatka numer $it") }
+        val ctx = Notes.buildPromptContext(notes, NOW, noteLimit = 60, charLimit = 100_000)!!
+        assertEquals(60, ctx.lines().count { it.startsWith("- ") })
+    }
+
+    @Test
+    fun `obciecie MOWI o sobie zamiast udawac komplet`() {
+        // Bez tego model odpowiada "nie masz nic takiego zapisanego" na pytanie
+        // o notatkę, która istnieje - tylko jej nie widzi. Zaprzeczenie jest
+        // gorsze niż koszt, który obcięcie oszczędza.
+        val notes = (1..200).map { note("notatka numer $it") }
+        val ctx = Notes.buildPromptContext(notes, NOW, noteLimit = 60, charLimit = 100_000)!!
+        assertTrue(ctx, ctx.contains("WIDZISZ 60 NAJNOWSZYCH Z 200 NOTATEK"))
+        assertTrue(ctx, ctx.contains("NIE twierdź"))
+    }
+
+    @Test
+    fun `limit znakow konczy wczesniej niz limit sztuk`() {
+        val notes = (1..50).map { note("x".repeat(500)) }
+        val ctx = Notes.buildPromptContext(notes, NOW, noteLimit = 60, charLimit = 2_000)!!
+        val shown = ctx.lines().count { it.startsWith("- ") }
+        assertTrue("pokazano $shown", shown in 1..6)
+        assertTrue(ctx, ctx.contains("NAJNOWSZYCH Z 50 NOTATEK"))
+    }
+
+    @Test
+    fun `jedna ogromna notatka wchodzi mimo limitu znakow`() {
+        // Pusty wybór przy niepustej liście byłby gorszy niż przekroczenie
+        // budżetu - użytkownik straciłby jedyną notatkę, jaką ma.
+        val ctx = Notes.buildPromptContext(
+            listOf(note("y".repeat(9_000))), NOW, noteLimit = 60, charLimit = 1_000
+        )!!
+        assertEquals(1, ctx.lines().count { it.startsWith("- ") })
+    }
+
+    @Test
+    fun `najnowsze maja pierwszenstwo przy obcinaniu`() {
+        // addNote dokłada na początek, więc kolejność wejściowa to już
+        // "najnowsze pierwsze" - obcinamy z końca, czyli od najstarszych.
+        val notes = listOf(note("najnowsza")) + (1..100).map { note("stara $it") }
+        val ctx = Notes.buildPromptContext(notes, NOW, noteLimit = 3, charLimit = 100_000)!!
+        assertTrue(ctx, ctx.contains("najnowsza"))
+        assertFalse(ctx, ctx.contains("stara 100"))
+    }
+
+    @Test
+    fun `pusta lista nadal nie daje sekcji`() {
+        assertNull(Notes.buildPromptContext(emptyList(), NOW))
+    }
 }
