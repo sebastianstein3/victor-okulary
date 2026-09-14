@@ -2049,7 +2049,12 @@ class VictorManager private constructor(context: Context) {
         // mają serwer RTSP", i kosztuje mniej niż sekundę.
         val portOpen = withContext(Dispatchers.IO) {
             runCatching {
-                java.net.Socket().use { socket ->
+                // Gniazdo też wiążemy z siecią okularów - podgląd nie
+                // przypina procesu, więc bez tego sonda poszłaby komórką.
+                val probe = wifiTransfer.glassesNetwork
+                    ?.let { net -> runCatching { net.socketFactory.createSocket() }.getOrNull() }
+                    ?: java.net.Socket()
+                probe.use { socket ->
                     socket.connect(
                         java.net.InetSocketAddress(ip, GlassesProtocol.RTSP_PORT),
                         RTSP_PROBE_TIMEOUT_MS
@@ -2991,8 +2996,24 @@ class VictorManager private constructor(context: Context) {
         parseJsonFileList(json)
     }
 
+    /**
+     * Otwiera połączenie WSKAZUJĄC sieć okularów, zamiast liczyć na domyślną.
+     *
+     * `Network.openConnection` kieruje to jedno połączenie przez podaną sieć i
+     * nie rusza reszty - dzięki temu telefon zachowuje internet, a model AI
+     * odpowiada także przy otwartej galerii. Gdy sieci nie ma (lista poszła po
+     * BLE albo proces jest jednak przypięty), zostaje zwykłe otwarcie.
+     */
+    private fun openGlassesConnection(url: String): HttpURLConnection {
+        val target = URL(url)
+        val network = wifiTransfer.glassesNetwork
+        val conn = runCatching { network?.openConnection(target) }.getOrNull()
+            ?: target.openConnection()
+        return conn as HttpURLConnection
+    }
+
     private fun fetchText(url: String): String {
-        val conn = URL(url).openConnection() as HttpURLConnection
+        val conn = openGlassesConnection(url)
         conn.connectTimeout = CONNECT_TIMEOUT_MS
         conn.readTimeout = LIST_READ_TIMEOUT_MS
         try {
@@ -3032,7 +3053,7 @@ class VictorManager private constructor(context: Context) {
         } else {
             "http://$ip/files/$filename"
         }
-        val conn = URL(url).openConnection() as HttpURLConnection
+        val conn = openGlassesConnection(url)
         conn.connectTimeout = CONNECT_TIMEOUT_MS
         conn.readTimeout = FILE_READ_TIMEOUT_MS
         try {
@@ -3166,7 +3187,16 @@ class VictorManager private constructor(context: Context) {
             return false
         }
 
-        if (!wifiTransfer.joinAccessPoint(ssid, GlassesProtocol.GLASSES_AP_PASSWORD)) {
+        // bindProcess = false: pobieranie plików samo wskazuje sieć (patrz
+        // [openGlassesConnection]), więc reszta aplikacji zachowuje internet.
+        // Przypięcie procesu odcinało od sieci TAKŻE model AI - przez cały czas
+        // otwartej galerii.
+        if (!wifiTransfer.joinAccessPoint(
+                ssid,
+                GlassesProtocol.GLASSES_AP_PASSWORD,
+                bindProcess = false
+            )
+        ) {
             lastTransferFailure = wifiTransfer.lastFailure
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,

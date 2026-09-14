@@ -85,6 +85,24 @@ class GlassesWifiTransfer(context: Context) {
     private var connectionDeferred: CompletableDeferred<WifiP2pInfo>? = null
     private var receiverRegistered = false
     private var boundNetwork: Network? = null
+
+    /**
+     * Sieć okularów - do jawnego użycia, BEZ przypinania całego procesu.
+     *
+     * ## Po co to istnieje
+     * Bo przypięcie procesu odcina od internetu CAŁĄ aplikację, nie tylko
+     * pobieranie plików. Zgłoszone trafnie: "jeśli telefon jest w sieci
+     * okularów, to połączenie z AI też nie będzie działać" - i tak właśnie
+     * było, przez cały czas otwartej galerii.
+     *
+     * `Network.openConnection` kieruje POJEDYNCZE połączenie przez wskazaną
+     * sieć, nie ruszając reszty. To zresztą pewniejsze niż przypinanie
+     * procesu, a nie mniej: kierunek jest tu wskazany wprost, a nie ustawiony
+     * globalnie i zależny od tego, co akurat robi system.
+     */
+    @Volatile
+    var glassesNetwork: Network? = null
+        private set
     private var apCallback: ConnectivityManager.NetworkCallback? = null
 
     /** Czy urządzenie ma uprawnienie wymagane do Wi-Fi Direct. */
@@ -532,7 +550,19 @@ class GlassesWifiTransfer(context: Context) {
      *
      * @return `true` gdy telefon jest w sieci okularów i ruch idzie przez nią
      */
-    suspend fun joinAccessPoint(ssid: String, password: String): Boolean {
+    suspend fun joinAccessPoint(
+        ssid: String,
+        password: String,
+        /**
+         * Czy przypiąć CAŁY proces do sieci okularów.
+         *
+         * `false` dla wszystkiego, co potrafi wskazać sieć samo (pobieranie
+         * plików przez [glassesNetwork]) - wtedy reszta aplikacji zachowuje
+         * internet. `true` zostaje dla bibliotek, którym sieci nie da się
+         * podać, jak odtwarzacz strumienia.
+         */
+        bindProcess: Boolean = true
+    ): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             lastFailure = "Łączenie z hotspotem okularów wymaga Androida 10 lub nowszego."
             Log.w(tag, "joinAccessPoint: API ${Build.VERSION.SDK_INT} za niskie")
@@ -550,7 +580,7 @@ class GlassesWifiTransfer(context: Context) {
 
         leaveAccessPoint()
         _state.value = TransferState.CONNECTING
-        return joinAccessPointQ(cm, ssid, password)
+        return joinAccessPointQ(cm, ssid, password, bindProcess)
     }
 
     /**
@@ -561,7 +591,8 @@ class GlassesWifiTransfer(context: Context) {
     private suspend fun joinAccessPointQ(
         cm: ConnectivityManager,
         ssid: String,
-        password: String
+        password: String,
+        bindProcess: Boolean
     ): Boolean {
         val specifier = WifiNetworkSpecifier.Builder()
             .setSsid(ssid)
@@ -603,9 +634,14 @@ class GlassesWifiTransfer(context: Context) {
                 _state.value = TransferState.FAILED
                 false
             } else {
-                val bound = runCatching { cm.bindProcessToNetwork(network) }
-                    .onFailure { Log.w(tag, "bindProcessToNetwork nie powiodło się", it) }
-                    .getOrDefault(false)
+                glassesNetwork = network
+                val bound = if (bindProcess) {
+                    runCatching { cm.bindProcessToNetwork(network) }
+                        .onFailure { Log.w(tag, "bindProcessToNetwork nie powiodło się", it) }
+                        .getOrDefault(false)
+                } else {
+                    false
+                }
                 if (bound) boundNetwork = network
                 Log.i(tag, "Telefon w sieci okularów (przypięty=$bound)")
                 _state.value = TransferState.CONNECTED
@@ -623,6 +659,7 @@ class GlassesWifiTransfer(context: Context) {
     /** Opuszcza hotspot okularów i przywraca telefonowi domyślną sieć. */
     fun leaveAccessPoint() {
         unbindProcessFromNetwork()
+        glassesNetwork = null
         releaseApCallback()
     }
 

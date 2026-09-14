@@ -83,11 +83,13 @@ import java.io.File
  * Galeria plików z okularów - zdjęcia, wideo i nagrania zrobione sprzętem.
  *
  * ## Dlaczego to nie jest zwykła lista
- * Pliki leżą w okularach, nie w telefonie. Żeby je zobaczyć, trzeba podnieść
- * grupę Wi-Fi Direct - a póki ona stoi, CAŁY ruch telefonu idzie przez okulary
- * (bez internetu). Dlatego sesja jest jawna: włącza ją przycisk, a wyjście z
- * ekranu ją zamyka. Ukrycie tego pod automatem znaczyłoby telefon bez sieci i
- * użytkownika, który nie wie dlaczego.
+ * Pliki leżą w okularach, nie w telefonie. Żeby je zobaczyć, trzeba dołączyć
+ * do ich sieci Wi-Fi - dlatego sesja jest jawna: włącza ją przycisk, a wyjście
+ * z ekranu ją zamyka.
+ *
+ * Samo dołączenie NIE odcina już telefonu od internetu: pobieranie plików
+ * wskazuje sieć okularów dla swoich własnych połączeń, nie dla całej
+ * aplikacji. Dzięki temu przy otwartej galerii model AI odpowiada normalnie.
  */
 class MediaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -233,8 +235,7 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 _status.value = if (names.isEmpty()) {
                     "Okulary nie mają jeszcze żadnych plików."
                 } else {
-                    "${names.size} plików. Dopóki galeria jest otwarta, telefon nie ma " +
-                        "internetu - cały ruch idzie przez okulary."
+                    "${names.size} plików na okularach."
                 }
             } catch (e: Exception) {
                 _status.value = "Nie udało się wczytać plików: ${e.message}"
@@ -600,9 +601,9 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
     /**
      * Zamyka połączenie Wi-Fi z okularami.
      *
-     * Wołane przy wyjściu z ekranu i to jest tu obowiązkowe: zostawiona sesja
-     * to telefon bez internetu, a użytkownik nie ma jak skojarzyć jednego z
-     * drugim.
+     * Wołane przy wyjściu z ekranu. Sesja nie odcina już telefonu od internetu,
+     * ale zostawiona trzyma okulary w trybie przesyłania - a te odmawiają
+     * wejścia w niego ponownie, dopóki ktoś ich z niego nie wyprowadzi.
      */
     fun closeSession() {
         cancelSaveAll()
