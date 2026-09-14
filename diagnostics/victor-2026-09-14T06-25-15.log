@@ -88,3 +88,21 @@
 06:34:55.658 +113439 ms  MODEL        dostawca nie odpowiedział w czasie  dostawca=local ms=45000 znakówOdpowiedzi=0
 06:34:55.701 +113482 ms  SESJA        --- KONIEC TURY 3ac9: BŁĄD: Nieoczekiwany błąd: Dostawca local nie odpowiedział w 45 s ---
 06:34:55.745          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+06:34:56.683          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+06:35:01.948          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 81 9D 12 01 00 10 10 02 00 0F 0F 03 00 10 10 01 sztuk=7 pierwsza=false
+06:35:43.523          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+06:35:43.540          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+06:35:49.293          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=5476 jpeg=true kompletny=true
+06:35:49.296      +0 ms  SESJA        --- TURA 7928 ---  źródło=BUTTON
+06:35:49.298      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+06:35:49.304      +8 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+06:35:49.367     +71 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+06:35:49.380     +84 ms  ZDJĘCIE      pomijam Wi-Fi Direct - ostatnia próba zawiodła  sekundTemu=157
+06:35:49.410    +114 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=5476 pełnaRozdzielczość=false
+06:35:49.595    +299 ms  KONTEKST     zebrany  ms=45 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+06:35:49.609    +313 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=1 znakówPromptu=1695
+06:35:52.716   +3420 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3108
+06:35:52.990   +3694 ms  MODEL        koniec odpowiedzi (374 znaków, 3950 tokenów)  ms=3382
+06:36:11.873  +22577 ms  MOWA         koniec wypowiedzi  ms=18881
+06:36:11.937  +22641 ms  SESJA        --- KONIEC TURY 7928: odpowiedziano ---
+06:36:11.940          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
