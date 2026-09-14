@@ -166,7 +166,11 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
                     diag.event(
                         pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
                         "Podgląd: błąd odtwarzacza",
-                        mapOf("kod" to error.errorCodeName, "treść" to error.message?.take(80))
+                        mapOf(
+                            "kod" to error.errorCodeName,
+                            "treść" to error.message?.take(80),
+                            "przyczyna" to causeChain(error)
+                        )
                     )
                 }
                 _state.value = State.Failed(
@@ -179,6 +183,33 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
         exo.prepare()
         exo.playWhenReady = true
         exoPlayer = exo
+    }
+
+    /**
+     * Rozwija łańcuch przyczyn wyjątku do jednego wiersza.
+     *
+     * ## Czemu samo `message` nie wystarczyło
+     * Bo media3 pakuje KAŻDY błąd RTSP w `RtspPlaybackException`, a `Player`
+     * pokazuje potem własny, ogólny komunikat. W dzienniku z 14 września
+     * widać, co to daje:
+     *
+     *     Podgląd: błąd odtwarzacza  kod=ERROR_CODE_IO_UNSPECIFIED treść=Source error
+     *
+     * "Source error" pasuje do wszystkiego - do zerwanej sieci tak samo jak do
+     * opisu strumienia, którego ten odtwarzacz nie przyjmuje. Prawdziwe zdanie
+     * (np. "missing sprop parameter" albo "missing attribute control") siedzi
+     * dopiero w przyczynie i bez tego rozwinięcia nigdy do nas nie docierało.
+     */
+    private fun causeChain(error: Throwable): String {
+        val parts = mutableListOf<String>()
+        var current: Throwable? = error.cause
+        var depth = 0
+        while (current != null && depth < MAX_CAUSE_DEPTH) {
+            parts += current.javaClass.simpleName + ": " + (current.message ?: "brak treści")
+            current = current.cause
+            depth++
+        }
+        return parts.joinToString(" <- ").ifEmpty { "brak przyczyny" }.take(MAX_CAUSE_CHARS)
     }
 
     /**
@@ -246,6 +277,12 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
          * czekania od zawieszenia.
          */
         const val FIRST_FRAME_TIMEOUT_MS = 15_000L
+
+        /** Ile poziomów przyczyn rozwijać - głębiej to już ślad stosu, nie diagnoza. */
+        const val MAX_CAUSE_DEPTH = 5
+
+        /** Ile znaków łańcucha przyczyn zapisać. */
+        const val MAX_CAUSE_CHARS = 300
     }
 }
 

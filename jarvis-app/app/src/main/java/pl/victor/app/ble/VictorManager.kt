@@ -2093,6 +2093,15 @@ class VictorManager private constructor(context: Context) {
                 "media" to probe.mediaLines.joinToString(" | ").ifEmpty { null }
             )
         )
+        // Cała odpowiedź osobnym wpisem: nie mieści się obok reszty, a to
+        // ona rozstrzyga, czego odtwarzaczowi brakuje.
+        probe.raw?.let { raw ->
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "Podgląd: pełna odpowiedź serwera",
+                mapOf("treść" to raw.replace("\r\n", " / ").replace("\n", " / "))
+            )
+        }
         if (!probe.portOpen) {
             lastTransferFailure =
                 "Okulary nie mają uruchomionego serwera podglądu (port " +
@@ -2118,7 +2127,17 @@ class VictorManager private constructor(context: Context) {
         /** Wiersz stanu odpowiedzi na DESCRIBE, albo `null` gdy serwer zamilkł. */
         val describeStatus: String?,
         /** Wiersze `m=` i `a=rtpmap:` z SDP - czyli co i w jakim kodeku nadaje. */
-        val mediaLines: List<String>
+        val mediaLines: List<String>,
+        /**
+         * CAŁA odpowiedź serwera, bez wybierania.
+         *
+         * Wybrane wiersze wystarczyły, żeby ustalić, że serwer istnieje i nadaje
+         * H.264 z dźwiękiem AAC. Nie wystarczają, żeby ustalić, czemu media3 go
+         * odrzuca: ten odtwarzacz wymaga od każdej ścieżki `a=control:`, a od
+         * H.264 dodatkowo `sprop-parameter-sets` w `a=fmtp:`. Tych wierszy w
+         * dzienniku NIE MIELIŚMY, więc odrzucenie wyglądało jak awaria sieci.
+         */
+        val raw: String?
     )
 
     /**
@@ -2156,10 +2175,10 @@ class VictorManager private constructor(context: Context) {
                     }
                     val buffer = ByteArray(RTSP_PROBE_READ_BYTES)
                     val read = sock.getInputStream().read(buffer)
-                    if (read <= 0) return@use RtspProbe(true, null, emptyList())
+                    if (read <= 0) return@use RtspProbe(true, null, emptyList(), null)
                     val reply = String(buffer, 0, read, Charsets.US_ASCII)
                     val (status, media) = GlassesProtocol.parseRtspDescribe(reply)
-                    RtspProbe(portOpen = true, describeStatus = status, mediaLines = media)
+                    RtspProbe(true, status, media, reply.take(RTSP_PROBE_RAW_CHARS))
                 }
             }.getOrElse { failure ->
                 // Rozróżniamy dwie różne porażki: gniazda nie dało się otworzyć
@@ -2168,7 +2187,8 @@ class VictorManager private constructor(context: Context) {
                 RtspProbe(
                     portOpen = socket.isConnected,
                     describeStatus = null,
-                    mediaLines = listOf(failure.javaClass.simpleName)
+                    mediaLines = listOf(failure.javaClass.simpleName),
+                    raw = null
                 )
             }
         }
@@ -3908,6 +3928,9 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile bajtów odpowiedzi DESCRIBE czytamy - SDP z jednego kanału jest krótkie. */
         private const val RTSP_PROBE_READ_BYTES = 2048
+
+        /** Ile znaków odpowiedzi zapisać do dziennika - całe SDP i tak jest krótsze. */
+        private const val RTSP_PROBE_RAW_CHARS = 900
 
 
         /** Co ile wysyłać puls sesji Wi-Fi - tyle samo, co producent. */
