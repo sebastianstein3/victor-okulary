@@ -92,10 +92,23 @@ object GlassesProtocol {
      *   NIEZSYNCHRONIZOWANYCH, więc coś musi tę flagę ustawiać,
      * - to jedyna komenda wysyłana po imporcie i nigdzie indziej.
      *
-     * ## Czego nie wiemy
-     * Czy kasuje pliki, czy tylko oznacza je jako zsynchronizowane. Różnica
-     * jest nieodwracalna, więc komenda NIE jest wysyłana automatycznie -
-     * rozstrzygnie ją pomiar liczników przed i po, przy świadomym kliknięciu.
+     * ## CO ROBI NAPRAWDĘ - ZMIERZONE
+     * Kasuje. Dziennik z 14 września, liczniki wokół jednego użycia:
+     *
+     *     PRZED  zdjęć=121  wideo=14  nagrań=0
+     *     PO     zdjęć=0    wideo=13  nagrań=0
+     *
+     * Sto dwadzieścia jeden zdjęć zniknęło z pamięci okularów. Hipoteza była
+     * trafna, a pomiar zrobił to, po co był: zamienił "prawdopodobnie" w fakt.
+     *
+     * Wideo przetrwały prawie w komplecie - czternaście na trzynaście. Czemu
+     * akurat jedno, NIE WIEM. Nasuwa się, że komenda kasuje tylko pliki
+     * pobrane wcześniej (zdjęcia idą szybko, wideo po kilkadziesiąt megabajtów
+     * już nie), ale jeden pomiar tego nie dowodzi i nie należy tego zakładać.
+     *
+     * Dlatego komenda NADAL nie jest wysyłana automatycznie po imporcie.
+     * Wiemy już, że kasuje - a to tym bardziej powód, żeby zostawić ją za
+     * świadomym kliknięciem.
      */
     const val WORK_RELEASE_STORAGE = 0x09
 
@@ -333,6 +346,17 @@ object GlassesProtocol {
      * ogóle: wysyłaliśmy komendę i czekaliśmy czterdzieści sekund w ciemno, po
      * czym mówiliśmy "okulary nie wystawiły sieci". A okulary przez cały ten
      * czas MÓWIŁY, czemu nie mogą - tylko nikt nie słuchał.
+     *
+     * ## KOD BŁĘDU Z ODPOWIEDZI NIE JEST TU MIARĄ NICZEGO
+     * Dziennik z 14 września pokazuje trzy udane podniesienia hotspotu i przy
+     * każdym z nich `błąd=1`:
+     *
+     *     Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+     *     Hotspot okularów: gotowe  ms=10099
+     *
+     * Gdyby przeszkody czytać z `errorCode`, odrzucalibyśmy działające
+     * połączenie za każdym razem. Rozstrzyga wyłącznie `workTypeIng` - i to
+     * jest powód, dla którego ta funkcja bierze właśnie jego.
      *
      * @return powód po polsku albo `null`, gdy nie ma przeszkody
      */
