@@ -170,3 +170,44 @@
 06:38:08.726  +42709 ms  MOWA         koniec wypowiedzi  ms=30081
 06:38:08.773  +42756 ms  SESJA        --- KONIEC TURY eb85: odpowiedziano ---
 06:38:08.791          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+06:38:09.686          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+06:38:10.545          ms  PRZYCISK     wciśnięto  numer=1
+06:38:10.809          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+06:38:11.240          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=424
+06:38:11.350          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=21 mikrofonOkularów=true
+06:38:11.356      +1 ms  SESJA        --- TURA 63d8 ---  źródło=OKULARY
+06:38:11.359      +3 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+06:38:16.738   +5382 ms  NASŁUCH      koniec  ms=5382 telefonUsłyszał=powiedz mi więcej o tym webinarze oglądać
+06:38:16.969   +5614 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.8335 pakietów=42 rozkodowanych=42 odrzuconych=0 przesunięcie=6 ramka=-1
+06:38:17.896   +6540 ms  TRANSKRYPCJA z nagrania okularów  ms=921 droga=Nasłuch telefonu
+06:38:17.900   +6544 ms  SESJA        pytanie  tekst=powiedz mi więcej o tym webinarze oglądać wymuszonyObraz=false
+06:38:17.929   +6574 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+06:38:17.955   +6599 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+06:38:19.673   +8318 ms  KONTEKST     zebrany  ms=1706 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+06:38:19.706   +8350 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8554
+06:38:23.255  +11900 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3551
+06:38:23.521  +12165 ms  MODEL        koniec odpowiedzi (474 znaków, 5834 tokenów)  ms=3817
+06:38:47.143  +35788 ms  MOWA         koniec wypowiedzi  ms=23613
+06:38:47.196  +35840 ms  SESJA        --- KONIEC TURY 63d8: odpowiedziano ---
+06:38:47.213          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+06:38:48.075          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+06:38:49.289          ms  PRZYCISK     wciśnięto  numer=1
+06:38:49.554          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+06:38:49.910          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=14 ms=346
+06:38:49.993          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=12 mikrofonOkularów=true
+06:38:49.999      +1 ms  SESJA        --- TURA e439 ---  źródło=OKULARY
+06:38:50.001      +2 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+06:38:50.452    +454 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 C1 9C 12 01 00 10 10 02 00 0F 0F 03 00 10 10 02 sztuk=6 pierwsza=false
+06:38:55.703   +5705 ms  NASŁUCH      koniec  ms=5704 telefonUsłyszał=webinar w moim kalendarzu
+06:38:55.932   +5933 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.7335 pakietów=37 rozkodowanych=37 odrzuconych=0 przesunięcie=6 ramka=-1
+06:38:56.850   +6851 ms  TRANSKRYPCJA z nagrania okularów  ms=915 droga=Nasłuch telefonu
+06:38:56.854   +6855 ms  SESJA        pytanie  tekst=webinar w moim kalendarzu wymuszonyObraz=false
+06:38:56.868   +6869 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+06:38:56.892   +6894 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+06:38:58.527   +8528 ms  KONTEKST     zebrany  ms=1623 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+06:38:58.561   +8562 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=8605
+06:39:06.789  +16791 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=8229
+06:39:06.881  +16882 ms  MODEL        koniec odpowiedzi (326 znaków, 7406 tokenów)  ms=8321
+06:39:23.126  +33127 ms  MOWA         koniec wypowiedzi  ms=16240
+06:39:23.199  +33200 ms  SESJA        --- KONIEC TURY e439: odpowiedziano ---
+06:39:23.217          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
