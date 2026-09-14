@@ -647,6 +647,22 @@ class GlassesWifiTransfer(context: Context) {
                 _state.value = TransferState.CONNECTED
                 true
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // ANULOWANIE TO NIE AWARIA SIECI.
+            //
+            // `catch (e: Exception)` łapie także CancellationException, więc
+            // zamknięcie podglądu przez użytkownika trafiało do dziennika jako:
+            //
+            //     powód=Nie udało się połączyć z siecią okularów:
+            //           StandaloneCoroutine was cancelled
+            //
+            // Widać to w dzienniku z 14 września trzy razy. Komunikat kłamał o
+            // przyczynie, a połknięcie tego wyjątku łamie przy okazji
+            // anulowanie strukturalne - korutyna, która go nie przepuści,
+            // udaje, że dalej żyje.
+            releaseApCallback()
+            _state.value = TransferState.IDLE
+            throw e
         } catch (e: Exception) {
             Log.e(tag, "joinAccessPoint nie powiodło się", e)
             lastFailure = "Nie udało się połączyć z siecią okularów: ${e.message}"

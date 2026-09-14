@@ -2106,7 +2106,34 @@ class VictorManager private constructor(context: Context) {
         // dziennika trafia to, co serwer odpowie - łącznie z kodekiem. Gdy
         // media3 potem polegnie, ten wiersz powie, czy powodem jest brak
         // strumienia, czy format, którego odtwarzacz nie umie.
-        val probe = describeRtsp(ip, url)
+        // PONAWIAMY, ZAMIAST REZYGNOWAĆ PO PIERWSZEJ ODMOWIE.
+        //
+        // Dziennik z 14 września, dwie sekundy po komendzie podglądu:
+        //
+        //     PORT ZAMKNIĘTY - okulary nie mają serwera RTSP  media=ConnectException
+        //
+        // A trzydzieści sekund później ten sam sprzęt nadaje bez zarzutu. Czyli
+        // to nie jest "nie ma serwera", tylko "jeszcze go nie ma" - okulary
+        // potrzebują chwili, zwłaszcza gdy podgląd był przed momentem
+        // zatrzymany i sieć jeszcze stoi po poprzedniej sesji.
+        //
+        // Rozróżnienie jest ważne, bo komunikat "ten egzemplarz nie obsługuje
+        // podglądu" przy sprzęcie, który go obsługuje, to najgorszy rodzaj
+        // pomyłki: zniechęca do funkcji, która działa.
+        var probe = describeRtsp(ip, url)
+        var attempt = 1
+        while (probe.describeStatus == null && attempt < RTSP_PROBE_ATTEMPTS) {
+            delay(RTSP_PROBE_RETRY_MS)
+            attempt++
+            probe = describeRtsp(ip, url)
+        }
+        if (attempt > 1) {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "Podgląd: serwer RTSP potrzebował czasu",
+                mapOf("prób" to attempt, "odpowiedział" to (probe.describeStatus != null))
+            )
+        }
         diag.event(
             if (probe.describeStatus != null) pl.victor.app.diagnostics.DiagFormat.Phase.BLE
             else pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
@@ -2132,10 +2159,18 @@ class VictorManager private constructor(context: Context) {
             )
         }
         if (!probe.portOpen) {
+            // NIE MÓWIMY JUŻ "ten egzemplarz nie obsługuje podglądu".
+            //
+            // Ten sprzęt go obsługuje - wiemy to z pomiaru: 1600x1200, zero
+            // zgubionych pakietów. Gdy po trzech próbach serwer milczy, znaczy
+            // to najczęściej, że okulary nie zdążyły wrócić po poprzedniej
+            // sesji, a nie że czegoś nie umieją. Komunikat ma mówić, co zrobić,
+            // a nie zniechęcać do działającej funkcji.
             lastTransferFailure =
-                "Okulary nie mają uruchomionego serwera podglądu (port " +
-                    "${GlassesProtocol.RTSP_PORT} zamknięty). Ten egzemplarz " +
-                    "prawdopodobnie nie obsługuje podglądu na żywo."
+                "Okulary nie odpowiadają na porcie podglądu " +
+                    "(${GlassesProtocol.RTSP_PORT}). Zwykle znaczy to, że nie " +
+                    "zdążyły wrócić po poprzednim podglądzie - odczekaj kilka " +
+                    "sekund i spróbuj ponownie."
             stopSessionHeartbeat()
             wifiTransfer.leaveAccessPoint()
             return null
@@ -4082,6 +4117,17 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile czekać na otwarcie gniazda serwera RTSP. */
         private const val RTSP_PROBE_TIMEOUT_MS = 3_000
+
+        /**
+         * Ile razy zapytać serwer RTSP, zanim uznamy, że go nie ma.
+         *
+         * Trzy, bo w dzienniku widać, że po świeżym zatrzymaniu podglądu
+         * pierwsze pytanie trafia w pustkę, a sprzęt wraca po kilku sekundach.
+         */
+        private const val RTSP_PROBE_ATTEMPTS = 3
+
+        /** Przerwa między pytaniami do serwera RTSP. */
+        private const val RTSP_PROBE_RETRY_MS = 2_000L
 
         /**
          * Ile czekać na pierwszą klatkę ze strumienia.
