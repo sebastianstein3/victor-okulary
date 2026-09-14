@@ -411,3 +411,42 @@
 18:58:28.311  +38337 ms  MOWA         koniec wypowiedzi  ms=27228
 18:58:28.333  +38358 ms  SESJA        --- KONIEC TURY 306d: odpowiedziano ---
 18:58:28.339          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:58:29.331          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:58:31.859          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 29 D6 12 01 00 10 0A 02 00 0F 00 03 00 10 0C 03 sztuk=10 pierwsza=false
+18:58:47.760          ms  PRZYCISK     wciśnięto  numer=1
+18:58:47.929          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+18:58:48.308          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=377
+18:58:48.370          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=11 mikrofonOkularów=true
+18:58:48.372      +0 ms  SESJA        --- TURA c5f7 ---  źródło=OKULARY
+18:58:48.373      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+18:58:53.439   +5067 ms  NASŁUCH      koniec  ms=5067 telefonUsłyszał=mam jakieś nieprzeczytane na ile mikrofon=mowa wykryta szczytDb=10.0 próbek=6 gotowyPoMs=1847
+18:58:53.568   +5196 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.7735 pakietów=39 rozkodowanych=39 odrzuconych=0 przesunięcie=6 ramka=-1
+18:58:54.537   +6165 ms  TRANSKRYPCJA z nagrania okularów  ms=967 droga=Nasłuch telefonu
+18:58:54.539   +6167 ms  SESJA        pytanie  tekst=mam jakieś nieprzeczytane na ile wymuszonyObraz=false
+18:58:54.545   +6173 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:58:54.560   +6188 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:58:54.629   +6257 ms  KONTEKST     zebrany  ms=62 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+18:58:54.636   +6264 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=4126
+18:58:57.709   +9337 ms  MODEL        koniec odpowiedzi (157 znaków, 3684 tokenów)  ms=3073
+18:59:08.058  +19686 ms  MOWA         koniec wypowiedzi  ms=10347
+18:59:08.075  +19703 ms  SESJA        --- KONIEC TURY c5f7: odpowiedziano ---
+18:59:08.078          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:59:08.207          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:59:10.728          ms  PRZYCISK     wciśnięto  numer=1
+18:59:11.048          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+18:59:11.281          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=231
+18:59:11.348          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=17 mikrofonOkularów=true
+18:59:11.350      +0 ms  SESJA        --- TURA 08ea ---  źródło=OKULARY
+18:59:11.350      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+18:59:16.413   +5063 ms  NASŁUCH      koniec  ms=5063 telefonUsłyszał=masz dostęp do mojego gmaila mikrofon=mowa wykryta szczytDb=10.0 próbek=6 gotowyPoMs=256
+18:59:16.536   +5186 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.6335 pakietów=32 rozkodowanych=32 odrzuconych=0 przesunięcie=6 ramka=-1
+18:59:17.495   +6145 ms  TRANSKRYPCJA z nagrania okularów  ms=958 droga=Nasłuch telefonu
+18:59:17.496   +6146 ms  SESJA        pytanie  tekst=masz dostęp do mojego gmaila wymuszonyObraz=false
+18:59:17.500   +6150 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:59:17.516   +6166 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:59:20.405   +9055 ms  KONTEKST     zebrany  ms=2882 pamięć=true kalendarz=false poczta=true pogoda=false lokalizacja=false limitCzasu=false
+18:59:20.413   +9063 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=7131
+18:59:23.313  +11963 ms  MODEL        koniec odpowiedzi (252 znaków, 5389 tokenów)  ms=2901
+18:59:40.527  +29177 ms  MOWA         koniec wypowiedzi  ms=17211
+18:59:40.664  +29314 ms  SESJA        --- KONIEC TURY 08ea: odpowiedziano ---
+18:59:40.766          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
