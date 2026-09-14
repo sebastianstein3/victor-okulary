@@ -136,6 +136,12 @@ class GeminiProvider(
                     add(buildJsonObject { put("googleSearch", buildJsonObject {}) })
                 }
             }
+            // Ta ścieżka składa JSON ręcznie, więc limit trzeba tu dopisać
+            // OSOBNO - inaczej analiza wideo zostałaby jedynym zapytaniem bez
+            // żadnej granicy, czyli najdroższym z nich wszystkich.
+            putJsonObject("generationConfig") {
+                put("maxOutputTokens", MAX_OUTPUT_TOKENS)
+            }
         }
 
         return try {
@@ -222,7 +228,8 @@ class GeminiProvider(
 
         val request = GeminiRequest(
             contents = listOf(GeminiContent(parts = parts)),
-            tools = tools
+            tools = tools,
+            generationConfig = GeminiGenerationConfig(maxOutputTokens = MAX_OUTPUT_TOKENS)
         )
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
@@ -327,6 +334,7 @@ class GeminiProvider(
             ?: emptyList()
 
         val tokens = geminiResponse.usageMetadata?.totalTokenCount ?: 0
+        reportUsage(geminiResponse)
 
         return AIResponse(
             text = text.trim(),
@@ -336,11 +344,59 @@ class GeminiProvider(
         )
     }
 
+    /**
+     * Zapisuje w dzienniku, NA CO poszły tokeny tej odpowiedzi.
+     *
+     * ## Po co
+     * Bo "2817 tokenów" nie wyjaśnia rachunku, tylko go pogłębia. Polecenie
+     * miało circa 250 tokenów, odpowiedź circa 100 - reszta była niewidoczna, a
+     * na rachunku w Google Cloud najdroższą pozycją jest SKU tokenów
+     * wyjściowych. Rozbicie odpowiada na to jedną linijką, zamiast zostawiać
+     * mnie z hipotezą o myśleniu.
+     *
+     * Nie zgadujemy przy tym cen: liczby są prawdą, stawki zmieniają się bez
+     * naszej wiedzy i to rachunek jest od nich.
+     */
+    private fun reportUsage(response: GeminiResponse) {
+        val usage = response.usageMetadata ?: return
+        val finish = response.candidates?.firstOrNull()?.finishReason
+        runCatching {
+            pl.victor.app.VictorApplication.get().diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.MODEL,
+                if (finish == "MAX_TOKENS") "zużycie tokenów - ODPOWIEDŹ UCIĘTA NA LIMICIE"
+                else "zużycie tokenów",
+                mapOf(
+                    "wejście" to usage.promptTokenCount,
+                    "odpowiedź" to usage.candidatesTokenCount,
+                    "myślenie" to usage.thoughtsTokenCount,
+                    "razem" to usage.totalTokenCount,
+                    "limit" to MAX_OUTPUT_TOKENS,
+                    "koniec" to finish
+                )
+            )
+        }
+    }
+
     companion object {
         private const val TAG = "GeminiProvider"
         private const val API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val STREAM_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val IMAGES_IN_REQUEST = 5
+
+        /**
+         * Górna granica tokenów odpowiedzi - razem z myśleniem.
+         *
+         * Dobrana z zapasem, bo dokumentacja ostrzega wprost: limit obejmuje
+         * tokeny myślenia, więc za ciasny potrafi oddać PUSTKĘ zamiast zdania.
+         * Tysiąc dwieście mieści długą odpowiedź głosową (circa 3000 znaków) i
+         * spory zapas na myślenie, a przycina dopiero to, czego i tak nikt nie
+         * wysłucha - w dzienniku z 14 września jedna odpowiedź na 369 znaków
+         * zajęła osiemnaście sekund mówienia.
+         *
+         * Gdyby okazało się za ciasne, powie to [GeminiCandidate.finishReason]
+         * wartością "MAX_TOKENS" - nie trzeba będzie zgadywać.
+         */
+        private const val MAX_OUTPUT_TOKENS = 1200
 
         /** Ile znaków oryginalnej odpowiedzi serwera dokładamy do komunikatu. */
         private const val RAW_ERROR_CHARS = 200
@@ -428,7 +484,8 @@ class GeminiProvider(
 
         val request = GeminiRequest(
             contents = listOf(GeminiContent(parts = parts)),
-            tools = tools
+            tools = tools,
+            generationConfig = GeminiGenerationConfig(maxOutputTokens = MAX_OUTPUT_TOKENS)
         )
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
@@ -457,6 +514,7 @@ class GeminiProvider(
                 // Parsuj SSE: każda linia "data: {...}\n\n"
                 val fullText = StringBuilder()
                 var totalTokens = 0
+                var lastUsage: GeminiResponse? = null
 
                 while (!source.exhausted()) {
                     val line = source.readUtf8Line() ?: break
@@ -478,11 +536,23 @@ class GeminiProvider(
                                 }
                             }
                             chunk.usageMetadata?.totalTokenCount?.let { totalTokens = it }
+                            // ROZBICIE ZUŻYCIA MUSI BYĆ WŁAŚNIE TUTAJ.
+                            //
+                            // To jest ścieżka, którą idzie ROZMOWA - w dzienniku
+                            // widać ją po wierszu "PIERWSZY FRAGMENT odpowiedzi".
+                            // Pomiar zapięty tylko przy zapytaniu bez strumienia
+                            // nie odpalałby się w normalnym użyciu ani razu, czyli
+                            // mierzyłby dokładnie to, o co nikt nie pyta.
+                            //
+                            // Zużycie przychodzi w OSTATNIM fragmencie, więc
+                            // zapisujemy ten, w którym w ogóle jest.
+                            if (chunk.usageMetadata != null) lastUsage = chunk
                         } catch (e: Exception) {
                             Log.w(TAG, "Failed to parse chunk: ${e.message}")
                         }
                     }
                 }
+                lastUsage?.let { reportUsage(it) }
 
                 // Ostatni chunk - z summary
                 emit(AIResponseChunk(
@@ -509,7 +579,36 @@ class GeminiProvider(
 @Serializable
 data class GeminiRequest(
     val contents: List<GeminiContent>,
-    val tools: List<GeminiTool>? = null
+    val tools: List<GeminiTool>? = null,
+    val generationConfig: GeminiGenerationConfig? = null
+)
+
+/**
+ * Granice dla generowania - dotąd NIE WYSYŁANE WCALE.
+ *
+ * ## Czemu to zaczęło mieć znaczenie
+ * Bo bez `maxOutputTokens` jedna tura potrafi kosztować wielokrotność tego, co
+ * musi. W dzienniku z 14 września zwykłe pytanie o zamek daje `2817 tokenów`
+ * przy poleceniu na circa 250 i odpowiedzi na circa 100 - a największą pozycją
+ * na rachunku jest SKU tokenów WYJŚCIOWYCH.
+ *
+ * ## Czego tu świadomie NIE MA
+ * Sterowania myśleniem. Dokumentacja Gemini pokazuje dziś `thinking_level` w
+ * nowym API rozmów, a starsze źródła `thinkingConfig.thinkingBudget`; nie
+ * udało mi się potwierdzić, którego z nich oczekuje `generateContent` dla
+ * modelu ustawionego w tej aplikacji. Zgadnięta nazwa pola to odpowiedź 400 i
+ * asystent, który przestaje odpowiadać W OGÓLE - a to znacznie gorsze niż
+ * rachunek wyższy, niż trzeba. Najpierw [GeminiUsageMetadata.thoughtsTokenCount]
+ * pokaże w dzienniku, ile tokenów naprawdę idzie na myślenie; dopiero mając tę
+ * liczbę warto sięgać po sterowanie nim.
+ *
+ * `maxOutputTokens` ogranicza tymczasem JEDNO I DRUGIE naraz: dokumentacja
+ * mówi wprost, że limit obejmuje także tokeny myślenia.
+ */
+@Serializable
+data class GeminiGenerationConfig(
+    val maxOutputTokens: Int? = null,
+    val temperature: Float? = null
 )
 
 @Serializable
@@ -554,7 +653,17 @@ data class GeminiResponse(
 @Serializable
 data class GeminiCandidate(
     val content: GeminiContent? = null,
-    val groundingMetadata: GroundingMetadata? = null
+    val groundingMetadata: GroundingMetadata? = null,
+    /**
+     * Czemu model przestał pisać - "STOP" to koniec zdania, "MAX_TOKENS" to
+     * ucięcie na limicie.
+     *
+     * Potrzebne od chwili, gdy ustawiamy [GenerationConfig.maxOutputTokens]:
+     * limit liczy tokeny myślenia RAZEM z odpowiedzią, więc za ciasny potrafi
+     * oddać pustkę zamiast zdania. Bez tego pola takie ucięcie wyglądałoby
+     * identycznie jak model, który nie miał nic do powiedzenia.
+     */
+    val finishReason: String? = null
 )
 
 @Serializable
@@ -577,5 +686,19 @@ data class WebSource(
 data class GeminiUsageMetadata(
     val promptTokenCount: Int? = null,
     val candidatesTokenCount: Int? = null,
+    /**
+     * Tokeny zużyte na MYŚLENIE - rozliczane jak wyjściowe, czyli najdrożej.
+     *
+     * Tego pola tu nie było, a bez niego rachunek nie dawał się wytłumaczyć.
+     * W dzienniku z 14 września jedna zwykła tura to `2817 tokenów` przy
+     * poleceniu na 998 znaków (circa 250 tokenów) i odpowiedzi na 369 znaków
+     * (circa 100). Brakujących dwóch i pół tysiąca nie dało się przypisać do
+     * niczego - a na rachunku w Google Cloud największą pozycją jest właśnie
+     * SKU tokenów WYJŚCIOWYCH.
+     *
+     * Model może tego pola nie odsyłać; `ignoreUnknownKeys` po obu stronach
+     * sprawia, że jego brak nic nie psuje, a obecność wszystko wyjaśnia.
+     */
+    val thoughtsTokenCount: Int? = null,
     val totalTokenCount: Int? = null
 )
