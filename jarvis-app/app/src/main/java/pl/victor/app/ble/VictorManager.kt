@@ -2378,6 +2378,14 @@ class VictorManager private constructor(context: Context) {
         return grabber.latestJpeg
     }
 
+    /**
+     * Odcisk ostatniej klatki - do sprawdzenia, czy scena się zmieniła.
+     *
+     * `null`, gdy strumień nie stoi. Porównanie robi
+     * [pl.victor.app.stream.YuvFrame.sceneChanged].
+     */
+    fun liveFingerprint(): IntArray? = frameGrabber?.latestFingerprint
+
     /** Zdarzenia strumienia do dziennika - waga przychodzi od nadawcy. */
     private fun streamEvent(message: String, fields: Map<String, Any?>, problem: Boolean) {
         runCatching {

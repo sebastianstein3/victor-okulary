@@ -79,6 +79,16 @@ class H264FrameGrabber(
     var latestSize: Pair<Int, Int>? = null
         private set
 
+    /**
+     * Odcisk jasności ostatniej klatki - do pytania "czy scena się zmieniła".
+     *
+     * Liczony TU, przy okazji przepisywania, bo jasność mamy już rozpakowaną.
+     * Liczenie go później z JPEG-a znaczyłoby odkodowanie obrazu z powrotem.
+     */
+    @Volatile
+    var latestFingerprint: IntArray? = null
+        private set
+
     /** Ile klatek przepisaliśmy. */
     @Volatile
     var grabbed: Int = 0
@@ -175,6 +185,7 @@ class H264FrameGrabber(
             yuv.compressToJpeg(Rect(0, 0, nv21.width, nv21.height), quality, out)
             latestJpeg = out.toByteArray()
             latestSize = nv21.width to nv21.height
+            latestFingerprint = YuvFrame.fingerprint(nv21)
             val first = grabbed == 0
             grabbed++
             if (first) {
@@ -205,6 +216,7 @@ class H264FrameGrabber(
         runCatching { codec?.release() }
         codec = null
         latestJpeg = null
+        latestFingerprint = null
     }
 
     private fun java.nio.ByteBuffer.toByteArray(): ByteArray {

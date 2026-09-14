@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import pl.victor.app.audio.AudioManager
 import pl.victor.app.data.HistoryRepository
+import pl.victor.app.stream.YuvFrame
 import pl.victor.app.vision.OCRReader
 import pl.victor.app.vision.OCRResult
 import java.util.concurrent.atomic.AtomicBoolean
@@ -304,9 +305,21 @@ class AccessibilityService(
     /** Jedno spojrzenie na tekst: zdjęcie, rozpoznanie, przeczytanie na głos. */
     private suspend fun readOnce() {
         try {
-            var ocr: OCRResult? = capturePhotoOrExplain()?.let { ocrReader.readBytes(it) }
+            // PRZY STRUMIENIU IDZIEMY OD RAZU PO SZCZEGÓŁ.
+            //
+            // Dwa podejścia - najpierw miniatura, potem oryginał - miały sens,
+            // dopóki oryginał kosztował kilkanaście sekund przez Wi-Fi Direct.
+            // Ze strumienia pełna klatka jest po JEDNEJ KLATCE, circa 33 ms, a
+            // litery z odległości to dokładnie ten przypadek, w którym
+            // pomniejszony obraz nie wystarcza.
+            //
+            // Odpada przy tym "Przyglądam się dokładniej" i czekanie na
+            // wypowiedzenie tego zdania - kilka sekund ciszy za nic.
+            val haveStream = glassesManager.isLiveVisionRunning
+            var ocr: OCRResult? = capturePhotoOrExplain(sharp = haveStream)
+                ?.let { ocrReader.readBytes(it) }
 
-            if (ocr?.isSuccess != true || ocr.fullText.isBlank()) {
+            if (!haveStream && (ocr?.isSuccess != true || ocr.fullText.isBlank())) {
                 if (!active.get()) return
                 Log.i(tag, "Miniatura bez tekstu - biorę zdjęcie w pełnej jakości")
                 audio.speakAndAwait("Przyglądam się dokładniej.", language = "pl")
@@ -359,12 +372,43 @@ class AccessibilityService(
      * dziesięć sekund przerwy, znowu zdjęcie.
      */
     private suspend fun describeSceneLoop() {
+        var describedScene: IntArray? = null
         while (active.get()) {
             try {
+                // NIE OPISUJEMY W KÓŁKO TEGO SAMEGO.
+                //
+                // Poprzednia próba tego warunku porównywała SUMĘ KONTROLNĄ
+                // BAJTÓW zdjęcia i przepuszczała wszystko, bo szum matrycy
+                // zmienia każdy bajt - komentarz wyżej opisuje, czemu została
+                // usunięta jako udawanie. Klatki ze strumienia pozwalają
+                // porównać OBRAZ: siatkę średnich jasności, na którą szum się
+                // uśrednia do zera, a człowiek wchodzący w kadr nie.
+                //
+                // Zysk jest podwójny. Dla użytkownika: nie słyszy co dziesięć
+                // sekund tego samego opisu nieruchomego pokoju. Dla rachunku:
+                // pominięte zapytanie to circa 1600 tokenów, za które nie ma
+                // powodu płacić.
+                //
+                // Działa tylko przy strumieniu. Przy zdjęciach odcisku nie ma,
+                // `sceneChanged` oddaje wtedy `true` i wszystko idzie po
+                // staremu - czyli pogorszenia nie ma nigdzie.
+                val sceneNow = glassesManager.liveFingerprint()
+                if (describedScene != null &&
+                    !YuvFrame.sceneChanged(describedScene, sceneNow)
+                ) {
+                    delay(describeIntervalMs)
+                    continue
+                }
+
                 val photo = capturePhotoOrExplain()
                 if (photo != null) {
                     val description = askOrExplain(photo, FAILURE_DESCRIBE, onDescribeScene)
                     if (description != null) {
+                        // Zapamiętujemy scenę, KTÓRĄ OPISALIŚMY, a nie tę z
+                        // chwili sprawdzania: między jednym a drugim mija
+                        // sekunda i porównywanie do świeższej klatki gubiłoby
+                        // zmiany, które zaszły w tym czasie.
+                        describedScene = glassesManager.liveFingerprint() ?: sceneNow
                         playBeep(BeepType.NEW_SCENE)
                         _lastDescription.value = description
                         // speakAndAwait: przerwa ma się liczyć od chwili, gdy

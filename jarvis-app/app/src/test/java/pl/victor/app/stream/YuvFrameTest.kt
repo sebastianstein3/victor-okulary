@@ -1,6 +1,7 @@
 package pl.victor.app.stream
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -212,5 +213,93 @@ class YuvFrameTest {
     @Test
     fun `brak limitu nie pomniejsza`() {
         assertEquals(1, YuvFrame.sampleFor(1600, 1200, maxSide = 0))
+    }
+
+    // --- odcisk sceny ---
+    //
+    // Poprzednia próba wykrywania zmiany sceny porównywała sumę kontrolną
+    // bajtów i przepuszczała wszystko, bo szum matrycy zmienia każdy bajt.
+    // Te testy pilnują, żeby nowa wersja odróżniała szum od zmiany.
+
+    private fun flat(width: Int, height: Int, value: Int): YuvFrame.Nv21 {
+        val bytes = ByteArray(width * height * 3 / 2) { 128.toByte() }
+        for (i in 0 until width * height) bytes[i] = value.toByte()
+        return YuvFrame.Nv21(bytes, width, height)
+    }
+
+    @Test
+    fun `odcisk ma szescdziesiat cztery pola`() {
+        val fp = YuvFrame.fingerprint(flat(64, 64, 100))!!
+        assertEquals(64, fp.size)
+        assertTrue(fp.all { it == 100 })
+    }
+
+    @Test
+    fun `identyczna scena to brak zmiany`() {
+        val a = YuvFrame.fingerprint(flat(64, 64, 100))
+        val b = YuvFrame.fingerprint(flat(64, 64, 100))
+        assertFalse(YuvFrame.sceneChanged(a, b))
+    }
+
+    @Test
+    fun `szum matrycy NIE jest zmiana sceny`() {
+        // To jest ten przypadek, na którym poległa poprzednia wersja: każdy
+        // bajt inny, a scena ta sama.
+        val w = 64
+        val h = 64
+        val base = flat(w, h, 100)
+        val noisy = ByteArray(base.bytes.size) { base.bytes[it] }
+        val rnd = java.util.Random(7)
+        for (i in 0 until w * h) {
+            noisy[i] = (100 + rnd.nextInt(5) - 2).toByte()
+        }
+        val a = YuvFrame.fingerprint(base)
+        val b = YuvFrame.fingerprint(YuvFrame.Nv21(noisy, w, h))
+        assertFalse("szum nie powinien liczyć się jako nowa scena", YuvFrame.sceneChanged(a, b))
+    }
+
+    @Test
+    fun `wyraznie inna scena jest zmiana`() {
+        val a = YuvFrame.fingerprint(flat(64, 64, 40))
+        val b = YuvFrame.fingerprint(flat(64, 64, 200))
+        assertTrue(YuvFrame.sceneChanged(a, b))
+    }
+
+    @Test
+    fun `zmiana w polowie kadru tez sie liczy`() {
+        // Ktoś wszedł w kadr z jednej strony - połowa pól zmienia jasność.
+        val w = 64
+        val h = 64
+        val a = flat(w, h, 100)
+        val bBytes = ByteArray(a.bytes.size) { a.bytes[it] }
+        for (row in 0 until h) {
+            for (col in 0 until w / 2) bBytes[row * w + col] = 220.toByte()
+        }
+        assertTrue(
+            YuvFrame.sceneChanged(
+                YuvFrame.fingerprint(a),
+                YuvFrame.fingerprint(YuvFrame.Nv21(bBytes, w, h))
+            )
+        )
+    }
+
+    @Test
+    fun `brak odcisku znaczy pytaj`() {
+        // Niepewność ma prowadzić do zapytania, nie do milczenia: przegapiona
+        // zmiana to coś, o czym niewidomy nie usłyszy.
+        val fp = YuvFrame.fingerprint(flat(64, 64, 100))
+        assertTrue(YuvFrame.sceneChanged(null, fp))
+        assertTrue(YuvFrame.sceneChanged(fp, null))
+        assertTrue(YuvFrame.sceneChanged(null, null))
+    }
+
+    @Test
+    fun `za mala klatka nie ma odcisku`() {
+        assertNull(YuvFrame.fingerprint(flat(4, 4, 100)))
+    }
+
+    @Test
+    fun `obciete dane nie wywracaja odcisku`() {
+        assertNull(YuvFrame.fingerprint(YuvFrame.Nv21(ByteArray(10), 64, 64)))
     }
 }

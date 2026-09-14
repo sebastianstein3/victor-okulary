@@ -119,6 +119,84 @@ object YuvFrame {
         return step
     }
 
+    /**
+     * Zgrubny odcisk jasności klatki - do rozpoznania, czy scena się zmieniła.
+     *
+     * ## Czemu nie suma kontrolna
+     * Bo już próbowano i nie zadziałało. Komentarz w AccessibilityService
+     * opisuje to wprost: warunek "nowa scena" porównywał SUMĘ KONTROLNĄ BAJTÓW
+     * zdjęcia, a dwa zdjęcia tej samej nieruchomej sceny nigdy nie są
+     * identyczne co do bajtu - wystarczy szum matrycy. Warunek przepuszczał
+     * więc wszystko i został usunięty jako udawanie.
+     *
+     * Odcisk porównuje OBRAZ, nie bajty: dzieli kadr na siatkę i liczy średnią
+     * jasność w każdym polu. Szum matrycy uśrednia się do zera, a człowiek,
+     * który wszedł w kadr, albo obrót głowy - nie.
+     *
+     * Bierzemy samą jasność, bez koloru: do pytania "czy to wciąż ta sama
+     * scena" kolor nic nie wnosi, a kosztowałby drugie tyle liczenia.
+     *
+     * @return [GRID] razy [GRID] średnich jasności, albo `null` gdy klatka jest
+     *   za mała, żeby siatka miała sens
+     */
+    fun fingerprint(frame: Nv21): IntArray? {
+        if (frame.width < GRID || frame.height < GRID) return null
+        val luma = frame.bytes
+        val needed = frame.width * frame.height
+        if (luma.size < needed) return null
+
+        val out = IntArray(GRID * GRID)
+        val cellW = frame.width / GRID
+        val cellH = frame.height / GRID
+        if (cellW <= 0 || cellH <= 0) return null
+
+        for (cellY in 0 until GRID) {
+            for (cellX in 0 until GRID) {
+                var sum = 0L
+                for (row in 0 until cellH) {
+                    val base = (cellY * cellH + row) * frame.width + cellX * cellW
+                    for (col in 0 until cellW) {
+                        sum += luma[base + col].toInt() and 0xFF
+                    }
+                }
+                out[cellY * GRID + cellX] = (sum / (cellW * cellH)).toInt()
+            }
+        }
+        return out
+    }
+
+    /**
+     * Czy między dwiema klatkami scena się zmieniła na tyle, żeby warto było
+     * pytać model.
+     *
+     * Liczy średnią różnicę jasności po wszystkich polach siatki. Średnia, nie
+     * maksimum: pojedyncze pole potrafi skoczyć od przejeżdżającego samochodu
+     * na skraju kadru, a to nie jest jeszcze nowa scena.
+     *
+     * Brak któregokolwiek odcisku znaczy "nie wiem" - a wtedy pytamy, bo
+     * milczenie z niepewności jest gorsze niż jedno zapytanie za dużo.
+     */
+    fun sceneChanged(before: IntArray?, after: IntArray?, threshold: Int = CHANGE_THRESHOLD): Boolean {
+        if (before == null || after == null) return true
+        if (before.size != after.size || before.isEmpty()) return true
+        var sum = 0L
+        for (i in before.indices) sum += kotlin.math.abs(before[i] - after[i])
+        return sum / before.size > threshold
+    }
+
+    /** Bok siatki odcisku - 64 pola to dość, żeby odróżnić scenę, i mało, żeby liczyć. */
+    private const val GRID = 8
+
+    /**
+     * Średnia różnica jasności (0-255), powyżej której uznajemy scenę za nową.
+     *
+     * Dobrane ostrożnie w stronę CZĘSTSZEGO pytania: przegapiona zmiana znaczy,
+     * że niewidomy nie usłyszy o czymś, co się zmieniło - a to gorsze niż jeden
+     * opis za dużo. Szum matrycy po uśrednieniu w polu siatki daje różnice
+     * rzędu jedności, więc ósemka jest daleko od niego.
+     */
+    private const val CHANGE_THRESHOLD = 8
+
     /** Maska zerująca najmłodszy bit - czyli zaokrąglenie w dół do parzystej. */
     private const val EVEN_MASK = 0x7FFFFFFE
 
