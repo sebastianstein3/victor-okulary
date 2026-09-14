@@ -210,3 +210,44 @@
 18:48:11.028  +34912 ms  MOWA         koniec wypowiedzi  ms=14161
 18:48:11.061  +34944 ms  SESJA        --- KONIEC TURY c425: odpowiedziano ---
 18:48:11.064          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:48:11.187          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:48:22.192          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=true
+18:48:39.157          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4001
+18:48:43.160          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4000
+18:48:47.163          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4002
+18:48:51.003          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 D9 D9 12 01 00 10 09 02 00 0F 00 03 00 10 0C 03 sztuk=4 pierwsza=false
+18:48:51.171          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4004
+18:48:55.176          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4003
+18:48:55.178          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+18:48:56.708          ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+18:49:06.474          ms  BLE          Hotspot okularów: gotowe  ms=11296
+18:49:08.641          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 55 0B 32 sztuk=9 pierwsza=false
+18:50:08.655          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 73 0B 45 sztuk=20 pierwsza=false
+18:51:11.612          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 07 70 0B 40 sztuk=21 pierwsza=false
+18:51:35.557          ms  BLE          Zwolnienie pamięci: liczniki PRZED  zdjęć=0 wideo=13 nagrań=0
+18:51:35.604          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 30 01 00 00 00 00 00 00 01 01 sztuk=1 pierwsza=false
+18:51:38.639          ms  BLE          Zwolnienie pamięci: liczniki PO  zdjęć=0 wideo=0 nagrań=0
+18:51:50.003          ms  BLE          Zwolnienie pamięci: liczniki PRZED  zdjęć=0 wideo=0 nagrań=0
+18:51:53.063          ms  BLE          Zwolnienie pamięci: liczniki PO  zdjęć=0 wideo=0 nagrań=0
+18:51:59.183          ms  BLE          Zwolnienie pamięci: liczniki PRZED  zdjęć=0 wideo=0 nagrań=0
+18:52:02.243          ms  BLE          Zwolnienie pamięci: liczniki PO  zdjęć=0 wideo=0 nagrań=0
+18:52:10.267          ms  PRZYCISK     wciśnięto  numer=1
+18:52:10.529          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+18:52:11.228          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=14 ms=698
+18:52:11.493          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=32 mikrofonOkularów=true
+18:52:11.495      +0 ms  SESJA        --- TURA 6f19 ---  źródło=OKULARY
+18:52:11.496      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+18:52:12.535   +1041 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 58 18 12 01 00 10 09 02 00 0F 00 03 00 10 0C 01 sztuk=1 pierwsza=false
+18:52:18.445   +6952 ms  NASŁUCH      koniec  ms=6950 telefonUsłyszał=turcji mikrofon=mowa wykryta szczytDb=5.32 próbek=4 gotowyPoMs=1002
+18:52:18.947   +7452 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.9935 pakietów=100 rozkodowanych=100 odrzuconych=0 przesunięcie=6 ramka=-1
+18:52:19.852   +8357 ms  TRANSKRYPCJA z nagrania okularów  ms=902
+18:52:19.854   +8359 ms  SESJA        pytanie  tekst=turcji wymuszonyObraz=false
+18:52:19.873   +8378 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:52:19.901   +8406 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:52:19.995   +8500 ms  KONTEKST     zebrany  ms=81 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+18:52:20.006   +8511 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=938
+18:52:24.083  +12589 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4078
+18:52:24.091  +12596 ms  MODEL        zużycie tokenów  wejście=2103 odpowiedź=50 myślenie=872 razem=3025 limit=1200 koniec=STOP
+18:52:24.135  +12640 ms  MODEL        koniec odpowiedzi (161 znaków, 3025 tokenów)  ms=4130
+18:52:26.659  +15165 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+18:52:26.835  +15340 ms  SESJA        --- KONIEC TURY 6f19: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
