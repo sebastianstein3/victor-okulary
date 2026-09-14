@@ -35,3 +35,28 @@
 09:08:11.579          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
 09:08:11.583          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1617
 09:08:13.197          ms  ZDJĘCIE      próba 0: miniatura  bajtów=9014 jpeg=true kompletny=true
+09:08:24.873          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 47 48 0B 1F sztuk=12 pierwsza=false
+09:08:45.878          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=true
+09:19:29.849          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=16 mikrofonOkularów=true
+09:19:29.929      +0 ms  SESJA        --- TURA d9c6 ---  źródło=TELEFON
+09:19:29.930      +1 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true
+09:19:30.401    +472 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CE 2D 12 01 00 10 10 02 00 0F 0E 03 00 10 06 02 sztuk=5 pierwsza=false
+09:19:40.132  +10203 ms  NASŁUCH      koniec  ms=10203
+09:19:40.133  +10204 ms  NASŁUCH      nagranie z okularów  jest=false
+09:19:40.166  +10237 ms  SESJA        --- KONIEC TURY d9c6: błąd ---
+09:19:40.171          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+09:19:40.846          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:20:15.174      +1 ms  SESJA        --- TURA e6b0 ---  źródło=TEXT_INPUT
+09:20:15.175      +2 ms  SESJA        pytanie  tekst=opowiedz mi o zamku w bodrum  wymuszonyObraz=false
+09:20:15.190     +17 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+09:20:15.259     +87 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+09:20:15.263     +90 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+09:20:15.719    +546 ms  KONTEKST     zebrany  ms=154 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+09:20:15.730    +557 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=998
+09:20:20.854   +5681 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5125
+09:20:21.050   +5877 ms  MODEL        koniec odpowiedzi (369 znaków, 2817 tokenów)  ms=5321
+09:20:30.612  +15439 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CE 4B 12 01 00 10 10 02 00 0F 08 03 00 10 06 02 sztuk=8 pierwsza=false
+09:20:39.372  +24199 ms  MOWA         koniec wypowiedzi  ms=18317
+09:20:39.418  +24245 ms  AUDIO        zwinięte łącze audio tury  ms=1
+09:20:39.419  +24246 ms  SESJA        --- KONIEC TURY e6b0: odpowiedziano ---
+09:20:39.422          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
