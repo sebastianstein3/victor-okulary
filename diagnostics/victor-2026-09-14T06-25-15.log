@@ -41,3 +41,24 @@
 06:31:29.764          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
 06:31:29.795          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1663
 06:31:30.915          ms  ZDJĘCIE      próba 0: miniatura  bajtów=13453 jpeg=true kompletny=true
+06:31:33.718          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 07 49 0B 1C sztuk=13 pierwsza=false
+06:32:03.789          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=false
+06:32:17.761          ms  PRZYCISK     wciśnięto  numer=1
+06:32:17.942          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+06:32:18.599          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=654
+06:32:18.693          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=14 mikrofonOkularów=true
+06:32:18.696      +0 ms  SESJA        --- TURA 0b82 ---  źródło=OKULARY
+06:32:18.697      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+06:32:19.524    +828 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 8A FD 12 01 00 10 10 02 00 0F 0F 03 00 10 0A 01 sztuk=1 pierwsza=true
+06:32:22.827   +4131 ms  NASŁUCH      koniec  ms=4130 telefonUsłyszał=headans
+06:32:23.083   +4387 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.3535 pakietów=68 rozkodowanych=68 odrzuconych=0 przesunięcie=6 ramka=-1
+06:32:23.916   +5220 ms  TRANSKRYPCJA z nagrania okularów  ms=831
+06:32:23.918   +5222 ms  SESJA        pytanie  tekst=headans wymuszonyObraz=false
+06:32:23.946   +5250 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+06:32:23.984   +5288 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+06:32:24.360   +5664 ms  KONTEKST     zebrany  ms=106 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+06:32:24.376   +5680 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=506
+06:32:37.333  +18637 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=12958
+06:32:37.626  +18930 ms  MODEL        koniec odpowiedzi (498 znaków, 5428 tokenów)  ms=13251
+06:32:44.562  +25866 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+06:32:44.676  +25981 ms  SESJA        --- KONIEC TURY 0b82: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
