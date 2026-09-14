@@ -1487,12 +1487,24 @@ class AIOrchestrator(
                     // i nie korzystaliśmy z niego. Najgorsze z obu stron.
                     useBluetoothMic = overSco || !micStreamLive
                 )
+                // MIKROFON MA POWIEDZIEĆ, CZY COKOLWIEK PRZYNIÓSŁ.
+                //
+                // W dzienniku z 14 września tura d9c6 wygląda tak: nasłuch
+                // 10203 ms, żadnego tekstu, koniec błędem. I nie da się z tego
+                // wyczytać, czy człowiek milczał, czy mikrofon podawał ciszę -
+                // a to dwie różne sprawy, z których tylko jedna jest usterką.
+                // Te cztery liczby rozstrzygają ją jednym wierszem.
+                val mic = speechToText.lastMicSignal
                 diag.event(
                     DiagFormat.Phase.NASŁUCH, "koniec",
                     mapOf(
                         "ms" to (System.currentTimeMillis() - listenStartedAtMs),
                         "telefonUsłyszał" to heard?.take(80),
-                        "odłożone" to setAsidePhoneTranscript?.take(80)
+                        "odłożone" to setAsidePhoneTranscript?.take(80),
+                        "mikrofon" to mic?.verdict(),
+                        "szczytDb" to mic?.peakDb,
+                        "próbek" to mic?.samples,
+                        "gotowyPoMs" to mic?.readyMs
                     )
                 )
                 Log.i(TAG, "Nasłuch trwał ${System.currentTimeMillis() - listenStartedAtMs} ms")

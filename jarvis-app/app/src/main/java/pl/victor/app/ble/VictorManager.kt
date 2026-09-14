@@ -1536,6 +1536,33 @@ class VictorManager private constructor(context: Context) {
                 .onFailure { Log.w(tag, "openBT nie powiodło się", it) }
             runCatching { largeDataHandler.speakSoundSwitch(true) }
                 .onFailure { Log.w(tag, "speakSoundSwitch nie powiodło się", it) }
+
+            // SPRAWDŹ, CZY TO W OGÓLE COŚ DAŁO.
+            //
+            // Dotąd prosiliśmy i na tym się kończyło - a w dzienniku z 14
+            // września `a2dp=false` stoi przez całą sesję, mimo że openBT()
+            // poszło i przy powitaniu, i przed odpowiedzią. Z samej prośby nie
+            // da się wyczytać, czy ta komenda na tym firmwarze cokolwiek robi,
+            // czy okulary po prostu nie są sparowane jako urządzenie audio.
+            //
+            // To są dwie różne sprawy i tylko jedna z nich jest do naprawienia
+            // po naszej stronie. Druga wymaga jednego kliknięcia w ustawieniach
+            // telefonu - i użytkownik ma prawo to usłyszeć, zamiast latami
+            // słuchać asystenta przez gorszy profil.
+            delay(CLASSIC_AUDIO_CHECK_MS)
+            runCatching {
+                val router = pl.victor.app.audio.BluetoothAudioRouter.getInstance(appContext)
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                    if (router.hasA2dpOutput()) "tryb multimediów wstał"
+                    else "tryb multimediów NIE wstał mimo prośby",
+                    mapOf(
+                        "poMs" to CLASSIC_AUDIO_CHECK_MS,
+                        "jakTelefonWidziOkulary" to
+                            router.audioProfileSummary().replace("\n", " / ")
+                    )
+                )
+            }
         }
     }
 
@@ -3810,6 +3837,15 @@ class VictorManager private constructor(context: Context) {
 
         /** Jak często wolno prosić okulary o tryb multimediów - patrz [requestClassicAudio]. */
         private const val CLASSIC_AUDIO_RETRY_MS = 30_000L
+
+        /**
+         * Ile czekać, zanim sprawdzimy skutek prośby o tryb multimediów.
+         *
+         * Profil zestawia system, nie my, i trwa to sekundy - sprawdzenie od
+         * razu po wysłaniu komendy pokazywałoby "nie wstał" nawet wtedy, gdy
+         * właśnie wstaje.
+         */
+        private const val CLASSIC_AUDIO_CHECK_MS = 6_000L
 
         /**
          * Ile czekamy na odpowiedź o nazwę klasycznego Bluetootha, zanim

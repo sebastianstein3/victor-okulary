@@ -61,6 +61,18 @@ class SpeechToText(private val context: Context) {
     private var lastErrorCode: Int? = null
 
     /**
+     * Co mikrofon przyniósł w ostatnim nasłuchu - albo `null`, gdy żaden jeszcze
+     * nie ruszył.
+     *
+     * Bez tego "nasłuch trwał 10 sekund i nie dał tekstu" nie ma jak się
+     * rozstrzygnąć: nie wiadomo, czy człowiek milczał, czy mikrofon podawał
+     * ciszę. Patrz [MicSignal].
+     */
+    @Volatile
+    var lastMicSignal: MicSignal? = null
+        private set
+
+    /**
      * Opis ostatniego niepowodzenia albo `null`, gdy nasłuch skończył się
      * normalnie - czyli tekstem albo zwykłą ciszą.
      *
@@ -125,6 +137,7 @@ class SpeechToText(private val context: Context) {
         // Router jest zliczany: gdy orkiestrator trzyma łącze na całą rozmowę,
         // to wywołanie tylko dokłada odwołanie i nie ma żadnej przerwy w dźwięku.
         lastErrorCode = null
+        lastMicSignal = null
         // TO WYWOŁANIE ZAJMOWAŁO PROFIL ROZMOWY ZAWSZE - I TO BYŁ BŁĄD.
         //
         // Mikrofon zestawu Bluetooth działa wyłącznie przez SCO/HFP, a negocjacja
@@ -166,7 +179,9 @@ class SpeechToText(private val context: Context) {
                 }
             }
 
-            recognizer.setRecognitionListener(listener(::finish))
+            val signal = MicSignal()
+            lastMicSignal = signal
+            recognizer.setRecognitionListener(listener(signal, ::finish))
             continuation.invokeOnCancellation {
                 // Anulowanie (np. z withTimeoutOrNull) przychodzi z dowolnego wątku,
                 // a SpeechRecognizer wolno ruszać tylko z głównego - stąd post().
@@ -274,7 +289,12 @@ class SpeechToText(private val context: Context) {
             }
         }
 
-        recognizer.setRecognitionListener(listener(::finish))
+        // Ta droga NIE DOTYKA MIKROFONU - dźwięk idzie potokiem z gotowego
+        // nagrania z okularów. Pomiar powstaje, bo listener go wymaga, ale
+        // celowo nie trafia do [lastMicSignal]: tam ma stać odpowiedź na
+        // pytanie "czy mikrofon telefonu coś przyniósł", a przepisywanie
+        // nagrania odpowiada na zupełnie inne.
+        recognizer.setRecognitionListener(listener(MicSignal(), ::finish))
         continuation.invokeOnCancellation {
             if (resumed.compareAndSet(false, true)) {
                 runCatching { writeEnd.close() }
@@ -364,7 +384,10 @@ class SpeechToText(private val context: Context) {
             .getOrNull()
     }
 
-    private fun listener(finish: (String?) -> Unit) = object : RecognitionListener {
+    private fun listener(
+        signal: MicSignal,
+        finish: (String?) -> Unit
+    ) = object : RecognitionListener {
         override fun onResults(results: Bundle?) {
             val text = results
                 ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -386,9 +409,16 @@ class SpeechToText(private val context: Context) {
             finish(null)
         }
 
-        override fun onReadyForSpeech(params: Bundle?) = Unit
-        override fun onBeginningOfSpeech() = Unit
-        override fun onRmsChanged(rmsdB: Float) = Unit
+        // TE TRZY WYWOŁANIA BYŁY PUSTYMI ZAŚLEPKAMI - I TO BYŁA STRATA.
+        //
+        // Silnik podaje przez nie dokładnie to, czego brakowało przy turze z
+        // 14 września o 09:19: dziesięć sekund nasłuchu, zero tekstu i żadnego
+        // sposobu, żeby odróżnić milczącego człowieka od milczącego mikrofonu.
+        // Nic tu nie trzeba mierzyć samemu - wystarczyło przestać wyrzucać to,
+        // co system i tak przysyła.
+        override fun onReadyForSpeech(params: Bundle?) = signal.noteReady()
+        override fun onBeginningOfSpeech() = signal.noteSpeechStart()
+        override fun onRmsChanged(rmsdB: Float) = signal.noteLevel(rmsdB)
         override fun onBufferReceived(buffer: ByteArray?) = Unit
         override fun onEndOfSpeech() = Unit
         override fun onPartialResults(partialResults: Bundle?) = Unit
