@@ -26,6 +26,59 @@ package pl.victor.app.data
 object ModelCatalog {
 
     /**
+     * SKĄD wzięła się lista, którą właśnie widzi użytkownik.
+     *
+     * ## Czemu to musi być widoczne
+     * Bo cztery zupełnie różne sytuacje dawały dotąd ten sam ekran: dwie
+     * pozycje na liście i żadnej wskazówki, czy to wszystko, co provider
+     * serwuje, czy tylko wszystko, co MY o nim wiemy.
+     *
+     * Zgłoszenie brzmiało: "pokazuje bardzo mało modeli, jakby się nie
+     * aktualizowały". I nie dało się odpowiedzieć, bo brak klucza, nieudane
+     * pobranie i szczera odpowiedź API "mam dwa modele" wyglądają identycznie.
+     * Jedna linijka pod listą to rozstrzyga - i od razu mówi, co zrobić.
+     */
+    sealed interface Source {
+
+        /** Lista przyszła z API providera. To jest stan normalny. */
+        data class FromApi(val count: Int) : Source
+
+        /** API odpowiedziało, ale nie wymieniło ani jednego modelu. */
+        data object ApiEmpty : Source
+
+        /** Nie było o co pytać - brak klucza dla tego providera. */
+        data object NoApiKey : Source
+
+        /** Pytanie poszło i się nie udało. */
+        data class AskFailed(val reason: String?) : Source
+
+        /** Zdanie do pokazania pod listą. */
+        fun message(): String = when (this) {
+            is FromApi ->
+                "Lista prosto z API providera ($count " + plural(count) + ")."
+            ApiEmpty ->
+                "API providera nie wymieniło żadnego modelu - poniżej katalog " +
+                    "aplikacji, który może być nieaktualny."
+            NoApiKey ->
+                "Bez klucza API nie ma jak zapytać providera o listę - poniżej " +
+                    "katalog aplikacji, który może być nieaktualny."
+            is AskFailed ->
+                "Nie udało się pobrać listy z API" +
+                    (reason?.let { " ($it)" } ?: "") +
+                    " - poniżej katalog aplikacji, który może być nieaktualny."
+        }
+    }
+
+    /** Poprawna forma rzeczownika po liczbie - inaczej "1 modeli". */
+    private fun plural(count: Int): String {
+        if (count == 1) return "model"
+        val lastTwo = count % 100
+        val last = count % 10
+        val few = last in 2..4 && lastTwo !in 12..14
+        return if (few) "modele" else "modeli"
+    }
+
+    /**
      * @param providerId provider, dla którego budujemy listę
      * @param liveIds ID modeli zwrócone przez API; pusta lista = "nie wiemy"
      * @param includeDeprecated czy pokazywać modele oznaczone u nas jako wycofane

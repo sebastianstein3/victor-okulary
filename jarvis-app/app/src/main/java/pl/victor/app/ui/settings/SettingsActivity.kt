@@ -616,17 +616,36 @@ private fun ModelSection(
         (context.applicationContext as pl.victor.app.VictorApplication)
             .settings.getApiKey(providerId).orEmpty()
     }
-    val models by produceState(
-        initialValue = pl.victor.app.data.ModelCatalog.forPicker(providerId, emptyList()),
+    // SKĄD wzięła się ta lista - razem z nią, nie osobno.
+    //
+    // Zgłoszenie brzmiało: "pokazuje bardzo mało modeli, jakby się nie
+    // aktualizowały". Nie dało się na nie odpowiedzieć, bo brak klucza,
+    // nieudane pobranie i szczera odpowiedź API "mam dwa modele" dawały
+    // DOKŁADNIE TEN SAM ekran. Teraz każda z tych sytuacji mówi o sobie sama.
+    val state by produceState(
+        initialValue = pl.victor.app.data.ModelCatalog.forPicker(providerId, emptyList()) to
+            (pl.victor.app.data.ModelCatalog.Source.NoApiKey
+                as pl.victor.app.data.ModelCatalog.Source),
         providerId,
         apiKey
     ) {
         if (apiKey.isBlank()) return@produceState
-        val live = runCatching {
+        val attempt = runCatching {
             pl.victor.app.data.RemoteModelValidator(apiKey, providerId).fetchAvailableModels()
-        }.getOrDefault(emptyList())
-        value = pl.victor.app.data.ModelCatalog.forPicker(providerId, live)
+        }
+        val live = attempt.getOrDefault(emptyList())
+        val source = when {
+            attempt.isFailure ->
+                pl.victor.app.data.ModelCatalog.Source.AskFailed(
+                    attempt.exceptionOrNull()?.message?.take(60)
+                )
+            live.isEmpty() -> pl.victor.app.data.ModelCatalog.Source.ApiEmpty
+            else -> pl.victor.app.data.ModelCatalog.Source.FromApi(live.size)
+        }
+        value = pl.victor.app.data.ModelCatalog.forPicker(providerId, live) to source
     }
+    val models = state.first
+    val modelsSource = state.second
 
     val selectedInfo = models.firstOrNull { it.id == selectedModelId }
         ?: selectedModelId?.let { pl.victor.app.data.ModelRegistry.findById(it) }
@@ -638,6 +657,15 @@ private fun ModelSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Model AI", style = MaterialTheme.typography.titleMedium)
+        Text(
+            modelsSource.message(),
+            style = MaterialTheme.typography.labelSmall,
+            color = if (modelsSource is pl.victor.app.data.ModelCatalog.Source.FromApi) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.error
+            }
+        )
 
         // Bieżący model z opisem
         currentInfo?.let { info ->
