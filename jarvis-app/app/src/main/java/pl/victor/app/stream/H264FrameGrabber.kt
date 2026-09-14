@@ -213,8 +213,10 @@ class H264FrameGrabber(
         return bytes
     }
 
-    private companion object {
-        const val MIME = MediaFormat.MIMETYPE_VIDEO_AVC
+    companion object {
+        // Wewnętrzne zostają prywatne; publiczne są tylko te dwie liczby, bo
+        // to WOŁAJĄCY decyduje, czy pyta o scenę, czy o litery.
+        private const val MIME = MediaFormat.MIMETYPE_VIDEO_AVC
 
         /**
          * Układ bajtów, który da się odczytać z procesora.
@@ -222,13 +224,13 @@ class H264FrameGrabber(
          * `COLOR_FormatYUV420Flexible` - stała z `MediaCodecInfo.CodecCapabilities`,
          * wpisana wprost, żeby nie ciągnąć całej klasy dla jednej liczby.
          */
-        const val COLOR_FORMAT_FLEXIBLE = 0x7F420888
+        private const val COLOR_FORMAT_FLEXIBLE = 0x7F420888
 
-        const val INITIAL_WIDTH = 1280
-        const val INITIAL_HEIGHT = 720
-        const val INPUT_TIMEOUT_US = 10_000L
-        const val FRAME_STEP_US = 33_333L
-        const val PLANE_COUNT = 3
+        private const val INITIAL_WIDTH = 1280
+        private const val INITIAL_HEIGHT = 720
+        private const val INPUT_TIMEOUT_US = 10_000L
+        private const val FRAME_STEP_US = 33_333L
+        private const val PLANE_COUNT = 3
 
         /**
          * Do opisu otoczenia i nawigacji.
@@ -250,6 +252,6 @@ class H264FrameGrabber(
         const val TEXT_MAX_SIDE = 1600
 
         /** Kompromis: opis sceny nie potrzebuje jakości archiwalnej. */
-        const val DEFAULT_QUALITY = 80
+        private const val DEFAULT_QUALITY = 80
     }
 }

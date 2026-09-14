@@ -82,7 +82,10 @@ class AccessibilityService(
         active.set(true)
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb czytania włączony. Skieruj okulary na tekst.", language = "pl")
-        workerJob = scope.launch { readTextLoop() }
+        workerJob = scope.launch {
+            startLiveVisionOrExplain()
+            readTextLoop()
+        }
     }
 
     /**
@@ -96,7 +99,10 @@ class AccessibilityService(
         active.set(true)
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb opisu włączony. Będę Ci mówił co widzisz.", language = "pl")
-        workerJob = scope.launch { describeSceneLoop() }
+        workerJob = scope.launch {
+            startLiveVisionOrExplain()
+            describeSceneLoop()
+        }
     }
 
     /**
@@ -110,7 +116,31 @@ class AccessibilityService(
         active.set(true)
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb nawigacji włączony. Uważaj - będę Cię prowadził.", language = "pl")
-        workerJob = scope.launch { navigateLoop() }
+        workerJob = scope.launch {
+            startLiveVisionOrExplain()
+            navigateLoop()
+        }
+    }
+
+    /**
+     * Podnosi strumień klatek na czas trwania trybu - i mówi, gdy się nie uda.
+     *
+     * ## Czemu przy WŁĄCZANIU trybu, a nie przy pierwszym obrocie pętli
+     * Bo podniesienie kosztuje jednorazowo circa 8,4 s i lepiej, żeby zeszło
+     * razem z zapowiedzią głosową, niż żeby pierwszy opis przyszedł
+     * osiem sekund po tym, jak użytkownik już czeka.
+     *
+     * ## Czemu niepowodzenie NIE kończy trybu
+     * Bo droga przez zdjęcie dalej działa - jest wolniejsza i daje gorszy
+     * obraz, ale działa. Zamknięcie trybu dlatego, że nie udało się go
+     * PRZYSPIESZYĆ, byłoby gorsze niż jego zwolnienie.
+     */
+    private suspend fun startLiveVisionOrExplain() {
+        if (glassesManager.isLiveVisionRunning) return
+        val ok = runCatching { glassesManager.startLiveVision() }.getOrDefault(false)
+        if (!ok) {
+            Log.w(tag, "Strumień klatek nie ruszył - zostaję przy zdjęciach")
+        }
     }
 
     /**
@@ -123,6 +153,10 @@ class AccessibilityService(
         active.set(false)
         workerJob?.cancel()
         workerJob = null
+        // Strumień ZAWSZE gaśnie z trybem. Zostawiony trzymałby okulary w
+        // trybie podglądu - a te odmawiają wejścia w niego ponownie - i jadłby
+        // ich baterię w tle, czego użytkownik nie ma jak zauważyć.
+        glassesManager.stopLiveVision()
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb wyłączony", language = "pl")
     }
@@ -163,6 +197,21 @@ class AccessibilityService(
      *   tylko czytanie tekstu - i dopiero wtedy, gdy miniatura nie wystarczyła.
      */
     private suspend fun capturePhotoOrExplain(sharp: Boolean = false): ByteArray? {
+        // KLATKA ZE STRUMIENIA MA PIERWSZEŃSTWO - gdy strumień stoi.
+        //
+        // Różnica nie jest kosmetyczna. Dotąd opis otoczenia dostawał miniaturę
+        // 9 KB, bo pełne zdjęcie kosztuje kilkanaście sekund przez Wi-Fi
+        // Direct. Klatka ma 1600x1200, jest od ręki i nie wymaga migawki -
+        // więc pamięć okularów przestaje się zapełniać przy każdym obrocie
+        // pętli.
+        //
+        // `sharp` znaczy tu to samo co przy zdjęciu: potrzebny SZCZEGÓŁ, czyli
+        // litery. Tam kosztuje kilkanaście sekund, tutaj jedną klatkę.
+        glassesManager.liveFrame(detail = sharp)?.let { frame ->
+            clearFailure(FAILURE_PHOTO)
+            return frame
+        }
+
         val photo = if (sharp) {
             glassesManager.captureSharpPhoto()
         } else {

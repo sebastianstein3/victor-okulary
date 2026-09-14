@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import pl.victor.app.stream.H264FrameGrabber
+import pl.victor.app.stream.RtspSession
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -2234,6 +2236,125 @@ class VictorManager private constructor(context: Context) {
         _glassesIp.value = null
     }
 
+    // === Klatki ze strumienia dla trybu widzenia ===
+
+    private var liveVisionJob: Job? = null
+    private var liveVisionSession: RtspSession? = null
+    private var frameGrabber: H264FrameGrabber? = null
+
+    /** Czy strumień klatek stoi - czyli czy obraz jest dostępny od ręki. */
+    val isLiveVisionRunning: Boolean get() = frameGrabber != null
+
+    /**
+     * Podnosi strumień i zaczyna wyjmować z niego klatki - BEZ pokazywania
+     * czegokolwiek na ekranie.
+     *
+     * ## Po co, skoro jest już droga przez zdjęcie
+     * Bo one nadają się do czego innego i mówią to same liczby z dzienników:
+     *
+     *     zdjęcie + miniatura      circa 3,3 s, obraz 9 KB
+     *     podniesienie strumienia  circa 8,4 s, potem klatki ZA DARMO
+     *
+     * Przy jednym pytaniu zdjęcie wygrywa. Przy trybie ciągłym - opisywaniu
+     * otoczenia albo prowadzeniu - strumień wygrywa po drugim obrocie pętli i
+     * dalej już tylko rośnie, a do tego oddaje obraz 1600x1200 zamiast
+     * miniatury i nie zapełnia pamięci okularów migawkami.
+     *
+     * Dlatego to jest osobne wejście, a nie podmiana: wołający wie, w którym
+     * trybie jest, i wybiera.
+     *
+     * @return `true` gdy pierwsza klatka faktycznie doszła
+     */
+    suspend fun startLiveVision(): Boolean {
+        if (isLiveVisionRunning) return true
+        val url = startLivePreview() ?: return false
+        val grabber = H264FrameGrabber(onEvent = ::streamEvent)
+        if (!grabber.start()) {
+            stopLivePreview()
+            return false
+        }
+        frameGrabber = grabber
+        val session = RtspSession(
+            url = url,
+            socketFactory = glassesSocketFactory,
+            onVideo = grabber::feed,
+            onEvent = ::streamEvent
+        )
+        liveVisionSession = session
+        liveVisionJob = scope.launch(Dispatchers.IO) { session.run() }
+
+        // Czekamy na PIERWSZĄ KLATKĘ, nie na samo zestawienie sesji. Zwrócenie
+        // sukcesu wcześniej znaczyłoby, że wołający sięga po obraz, którego
+        // jeszcze nie ma - i dostaje null tam, gdzie spodziewa się zdjęcia.
+        val came = withTimeoutOrNull(FIRST_FRAME_TIMEOUT_MS) {
+            while (grabber.grabbed == 0) delay(FRAME_POLL_MS)
+            true
+        } ?: false
+        if (!came) {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "Klatki: pierwsza nie doszła w limicie",
+                mapOf("ms" to FIRST_FRAME_TIMEOUT_MS, "powód" to session.lastFailure)
+            )
+            stopLiveVision()
+            return false
+        }
+        return true
+    }
+
+    /** Zamyka strumień klatek i wyprowadza okulary z trybu podglądu. */
+    fun stopLiveVision() {
+        liveVisionSession?.stop()
+        liveVisionSession = null
+        liveVisionJob?.cancel()
+        liveVisionJob = null
+        frameGrabber?.release()
+        frameGrabber = null
+        stopLivePreview()
+    }
+
+    /**
+     * Najświeższa klatka ze strumienia albo `null`, gdy strumień nie stoi.
+     *
+     * @param detail czy potrzebny jest SZCZEGÓŁ - litery, kod, numer. Wtedy
+     *   klatka idzie w pełnej rozdzielczości zamiast pomniejszonej o połowę.
+     *   Zgłoszone wprost: przy miniaturze "nie widać detali i napisów".
+     *
+     * Zmiana rozmiaru kosztuje jedną klatkę, czyli circa 33 ms - i na tym
+     * polega przewaga tej drogi. Ta sama decyzja przy zdjęciu kosztuje
+     * kilkanaście sekund przez Wi-Fi Direct.
+     */
+    suspend fun liveFrame(detail: Boolean = false): ByteArray? {
+        val grabber = frameGrabber ?: return null
+        val want = if (detail) {
+            H264FrameGrabber.TEXT_MAX_SIDE
+        } else {
+            H264FrameGrabber.SCENE_MAX_SIDE
+        }
+        if (grabber.maxSide != want) {
+            grabber.maxSide = want
+            // DWIE klatki, nie jedna: ta w locie mogła zacząć się przepisywać
+            // przed zmianą i wyszłaby w starym rozmiarze.
+            val before = grabber.grabbed
+            withTimeoutOrNull(FRAME_SWITCH_TIMEOUT_MS) {
+                while (grabber.grabbed < before + FRAMES_AFTER_SWITCH) delay(FRAME_POLL_MS)
+            }
+        }
+        return grabber.latestJpeg
+    }
+
+    /** Zdarzenia strumienia do dziennika - waga przychodzi od nadawcy. */
+    private fun streamEvent(message: String, fields: Map<String, Any?>, problem: Boolean) {
+        runCatching {
+            diag.event(
+                if (problem) pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD
+                else pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                message,
+                fields
+            )
+        }
+    }
+
     /** Resetuje połączenie P2P na okularach (gdy transfer się zawiesi). */
     fun resetP2p() {
         Log.d(tag, "Reset P2P")
@@ -3961,6 +4082,23 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile czekać na otwarcie gniazda serwera RTSP. */
         private const val RTSP_PROBE_TIMEOUT_MS = 3_000
+
+        /**
+         * Ile czekać na pierwszą klatkę ze strumienia.
+         *
+         * Hojnie, bo w tym czasie mieści się podniesienie sieci okularów
+         * (zmierzone: circa 8,4 s) plus zestawienie sesji RTSP.
+         */
+        private const val FIRST_FRAME_TIMEOUT_MS = 20_000L
+
+        /** Ile czekać na klatkę w nowym rozmiarze po zmianie limitu. */
+        private const val FRAME_SWITCH_TIMEOUT_MS = 1_000L
+
+        /** Ile klatek odczekać po zmianie rozmiaru - patrz [liveFrame]. */
+        private const val FRAMES_AFTER_SWITCH = 2
+
+        /** Jak często sprawdzać, czy klatka już jest. */
+        private const val FRAME_POLL_MS = 30L
 
         /** Ile bajtów odpowiedzi DESCRIBE czytamy - SDP z jednego kanału jest krótkie. */
         private const val RTSP_PROBE_READ_BYTES = 2048
