@@ -155,7 +155,7 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
                 // Bez wskazania sieci gniazdo poszłoby komórką i nie doszło do
                 // okularów. Zapisujemy, bo inaczej ta awaria wygląda identycznie
                 // jak milczący serwer.
-                report("Podgląd: brak sieci okularów dla strumienia", emptyMap())
+                report("Podgląd: brak sieci okularów dla strumienia", emptyMap(), true)
             }
 
             val ok = withContext(Dispatchers.IO) { rtsp.run() }
@@ -171,11 +171,19 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
         }
     }
 
-    private fun report(message: String, fields: Map<String, Any?>) {
+    /**
+     * Zapisuje zdarzenie strumienia, z wagą podaną przez NADAWCĘ.
+     *
+     * Pierwsza wersja zgadywała wagę z treści komunikatu i wyszło z tego
+     * dokładnie to, czego w dzienniku nie wolno: wiersz "PIERWSZA KLATKA NA
+     * EKRANIE" - najlepsza wiadomość w całym przebiegu - trafił do dziennika
+     * jako BŁĄD, bo "EKRANIE" zawiera "NIE". Kto zdarzenie wysyła, ten wie,
+     * czy jest awarią; tekst tego nie wie.
+     */
+    private fun report(message: String, fields: Map<String, Any?>, problem: Boolean) {
         runCatching {
             diag.event(
-                if (message.contains("NIE") || message.contains("brak")) DiagFormat.Phase.BŁĄD
-                else DiagFormat.Phase.BLE,
+                if (problem) DiagFormat.Phase.BŁĄD else DiagFormat.Phase.BLE,
                 message,
                 fields
             )

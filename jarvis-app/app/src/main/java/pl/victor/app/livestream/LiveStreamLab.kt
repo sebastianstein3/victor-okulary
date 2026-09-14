@@ -170,7 +170,7 @@ class LiveStreamLab(context: Context) {
             url = url,
             socketFactory = victor.glassesSocketFactory,
             onVideo = { units++ },
-            onEvent = { message, fields -> log.append("RTSP_PROBE", "$message $fields") }
+            onEvent = { message, fields, _ -> log.append("RTSP_PROBE", "$message $fields") }
         )
         val watchdog = launch {
             kotlinx.coroutines.delay(PROBE_TIMEOUT_MS)

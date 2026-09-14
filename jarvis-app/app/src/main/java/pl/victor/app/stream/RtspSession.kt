@@ -31,8 +31,16 @@ class RtspSession(
     private val onVideo: (ByteArray) -> Unit,
     /** Wołane raz, gdy serwer przyjął PLAY - ekran może przestać mówić "łączę". */
     private val onPlaying: () -> Unit = {},
-    /** Wołane przy każdym kroku, do dziennika. */
-    private val onEvent: (String, Map<String, Any?>) -> Unit = { _, _ -> }
+    /**
+     * Wołane przy każdym kroku, do dziennika.
+     *
+     * Waga zdarzenia idzie JAWNIE, trzecim parametrem. Pierwsza wersja
+     * zgadywała ją z treści komunikatu i w dzienniku z 14 września wyszło z
+     * tego: wiersz "PIERWSZA KLATKA NA EKRANIE" - najlepsza wiadomość w całym
+     * przebiegu - został oznaczony jako BŁĄD, bo "EKRANIE" zawiera "NIE".
+     * Nadawca wie, czy coś jest awarią; tekst tego nie wie.
+     */
+    private val onEvent: (String, Map<String, Any?>, Boolean) -> Unit = { _, _, _ -> }
 ) {
 
     private val tag = "RtspSession"
@@ -72,7 +80,8 @@ class RtspSession(
             val tracks = RtspProtocol.parseSdp(describe.body)
             onEvent(
                 "Podgląd: opis sesji przeczytany",
-                mapOf("ścieżek" to tracks.size, "kodeki" to tracks.mapNotNull { it.encoding })
+                mapOf("ścieżek" to tracks.size, "kodeki" to tracks.mapNotNull { it.encoding }),
+                false
             )
             val video = tracks.firstOrNull {
                 it.kind == RtspProtocol.Kind.VIDEO && it.encoding == "H264"
@@ -96,7 +105,8 @@ class RtspSession(
 
             onEvent(
                 "Podgląd: strumień ruszył",
-                mapOf("sesja" to sessionId, "typŁadunku" to video.payloadType)
+                mapOf("sesja" to sessionId, "typŁadunku" to video.payloadType),
+                false
             )
             onPlaying()
             pump(reader, video.payloadType)
@@ -154,7 +164,8 @@ class RtspSession(
                                         "jednostek" to depacketizer.produced,
                                         "odrzuconych" to depacketizer.dropped,
                                         "parametryObrazu" to depacketizer.sawParameterSets
-                                    )
+                                    ),
+                                    false
                                 )
                             }
                         }
@@ -225,7 +236,7 @@ class RtspSession(
 
     private fun fail(reason: String): Boolean {
         lastFailure = reason
-        onEvent("Podgląd: sesja RTSP nie ruszyła", mapOf("powód" to reason))
+        onEvent("Podgląd: sesja RTSP nie ruszyła", mapOf("powód" to reason), true)
         return false
     }
 

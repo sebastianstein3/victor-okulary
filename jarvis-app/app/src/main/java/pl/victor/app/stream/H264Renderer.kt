@@ -24,7 +24,7 @@ import android.view.Surface
  */
 class H264Renderer(
     private val surface: Surface,
-    private val onEvent: (String, Map<String, Any?>) -> Unit = { _, _ -> }
+    private val onEvent: (String, Map<String, Any?>, Boolean) -> Unit = { _, _, _ -> }
 ) {
 
     private val tag = "H264Renderer"
@@ -47,13 +47,14 @@ class H264Renderer(
         c.start()
         codec = c
         started = true
-        onEvent("Podgląd: dekoder uruchomiony", mapOf("format" to MIME))
+        onEvent("Podgląd: dekoder uruchomiony", mapOf("format" to MIME), false)
         true
     }.getOrElse {
         Log.e(tag, "Nie udało się uruchomić dekodera", it)
         onEvent(
             "Podgląd: dekoder NIE ruszył",
-            mapOf("powód" to "${it.javaClass.simpleName}: ${it.message}")
+            mapOf("powód" to "${it.javaClass.simpleName}: ${it.message}"),
+            true
         )
         false
     }
@@ -94,7 +95,7 @@ class H264Renderer(
                     rendered++
                     if (!sawFrame) {
                         sawFrame = true
-                        onEvent("Podgląd: PIERWSZA KLATKA NA EKRANIE", mapOf("wkarmionych" to fed))
+                        onEvent("Podgląd: PIERWSZA KLATKA NA EKRANIE", mapOf("wkarmionych" to fed), false)
                     }
                 }
                 index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
@@ -107,7 +108,8 @@ class H264Renderer(
                         mapOf(
                             "szerokość" to runCatching { f.getInteger(MediaFormat.KEY_WIDTH) }.getOrNull(),
                             "wysokość" to runCatching { f.getInteger(MediaFormat.KEY_HEIGHT) }.getOrNull()
-                        )
+                        ),
+                        false
                     )
                 }
                 else -> return
@@ -130,7 +132,8 @@ class H264Renderer(
         started = false
         onEvent(
             "Podgląd: dekoder zatrzymany",
-            mapOf("wkarmionych" to fed, "wyświetlonych" to rendered)
+            mapOf("wkarmionych" to fed, "wyświetlonych" to rendered),
+            false
         )
         runCatching { codec?.stop() }
         runCatching { codec?.release() }
