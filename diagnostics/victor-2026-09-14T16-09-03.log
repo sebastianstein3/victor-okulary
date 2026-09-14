@@ -7,3 +7,18 @@
 # mikrofon okularów: true
 # źródło zdjęcia: full (dzielnik 2)
 16:09:03.212          ms  SESJA        start sesji
+16:09:39.640          ms  BLE          ROZŁĄCZONO  świadome=false
+16:09:58.545          ms  BLE          ROZŁĄCZONO  świadome=false
+16:10:04.627          ms  BLE          ROZŁĄCZONO  świadome=false
+16:10:12.503          ms  BLE          ROZŁĄCZONO  świadome=false
+16:10:27.566          ms  BLE          POŁĄCZONO  noweŁącze=true
+16:10:27.575          ms  BLE          powitanie okularów - start
+16:10:27.588          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+16:10:27.884          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:10:29.667          ms  BLE          POŁĄCZONO  noweŁącze=false
+16:10:32.586          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+16:10:40.937          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+16:10:42.737          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+16:10:42.739          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+16:10:42.763          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1823
+16:10:43.940          ms  ZDJĘCIE      próba 0: miniatura  bajtów=12715 jpeg=true kompletny=true
