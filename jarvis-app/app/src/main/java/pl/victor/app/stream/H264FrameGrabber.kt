@@ -32,16 +32,30 @@ import java.io.ByteArrayOutputStream
  * wiedzieć i wybierać.
  */
 class H264FrameGrabber(
-    /**
-     * Dłuższy bok klatki oddawanej dalej.
-     *
-     * Model nie potrzebuje dwóch megapikseli, żeby powiedzieć "przed tobą
-     * schody", a każdy piksel ponad potrzebę to koszt zapytania i czas wysyłki.
-     */
-    private val maxSide: Int = DEFAULT_MAX_SIDE,
+    maxSide: Int = SCENE_MAX_SIDE,
     private val quality: Int = DEFAULT_QUALITY,
     private val onEvent: (String, Map<String, Any?>, Boolean) -> Unit = { _, _, _ -> }
 ) {
+
+    /**
+     * Dłuższy bok klatki oddawanej dalej - ZMIENNY W TRAKCIE.
+     *
+     * ## Czemu nie jedna stała
+     * Bo to są dwie różne potrzeby i jedna liczba nie obsłuży obu. Do "przed
+     * tobą schody" osiemset pikseli wystarcza z zapasem, a każdy piksel ponad
+     * potrzebę to koszt zapytania i czas wysyłki. Ale do przeczytania napisu
+     * osiemset z oryginalnych tysiąca sześciuset to za mało - litery z
+     * odległości robią się nieczytelne i model zaczyna zgadywać.
+     *
+     * Tę samą prawdę zapisał już wcześniej kod zdjęć: "miniatura po BLE nie
+     * niesie liter z bliska". Tyle że tam sięgnięcie po szczegół kosztuje
+     * kilkanaście sekund przez Wi-Fi Direct, a tutaj - jedną klatkę, czyli
+     * circa 33 ms, bo obraz i tak płynie.
+     *
+     * Zmiana działa od NASTĘPNEJ klatki; bieżąca jest już przepisana.
+     */
+    @Volatile
+    var maxSide: Int = maxSide
 
     private val tag = "H264FrameGrabber"
     private var codec: MediaCodec? = null
@@ -217,13 +231,23 @@ class H264FrameGrabber(
         const val PLANE_COUNT = 3
 
         /**
-         * Dłuższy bok klatki oddawanej modelowi.
+         * Do opisu otoczenia i nawigacji.
          *
          * Osiemset pikseli to przy 1600x1200 dokładnie co drugi piksel - czyli
          * najtańsze możliwe pomniejszenie, a wciąż czterokrotnie więcej treści
          * niż dzisiejsza miniatura 9 KB.
          */
-        const val DEFAULT_MAX_SIDE = 800
+        const val SCENE_MAX_SIDE = 800
+
+        /**
+         * Do czytania tekstu i kodów - pełna klatka, bez pomniejszania.
+         *
+         * Zgłoszone wprost: "nie widać detali i napisów". Przy literach z
+         * odległości zmniejszenie o połowę rozstrzyga między przeczytaniem a
+         * zgadywaniem, a zapytanie z większym obrazem kosztuje ułamek tego, co
+         * druga tura z powodu błędnego odczytu.
+         */
+        const val TEXT_MAX_SIDE = 1600
 
         /** Kompromis: opis sceny nie potrzebuje jakości archiwalnej. */
         const val DEFAULT_QUALITY = 80
