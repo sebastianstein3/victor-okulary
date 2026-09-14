@@ -62,3 +62,29 @@
 06:32:37.626  +18930 ms  MODEL        koniec odpowiedzi (498 znaków, 5428 tokenów)  ms=13251
 06:32:44.562  +25866 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
 06:32:44.676  +25981 ms  SESJA        --- KONIEC TURY 0b82: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+06:32:55.995          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+06:32:56.017          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+06:33:02.217          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=9209 jpeg=true kompletny=true
+06:33:02.219      +0 ms  SESJA        --- TURA 3ac9 ---  źródło=BUTTON
+06:33:02.221      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+06:33:02.225      +6 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+06:33:02.240     +21 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+06:33:02.253     +34 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+06:33:03.444   +1225 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+06:33:03.444   +1225 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C6 89 0B 1D sztuk=10 pierwsza=false
+06:33:12.089   +9870 ms  BLE          Hotspot okularów: gotowe  ms=9836
+06:33:12.158   +9939 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=9905
+06:33:12.165   +9946 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=9209 pełnaRozdzielczość=false
+06:33:12.675  +10456 ms  KONTEKST     zebrany  ms=50 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+06:33:12.682  +10463 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=1 znakówPromptu=1695
+06:33:12.707  +10488 ms  MODEL        wysyłam pytanie  dostawca=local próba=2 zdjęć=1 znakówPromptu=1695
+06:33:12.717  +10498 ms  MODEL        model lokalny: ładuję plik  okno=2048
+06:33:30.925  +28707 ms  MODEL        model lokalny: plik załadowany  ms=18208
+06:33:30.933  +28714 ms  MODEL        model lokalny: generuję  znakówPromptu=3122
+06:33:42.520  +40301 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=false
+06:33:56.557  +54338 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0A AC 12 01 00 10 10 02 00 0F 0F 03 00 10 0B 03 sztuk=4 pierwsza=false
+06:34:46.253 +104034 ms  MODEL        model lokalny: PIERWSZY TOKEN  ms=75320
+06:34:55.638 +113419 ms  MODEL        model lokalny: koniec generowania  ms=84704 byłPierwszyToken=true
+06:34:55.658 +113439 ms  MODEL        dostawca nie odpowiedział w czasie  dostawca=local ms=45000 znakówOdpowiedzi=0
+06:34:55.701 +113482 ms  SESJA        --- KONIEC TURY 3ac9: BŁĄD: Nieoczekiwany błąd: Dostawca local nie odpowiedział w 45 s ---
+06:34:55.745          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
