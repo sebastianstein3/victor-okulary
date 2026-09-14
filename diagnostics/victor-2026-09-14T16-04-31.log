@@ -43,3 +43,8 @@
 16:07:40.927          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 46 8B 0B 1B sztuk=11 pierwsza=false
 16:08:03.580          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CB 96 12 01 00 10 00 02 00 0F 00 03 00 10 0A 02 sztuk=1 pierwsza=true
 16:08:22.964          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=false
+16:08:56.282          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+16:08:58.067          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+16:08:58.070          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+16:08:58.095          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1809
+16:08:59.747          ms  ZDJĘCIE      próba 0: miniatura  bajtów=16060 jpeg=true kompletny=true
