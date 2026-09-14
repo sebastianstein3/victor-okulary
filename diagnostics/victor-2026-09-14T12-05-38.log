@@ -1,0 +1,66 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 2)
+12:05:38.756          ms  SESJA        start sesji
+12:11:14.061          ms  BLE          POŁĄCZONO  noweŁącze=true
+12:11:14.067          ms  BLE          powitanie okularów - start
+12:11:14.073          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+12:11:14.352          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+12:11:16.137          ms  BLE          POŁĄCZONO  noweŁącze=false
+12:11:19.076          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+12:11:24.153          ms  BLE          Podgląd na żywo: podnoszę
+12:11:24.522          ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=true
+12:11:25.789          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+12:11:25.828          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 4E 0B 16 sztuk=1 pierwsza=true
+12:11:35.477          ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+12:11:35.483          ms  BLE          Podgląd: pełna odpowiedź serwera  treść=RTSP/1.0 200 OK / CSeq: 1 / Content-Type: application/sdp / Cache-Control: no-cache / Server: Hisilicon RTSP Streaming Media Server/1.0.0 / Content-Length: 345 /  / v=0 / o=- 1 1 IN IP4 127.0.0.1 / s=Test / a=type:broadcast / t=0 0 / c=IN IP4 0.0.0.0 / m=video 0 RTP/AVP 96 / a=rtpmap:96 H264/90000 / a=decode_buf=300 / a=control:track0 / m=audio 0 RTP/AVP 97 / a=rtpmap:97 mpeg4-generic/8000/1 / a=fmtp:97 profile-level-id=1; mode=AAC-hbr; config=1588; sizeLength=13; indexlength=3; indexdeltalength=3 / a=control:track1 / 
+12:11:35.484          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=11331
+12:11:35.645          ms  BLE          Podgląd: odtwarzacz - buforuje
+12:11:35.748          ms  BŁĄD         Podgląd: błąd odtwarzacza  kod=ERROR_CODE_IO_UNSPECIFIED treść=Source error przyczyna=IOException: androidx.media3.common.ParserException: Malformed Attribute line: a=decode_buf=300 {contentIsMalformed=true, dataType=4} <- RtspPlaybackException: androidx.media3.common.ParserException: Malformed Attribute line: a=decode_buf=300 {contentIsMalformed=true, dataType=4} <- ParserException:
+12:11:35.749          ms  BLE          Podgląd: odtwarzacz - bezczynny
+12:11:47.813          ms  BLE          Podgląd na żywo: podnoszę
+12:11:49.248          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+12:11:50.648          ms  BŁĄD         Podgląd: brak obrazu w limicie czasu  ms=15000 adres=rtsp://192.168.31.1:8554/ch0
+12:11:52.005          ms  BLE          Podgląd na żywo: podnoszę
+12:11:53.324          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+12:11:55.820          ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+12:11:55.821          ms  BLE          Podgląd: pełna odpowiedź serwera  treść=RTSP/1.0 200 OK / CSeq: 1 / Content-Type: application/sdp / Cache-Control: no-cache / Server: Hisilicon RTSP Streaming Media Server/1.0.0 / Content-Length: 345 /  / v=0 / o=- 1 1 IN IP4 127.0.0.1 / s=Test / a=type:broadcast / t=0 0 / c=IN IP4 0.0.0.0 / m=video 0 RTP/AVP 96 / a=rtpmap:96 H264/90000 / a=decode_buf=300 / a=control:track0 / m=audio 0 RTP/AVP 97 / a=rtpmap:97 mpeg4-generic/8000/1 / a=fmtp:97 profile-level-id=1; mode=AAC-hbr; config=1588; sizeLength=13; indexlength=3; indexdeltalength=3 / a=control:track1 / 
+12:11:55.822          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=3817
+12:11:55.847          ms  BLE          Podgląd: odtwarzacz - buforuje
+12:11:55.909          ms  BŁĄD         Podgląd: błąd odtwarzacza  kod=ERROR_CODE_IO_UNSPECIFIED treść=Source error przyczyna=IOException: androidx.media3.common.ParserException: Malformed Attribute line: a=decode_buf=300 {contentIsMalformed=true, dataType=4} <- RtspPlaybackException: androidx.media3.common.ParserException: Malformed Attribute line: a=decode_buf=300 {contentIsMalformed=true, dataType=4} <- ParserException:
+12:11:55.911          ms  BLE          Podgląd: odtwarzacz - bezczynny
+12:12:05.377          ms  BLE          Podgląd na żywo: podnoszę
+12:12:06.689          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+12:12:10.850          ms  BŁĄD         Podgląd: brak obrazu w limicie czasu  ms=15000 adres=rtsp://192.168.31.1:8554/ch0
+12:12:12.843          ms  BLE          Podgląd na żywo: podnoszę
+12:12:14.096          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+12:12:14.243          ms  BŁĄD         Podgląd na żywo: PORT ZAMKNIĘTY - okulary nie mają serwera RTSP  adres=rtsp://192.168.31.1:8554/ch0 port=8554 media=ConnectException
+12:12:16.674          ms  BLE          Podgląd na żywo: podnoszę
+12:12:18.002          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+12:12:26.540          ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+12:12:29.274          ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+12:12:29.856          ms  BLE          Podgląd na żywo: podnoszę
+12:12:29.967          ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=11 pierwsza=false
+12:12:31.137          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+12:12:31.164          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C6 98 0B 21 sztuk=18 pierwsza=false
+12:12:39.434          ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+12:12:39.436          ms  BLE          Podgląd: pełna odpowiedź serwera  treść=RTSP/1.0 200 OK / CSeq: 1 / Content-Type: application/sdp / Cache-Control: no-cache / Server: Hisilicon RTSP Streaming Media Server/1.0.0 / Content-Length: 345 /  / v=0 / o=- 1 1 IN IP4 127.0.0.1 / s=Test / a=type:broadcast / t=0 0 / c=IN IP4 0.0.0.0 / m=video 0 RTP/AVP 96 / a=rtpmap:96 H264/90000 / a=decode_buf=300 / a=control:track0 / m=audio 0 RTP/AVP 97 / a=rtpmap:97 mpeg4-generic/8000/1 / a=fmtp:97 profile-level-id=1; mode=AAC-hbr; config=1588; sizeLength=13; indexlength=3; indexdeltalength=3 / a=control:track1 / 
+12:12:39.438          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=9582
+12:12:39.468          ms  BLE          Podgląd: odtwarzacz - buforuje
+12:12:39.521          ms  BŁĄD         Podgląd: błąd odtwarzacza  kod=ERROR_CODE_IO_UNSPECIFIED treść=Source error przyczyna=IOException: androidx.media3.common.ParserException: Malformed Attribute line: a=decode_buf=300 {contentIsMalformed=true, dataType=4} <- RtspPlaybackException: androidx.media3.common.ParserException: Malformed Attribute line: a=decode_buf=300 {contentIsMalformed=true, dataType=4} <- ParserException:
+12:12:39.524          ms  BLE          Podgląd: odtwarzacz - bezczynny
+12:12:41.010          ms  BLE          Podgląd na żywo: podnoszę
+12:12:42.379          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+12:12:53.015          ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+12:12:54.113          ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+12:14:25.424          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 8E 97 12 01 00 10 00 02 00 0F 00 03 00 10 06 01 sztuk=1 pierwsza=true
+12:14:26.669          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+12:14:28.445          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+12:14:28.446          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+12:14:28.491          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1821
+12:14:30.107          ms  ZDJĘCIE      próba 0: miniatura  bajtów=9452 jpeg=true kompletny=true
