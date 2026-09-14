@@ -395,3 +395,37 @@
 07:13:38.394  +38078 ms  SESJA        --- KONIEC TURY 61c8: odpowiedziano ---
 07:13:38.399          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
 07:13:38.982          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+07:37:16.168          ms  BLE          ROZŁĄCZONO  świadome=false
+07:37:22.254          ms  BLE          ROZŁĄCZONO  świadome=false
+07:37:45.556          ms  BLE          POŁĄCZONO  noweŁącze=true
+07:37:45.571          ms  BLE          powitanie okularów - start
+07:37:45.615          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+07:37:45.878          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=2 pierwsza=false
+07:37:45.962          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+07:37:47.692          ms  BLE          POŁĄCZONO  noweŁącze=false
+07:37:50.604          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+07:38:02.562          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0B 3C 12 01 00 10 10 02 00 0F 0F 03 00 10 0A 03 sztuk=4 pierwsza=false
+07:42:13.051          ms  BLE          POŁĄCZONO  noweŁącze=true
+07:42:13.060          ms  BLE          powitanie okularów - start
+07:42:13.071          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+07:42:13.326          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=false
+07:42:13.381          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+07:42:15.295          ms  BLE          POŁĄCZONO  noweŁącze=false
+07:42:18.070          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+07:42:20.615          ms  BLE          Podgląd na żywo: podnoszę
+07:42:20.693          ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=true
+07:42:21.976          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+07:42:21.999          ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Wi-Fi jest wyłączone - włącz je, żeby telefon mógł połączyć się z okularami.
+07:42:22.003          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C6 8C 0B 11 sztuk=2 pierwsza=false
+07:42:23.716          ms  BLE          Podgląd na żywo: podnoszę
+07:42:24.989          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+07:42:24.992          ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Wi-Fi jest wyłączone - włącz je, żeby telefon mógł połączyć się z okularami.
+07:42:30.906          ms  BLE          Podgląd na żywo: podnoszę
+07:42:32.206          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+07:42:38.087          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=7181
+07:42:40.886          ms  BLE          Podgląd na żywo: podnoszę
+07:42:42.196          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+07:42:44.853          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=3967
+07:42:46.060          ms  BLE          Podgląd na żywo: podnoszę
+07:42:47.386          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+07:42:50.109          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=4049
