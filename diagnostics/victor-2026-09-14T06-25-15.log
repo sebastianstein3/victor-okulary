@@ -1,0 +1,43 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 2)
+06:25:15.397          ms  SESJA        start sesji
+06:26:06.459          ms  BLE          POŁĄCZONO  noweŁącze=true
+06:26:06.466          ms  BLE          powitanie okularów - start
+06:26:06.489          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+06:26:06.795          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+06:26:08.513          ms  BLE          POŁĄCZONO  noweŁącze=false
+06:26:11.484          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+06:26:24.474          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4006
+06:26:28.481          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4004
+06:26:32.486          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4001
+06:26:36.490          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4002
+06:26:40.495          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4001
+06:26:40.498          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+06:26:41.946          ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+06:26:42.005          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 4F 0B 15 sztuk=1 pierwsza=true
+06:26:50.596          ms  BLE          Hotspot okularów: gotowe  ms=10099
+06:27:44.923          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 06 9E 0B 28 sztuk=21 pierwsza=false
+06:28:23.033          ms  BLE          Zwolnienie pamięci: liczniki PRZED  zdjęć=121 wideo=14 nagrań=0
+06:28:23.247          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=true
+06:28:26.157          ms  BLE          Zwolnienie pamięci: liczniki PO  zdjęć=0 wideo=13 nagrań=0
+06:28:36.397          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4005
+06:28:40.408          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4008
+06:28:44.413          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4004
+06:28:48.420          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4004
+06:28:52.427          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4005
+06:28:52.430          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+06:28:53.801          ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+06:28:53.840          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C6 98 0B 21 sztuk=13 pierwsza=false
+06:29:00.435          ms  BLE          Hotspot okularów: gotowe  ms=8005
+06:29:30.767          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=false
+06:31:28.131          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+06:31:29.761          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+06:31:29.764          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+06:31:29.795          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1663
+06:31:30.915          ms  ZDJĘCIE      próba 0: miniatura  bajtów=13453 jpeg=true kompletny=true
