@@ -64,3 +64,4 @@
 12:14:28.446          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
 12:14:28.491          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1821
 12:14:30.107          ms  ZDJĘCIE      próba 0: miniatura  bajtów=9452 jpeg=true kompletny=true
+12:14:34.494          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 4B 0B 1A sztuk=6 pierwsza=false
