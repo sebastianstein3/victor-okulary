@@ -1,0 +1,37 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 2)
+09:06:26.910          ms  SESJA        start sesji
+09:07:01.208          ms  BLE          POŁĄCZONO  noweŁącze=true
+09:07:01.223          ms  BLE          powitanie okularów - start
+09:07:01.237          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+09:07:01.604          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+09:07:03.389          ms  BLE          POŁĄCZONO  noweŁącze=false
+09:07:06.236          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+09:07:07.098          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CB 2D 12 01 00 10 10 02 00 0F 0E 03 00 10 0A 02 sztuk=1 pierwsza=true
+09:07:22.678          ms  BLE          Podgląd na żywo: podnoszę
+09:07:23.323          ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=true
+09:07:24.560          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+09:07:24.597          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 86 99 0B 22 sztuk=1 pierwsza=true
+09:07:34.284          ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+09:07:34.285          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=11607
+09:07:34.415          ms  BLE          Podgląd: odtwarzacz - buforuje
+09:07:34.459          ms  BŁĄD         Podgląd: błąd odtwarzacza  kod=ERROR_CODE_IO_UNSPECIFIED treść=Source error
+09:07:34.461          ms  BLE          Podgląd: odtwarzacz - bezczynny
+09:07:40.557          ms  BLE          Podgląd na żywo: podnoszę
+09:07:41.882          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+09:07:44.613          ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+09:07:44.614          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=4057
+09:07:44.642          ms  BLE          Podgląd: odtwarzacz - buforuje
+09:07:44.708          ms  BŁĄD         Podgląd: błąd odtwarzacza  kod=ERROR_CODE_IO_UNSPECIFIED treść=Source error
+09:07:44.710          ms  BLE          Podgląd: odtwarzacz - bezczynny
+09:08:09.964          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+09:08:11.577          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+09:08:11.579          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+09:08:11.583          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1617
+09:08:13.197          ms  ZDJĘCIE      próba 0: miniatura  bajtów=9014 jpeg=true kompletny=true
