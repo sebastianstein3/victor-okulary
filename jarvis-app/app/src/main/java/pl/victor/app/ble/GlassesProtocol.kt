@@ -72,6 +72,30 @@ object GlassesProtocol {
 
     /** Adres strumienia podglądu na żywo. */
     fun rtspUrl(ip: String): String = "rtsp://$ip:$RTSP_PORT/$RTSP_PATH"
+
+    /** Ile wierszy opisu mediów zachować z SDP - reszta to szum w dzienniku. */
+    const val RTSP_MEDIA_LINES = 6
+
+    /**
+     * Wyciąga z odpowiedzi na DESCRIBE to, co mówi, czy jest co oglądać.
+     *
+     * Zwraca wiersz stanu (`RTSP/1.0 200 OK` albo kod błędu) oraz wiersze `m=`
+     * i `a=rtpmap:` z SDP - czyli rodzaj strumienia i kodek. Te dwie rzeczy
+     * rozstrzygają, czy przy porażce odtwarzacza winny jest brak strumienia,
+     * czy format, którego odtwarzacz nie umie.
+     *
+     * Wiersz stanu jest `null`, gdy odpowiedź nie zaczyna się od `RTSP/`:
+     * otwarty port, na którym siedzi coś innego, to NIE to samo co serwer RTSP
+     * i nie wolno tego mylić.
+     */
+    fun parseRtspDescribe(reply: String): Pair<String?, List<String>> {
+        val lines = reply.split("\r\n", "\n").map { it.trim() }
+        val status = lines.firstOrNull()?.takeIf { it.startsWith("RTSP/") }?.take(60)
+        val media = lines
+            .filter { it.startsWith("m=") || it.startsWith("a=rtpmap:") }
+            .take(RTSP_MEDIA_LINES)
+        return status to media
+    }
     const val WORK_OTA = 0x05
     const val WORK_AI_PHOTO = 0x06
     const val WORK_AUDIO_START = 0x08

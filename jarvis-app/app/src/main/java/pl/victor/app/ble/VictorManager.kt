@@ -2064,7 +2064,7 @@ class VictorManager private constructor(context: Context) {
         startSessionHeartbeat()
         val url = GlassesProtocol.rtspUrl(ip)
 
-        // SPRAWDŹ, CZY SERWER W OGÓLE NASŁUCHUJE - jedno gniazdo, ułamek sekundy.
+        // ZAPYTAJ SERWER, CO MA DO ZAOFEROWANIA - jedna wymiana, ułamek sekundy.
         //
         // Bez tego "gotowe" znaczyło tylko tyle, że znamy adres. W dzienniku z
         // 14 września widać, do czego to prowadzi: trzy próby pod rząd kończą
@@ -2072,31 +2072,28 @@ class VictorManager private constructor(context: Context) {
         // i z dziennika nie da się rozstrzygnąć, czy serwera nie ma, czy jest,
         // ale milczy.
         //
-        // To jest ten jeden pomiar, który odpowiada na pytanie "czy okulary
-        // mają serwer RTSP", i kosztuje mniej niż sekundę.
-        val portOpen = withContext(Dispatchers.IO) {
-            runCatching {
-                // Gniazdo też wiążemy z siecią okularów - podgląd nie
-                // przypina procesu, więc bez tego sonda poszłaby komórką.
-                val probe = wifiTransfer.glassesNetwork
-                    ?.let { net -> runCatching { net.socketFactory.createSocket() }.getOrNull() }
-                    ?: java.net.Socket()
-                probe.use { socket ->
-                    socket.connect(
-                        java.net.InetSocketAddress(ip, GlassesProtocol.RTSP_PORT),
-                        RTSP_PROBE_TIMEOUT_MS
-                    )
-                    true
-                }
-            }.getOrDefault(false)
-        }
+        // Samo otwarte gniazdo tego nie rozstrzyga: mówi, że coś nasłuchuje, a
+        // nie że mówi po RTSP i ma co nadawać. Dlatego idzie DESCRIBE i do
+        // dziennika trafia to, co serwer odpowie - łącznie z kodekiem. Gdy
+        // media3 potem polegnie, ten wiersz powie, czy powodem jest brak
+        // strumienia, czy format, którego odtwarzacz nie umie.
+        val probe = describeRtsp(ip, url)
         diag.event(
-            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
-            if (portOpen) "Podgląd na żywo: serwer RTSP odpowiada"
-            else "Podgląd na żywo: PORT ZAMKNIĘTY - okulary nie mają serwera RTSP",
-            mapOf("adres" to url, "port" to GlassesProtocol.RTSP_PORT)
+            if (probe.describeStatus != null) pl.victor.app.diagnostics.DiagFormat.Phase.BLE
+            else pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+            when {
+                probe.describeStatus != null -> "Podgląd na żywo: serwer RTSP odpowiada"
+                probe.portOpen -> "Podgląd na żywo: port otwarty, ale serwer milczy na DESCRIBE"
+                else -> "Podgląd na żywo: PORT ZAMKNIĘTY - okulary nie mają serwera RTSP"
+            },
+            mapOf(
+                "adres" to url,
+                "port" to GlassesProtocol.RTSP_PORT,
+                "odpowiedź" to probe.describeStatus,
+                "media" to probe.mediaLines.joinToString(" | ").ifEmpty { null }
+            )
         )
-        if (!portOpen) {
+        if (!probe.portOpen) {
             lastTransferFailure =
                 "Okulary nie mają uruchomionego serwera podglądu (port " +
                     "${GlassesProtocol.RTSP_PORT} zamknięty). Ten egzemplarz " +
@@ -2113,6 +2110,68 @@ class VictorManager private constructor(context: Context) {
         )
         return url
     }
+
+    /** Co powiedział serwer RTSP, gdy go o to zapytaliśmy. */
+    private data class RtspProbe(
+        /** Czy gniazdo w ogóle dało się otworzyć. */
+        val portOpen: Boolean,
+        /** Wiersz stanu odpowiedzi na DESCRIBE, albo `null` gdy serwer zamilkł. */
+        val describeStatus: String?,
+        /** Wiersze `m=` i `a=rtpmap:` z SDP - czyli co i w jakim kodeku nadaje. */
+        val mediaLines: List<String>
+    )
+
+    /**
+     * Pyta serwer RTSP o opis strumienia, ręcznie i bez odtwarzacza.
+     *
+     * ## Po co, skoro odtwarzacz i tak spróbuje
+     * Bo odtwarzacz odpowiada tylko "udało się" albo "nie udało się", a to za
+     * mało, żeby wiedzieć, co naprawiać. DESCRIBE oddaje SDP, czyli wprost: czy
+     * jest strumień, jaki kodek, jaki transport. Gdy media3 potem polegnie,
+     * dziennik pokaże, czy nie ma czego oglądać, czy jest, ale w formacie,
+     * którego ten odtwarzacz nie obsługuje.
+     *
+     * To pełne RTSP tylko w zakresie DESCRIBE - żadnych SETUP ani PLAY. Sesji
+     * nie zestawiamy, więc nie ma czego zamykać poza gniazdem.
+     */
+    private suspend fun describeRtsp(ip: String, url: String): RtspProbe =
+        withContext(Dispatchers.IO) {
+            val socket = wifiTransfer.glassesNetwork
+                ?.let { net -> runCatching { net.socketFactory.createSocket() }.getOrNull() }
+                ?: java.net.Socket()
+            runCatching {
+                socket.use { sock ->
+                    sock.connect(
+                        java.net.InetSocketAddress(ip, GlassesProtocol.RTSP_PORT),
+                        RTSP_PROBE_TIMEOUT_MS
+                    )
+                    sock.soTimeout = RTSP_PROBE_TIMEOUT_MS
+                    val request = "DESCRIBE $url RTSP/1.0\r\n" +
+                        "CSeq: 1\r\n" +
+                        "Accept: application/sdp\r\n" +
+                        "User-Agent: VICTOR\r\n\r\n"
+                    sock.getOutputStream().apply {
+                        write(request.toByteArray(Charsets.US_ASCII))
+                        flush()
+                    }
+                    val buffer = ByteArray(RTSP_PROBE_READ_BYTES)
+                    val read = sock.getInputStream().read(buffer)
+                    if (read <= 0) return@use RtspProbe(true, null, emptyList())
+                    val reply = String(buffer, 0, read, Charsets.US_ASCII)
+                    val (status, media) = GlassesProtocol.parseRtspDescribe(reply)
+                    RtspProbe(portOpen = true, describeStatus = status, mediaLines = media)
+                }
+            }.getOrElse { failure ->
+                // Rozróżniamy dwie różne porażki: gniazda nie dało się otworzyć
+                // (serwera nie ma) kontra otworzyło się, ale rozmowa padła.
+                // Pierwsza kończy podgląd, druga nie.
+                RtspProbe(
+                    portOpen = socket.isConnected,
+                    describeStatus = null,
+                    mediaLines = listOf(failure.javaClass.simpleName)
+                )
+            }
+        }
 
     /**
      * Kończy podgląd na żywo i zwalnia sieć.
@@ -3846,6 +3905,10 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile czekać na otwarcie gniazda serwera RTSP. */
         private const val RTSP_PROBE_TIMEOUT_MS = 3_000
+
+        /** Ile bajtów odpowiedzi DESCRIBE czytamy - SDP z jednego kanału jest krótkie. */
+        private const val RTSP_PROBE_READ_BYTES = 2048
+
 
         /** Co ile wysyłać puls sesji Wi-Fi - tyle samo, co producent. */
         private const val SESSION_HEARTBEAT_MS = 5_000L

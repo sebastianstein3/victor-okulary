@@ -600,4 +600,46 @@ class GlassesProtocolTest {
         assertArrayEquals(byteArrayOf(0x02, 0x01, 0x09), GlassesProtocol.releaseStorage())
     }
 
+    @Test
+    fun `opis strumienia oddaje stan i kodek`() {
+        val reply = "RTSP/1.0 200 OK\r\n" +
+            "CSeq: 1\r\n" +
+            "Content-Type: application/sdp\r\n" +
+            "\r\n" +
+            "v=0\r\n" +
+            "s=H.264 Video, streamed by the glasses\r\n" +
+            "m=video 0 RTP/AVP 96\r\n" +
+            "a=rtpmap:96 H264/90000\r\n"
+        val (status, media) = GlassesProtocol.parseRtspDescribe(reply)
+        assertEquals("RTSP/1.0 200 OK", status)
+        assertEquals(listOf("m=video 0 RTP/AVP 96", "a=rtpmap:96 H264/90000"), media)
+    }
+
+    @Test
+    fun `odmowa serwera ma stan i pusty opis mediow`() {
+        val (status, media) = GlassesProtocol.parseRtspDescribe(
+            "RTSP/1.0 404 Stream Not Found\r\nCSeq: 1\r\n\r\n"
+        )
+        assertEquals("RTSP/1.0 404 Stream Not Found", status)
+        assertEquals(emptyList<String>(), media)
+    }
+
+    @Test
+    fun `cos innego na porcie to nie jest serwer RTSP`() {
+        // Otwarty port na którym siedzi HTTP wyglądał identycznie jak RTSP,
+        // gdybyśmy brali pierwszy wiersz bez sprawdzania. Stąd `null`.
+        val (status, media) = GlassesProtocol.parseRtspDescribe(
+            "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
+        )
+        assertEquals(null, status)
+        assertEquals(emptyList<String>(), media)
+    }
+
+    @Test
+    fun `dlugi opis mediow jest przycinany`() {
+        val many = (1..20).joinToString("\r\n") { "a=rtpmap:$it H264/90000" }
+        val (_, media) = GlassesProtocol.parseRtspDescribe("RTSP/1.0 200 OK\r\n\r\n$many")
+        assertEquals(GlassesProtocol.RTSP_MEDIA_LINES, media.size)
+    }
+
 }
