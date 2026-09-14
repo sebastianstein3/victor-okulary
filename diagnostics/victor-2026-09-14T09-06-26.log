@@ -68,3 +68,20 @@
 09:35:56.134          ms  ZDJĘCIE      próba 0: miniatura  bajtów=8407 jpeg=true kompletny=true
 09:35:59.081          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 4F 0B 15 sztuk=7 pierwsza=false
 09:36:29.241          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 2D 01 00 00 0D 00 00 00 01 01 sztuk=1 pierwsza=false
+10:11:40.948          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CE E1 12 01 00 10 10 02 00 0F 02 03 00 10 06 02 sztuk=8 pierwsza=false
+10:14:11.748          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 0F 21 12 01 00 10 10 02 00 0F 02 03 00 10 06 03 sztuk=1 pierwsza=false
+10:36:28.013          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CE E1 12 01 00 10 10 02 00 0F 02 03 00 10 06 02 sztuk=1 pierwsza=false
+10:43:34.575      +1 ms  SESJA        --- TURA a394 ---  źródło=TEXT_INPUT
+10:43:34.578      +4 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+10:43:34.622     +48 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+10:43:34.635     +61 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+10:43:34.632     +59 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+10:43:35.210    +637 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 CE E1 12 01 00 10 10 02 00 0F 02 03 00 10 06 02 sztuk=2 pierwsza=false
+10:43:36.172   +1598 ms  KONTEKST     zebrany  ms=1529 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+10:43:36.208   +1634 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=11094
+10:43:41.628   +7054 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5422
+10:43:41.902   +7328 ms  MODEL        koniec odpowiedzi (408 znaków, 7454 tokenów)  ms=5696
+10:44:03.800  +29227 ms  MOWA         koniec wypowiedzi  ms=21893
+10:44:03.853  +29279 ms  AUDIO        zwinięte łącze audio tury  ms=1
+10:44:03.860  +29286 ms  SESJA        --- KONIEC TURY a394: odpowiedziano ---
+10:44:03.872          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
