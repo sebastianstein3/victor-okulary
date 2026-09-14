@@ -332,3 +332,24 @@
 07:07:03.440          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
 07:07:03.442          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1606
 07:07:05.209          ms  ZDJĘCIE      próba 0: miniatura  bajtów=15058 jpeg=true kompletny=true
+07:07:32.174          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 06 9B 0B 24 sztuk=18 pierwsza=false
+07:11:39.418          ms  PRZYCISK     wciśnięto  numer=1
+07:11:39.499          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=22
+07:11:40.318          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=24 ms=816
+07:11:40.581          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=30 mikrofonOkularów=true
+07:11:40.587      +1 ms  SESJA        --- TURA c044 ---  źródło=OKULARY
+07:11:40.590      +3 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+07:11:41.180    +594 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 C1 9C 12 01 00 10 10 02 00 0F 0F 03 00 10 10 02 sztuk=4 pierwsza=false
+07:11:47.032   +6445 ms  NASŁUCH      koniec  ms=6444 telefonUsłyszał=opowiedz mi coś o zamku
+07:11:47.413   +6826 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.5135 pakietów=76 rozkodowanych=76 odrzuconych=0 przesunięcie=6 ramka=-1
+07:11:48.279   +7692 ms  TRANSKRYPCJA z nagrania okularów  ms=863 droga=Nasłuch telefonu
+07:11:48.283   +7696 ms  SESJA        pytanie  tekst=opowiedz mi coś o zamku wymuszonyObraz=false
+07:11:48.303   +7716 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+07:11:48.325   +7739 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+07:11:50.354   +9767 ms  KONTEKST     zebrany  ms=2005 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+07:11:50.415   +9829 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=1 zdjęć=0 znakówPromptu=5071
+07:11:54.013  +13426 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=3605
+07:11:54.365  +13778 ms  MODEL        koniec odpowiedzi (571 znaków, 4841 tokenów)  ms=3957
+07:12:23.032  +42446 ms  MOWA         koniec wypowiedzi  ms=28661
+07:12:23.090  +42503 ms  SESJA        --- KONIEC TURY c044: odpowiedziano ---
+07:12:23.101          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
