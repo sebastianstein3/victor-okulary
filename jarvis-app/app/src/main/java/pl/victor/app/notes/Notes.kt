@@ -396,7 +396,55 @@ object Notes {
             return Described(source, afterVerb)
         }
 
+        // SZYK TRZECI: "wpisz informacje O TYM ZAMKU w notatkach" - słowo
+        // notatkowe zamyka zdanie, a odsyłacz siedzi w środku treści.
+        //
+        // Tutaj, inaczej niż wyżej, odsyłacza szukamy W CAŁEJ treści, nie tylko
+        // na jej początku. Wolno na to pozwolić właśnie dlatego, że zdanie musi
+        // kończyć się słowem notatkowym - bez tego warunku "zapisz, że o tym
+        // zapomniałem" stałoby się prośbą o zdjęcie.
+        NOTE_ENDINGS.firstOrNull { lower.endsWith(it) }?.let { ending ->
+            val core = trimmed.dropLast(ending.length).trim().trimEnd(',', '-')
+            val coreLower = core.lowercase()
+            val verb = NOTE_VERBS.firstOrNull { startsWithPrefix(coreLower, it) }
+                ?: PREFIXES.firstOrNull { startsWithPrefix(coreLower, it) }
+                ?: return@let
+            val body = core.substring(verb.length).trimStart { it in SEPARATORS }.trim()
+            if (body.isEmpty()) return@let
+            sourceAnywhereIn(body)?.let { return Described(it, body) }
+        }
+
         return null
+    }
+
+    /**
+     * Do którego źródła odsyła treść - odsyłacz może stać GDZIEKOLWIEK.
+     *
+     * Tylko dla szyku trzeciego, gdzie zdanie kończy się słowem notatkowym.
+     * W pozostałych szykach odsyłacz musi otwierać treść, bo bez tego warunku
+     * zwykłe notatki zaczęłyby trafiać do modelu.
+     */
+    private fun sourceAnywhereIn(text: String): Source? {
+        val lower = text.lowercase()
+        if (LAST_ANSWER_REFERENCES.any { containsReference(lower, it) }) {
+            return Source.LAST_ANSWER
+        }
+        if (SIGHT_REFERENCES.any { containsReference(lower, it) }) return Source.SIGHT
+        return null
+    }
+
+    /** Czy odsyłacz występuje w tekście jako osobne słowa, nie jako fragment. */
+    private fun containsReference(lower: String, reference: String): Boolean {
+        var from = 0
+        while (true) {
+            val at = lower.indexOf(reference, from)
+            if (at < 0) return false
+            val beforeOk = at == 0 || lower[at - 1] in SEPARATORS
+            val afterAt = at + reference.length
+            val afterOk = afterAt == lower.length || lower[afterAt] in SEPARATORS
+            if (beforeOk && afterOk) return true
+            from = at + 1
+        }
     }
 
     /** Do którego źródła odsyła treść, albo `null` gdy do żadnego. */
@@ -412,7 +460,20 @@ object Notes {
 
     /** Czasowniki, po których może stać odsyłacz, a dopiero potem "notatkę". */
     private val NOTE_VERBS = listOf(
-        "zrób", "zrob", "zapisz", "zanotuj", "sporządź", "sporzadz", "stwórz", "stworz"
+        "zrób", "zrob", "zapisz", "zanotuj", "sporządź", "sporzadz", "stwórz", "stworz",
+        "wpisz", "dopisz", "dodaj"
+    ).sortedByDescending { it.length }
+
+    /**
+     * Zakończenia, po których wiadomo, że chodziło o notatkę.
+     *
+     * Trzeci naturalny szyk: "wpisz informacje o tym zamku W NOTATKACH". Słowo
+     * notatkowe stoi na KOŃCU, a nie na początku ani w środku - i tego nie
+     * łapał żaden z dwóch poprzednich wzorców. Zgłoszone dokładnie tym zdaniem.
+     */
+    private val NOTE_ENDINGS = listOf(
+        "w notatkach", "do notatek", "w notatniku", "w notatce",
+        "jako notatkę", "jako notatke", "jako notatka"
     ).sortedByDescending { it.length }
 
     /** Rzeczowniki zamykające szyk drugi - patrz [describeRequest]. */

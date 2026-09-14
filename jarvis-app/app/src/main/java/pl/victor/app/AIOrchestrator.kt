@@ -2167,6 +2167,45 @@ class AIOrchestrator(
         // odpalić przypadkową komendę - dlatego wszystko idzie prosto do modelu.
         val textIsQuestion = audioQuestion == null
 
+        // === POTWIERDZENIE CZEKAJĄCEJ AKCJI - PRZED WSZYSTKIM INNYM ===
+        //
+        // Zgłoszone: "mówię, że potwierdzam, a akceptacja nie działa - trzeba
+        // fizycznie kliknąć". W dzienniku z 14 września widać dokładnie, co się
+        // dzieje: o 06:40:54 pada wciśnięcie przycisku, rusza NOWA TURA, a
+        // "potwierdzam" leci do modelu jako zwykłe pytanie.
+        //
+        // Głosowe potwierdzanie istniało - tyle że nasłuchiwało wyłącznie w
+        // oknie tuż po zapytaniu. Człowiek robi to inaczej i słusznie: naciska
+        // przycisk, bo tak działa w tej aplikacji WSZYSTKO inne. Każde takie
+        // naciśnięcie ubijało własne pytanie asystenta.
+        //
+        // Dlatego dopóki potwierdzenie wisi, krótka odpowiedź "tak"/"nie"
+        // należy do NIEGO, a nie do modelu. Tylko krótka: całe zdanie to nowe
+        // polecenie, a nie odpowiedź na pytanie sprzed chwili.
+        if (textIsQuestion && _pendingActionConfirmation.value != null) {
+            val reply = pl.victor.app.actions.ConfirmationReply.parse(textQuestion)
+            val shortEnough = textQuestion.trim().split(Regex("\\s+")).size <= CONFIRMATION_MAX_WORDS
+            if (shortEnough &&
+                reply != pl.victor.app.actions.ConfirmationReply.Reply.UNCLEAR
+            ) {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "potwierdzenie głosem z nowej tury",
+                    mapOf("odpowiedź" to reply.name, "tekst" to textQuestion.take(40))
+                )
+                if (reply == pl.victor.app.actions.ConfirmationReply.Reply.YES) {
+                    confirmAction()
+                } else {
+                    cancelAction()
+                }
+                return
+            }
+        }
+
+        // Nowa tura to koniec czekania na odpowiedź głosem: dwa nasłuchy na
+        // jednym mikrofonie blokują się nawzajem. Samo okno zostaje - decyzja
+        // ma dokąd wrócić.
+        confirmationJob?.cancel()
+
         // === KOMENDY STERUJĄCE ROZMOWĄ (persona, reset) - zanim cokolwiek innego ===
         // Muszą być sprawdzone przed detekcją akcji: "bądź Sterna" nie pasuje do
         // żadnego wzorca akcji, więc poleciałoby jako zwykłe pytanie do AI.
@@ -3776,9 +3815,24 @@ class AIOrchestrator(
      *
      * @param question pytanie do wypowiedzenia
      */
+    /**
+     * Nasłuch potwierdzenia - do przerwania, gdy rusza nowa tura.
+     *
+     * Bez tego naciśnięcie przycisku w trakcie pytania "Dodać do kalendarza?"
+     * zostawiało DWA nasłuchy walczące o jeden mikrofon: ten i ten z nowej
+     * tury. Zgłoszone jako "gdy ekran potwierdzenia się wyświetla, zadawanie
+     * pytań się blokuje".
+     */
+    private var confirmationJob: kotlinx.coroutines.Job? = null
+
     private fun listenForConfirmation(question: String) {
-        scope.launch {
+        confirmationJob?.cancel()
+        confirmationJob = scope.launch {
             val language = settings.getResponseLanguage()
+            diag.event(
+                DiagFormat.Phase.AKCJA, "pytam o potwierdzenie",
+                mapOf("pytanie" to question.take(80))
+            )
             // ŁĄCZE DO MIKROFONU ZESTAWU ZESTAWIAMY W TLE, W TRAKCIE PYTANIA.
             //
             // Do mikrofonu okularów prowadzi wyłącznie profil rozmowy (SCO), a
@@ -3793,18 +3847,32 @@ class AIOrchestrator(
             // czytania pytania, bo nagrałby własny głos asystenta.
             audio.speakAndAwait(question, language = language)
             val routed = routing.await()
-            if (_pendingActionConfirmation.value == null) {
-                if (routed) audio.endConversationRouting()
-                return@launch
-            }
 
-            val heard = runCatching {
-                conversationalMode.listenOnce(
-                    languageTag = languageTagFor(language),
-                    timeoutMs = CONFIRMATION_TIMEOUT_MS
-                )
-            }.getOrNull()
-            if (routed) audio.endConversationRouting()
+            // PROFIL ROZMOWY ZWALNIAMY W `finally`, A NIE PO NASŁUCHU.
+            //
+            // Odkąd ten nasłuch da się PRZERWAĆ (robi to każda nowa tura -
+            // patrz `confirmationJob`), zwolnienie ustawione po nim wykonałoby
+            // się tylko wtedy, gdy nikt nie przerwał. Naciśnięcie przycisku w
+            // trakcie pytania zostawiałoby podniesione SCO na zawsze - czyli
+            // dokładnie tę usterkę, przez którą wczoraj urywały się odpowiedzi.
+            val heard = try {
+                if (_pendingActionConfirmation.value == null) return@launch
+                runCatching {
+                    conversationalMode.listenOnce(
+                        languageTag = languageTagFor(language),
+                        timeoutMs = CONFIRMATION_TIMEOUT_MS
+                    )
+                }.getOrNull()
+            } finally {
+                // withContext(NonCancellable): zwykłe wywołanie zawieszalne w
+                // `finally` anulowanej korutyny rzuca natychmiast i nie zdąży
+                // niczego zwolnić.
+                if (routed) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        audio.endConversationRouting()
+                    }
+                }
+            }
 
             // Użytkownik mógł w tym czasie kliknąć w oknie - wtedy nie ma już
             // czego potwierdzać i nie wolno wykonać akcji drugi raz.
@@ -3813,13 +3881,25 @@ class AIOrchestrator(
             when (pl.victor.app.actions.ConfirmationReply.parse(heard)) {
                 pl.victor.app.actions.ConfirmationReply.Reply.YES -> {
                     Log.i(TAG, "Potwierdzenie głosem: tak")
+                    diag.event(
+                        DiagFormat.Phase.AKCJA, "potwierdzenie głosem",
+                        mapOf("odpowiedź" to "TAK", "usłyszano" to heard?.take(40))
+                    )
                     confirmAction()
                 }
                 pl.victor.app.actions.ConfirmationReply.Reply.NO -> {
                     Log.i(TAG, "Potwierdzenie głosem: nie")
+                    diag.event(
+                        DiagFormat.Phase.AKCJA, "potwierdzenie głosem",
+                        mapOf("odpowiedź" to "NIE", "usłyszano" to heard?.take(40))
+                    )
                     cancelAction()
                 }
                 pl.victor.app.actions.ConfirmationReply.Reply.UNCLEAR -> {
+                    diag.event(
+                        DiagFormat.Phase.AKCJA, "potwierdzenie NIEROZSTRZYGNIĘTE",
+                        mapOf("usłyszano" to heard?.take(40))
+                    )
                     // Milczenie i wahanie traktujemy tak samo: nie wykonujemy.
                     Log.i(TAG, "Potwierdzenie głosem nierozstrzygnięte: \"$heard\"")
                     audio.speak(
@@ -3839,6 +3919,13 @@ class AIOrchestrator(
         val pending = _pendingActionConfirmation.value
         if (pending != null) {
             Log.i(TAG, "User confirmed action: ${pending.actions}")
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "akcja POTWIERDZONA",
+                    mapOf("co" to pending.actions.joinToString { it.type.name })
+                )
+            }
+            confirmationJob?.cancel()
             _pendingActionConfirmation.value = null
             executeActionsList(pending.actions)
         }
@@ -3851,6 +3938,13 @@ class AIOrchestrator(
         val pending = _pendingActionConfirmation.value
         if (pending != null) {
             Log.i(TAG, "User cancelled action: ${pending.actions}")
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "akcja ANULOWANA",
+                    mapOf("co" to pending.actions.joinToString { it.type.name })
+                )
+            }
+            confirmationJob?.cancel()
             _pendingActionConfirmation.value = null
             audio.speak("Anulowano", language = settings.getResponseLanguage())
             _state.value = OrchestratorState.Idle
@@ -4364,6 +4458,15 @@ class AIOrchestrator(
          * przy najdłuższej udanej odpowiedzi trwającej 20 s.
          */
         private const val MODEL_ATTEMPT_TIMEOUT_MS = 45_000L
+
+        /**
+         * Do tylu słów wypowiedź jest ODPOWIEDZIĄ na pytanie o potwierdzenie.
+         *
+         * Dłuższa jest nowym poleceniem, nawet jeśli zaczyna się od "tak":
+         * "tak, a przy okazji jaka jest pogoda" ma pójść do modelu, a nie
+         * wysłać wiadomość, o której mowa była zdanie wcześniej.
+         */
+        private const val CONFIRMATION_MAX_WORDS = 3
 
         private const val PHOTO_ON_DEMAND_QUESTION =
             "Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, " +

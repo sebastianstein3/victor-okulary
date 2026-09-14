@@ -294,4 +294,36 @@ class NotesTest {
         assertTrue(prompt.contains("Malbork zbudowano w XIII wieku."))
     }
 
+    @Test
+    fun `slowo notatkowe na koncu zdania`() {
+        // Dokładnie to zdanie ze zgłoszenia - trzeci szyk, którego nie łapał
+        // żaden z dwóch poprzednich wzorców.
+        val request = Notes.describeRequest("wpisz informacje o tym zamku w notatkach")
+        assertEquals(Notes.Source.SIGHT, request?.source)
+        assertEquals("informacje o tym zamku", request?.topic)
+    }
+
+    @Test
+    fun `slowo notatkowe na koncu z odsylaczem do rozmowy`() {
+        assertEquals(
+            Notes.Source.LAST_ANSWER,
+            Notes.describeRequest("Dopisz to z tej rozmowy do notatek")?.source
+        )
+    }
+
+    @Test
+    fun `koncowka bez odsylacza to zwykla notatka`() {
+        // "Wpisz mleko i chleb w notatkach" nie odsyła do niczego - nie ma z
+        // czego pisać, więc to nie jest zadanie dla modelu.
+        assertNull(Notes.describeRequest("Wpisz mleko i chleb w notatkach"))
+    }
+
+    @Test
+    fun `odsylacz w srodku bez koncowki nie wystarcza`() {
+        // Bez zamykającego słowa notatkowego zdanie z "o tym" w środku zostaje
+        // zwykłą notatką - inaczej dyktowanie zaczęłoby uruchamiać aparat.
+        assertNull(Notes.describeRequest("Zapisz, że o tym zapomniałem"))
+        assertNull(Notes.describeRequest("Zanotuj, żeby o tym pamiętać"))
+    }
+
 }
