@@ -394,3 +394,4 @@
 07:13:38.378  +38063 ms  MOWA         koniec wypowiedzi  ms=23637
 07:13:38.394  +38078 ms  SESJA        --- KONIEC TURY 61c8: odpowiedziano ---
 07:13:38.399          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+07:13:38.982          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
