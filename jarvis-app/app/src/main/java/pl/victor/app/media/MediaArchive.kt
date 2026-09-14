@@ -45,8 +45,9 @@ class MediaArchive(context: Context) {
      * NIE MA, oznacza jako nieobecne na okularach - bez kasowania wiersza.
      */
     suspend fun rememberListing(names: List<String>) = withContext(Dispatchers.IO) {
+        val hidden = hidden()
         val now = System.currentTimeMillis()
-        val fresh = names.map { name ->
+        val fresh = names.filterNot { it in hidden }.map { name ->
             GlassesMediaEntity(
                 name = name,
                 kind = MediaLibrary.kindOf(name).name,
@@ -55,11 +56,87 @@ class MediaArchive(context: Context) {
         }
         dao.insertIfNew(fresh)
         if (names.isEmpty()) dao.markAllMissing() else dao.markMissing(names)
+        pruneHidden(names)
     }
 
     /** Oznacza, że pamięć okularów została zwolniona - wszystko z nich znikło. */
     suspend fun rememberGlassesEmptied() = withContext(Dispatchers.IO) {
         dao.markAllMissing()
+        // Nagrobki dotyczą plików LEŻĄCYCH NA SPRZĘCIE. Po wyczyszczeniu
+        // pamięci nie ma już czego ukrywać, a zostawione mogłyby zasłonić
+        // ZUPEŁNIE NOWE zdjęcie - patrz [pruneHidden].
+        pruneHidden(emptyList())
+    }
+
+    /**
+     * Zapomina pliki na życzenie użytkownika: wpis, miniatura i nagrobek.
+     *
+     * ## Czemu nagrobek, a nie samo skasowanie wiersza
+     * Bo okulary NIE MAJĄ komendy kasowania pojedynczego pliku - ma tylko
+     * `WORK_RELEASE_STORAGE`, które czyści wszystko naraz (zmierzone: 121
+     * zdjęć przed, 0 po). Aplikacja producenta zresztą robi dokładnie to samo,
+     * co my: jej "usuń" kasuje wiersz we własnej bazie i plik w telefonie, a do
+     * okularów nie wysyła nic.
+     *
+     * Skoro plik zostaje na sprzęcie, samo skasowanie wiersza byłoby udawaniem:
+     * przy najbliższym "Połącz i wczytaj" nazwa wróciłaby na listę razem z
+     * całym spisem. Usunięcie, po którym rzecz wraca, jest gorsze niż brak
+     * usuwania - bo drugi raz nikt już aplikacji nie uwierzy.
+     */
+    suspend fun forget(names: List<String>) = withContext(Dispatchers.IO) {
+        if (names.isEmpty()) return@withContext
+        names.forEach { name ->
+            runCatching { File(thumbnailDir, thumbnailFileName(name)).delete() }
+        }
+        dao.deleteByNames(names)
+        setHidden(hidden() + names)
+    }
+
+    // === Nagrobki ===
+    //
+    // W zwykłych ustawieniach, nie w bazie - i to jest decyzja, nie
+    // niedopatrzenie. Dołożenie kolumny znaczy podbicie wersji bazy i
+    // napisanie migracji, a komentarz w [pl.victor.app.data.MediaDatabase]
+    // opisuje, czemu tego tu unikamy: Room jest w gałęzi przechodzącej na
+    // sterowniki KMP i nie da się offline potwierdzić, który wariant
+    // `Migration.migrate` obowiązuje. Zbiór kilkudziesięciu nazw to nie są
+    // dane relacyjne - nie ma czego łączyć ani po czym sortować - więc cena
+    // jest żadna, a ryzyko zerowe.
+    //
+    // Całość siedzi ZA tą klasą: reszta aplikacji nie wie, że archiwum ma dwa
+    // miejsca zapisu, i nie ma jak się o nie potknąć.
+
+    private val hiddenPrefs =
+        appContext.getSharedPreferences(HIDDEN_PREFS, Context.MODE_PRIVATE)
+
+    private fun hidden(): Set<String> =
+        hiddenPrefs.getStringSet(HIDDEN_KEY, emptySet()) ?: emptySet()
+
+    private fun setHidden(names: Set<String>) {
+        // Kopia, bo zbioru oddanego przez `getStringSet` nie wolno zmieniać, a
+        // ten sam obiekt wstawiony z powrotem bywa ignorowany.
+        hiddenPrefs.edit().putStringSet(HIDDEN_KEY, names.toSet()).apply()
+    }
+
+    /**
+     * Zdejmuje nagrobki z plików, których na okularach już nie ma.
+     *
+     * ## Czemu to jest konieczne, a nie tylko porządkowe
+     * Bo nazwy się POWTARZAJĄ. Po wyczyszczeniu pamięci licznik zdjęć rusza od
+     * początku i następne zdjęcie znów nazywa się `IMG_0001.JPG`. Nagrobek
+     * trzymany w nieskończoność zasłoniłby wtedy zupełnie nowy plik - a to
+     * wygląda jak gubienie zdjęć przez aplikację i nie da się tego z ekranu
+     * zrozumieć.
+     *
+     * Nagrobek ma więc dokładnie jedno zadanie: nie wpuścić nazwy z powrotem,
+     * DOPÓKI ten sam plik leży na sprzęcie. Gdy zniknie ze spisu, zadanie się
+     * kończy.
+     */
+    private fun pruneHidden(present: List<String>) {
+        val hidden = hidden()
+        if (hidden.isEmpty()) return
+        val stillThere = hidden.intersect(present.toSet())
+        if (stillThere.size != hidden.size) setHidden(stillThere)
     }
 
     /**
@@ -108,5 +185,7 @@ class MediaArchive(context: Context) {
     private companion object {
         const val TAG = "MediaArchive"
         const val THUMBNAIL_DIR = "glasses_thumbs"
+        const val HIDDEN_PREFS = "victor_media_hidden"
+        const val HIDDEN_KEY = "hidden_names"
     }
 }

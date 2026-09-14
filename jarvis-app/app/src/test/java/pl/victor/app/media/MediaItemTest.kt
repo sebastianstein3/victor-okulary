@@ -7,12 +7,17 @@ import pl.victor.app.ble.MediaLibrary
 
 class MediaItemTest {
 
-    private fun item(name: String, seen: Long = 0L) = MediaItem(
+    private fun item(
+        name: String,
+        seen: Long = 0L,
+        saved: Boolean = false,
+        onGlasses: Boolean = true
+    ) = MediaItem(
         name = name,
         kind = MediaLibrary.kindOf(name),
         thumbnailPath = null,
-        savedToPhone = false,
-        stillOnGlasses = true,
+        savedToPhone = saved,
+        stillOnGlasses = onGlasses,
         firstSeenAtMs = seen
     )
 
@@ -52,5 +57,61 @@ class MediaItemTest {
     @Test
     fun `puste archiwum daje pusta liste`() {
         assertTrue(groupForDisplay(emptyList()).isEmpty())
+    }
+
+    // --- zawężanie widoku ---
+
+    private val mixed = listOf(
+        item("nowe.jpg", saved = false, onGlasses = true),
+        item("zapisane.jpg", saved = true, onGlasses = true),
+        item("tylko_w_telefonie.jpg", saved = true, onGlasses = false),
+        item("przepadle.jpg", saved = false, onGlasses = false)
+    )
+
+    @Test
+    fun `wszystko pokazuje cale archiwum`() {
+        assertEquals(4, applyFilter(mixed, MediaFilter.ALL).size)
+    }
+
+    @Test
+    fun `na okularach pomija to czego na sprzecie juz nie ma`() {
+        assertEquals(
+            listOf("nowe.jpg", "zapisane.jpg"),
+            applyFilter(mixed, MediaFilter.ON_GLASSES).map { it.name }
+        )
+    }
+
+    @Test
+    fun `do zapisania to tylko rzeczy WYKONALNE`() {
+        // Kluczowy przypadek: "przepadle.jpg" też nie jest zapisany, ale nie ma
+        // go już na okularach, więc zapisać się go NIE DA. Lista rzeczy do
+        // zrobienia z niewykonalnymi pozycjami jest gorsza niż jej brak.
+        assertEquals(
+            listOf("nowe.jpg"),
+            applyFilter(mixed, MediaFilter.NOT_SAVED).map { it.name }
+        )
+    }
+
+    @Test
+    fun `w telefonie obejmuje takze te skasowane z okularow`() {
+        assertEquals(
+            listOf("zapisane.jpg", "tylko_w_telefonie.jpg"),
+            applyFilter(mixed, MediaFilter.SAVED).map { it.name }
+        )
+    }
+
+    @Test
+    fun `zawezenie pustego archiwum nie wywraca sie`() {
+        MediaFilter.entries.forEach { filter ->
+            assertTrue(applyFilter(emptyList(), filter).isEmpty())
+        }
+    }
+
+    @Test
+    fun `zawezenie zachowuje kolejnosc wejscia`() {
+        // Porządkowaniem zajmuje się groupForDisplay - gdyby zawężanie
+        // przestawiało elementy, te dwie reguły biłyby się o wynik.
+        val order = applyFilter(mixed, MediaFilter.ALL).map { it.name }
+        assertEquals(mixed.map { it.name }, order)
     }
 }

@@ -1,5 +1,6 @@
 package pl.victor.app.ui.media
 
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Bitmap
@@ -11,9 +12,12 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,18 +27,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -49,7 +58,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,15 +77,20 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pl.victor.app.VictorApplication
 import pl.victor.app.ble.MediaLibrary
 import pl.victor.app.media.MediaArchive
+import pl.victor.app.media.MediaFilter
 import pl.victor.app.media.MediaItem
+import pl.victor.app.media.applyFilter
 import pl.victor.app.media.groupForDisplay
 import pl.victor.app.ui.theme.VictorTheme
 import java.io.File
@@ -129,11 +145,35 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
     private val manager = (app as VictorApplication).glassesManager
     private val archive = MediaArchive(app)
 
-    private val _files = MutableStateFlow<List<Pair<MediaLibrary.Kind, List<MediaItem>>>>(
-        emptyList()
-    )
+    /**
+     * Całe archiwum, płasko - źródło prawdy dla zawężenia i zaznaczenia.
+     *
+     * Ekran dostaje z tego [files], czyli to samo po zawężeniu i pogrupowaniu.
+     * Trzymanie gotowych grup jako stanu znaczyłoby przeliczanie ich przy
+     * każdej zmianie filtra w drugim miejscu - a zaznaczenie i tak operuje na
+     * nazwach, nie na grupach.
+     */
+    private val _items = MutableStateFlow<List<MediaItem>>(emptyList())
+
+    private val _filter = MutableStateFlow(MediaFilter.ALL)
+    val filter: StateFlow<MediaFilter> = _filter.asStateFlow()
+
+    /** To, co widać na ekranie: archiwum po zawężeniu, pogrupowane. */
     val files: StateFlow<List<Pair<MediaLibrary.Kind, List<MediaItem>>>> =
-        _files.asStateFlow()
+        combine(_items, _filter) { items, chosen ->
+            groupForDisplay(applyFilter(items, chosen))
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /**
+     * Nazwy zaznaczonych plików.
+     *
+     * Nazwy, nie obiekty: po odświeżeniu archiwum obiekty są nowe, a
+     * zaznaczenie ma przetrwać - inaczej zapisanie pliku gubiłoby zaznaczenie
+     * całej reszty. Niepusty zbiór JEST trybem zaznaczania; osobna flaga
+     * mogłaby się z nim rozjechać.
+     */
+    private val _selection = MutableStateFlow<Set<String>>(emptySet())
+    val selection: StateFlow<Set<String>> = _selection.asStateFlow()
 
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
@@ -178,7 +218,11 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
 
     private suspend fun refreshFromArchive() {
         val items = archive.all()
-        _files.value = groupForDisplay(items)
+        _items.value = items
+        // Zaznaczenie pliku, którego już nie ma, zostawiłoby licznik "zaznaczono
+        // 3" nad dwoma kafelkami i przyciski działające na duchy.
+        val present = items.mapTo(mutableSetOf()) { it.name }
+        _selection.update { chosen -> chosen.intersect(present) }
         if (items.isEmpty() && _status.value == null) {
             _status.value = "Galeria jest pusta. Połącz się z okularami, żeby wczytać pliki."
         }
@@ -320,23 +364,24 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
      */
     fun open(item: MediaItem) {
         if (_busy.value) return
-        if (!item.stillOnGlasses) {
-            // Plik zniknął ze sprzętu - w archiwum została po nim miniatura i
-            // wpis. Próba pobrania skończyłaby się czterdziestoma sekundami
-            // czekania i komunikatem o sieci, który nie miałby z tym nic
-            // wspólnego.
-            _status.value = if (item.savedToPhone) {
-                "${item.displayName} nie ma już na okularach - otwórz go w galerii telefonu."
-            } else {
-                "${item.displayName} nie ma już na okularach, a nie został zapisany w telefonie."
-            }
-            return
-        }
         viewModelScope.launch {
             _busy.value = true
-            _status.value = "Pobieram ${item.name}..."
+            // Plik zniknął ze sprzętu? Wtedy sięgamy po kopię w telefonie -
+            // patrz [bytesFor]. Wcześniej galeria w tym miejscu odmawiała i
+            // odsyłała do galerii telefonu, a po "Zwolnij pamięć okularów"
+            // dotyczyło to WSZYSTKIEGO, czyli całej zawartości tego ekranu.
+            _status.value = if (item.stillOnGlasses) {
+                "Pobieram ${item.name}..."
+            } else {
+                "Otwieram kopię z telefonu..."
+            }
             try {
-                val bytes = manager.downloadFile(item.name)
+                val bytes = bytesFor(item)
+                if (bytes == null) {
+                    _status.value = "${item.displayName} nie ma już na okularach, " +
+                        "a nie został zapisany w telefonie."
+                    return@launch
+                }
                 lastDownload = item.name to bytes
                 if (item.kind == MediaLibrary.Kind.PHOTO) {
                     val full = withContext(Dispatchers.Default) {
@@ -425,23 +470,46 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
      * komplet duplikatów: MediaStore nie odmawia zapisu, tylko dokleja do
      * nazwy „(1)".
      */
-    fun saveAllToPhone() {
+    fun saveAllToPhone() = saveToPhone(visibleItems(), whole = true)
+
+    /** Zapisuje w telefonie tylko to, co użytkownik zaznaczył. */
+    fun saveSelectedToPhone() = saveToPhone(selectedItems(), whole = false)
+
+    /**
+     * @param whole czy to jest "zapisz wszystko" - zmienia tylko komunikat o
+     *   pustej liście, bo "nie ma czego zapisywać" i "nic nie zaznaczyłeś" to
+     *   dwie różne sytuacje i dwie różne rady.
+     */
+    private fun saveToPhone(all: List<MediaItem>, whole: Boolean) {
         if (_saving.value != null || _busy.value) return
-        val all = _files.value.flatMap { it.second }
         if (all.isEmpty()) {
-            _status.value = "Nie ma czego zapisywać - najpierw wczytaj listę."
+            _status.value = if (whole) {
+                "Nie ma czego zapisywać - najpierw wczytaj listę."
+            } else {
+                "Nic nie jest zaznaczone."
+            }
             return
         }
         saveJob = viewModelScope.launch {
             var saved = 0
             var skipped = 0
             var failed = 0
+            var gone = 0
             try {
                 all.forEachIndexed { index, item ->
                     _saving.value = SaveProgress(index, all.size, item.name)
-                    val already = withContext(Dispatchers.IO) { alreadyInGallery(item.name) }
+                    // Pliku, którego na okularach nie ma, nie da się pobrać, a
+                    // próba kosztuje czterdzieści sekund czekania na sztukę.
+                    // Przy zaznaczeniu obejmującym stare zdjęcia to różnica
+                    // między chwilą a kwadransem.
+                    if (!item.stillOnGlasses) {
+                        gone++
+                        return@forEachIndexed
+                    }
+                    val already = withContext(Dispatchers.IO) { galleryUriOf(item.name) != null }
                     if (already) {
                         skipped++
+                        archive.markSavedToPhone(item.name)
                         return@forEachIndexed
                     }
                     val ok = runCatching {
@@ -459,6 +527,7 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 _status.value = buildString {
                     append("Zapisano $saved z ${all.size}")
                     if (skipped > 0) append(", pominięto $skipped już zapisanych")
+                    if (gone > 0) append(", $gone nie ma już na okularach")
                     if (failed > 0) append(", nie udało się $failed")
                     append(".")
                 }
@@ -482,8 +551,14 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
         saveJob = null
     }
 
-    /** Czy plik o tej nazwie już leży w katalogu VICTOR galerii telefonu. */
-    private fun alreadyInGallery(name: String): Boolean {
+    /**
+     * Adres pliku w galerii telefonu albo `null`, gdy go tam nie ma.
+     *
+     * Adres, a nie samo "jest/nie ma": ten sam odczyt odpowiada na oba pytania,
+     * które galeria zadaje - "czy pomijać przy zapisywaniu" i "co skasować albo
+     * udostępnić, gdy pliku nie ma już na okularach".
+     */
+    private fun galleryUriOf(name: String): Uri? {
         val shortName = name.substringAfterLast('/')
         val resolver = getApplication<android.app.Application>().contentResolver
         val collection = collectionFor(MediaLibrary.kindOf(shortName))
@@ -494,8 +569,14 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 "${MediaStore.MediaColumns.DISPLAY_NAME} = ?",
                 arrayOf(shortName),
                 null
-            )?.use { it.count > 0 } ?: false
-        }.getOrDefault(false)
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    ContentUris.withAppendedId(collection, cursor.getLong(0))
+                } else {
+                    null
+                }
+            }
+        }.getOrNull()
     }
 
     private fun collectionFor(kind: MediaLibrary.Kind): Uri = when (kind) {
@@ -534,6 +615,223 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
             ?: throw IllegalStateException("nie udało się otworzyć pliku do zapisu")
     }
 
+    // === Zaznaczanie ===
+    //
+    // Przytrzymanie kafelka zaczyna zaznaczanie, dotknięcie w tym trybie
+    // dokłada i zdejmuje, a zdjęcie ostatniego zaznaczenia tryb kończy. Bez
+    // osobnego przycisku "wybierz pliki": jeden gest mniej do odkrycia, a stan
+    // widać po samych kafelkach.
+
+    /** To, co w tej chwili widać na ekranie - czyli archiwum po zawężeniu. */
+    private fun visibleItems(): List<MediaItem> = applyFilter(_items.value, _filter.value)
+
+    private fun selectedItems(): List<MediaItem> {
+        val chosen = _selection.value
+        return _items.value.filter { it.name in chosen }
+    }
+
+    fun setFilter(chosen: MediaFilter) {
+        _filter.value = chosen
+        // Zaznaczenie zostaje: schowany plik nadal jest zaznaczony i nadal się
+        // go dotyczy. Dlatego licznik nad siatką mówi "zaznaczono N", a nie
+        // "N z widocznych" - inaczej ktoś skasowałby więcej, niż widzi.
+    }
+
+    fun toggleSelection(item: MediaItem) {
+        _selection.update { chosen ->
+            if (item.name in chosen) chosen - item.name else chosen + item.name
+        }
+    }
+
+    fun selectAllVisible() {
+        _selection.value = visibleItems().mapTo(mutableSetOf()) { it.name }
+    }
+
+    fun clearSelection() {
+        _selection.value = emptySet()
+    }
+
+    // === Usuwanie ===
+
+    /**
+     * Co dokładnie zniknie - do pokazania w pytaniu.
+     *
+     * Liczby, nie słowo "gotowe": usuwanie w tej galerii znaczy co innego dla
+     * pliku leżącego na okularach niż dla takiego, który jest już tylko w
+     * telefonie, a użytkownik ma to wiedzieć PRZED potwierdzeniem, nie z
+     * komunikatu po fakcie.
+     */
+    data class DeletePlan(
+        val count: Int,
+        val stillOnGlasses: Int,
+        val inPhoneGallery: Int,
+
+        /**
+         * Ile z nich nie istnieje już NIGDZIE INDZIEJ.
+         *
+         * Ani na okularach, ani w galerii telefonu - czyli po tym usunięciu
+         * zostanie po nich tylko tyle, ile zostaje po skasowanym pliku: nic.
+         * To jedyny przypadek, w którym usuwanie z tej galerii jest naprawdę
+         * nieodwracalne, więc musi mieć własne ostrzeżenie.
+         */
+        val lastTrace: Int
+    )
+
+    private val _askDelete = MutableStateFlow<DeletePlan?>(null)
+    val askDelete: StateFlow<DeletePlan?> = _askDelete.asStateFlow()
+
+    fun askDeleteSelected() {
+        val chosen = selectedItems()
+        if (chosen.isEmpty()) {
+            _status.value = "Nic nie jest zaznaczone."
+            return
+        }
+        _askDelete.value = DeletePlan(
+            count = chosen.size,
+            stillOnGlasses = chosen.count { it.stillOnGlasses },
+            inPhoneGallery = chosen.count { it.savedToPhone },
+            lastTrace = chosen.count { !it.stillOnGlasses && !it.savedToPhone }
+        )
+    }
+
+    fun dismissDelete() {
+        _askDelete.value = null
+    }
+
+    /**
+     * Usuwa zaznaczone pliki z galerii aplikacji - i opcjonalnie z telefonu.
+     *
+     * ## Czego ta funkcja NIE robi
+     * Nie kasuje niczego w okularach, bo nie ma czym: sprzęt zna tylko
+     * `WORK_RELEASE_STORAGE`, czyli wyczyszczenie całej pamięci naraz.
+     * Aplikacja producenta robi dokładnie to samo co my - jej "usuń" rusza
+     * własną bazę i plik w telefonie, do okularów nie wysyła nic. Komunikat
+     * mówi to wprost, zamiast pozwalać wierzyć, że zdjęcie zniknęło ze sprzętu.
+     *
+     * @param alsoFromPhone czy skasować też kopie z galerii telefonu
+     */
+    fun deleteSelected(alsoFromPhone: Boolean) {
+        _askDelete.value = null
+        if (_busy.value || _saving.value != null) return
+        val chosen = selectedItems()
+        if (chosen.isEmpty()) return
+        val names = chosen.map { it.name }
+        val onGlasses = chosen.count { it.stillOnGlasses }
+        viewModelScope.launch {
+            _busy.value = true
+            try {
+                val removedFromPhone = if (alsoFromPhone) {
+                    withContext(Dispatchers.IO) { names.count { deleteFromGallery(it) } }
+                } else {
+                    0
+                }
+                archive.forget(names)
+                // Miniatura skasowanego pliku nie może zostać w pamięci: gdyby
+                // nazwa kiedyś wróciła (po wyczyszczeniu pamięci licznik zdjęć
+                // rusza od nowa), pokazalibyśmy cudzy obrazek pod nowym plikiem.
+                val removed = names.toSet()
+                requestedThumbnails.removeAll(removed)
+                _thumbnails.update { it - removed }
+                // Kolejka mogła już mieć te pliki w planie. Pobieranie miniatury
+                // dla czegoś usuniętego to kilka megabajtów przez łącze okularów
+                // za obrazek, którego nikt nie zobaczy.
+                thumbnailQueue.removeAll { it.name in removed }
+                _selection.value = emptySet()
+                refreshFromArchive()
+                _status.value = buildString {
+                    append("Usunięto ${names.size} z galerii aplikacji")
+                    if (alsoFromPhone) append(", w tym $removedFromPhone kopii z telefonu")
+                    append(".")
+                    if (onGlasses > 0) {
+                        append(
+                            " Pliki ($onGlasses) zostają w pamięci okularów - sprzęt nie ma " +
+                                "komendy kasowania pojedynczego pliku, umie tylko wyczyścić " +
+                                "wszystko naraz. Z listy nie wrócą."
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _status.value = "Nie udało się usunąć: ${e.message}"
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
+
+    /**
+     * Kasuje kopię pliku z galerii telefonu.
+     *
+     * Udaje się dla plików, które zapisała ta aplikacja - system uznaje ją za
+     * właściciela. Po przeinstalowaniu aplikacji właściciel przepada i system
+     * odmawia; wtedy zwracamy `false`, a licznik w komunikacie pokaże mniej,
+     * niż było zaznaczone. To jest uczciwsze niż zgłoszenie sukcesu.
+     */
+    private fun deleteFromGallery(name: String): Boolean {
+        val uri = galleryUriOf(name) ?: return false
+        val resolver = getApplication<android.app.Application>().contentResolver
+        return runCatching { resolver.delete(uri, null, null) > 0 }.getOrDefault(false)
+    }
+
+    // === Udostępnianie ===
+
+    private val _pendingShare = MutableStateFlow<Pair<Uri, String>?>(null)
+    val pendingShare: StateFlow<Pair<Uri, String>?> = _pendingShare.asStateFlow()
+
+    fun shareHandled() {
+        _pendingShare.value = null
+    }
+
+    /**
+     * Wysyła zaznaczony plik do innej aplikacji.
+     *
+     * Jeden plik, nie wiele: wysyłka wielu wymaga innego zamiaru systemowego i
+     * innego zestawu adresów, a przy plikach z okularów każdy z nich to osobne
+     * pobranie przez Wi-Fi. Lepiej mieć jedną rzecz, która działa pewnie.
+     */
+    fun shareSelected() {
+        if (_busy.value) return
+        val item = selectedItems().singleOrNull() ?: run {
+            _status.value = "Udostępnianie działa dla jednego zaznaczonego pliku."
+            return
+        }
+        viewModelScope.launch {
+            _busy.value = true
+            _status.value = "Przygotowuję ${item.displayName}..."
+            try {
+                val bytes = bytesFor(item)
+                if (bytes == null) {
+                    _status.value = "${item.displayName} nie ma ani na okularach, ani w telefonie."
+                    return@launch
+                }
+                val uri = withContext(Dispatchers.IO) { cacheForPlayback(item.name, bytes) }
+                _pendingShare.value = uri to MediaThumbnails.mimeTypeOf(item.name)
+                _status.value = null
+            } catch (e: Exception) {
+                _status.value = "Nie udało się przygotować pliku: ${e.message}"
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
+
+    /**
+     * Bajty pliku - z okularów, a gdy go tam nie ma, z kopii w telefonie.
+     *
+     * Drugie źródło jest tu istotne, nie zapasowe: po "Zwolnij pamięć okularów"
+     * WSZYSTKIE zdjęcia są już tylko w telefonie, a galeria ma nadal umieć je
+     * pokazać i wysłać dalej.
+     */
+    private suspend fun bytesFor(item: MediaItem): ByteArray? {
+        if (item.stillOnGlasses) return manager.downloadFile(item.name)
+        val uri = withContext(Dispatchers.IO) { galleryUriOf(item.name) } ?: return null
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                getApplication<android.app.Application>().contentResolver
+                    .openInputStream(uri)?.use { it.readBytes() }
+            }.getOrNull()
+        }
+    }
+
     /**
      * Czy pokazać pytanie o zwolnienie pamięci okularów.
      *
@@ -544,7 +842,7 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
     val askRelease: StateFlow<Boolean> = _askRelease.asStateFlow()
 
     fun askReleaseStorage() {
-        if (_files.value.isEmpty()) {
+        if (_items.value.isEmpty()) {
             _status.value = "Najpierw wczytaj listę plików."
             return
         }
@@ -642,7 +940,11 @@ fun MediaScreen(onBack: () -> Unit) {
     val thumbnails by viewModel.thumbnails.collectAsState()
     val saving by viewModel.saving.collectAsState()
     val pendingPlayback by viewModel.pendingPlayback.collectAsState()
+    val pendingShare by viewModel.pendingShare.collectAsState()
     val askRelease by viewModel.askRelease.collectAsState()
+    val selection by viewModel.selection.collectAsState()
+    val filter by viewModel.filter.collectAsState()
+    val deletePlan by viewModel.askDelete.collectAsState()
     val context = LocalContext.current
 
     DisposableEffect(Unit) {
@@ -660,6 +962,84 @@ fun MediaScreen(onBack: () -> Unit) {
         }
         runCatching { context.startActivity(intent) }
         viewModel.playbackHandled()
+    }
+
+    // Wysyłka idzie tą samą drogą co odtwarzacz i z tego samego powodu:
+    // uruchamianie cudzej aplikacji wymaga kontekstu ekranu, a zdarzenie
+    // skasowane po obsłużeniu nie odpali się drugi raz po obrocie telefonu.
+    LaunchedEffect(pendingShare) {
+        val (uri, mime) = pendingShare ?: return@LaunchedEffect
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = mime
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { context.startActivity(Intent.createChooser(intent, "Udostępnij")) }
+        viewModel.shareHandled()
+    }
+
+    deletePlan?.let { plan ->
+        // Zaznaczenie przycisku pamiętamy PER PYTANIE (`remember(plan)`), żeby
+        // zgoda na skasowanie kopii z telefonu nie przeniosła się cicho na
+        // następne usuwanie.
+        var alsoPhone by remember(plan) { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDelete() },
+            title = {
+                Text(
+                    if (plan.count == 1) "Usunąć plik?"
+                    else "Usunąć ${plan.count} plików?"
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Mówimy dokładnie, co zniknie, a co zostanie. Okulary nie
+                    // mają komendy kasowania pojedynczego pliku - ma tylko
+                    // czyszczenie całej pamięci naraz - więc obiecanie "usunięto
+                    // ze sprzętu" byłoby nieprawdą.
+                    Text(
+                        if (plan.stillOnGlasses > 0) {
+                            "Zniknie z tej galerii razem z miniaturą. " +
+                                "${plan.stillOnGlasses} z tych plików wciąż leży w pamięci " +
+                                "okularów i TAM ZOSTANIE: sprzęt umie tylko wyczyścić całą " +
+                                "pamięć naraz. Na tę listę już nie wrócą."
+                        } else {
+                            "Zniknie z tej galerii razem z miniaturą. " +
+                                "Tych plików nie ma już na okularach."
+                        }
+                    )
+                    if (plan.lastTrace > 0) {
+                        Text(
+                            "Uwaga: ${plan.lastTrace} z nich nie ma ani na okularach, ani w " +
+                                "galerii telefonu. Po usunięciu nie zostanie po nich nic.",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    if (plan.inPhoneGallery > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { alsoPhone = !alsoPhone }
+                        ) {
+                            Checkbox(checked = alsoPhone, onCheckedChange = { alsoPhone = it })
+                            Text("Skasuj też kopie w galerii telefonu (${plan.inPhoneGallery})")
+                        }
+                        if (alsoPhone) {
+                            Text(
+                                "Skasowanych kopii z telefonu NIE DA SIĘ odzyskać.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.deleteSelected(alsoPhone) }) { Text("Usuń") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissDelete() }) { Text("Anuluj") }
+            }
+        )
     }
 
     if (askRelease) {
@@ -732,7 +1112,14 @@ fun MediaScreen(onBack: () -> Unit) {
                                 onClick = { viewModel.saveAllToPhone() },
                                 enabled = !busy && files.isNotEmpty()
                             ) {
-                                Text("Zapisz wszystko")
+                                // Przy włączonym zawężeniu przycisk działa na
+                                // to, co widać - i musi to powiedzieć, bo
+                                // "wszystko" znaczyłoby wtedy co innego, niż
+                                // robi.
+                                Text(
+                                    if (filter == MediaFilter.ALL) "Zapisz wszystko"
+                                    else "Zapisz widoczne"
+                                )
                             }
                         } else {
                             OutlinedButton(onClick = { viewModel.cancelSaveAll() }) {
@@ -740,6 +1127,37 @@ fun MediaScreen(onBack: () -> Unit) {
                             }
                         }
                     }
+
+                    // Zawężenia - przy stu dwudziestu jeden plikach na sprzęcie
+                    // to jedyny sposób, żeby odpowiedzieć na "czego jeszcze nie
+                    // mam w telefonie" inaczej niż przewijaniem całej siatki.
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        MediaFilter.entries.forEach { option ->
+                            FilterChip(
+                                selected = filter == option,
+                                onClick = { viewModel.setFilter(option) },
+                                label = { Text(option.label) }
+                            )
+                        }
+                    }
+
+                    if (selection.isNotEmpty()) {
+                        SelectionBar(
+                            count = selection.size,
+                            enabled = !busy && saving == null,
+                            onSave = { viewModel.saveSelectedToPhone() },
+                            onShare = { viewModel.shareSelected() },
+                            onDelete = { viewModel.askDeleteSelected() },
+                            onSelectAll = { viewModel.selectAllVisible() },
+                            onCancel = { viewModel.clearSelection() }
+                        )
+                    }
+
                     if (saving == null && files.isNotEmpty()) {
                         OutlinedButton(
                             onClick = { viewModel.askReleaseStorage() },
@@ -823,11 +1241,57 @@ fun MediaScreen(onBack: () -> Unit) {
                         item = item,
                         thumbnail = thumbnails[item.name],
                         enabled = !busy && saving == null,
+                        selected = item.name in selection,
+                        selecting = selection.isNotEmpty(),
                         onRequestThumbnail = { viewModel.requestThumbnail(item) },
-                        onClick = { viewModel.open(item) }
+                        // W trybie zaznaczania dotknięcie DOKŁADA, a nie
+                        // otwiera: inaczej pierwszy odruch po przytrzymaniu
+                        // kafelka kończyłby się pobieraniem pliku przez Wi-Fi.
+                        onClick = {
+                            if (selection.isEmpty()) viewModel.open(item)
+                            else viewModel.toggleSelection(item)
+                        },
+                        onLongClick = { viewModel.toggleSelection(item) }
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Pasek działań na zaznaczeniu.
+ *
+ * Przewijany w poziomie, bo pięć przycisków nie mieści się w jednym wierszu na
+ * wąskim telefonie, a zwinięcie ich do menu schowałoby "Usuń" - czyli to,
+ * po co użytkownik w ogóle wszedł w zaznaczanie.
+ */
+@Composable
+private fun SelectionBar(
+    count: Int,
+    enabled: Boolean,
+    onSave: () -> Unit,
+    onShare: () -> Unit,
+    onDelete: () -> Unit,
+    onSelectAll: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(modifier = Modifier.padding(top = 8.dp)) {
+        Text("Zaznaczono $count", fontWeight = FontWeight.Bold)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .horizontalScroll(rememberScrollState())
+        ) {
+            OutlinedButton(onClick = onSave, enabled = enabled) { Text("Zapisz") }
+            // Wysyłka tylko dla jednego pliku - patrz MediaViewModel.shareSelected.
+            OutlinedButton(onClick = onShare, enabled = enabled && count == 1) {
+                Text("Udostępnij")
+            }
+            OutlinedButton(onClick = onDelete, enabled = enabled) { Text("Usuń") }
+            OutlinedButton(onClick = onSelectAll, enabled = enabled) { Text("Zaznacz widoczne") }
+            OutlinedButton(onClick = onCancel) { Text("Odznacz") }
         }
     }
 }
@@ -839,26 +1303,52 @@ fun MediaScreen(onBack: () -> Unit) {
  * wjeżdża na ekran. Przy stu kilkudziesięciu plikach zamówienie wszystkiego z
  * góry znaczyłoby pobranie całej zawartości okularów, zanim pokaże się
  * pierwszy obrazek.
+ *
+ * Przytrzymanie zaczyna zaznaczanie. `combinedClickable` zamiast `clickable`
+ * jest tu jedyną drogą: Compose nie daje długiego dotknięcia bez niego, a
+ * osobny przycisk "wybierz pliki" byłby stanem do odkrycia i do pomylenia.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MediaTile(
     item: MediaItem,
     thumbnail: Bitmap?,
     enabled: Boolean,
+    selected: Boolean,
+    selecting: Boolean,
     onRequestThumbnail: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     LaunchedEffect(item.name) { onRequestThumbnail() }
 
     Column(
-        modifier = Modifier.clickable(enabled = enabled, onClick = onClick)
+        modifier = Modifier.combinedClickable(
+            enabled = enabled,
+            onClick = onClick,
+            onLongClick = onLongClick
+        )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .then(
+                    // Sama ptaszka w rogu nie wystarcza: przy ciemnym zdjęciu
+                    // gubi się w obrazie. Obwódka zmienia kształt kafelka, więc
+                    // widać ją kątem oka przy przewijaniu.
+                    if (selected) {
+                        Modifier.border(
+                            width = 3.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    } else {
+                        Modifier
+                    }
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (thumbnail != null) {
@@ -874,6 +1364,29 @@ private fun MediaTile(
                 // znaczyłoby pobranie całego pliku), a przy zdjęciu mówi
                 // "to się jeszcze ładuje", a nie "tu nic nie ma".
                 Text(item.kind.emoji, fontSize = 28.sp)
+            }
+            if (selecting) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(22.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surface
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selected) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Zaznaczony",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
         }
         Text(

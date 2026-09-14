@@ -35,3 +35,46 @@ fun groupForDisplay(items: List<MediaItem>): List<Pair<MediaLibrary.Kind, List<M
         .sortedBy { (kind, _) -> kind.ordinal }
         .map { (kind, list) -> kind to list.sortedByDescending { it.name } }
         .filter { (_, list) -> list.isNotEmpty() }
+
+/**
+ * Zawężenie widoku galerii.
+ *
+ * ## Po co, skoro jest siatka
+ * Bo na sprzęcie leżało zmierzone sto dwadzieścia jeden zdjęć, a pytania, które
+ * użytkownik naprawdę zadaje galerii, są dwa: "czego jeszcze nie mam w
+ * telefonie" i "co da się jeszcze pobrać". Przewijanie stu kafelków i
+ * odczytywanie plakietek z każdego z osobna jest odpowiedzią na oba, tyle że
+ * najgorszą z możliwych.
+ *
+ * Zawężenia są ROZŁĄCZNE i jest ich mało z rozmysłu: każdy dokładany filtr to
+ * kolejny stan, w którym lista wygląda na pustą, choć pliki są.
+ */
+enum class MediaFilter(val label: String) {
+
+    /** Całe archiwum - także pliki, których na okularach już nie ma. */
+    ALL("Wszystko"),
+
+    /** Tylko to, co da się jeszcze pobrać ze sprzętu. */
+    ON_GLASSES("Na okularach"),
+
+    /**
+     * To, czego jeszcze nie ma w telefonie, a da się pobrać.
+     *
+     * Warunek jest podwójny, bo sam "niezapisany" pokazywałby też pliki
+     * skasowane z okularów - czyli takie, których zapisać się już NIE DA.
+     * Lista rzeczy do zrobienia, na której połowa pozycji jest niewykonalna,
+     * jest gorsza niż jej brak.
+     */
+    NOT_SAVED("Do zapisania"),
+
+    /** To, co już leży w galerii telefonu. */
+    SAVED("W telefonie")
+}
+
+/** Zawęża archiwum zgodnie z wyborem. */
+fun applyFilter(items: List<MediaItem>, filter: MediaFilter): List<MediaItem> = when (filter) {
+    MediaFilter.ALL -> items
+    MediaFilter.ON_GLASSES -> items.filter { it.stillOnGlasses }
+    MediaFilter.NOT_SAVED -> items.filter { !it.savedToPhone && it.stillOnGlasses }
+    MediaFilter.SAVED -> items.filter { it.savedToPhone }
+}

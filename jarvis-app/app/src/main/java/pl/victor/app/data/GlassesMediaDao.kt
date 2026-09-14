@@ -41,4 +41,15 @@ interface GlassesMediaDao {
 
     @Query("SELECT COUNT(*) FROM glasses_media WHERE saved_to_phone_at IS NOT NULL")
     suspend fun savedCount(): Int
+
+    /**
+     * Usuwa wpisy o podanych nazwach - na życzenie użytkownika.
+     *
+     * To JEDYNE miejsce, w którym z tej tabeli coś znika. Wczytanie listy z
+     * okularów wierszy nie kasuje, tylko oznacza je jako nieobecne na sprzęcie
+     * (patrz [markMissing]) - bo zdjęcie zapisane w telefonie ma zostać
+     * widoczne także wtedy, gdy z okularów już zniknęło.
+     */
+    @Query("DELETE FROM glasses_media WHERE name IN (:names)")
+    suspend fun deleteByNames(names: List<String>)
 }
