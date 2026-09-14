@@ -120,7 +120,15 @@ object AIProviderFactory {
         }
 
         val provider = when (providerId.lowercase()) {
-            "gemini" -> GeminiProvider(apiKey = apiKey, model = resolution.modelId)
+            "gemini" -> GeminiProvider(
+                apiKey = apiKey,
+                model = resolution.modelId,
+                // Ustawienie czytamy TU, przy tworzeniu, a nie w providerze -
+                // dzięki temu provider zostaje czystą warstwą nad API i daje
+                // się utworzyć bez kontekstu Androida.
+                limitThinking = pl.victor.app.data.SettingsRepository
+                    .getInstance(context).isThinkingLimitEnabled()
+            )
             "openai" -> OpenAIProvider(apiKey = apiKey, model = resolution.modelId)
             "claude" -> ClaudeProvider(apiKey = apiKey, model = resolution.modelId)
             "minimax" -> MiniMaxProvider(apiKey = apiKey, model = resolution.modelId)

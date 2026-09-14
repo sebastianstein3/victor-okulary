@@ -1025,6 +1025,45 @@ private fun AIOptionsSection(
             Switch(checked = webSearchEnabled, onCheckedChange = onWebSearchChange)
         }
 
+        // OSZCZĘDZANIE NA MYŚLENIU - świadome, nie domyślne.
+        //
+        // Stan czytamy prosto z ustawień, jak przy wyborze modelu niżej: to
+        // przełącznik dotyczący JEDNEGO providera i przeciąganie go przez cały
+        // stan ekranu dołożyłoby więcej niż warte.
+        run {
+            val ctx = LocalContext.current
+            val repo = remember {
+                (ctx.applicationContext as pl.victor.app.VictorApplication).settings
+            }
+            var limitThinking by remember { mutableStateOf(repo.isThinkingLimitEnabled()) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Oszczędzaj na myśleniu modelu (Gemini)")
+                    Text(
+                        "Model rozmyśla przed odpowiedzią i to zużywa cztery do " +
+                            "ośmiu razy więcej niż sama odpowiedź - zmierzone na " +
+                            "Twoich turach. Wyłączenie myślenia wyraźnie tnie " +
+                            "rachunek, ale POGARSZA rozumowanie przy trudniejszych " +
+                            "pytaniach. Gdy API nie przyjmie tej prośby, aplikacja " +
+                            "sama wróci do zwykłego trybu.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = limitThinking,
+                    onCheckedChange = {
+                        limitThinking = it
+                        repo.setThinkingLimitEnabled(it)
+                    }
+                )
+            }
+        }
+
         // Język - uproszczone (tylko kilka opcji)
         var langExpanded by remember { mutableStateOf(false) }
         val languages = listOf(

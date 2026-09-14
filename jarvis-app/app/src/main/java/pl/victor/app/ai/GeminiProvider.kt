@@ -3,6 +3,7 @@ package pl.victor.app.ai
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -35,7 +36,21 @@ import java.util.concurrent.TimeUnit
  */
 class GeminiProvider(
     private val apiKey: String,
-    val model: String = "gemini-2.5-flash"
+    val model: String = "gemini-2.5-flash",
+    /**
+     * Czy prosić model, żeby nie rozmyślał przed odpowiedzią.
+     *
+     * Domyślnie NIE, bo to zmiana jakości, a nie tylko kosztu - i decyzja
+     * należy do użytkownika. Pomiar z 14 września pokazuje, o co gra idzie:
+     *
+     *     wejście=1288  odpowiedź=50  myślenie=273  razem=1611
+     *     wejście=1288  odpowiedź=42  myślenie=441  razem=1771
+     *
+     * Myślenie zjada cztery do ośmiu razy więcej niż sama odpowiedź, a tokeny
+     * wyjściowe są najdroższe. Ale krótsze myślenie to też gorsze rozumowanie,
+     * więc włącza się to świadomie w ustawieniach.
+     */
+    private val limitThinking: Boolean = false
 ) : AIProvider {
 
     override val id = "gemini"
@@ -141,6 +156,9 @@ class GeminiProvider(
             // żadnej granicy, czyli najdroższym z nich wszystkich.
             putJsonObject("generationConfig") {
                 put("maxOutputTokens", MAX_OUTPUT_TOKENS)
+                if (limitThinking && !thinkingRejected) {
+                    putJsonObject("thinkingConfig") { put("thinkingBudget", 0) }
+                }
             }
         }
 
@@ -174,7 +192,42 @@ class GeminiProvider(
         }
     }
 
+    /**
+     * Zapytanie z JEDNYM ponowieniem, gdy API odrzuci prośbę o ograniczenie
+     * myślenia.
+     *
+     * Ponowienie jest darmowe pod względem treści - odrzucenie przychodzi PRZED
+     * wygenerowaniem czegokolwiek, więc nie ma czego zdublować. Zdarza się raz
+     * na uruchomienie, bo odmowa jest zapamiętywana.
+     */
     override suspend fun analyze(
+        textQuestion: String,
+        images: List<ByteArray>,
+        audioBytes: ByteArray?,
+        scannedCodes: List<ScannedCode>,
+        enableWebSearch: Boolean,
+        systemPrompt: String?
+    ): AIResponse = try {
+        analyzeOnce(
+            textQuestion = textQuestion,
+            images = images,
+            audioBytes = audioBytes,
+            scannedCodes = scannedCodes,
+            enableWebSearch = enableWebSearch,
+            systemPrompt = systemPrompt
+        )
+    } catch (e: ThinkingRejectedRetry) {
+        analyzeOnce(
+            textQuestion = textQuestion,
+            images = images,
+            audioBytes = audioBytes,
+            scannedCodes = scannedCodes,
+            enableWebSearch = enableWebSearch,
+            systemPrompt = systemPrompt
+        )
+    }
+
+    private suspend fun analyzeOnce(
         textQuestion: String,
         images: List<ByteArray>,
         audioBytes: ByteArray?,
@@ -229,7 +282,7 @@ class GeminiProvider(
         val request = GeminiRequest(
             contents = listOf(GeminiContent(parts = parts)),
             tools = tools,
-            generationConfig = GeminiGenerationConfig(maxOutputTokens = MAX_OUTPUT_TOKENS)
+            generationConfig = generationConfig()
         )
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
@@ -244,6 +297,13 @@ class GeminiProvider(
             client.newCall(httpRequest).execute().use { response ->
                 if (!response.isSuccessful) {
                     val errorBody = response.body?.string() ?: "Unknown error"
+                    // Odmowa dotycząca myślenia jest DO NAPRAWIENIA W LOCIE:
+                    // zapamiętujemy ją i powtarzamy zapytanie bez tej prośby,
+                    // zamiast zwracać użytkownikowi błąd za coś, co jest tylko
+                    // optymalizacją kosztu.
+                    if (noteThinkingRejected(response.code, errorBody)) {
+                        throw ThinkingRejectedRetry()
+                    }
                     throw AIProviderException(
                         explainHttpError(response.code, errorBody),
                         providerId = id,
@@ -377,8 +437,59 @@ class GeminiProvider(
         }
     }
 
+    /**
+     * Konfiguracja generowania dla tego zapytania.
+     *
+     * Prośbę o ograniczenie myślenia dokładamy tylko wtedy, gdy użytkownik ją
+     * włączył I gdy API jeszcze jej nie odrzuciło.
+     */
+    private fun generationConfig(): GeminiGenerationConfig = GeminiGenerationConfig(
+        maxOutputTokens = MAX_OUTPUT_TOKENS,
+        thinkingConfig = if (limitThinking && !thinkingRejected) {
+            GeminiThinkingConfig(thinkingBudget = 0)
+        } else {
+            null
+        }
+    )
+
+    /**
+     * Rozpoznaje odmowę dotyczącą myślenia i zapamiętuje ją na stałe.
+     *
+     * @return `true` gdy warto powtórzyć zapytanie BEZ tej prośby
+     */
+    private fun noteThinkingRejected(code: Int, body: String): Boolean {
+        if (!limitThinking || thinkingRejected) return false
+        if (code != HTTP_BAD_REQUEST) return false
+        if (!body.contains("thinking", ignoreCase = true)) return false
+        thinkingRejected = true
+        runCatching {
+            pl.victor.app.VictorApplication.get().diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.MODEL,
+                "Gemini odrzucił prośbę o ograniczenie myślenia - ponawiam bez niej",
+                mapOf("odpowiedź" to body.take(ERROR_BODY_CHARS))
+            )
+        }
+        Log.w(TAG, "Prośba o ograniczenie myślenia odrzucona: ${body.take(ERROR_BODY_CHARS)}")
+        return true
+    }
+
     companion object {
         private const val TAG = "GeminiProvider"
+
+        /**
+         * Czy API odrzuciło już prośbę o ograniczenie myślenia.
+         *
+         * Wspólne dla wszystkich egzemplarzy i na całe uruchomienie: skoro
+         * nazwa pola nie pasuje, nie pasuje dla każdego zapytania, a powtarzanie
+         * odrzucanej próby kosztowałoby dodatkowy obieg za każdym razem.
+         */
+        @Volatile
+        private var thinkingRejected = false
+
+        private const val HTTP_BAD_REQUEST = 400
+
+        /** Ile znaków odpowiedzi serwera zapisać przy odmowie. */
+        private const val ERROR_BODY_CHARS = 200
         private const val API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val STREAM_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val IMAGES_IN_REQUEST = 5
@@ -444,7 +555,30 @@ class GeminiProvider(
      * Streaming przez Gemini API: streamGenerateContent
      * Zwraca SSE - każda linia "data: {...}" to fragment odpowiedzi.
      */
+    /**
+     * Strumień z jednym ponowieniem - patrz [analyze].
+     *
+     * `retry` powtarza CAŁY strumień, co byłoby groźne, gdyby zdążył cokolwiek
+     * wypuścić. Tu nie zdąży: odmowa przychodzi przy sprawdzeniu odpowiedzi
+     * HTTP, przed pierwszym fragmentem tekstu.
+     */
     override fun analyzeStream(
+        textQuestion: String,
+        images: List<ByteArray>,
+        audioBytes: ByteArray?,
+        scannedCodes: List<ScannedCode>,
+        enableWebSearch: Boolean,
+        systemPrompt: String?
+    ): kotlinx.coroutines.flow.Flow<AIResponseChunk> = streamOnce(
+            textQuestion = textQuestion,
+            images = images,
+            audioBytes = audioBytes,
+            scannedCodes = scannedCodes,
+            enableWebSearch = enableWebSearch,
+            systemPrompt = systemPrompt
+    ).retry(1) { it is ThinkingRejectedRetry }
+
+    private fun streamOnce(
         textQuestion: String,
         images: List<ByteArray>,
         audioBytes: ByteArray?,
@@ -485,7 +619,7 @@ class GeminiProvider(
         val request = GeminiRequest(
             contents = listOf(GeminiContent(parts = parts)),
             tools = tools,
-            generationConfig = GeminiGenerationConfig(maxOutputTokens = MAX_OUTPUT_TOKENS)
+            generationConfig = generationConfig()
         )
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
@@ -500,6 +634,13 @@ class GeminiProvider(
             client.newCall(httpRequest).execute().use { response ->
                 if (!response.isSuccessful) {
                     val errorBody = response.body?.string() ?: "Unknown error"
+                    // Odmowa dotycząca myślenia jest DO NAPRAWIENIA W LOCIE:
+                    // zapamiętujemy ją i powtarzamy zapytanie bez tej prośby,
+                    // zamiast zwracać użytkownikowi błąd za coś, co jest tylko
+                    // optymalizacją kosztu.
+                    if (noteThinkingRejected(response.code, errorBody)) {
+                        throw ThinkingRejectedRetry()
+                    }
                     throw AIProviderException(
                         explainHttpError(response.code, errorBody),
                         providerId = id,
@@ -608,7 +749,35 @@ data class GeminiRequest(
 @Serializable
 data class GeminiGenerationConfig(
     val maxOutputTokens: Int? = null,
-    val temperature: Float? = null
+    val temperature: Float? = null,
+    val thinkingConfig: GeminiThinkingConfig? = null
+)
+
+/**
+ * Sygnał wewnętrzny: powtórz zapytanie bez prośby o ograniczenie myślenia.
+ *
+ * Nie wychodzi poza [GeminiProvider] - wołający ma zobaczyć odpowiedź albo
+ * prawdziwy błąd, nigdy tego wyjątku.
+ */
+private class ThinkingRejectedRetry : Exception("Powtórka bez ograniczenia myślenia")
+
+/**
+ * Prośba o ograniczenie myślenia.
+ *
+ * ## Czemu to jest napisane OSTROŻNIE
+ * Bo nie udało mi się potwierdzić w dokumentacji, jakiej nazwy pola oczekuje
+ * `generateContent` dla modelu ustawionego w tej aplikacji: starsze źródła
+ * podają `thinkingConfig.thinkingBudget`, nowsze pokazują `thinking_level` w
+ * osobnym API rozmów. Zgadnięta nazwa to odpowiedź 400 i asystent, który
+ * przestaje odpowiadać W OGÓLE.
+ *
+ * Dlatego zamiast zgadywać w ciemno, aplikacja PRÓBUJE i uczy się z odmowy -
+ * patrz [GeminiProvider.noteThinkingRejected]. Nieudana próba kosztuje jedno
+ * dodatkowe zapytanie raz na uruchomienie, a nie zepsutą rozmowę.
+ */
+@Serializable
+data class GeminiThinkingConfig(
+    val thinkingBudget: Int? = null
 )
 
 @Serializable

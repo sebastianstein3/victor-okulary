@@ -329,6 +329,27 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_AUTO_PROVIDER_FALLBACK, enabled).apply()
     }
 
+    /**
+     * Czy prosić model, żeby nie rozmyślał przed odpowiedzią.
+     *
+     * ## Co to daje i co kosztuje
+     * Pomiar z 14 września, dziesięć tur pod rząd:
+     *
+     *     wejście=1288  odpowiedź=50  myślenie=273  razem=1611
+     *     wejście=1288  odpowiedź=42  myślenie=441  razem=1771
+     *
+     * Myślenie zjada cztery do ośmiu razy więcej niż sama odpowiedź, a tokeny
+     * wyjściowe są najdroższe - więc jego ograniczenie realnie tnie rachunek.
+     *
+     * Kosztuje jednak JAKOŚĆ ROZUMOWANIA, a nie tylko pieniądze. Dlatego
+     * domyślnie WYŁĄCZONE: asystent ma działać najlepiej jak umie, a oszczędza
+     * dopiero wtedy, gdy człowiek świadomie o to poprosi.
+     */
+    fun isThinkingLimitEnabled(): Boolean = prefs.getBoolean(KEY_THINKING_LIMIT, false)
+    fun setThinkingLimitEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_THINKING_LIMIT, enabled).apply()
+    }
+
     fun setProactiveIntervalMinutes(minutes: Int) {
         prefs.edit().putInt(KEY_PROACTIVE_INTERVAL, minutes).apply()
     }
@@ -1029,6 +1050,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_POWER_MODE = "power_mode"
         private const val KEY_AUTO_POWER = "auto_power_mode"
         private const val KEY_AUTO_PROVIDER_FALLBACK = "auto_provider_fallback"
+        private const val KEY_THINKING_LIMIT = "thinking_limit"
         private const val KEY_PROACTIVE_INTERVAL = "proactive_interval_min"
         private const val KEY_HISTORY_LIMIT = "history_limit"
         private const val KEY_WAKE_WORD = "wake_word"
