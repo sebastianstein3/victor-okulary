@@ -138,6 +138,22 @@ class VictorManager private constructor(context: Context) {
     /** Stan połączenia Wi-Fi Direct. */
     val wifiTransferState: StateFlow<TransferState> get() = wifiTransfer.state
 
+    /**
+     * Fabryka gniazd przypięta do sieci okularów - albo `null`, gdy jej nie ma.
+     *
+     * ## Po co osobny dostęp zamiast przypięcia procesu
+     * Bo biblioteki, które dostają fabrykę gniazd, nie potrzebują już, żeby
+     * CAŁY telefon siedział w sieci okularów. Odtwarzacz RTSP z media3 taką
+     * fabrykę przyjmuje ([RtspMediaSource.Factory.setSocketFactory]), więc
+     * podgląd na żywo może lecieć siecią okularów, a reszta aplikacji - w tym
+     * model AI - normalnym internetem.
+     *
+     * Działa to jednak tylko razem z RTSP po TCP: przy UDP media3 zakłada
+     * własne gniazda z pominięciem fabryki i te poszłyby domyślną siecią.
+     */
+    val glassesSocketFactory: javax.net.SocketFactory?
+        get() = wifiTransfer.glassesNetwork?.socketFactory
+
     /** Ostatnia ramka notify w postaci szesnastkowej - dla ekranu diagnostycznego. */
     private val _lastNotifyFrame = MutableStateFlow<String?>(null)
     val lastNotifyFrame: StateFlow<String?> = _lastNotifyFrame.asStateFlow()
@@ -2015,7 +2031,16 @@ class VictorManager private constructor(context: Context) {
             return null
         }
         val ssid = GlassesProtocol.glassesApSsid(name, address)
-        if (!wifiTransfer.joinAccessPoint(ssid, GlassesProtocol.GLASSES_AP_PASSWORD)) {
+        // bindProcess = false, tak samo jak w galerii: odtwarzacz dostaje
+        // fabrykę gniazd z sieci okularów ([glassesSocketFactory]), więc
+        // podgląd nie musi odcinać telefonu od internetu. Dopiero to czyni
+        // rozmowę z AI przy otwartym podglądzie w ogóle możliwą.
+        if (!wifiTransfer.joinAccessPoint(
+                ssid,
+                GlassesProtocol.GLASSES_AP_PASSWORD,
+                bindProcess = false
+            )
+        ) {
             lastTransferFailure = wifiTransfer.lastFailure
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,

@@ -175,12 +175,46 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
             }
         }
         exo.addListener(listener)
-        exo.setMediaSource(
-            RtspMediaSource.Factory().createMediaSource(MediaItem.fromUri(Uri.parse(url)))
-        )
+        exo.setMediaSource(buildSource(url))
         exo.prepare()
         exo.playWhenReady = true
         exoPlayer = exo
+    }
+
+    /**
+     * Składa źródło RTSP tak, jak robią to okulary - a nie tak, jak media3 woli.
+     *
+     * ## Dlaczego TCP, a nie domyślne UDP
+     * Bo tak strumień odbiera oryginalna aplikacja producenta: jej odtwarzacz
+     * dostaje `--rtsp-tcp` i `:rtsp-tcp`, czyli RTP wpleciony w to samo
+     * połączenie TCP, którym idzie sterowanie. media3 domyślnie próbuje UDP i
+     * osobnych gniazd - jeśli serwer w okularach umie tylko TCP, negocjacja
+     * kończy się błędem, mimo że sieć i adres są w porządku. To najlepsze
+     * wyjaśnienie "sieć stoi, obrazu nie ma", jakie mamy.
+     *
+     * ## Dlaczego fabryka gniazd
+     * Żeby podgląd nie odcinał telefonu od internetu. Gniazda z sieci okularów
+     * bierze tylko ten jeden strumień; reszta aplikacji, w tym rozmowa z AI,
+     * zostaje przy zwykłym połączeniu. Działa to wyłącznie w parze z TCP -
+     * przy UDP media3 otwiera własne gniazda z pominięciem fabryki.
+     */
+    private fun buildSource(url: String): RtspMediaSource {
+        val factory = RtspMediaSource.Factory().setForceUseRtpTcp(true)
+        val sockets = victor.glassesSocketFactory
+        if (sockets != null) {
+            factory.setSocketFactory(sockets)
+        } else {
+            // Bez fabryki strumień poleci domyślną siecią i nie dojdzie do
+            // okularów. Zapisujemy to, bo inaczej awaria wygląda identycznie
+            // jak brak serwera RTSP.
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                    "Podgląd: brak sieci okularów dla odtwarzacza"
+                )
+            }
+        }
+        return factory.createMediaSource(MediaItem.fromUri(Uri.parse(url)))
     }
 
     fun stop() {
