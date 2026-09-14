@@ -1,8 +1,9 @@
 package pl.victor.app.ui.livepreview
 
-import android.net.Uri
 import android.os.Bundle
-import android.util.Log
+import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -34,31 +35,38 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.rtsp.RtspMediaSource
-import androidx.media3.ui.PlayerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import pl.victor.app.VictorApplication
+import pl.victor.app.diagnostics.DiagFormat
+import pl.victor.app.stream.H264Renderer
+import pl.victor.app.stream.RtspSession
 import pl.victor.app.ui.theme.VictorTheme
 
 /**
  * Podgląd na żywo z kamery okularów.
  *
  * ## Jak to działa
- * Okulary stawiają serwer RTSP na własnej sieci Wi-Fi - dokładnie tej samej,
- * której używa galeria. Różnica jest jedna: zamiast pobierać pliki po HTTP,
- * odtwarzamy strumień.
+ * Okulary stawiają serwer RTSP na własnej sieci Wi-Fi - tej samej, której
+ * używa galeria. Odbieramy go WŁASNYM klientem, nie media3.
  *
- * ## Czego użytkownik musi być świadomy
- * Póki podgląd trwa, telefon jest w sieci okularów i NIE MA INTERNETU. Dlatego
- * ekran mówi to wprost, a wyjście z niego kończy podgląd komendą - okulary
- * zostawione w tym trybie odmówiłyby następnym razem.
+ * ## Czemu własnym
+ * Bo media3 odrzucał ten strumień na starcie, 44 milisekundy po uruchomieniu:
+ *
+ *     ParserException: Malformed Attribute line: a=decode_buf=300
+ *
+ * Serwer w okularach (Hisilicon) wysyła w opisie sesji wiersz, którego media3
+ * nie umie pominąć, a do tego nie podaje parametrów obrazu tam, gdzie media3
+ * ich wymaga - przysyła je w strumieniu. Szczegóły i pomiary siedzą w
+ * [pl.victor.app.stream.RtspProtocol].
+ *
+ * Telefon zachowuje przy tym internet: strumień idzie gniazdem wskazanym na
+ * sieć okularów, a nie przez przypięcie całego procesu.
  */
 class LivePreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,15 +80,6 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
     private val victor = (app as VictorApplication).glassesManager
     private val diag = (app as VictorApplication).diag
 
-    /**
-     * Kontekst wzięty raz, jawnie.
-     *
-     * `getApplication()` jest generyczne (`<T : Application>`), więc bez typu
-     * docelowego kompilator nie wie, co dostaje - i całe wyrażenie z nim w
-     * środku przestaje się rozwiązywać.
-     */
-    private val appContext: android.content.Context = app.applicationContext
-
     sealed class State {
         object Idle : State()
         object Starting : State()
@@ -91,15 +90,34 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()
 
-    private var exoPlayer: ExoPlayer? = null
+    /**
+     * Powierzchnia do rysowania - pojawia się, gdy system ją utworzy.
+     *
+     * Dekoder potrzebuje jej PRZED startem, więc widok jest na ekranie od
+     * początku, a nie dopiero w stanie "gra". Wcześniejsza wersja pokazywała
+     * odtwarzacz dopiero po sukcesie i przy własnym dekoderze byłoby to
+     * zaklęcie: powierzchnia powstałaby dopiero wtedy, gdy jest już za późno.
+     */
+    @Volatile
+    private var surface: Surface? = null
 
-    /** Nazwa inna niż pola: `player` byłoby i polem, i funkcją naraz. */
-    fun player(): ExoPlayer? = exoPlayer
+    private var session: RtspSession? = null
+    private var renderer: H264Renderer? = null
+    private var sessionJob: Job? = null
+
+    fun onSurfaceReady(s: Surface) {
+        surface = s
+    }
+
+    fun onSurfaceLost() {
+        surface = null
+    }
 
     fun start() {
         if (_state.value is State.Starting || _state.value is State.Playing) return
         _state.value = State.Starting
-        viewModelScope.launch {
+        sessionJob?.cancel()
+        sessionJob = viewModelScope.launch {
             val url = victor.startLivePreview()
             if (url == null) {
                 _state.value = State.Failed(
@@ -107,156 +125,72 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
                 )
                 return@launch
             }
-            openPlayer(url)
+            val target = surface
+            if (target == null || !target.isValid) {
+                _state.value = State.Failed("Ekran nie jest jeszcze gotowy - spróbuj ponownie.")
+                victor.stopLivePreview()
+                return@launch
+            }
 
-            // LIMIT CZASU NA PIERWSZĄ KLATKĘ.
-            //
-            // Odtwarzacz zgłasza się sam tylko wtedy, gdy obraz ruszy albo gdy
-            // padnie z błędem. Serwer, który przyjmuje połączenie i milczy,
-            // zostawia go w buforowaniu BEZ KOŃCA - a ekran w "Podnoszę..."
-            // równie długo. W dzienniku z 14 września widać skutek: trzy próby
-            // pod rząd, bo nie było czym odróżnić czekania od zawieszenia.
-            kotlinx.coroutines.delay(FIRST_FRAME_TIMEOUT_MS)
-            if (_state.value is State.Starting) {
-                diag.event(
-                    pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
-                    "Podgląd: brak obrazu w limicie czasu",
-                    mapOf("ms" to FIRST_FRAME_TIMEOUT_MS, "adres" to url)
-                )
+            val decoder = H264Renderer(target, ::report)
+            if (!decoder.start()) {
+                _state.value = State.Failed("Telefon nie dał dekodera H.264.")
+                victor.stopLivePreview()
+                return@launch
+            }
+            renderer = decoder
+
+            // Sesja RTSP BLOKUJE aż do zerwania, więc idzie na własny wątek.
+            // Dekoder karmimy z tego samego wątku - MediaCodec nie lubi
+            // mieszania, a obraz i tak płynie prosto stamtąd.
+            val rtsp = RtspSession(
+                url = url,
+                socketFactory = victor.glassesSocketFactory,
+                onVideo = { nal -> decoder.feed(nal) },
+                onPlaying = { _state.value = State.Playing },
+                onEvent = ::report
+            )
+            session = rtsp
+            if (victor.glassesSocketFactory == null) {
+                // Bez wskazania sieci gniazdo poszłoby komórką i nie doszło do
+                // okularów. Zapisujemy, bo inaczej ta awaria wygląda identycznie
+                // jak milczący serwer.
+                report("Podgląd: brak sieci okularów dla strumienia", emptyMap())
+            }
+
+            val ok = withContext(Dispatchers.IO) { rtsp.run() }
+            if (!ok && _state.value !is State.Idle) {
                 _state.value = State.Failed(
-                    "Połączenie z okularami stoi, ale obraz nie ruszył przez " +
-                        "${FIRST_FRAME_TIMEOUT_MS / 1000} sekund."
+                    rtsp.lastFailure ?: "Strumień z okularów się nie zestawił."
                 )
-                releasePlayer()
+            } else if (_state.value is State.Playing) {
+                // Sesja skończyła się normalnie - strumień padł po drodze.
+                _state.value = State.Failed("Strumień z okularów się urwał.")
             }
+            decoder.release()
         }
     }
 
-    private fun openPlayer(url: String) {
-        releasePlayer()
-        val exo: ExoPlayer = ExoPlayer.Builder(appContext).build()
-        val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                // Każdy stan do dziennika, nie tylko sukces. "Buforuje" i
-                // "skończył" to dwie różne odpowiedzi na pytanie, czemu nie ma
-                // obrazu, a bez nich obie wyglądają jak cisza.
-                val name = when (playbackState) {
-                    Player.STATE_IDLE -> "bezczynny"
-                    Player.STATE_BUFFERING -> "buforuje"
-                    Player.STATE_READY -> "OBRAZ LECI"
-                    Player.STATE_ENDED -> "strumień się skończył"
-                    else -> "stan $playbackState"
-                }
-                runCatching {
-                    diag.event(
-                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
-                        "Podgląd: odtwarzacz - $name"
-                    )
-                }
-                if (playbackState == Player.STATE_READY) _state.value = State.Playing
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                // Błąd odtwarzacza to INNA awaria niż brak sieci i musi mieć
-                // inny komunikat: sieć stoi, adres jest znany, ale okulary nie
-                // wysyłają obrazu. To jedyny stan, który mówi, że sam serwer
-                // RTSP nie działa - i tego właśnie nie wiedzieliśmy do tej pory.
-                Log.w(TAG, "Odtwarzacz nie odebrał obrazu", error)
-                runCatching {
-                    diag.event(
-                        pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
-                        "Podgląd: błąd odtwarzacza",
-                        mapOf(
-                            "kod" to error.errorCodeName,
-                            "treść" to error.message?.take(80),
-                            "przyczyna" to causeChain(error)
-                        )
-                    )
-                }
-                _state.value = State.Failed(
-                    "Sieć okularów stoi, ale nie przysyłają obrazu (${error.errorCodeName})."
-                )
-            }
+    private fun report(message: String, fields: Map<String, Any?>) {
+        runCatching {
+            diag.event(
+                if (message.contains("NIE") || message.contains("brak")) DiagFormat.Phase.BŁĄD
+                else DiagFormat.Phase.BLE,
+                message,
+                fields
+            )
         }
-        exo.addListener(listener)
-        exo.setMediaSource(buildSource(url))
-        exo.prepare()
-        exo.playWhenReady = true
-        exoPlayer = exo
-    }
-
-    /**
-     * Rozwija łańcuch przyczyn wyjątku do jednego wiersza.
-     *
-     * ## Czemu samo `message` nie wystarczyło
-     * Bo media3 pakuje KAŻDY błąd RTSP w `RtspPlaybackException`, a `Player`
-     * pokazuje potem własny, ogólny komunikat. W dzienniku z 14 września
-     * widać, co to daje:
-     *
-     *     Podgląd: błąd odtwarzacza  kod=ERROR_CODE_IO_UNSPECIFIED treść=Source error
-     *
-     * "Source error" pasuje do wszystkiego - do zerwanej sieci tak samo jak do
-     * opisu strumienia, którego ten odtwarzacz nie przyjmuje. Prawdziwe zdanie
-     * (np. "missing sprop parameter" albo "missing attribute control") siedzi
-     * dopiero w przyczynie i bez tego rozwinięcia nigdy do nas nie docierało.
-     */
-    private fun causeChain(error: Throwable): String {
-        val parts = mutableListOf<String>()
-        var current: Throwable? = error.cause
-        var depth = 0
-        while (current != null && depth < MAX_CAUSE_DEPTH) {
-            parts += current.javaClass.simpleName + ": " + (current.message ?: "brak treści")
-            current = current.cause
-            depth++
-        }
-        return parts.joinToString(" <- ").ifEmpty { "brak przyczyny" }.take(MAX_CAUSE_CHARS)
-    }
-
-    /**
-     * Składa źródło RTSP tak, jak robią to okulary - a nie tak, jak media3 woli.
-     *
-     * ## Dlaczego TCP, a nie domyślne UDP
-     * Bo tak strumień odbiera oryginalna aplikacja producenta: jej odtwarzacz
-     * dostaje `--rtsp-tcp` i `:rtsp-tcp`, czyli RTP wpleciony w to samo
-     * połączenie TCP, którym idzie sterowanie. media3 domyślnie próbuje UDP i
-     * osobnych gniazd - jeśli serwer w okularach umie tylko TCP, negocjacja
-     * kończy się błędem, mimo że sieć i adres są w porządku. To najlepsze
-     * wyjaśnienie "sieć stoi, obrazu nie ma", jakie mamy.
-     *
-     * ## Dlaczego fabryka gniazd
-     * Żeby podgląd nie odcinał telefonu od internetu. Gniazda z sieci okularów
-     * bierze tylko ten jeden strumień; reszta aplikacji, w tym rozmowa z AI,
-     * zostaje przy zwykłym połączeniu. Działa to wyłącznie w parze z TCP -
-     * przy UDP media3 otwiera własne gniazda z pominięciem fabryki.
-     */
-    private fun buildSource(url: String): RtspMediaSource {
-        val factory = RtspMediaSource.Factory().setForceUseRtpTcp(true)
-        val sockets = victor.glassesSocketFactory
-        if (sockets != null) {
-            factory.setSocketFactory(sockets)
-        } else {
-            // Bez fabryki strumień poleci domyślną siecią i nie dojdzie do
-            // okularów. Zapisujemy to, bo inaczej awaria wygląda identycznie
-            // jak brak serwera RTSP.
-            runCatching {
-                diag.event(
-                    pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
-                    "Podgląd: brak sieci okularów dla odtwarzacza"
-                )
-            }
-        }
-        return factory.createMediaSource(MediaItem.fromUri(Uri.parse(url)))
     }
 
     fun stop() {
-        releasePlayer()
-        victor.stopLivePreview()
         _state.value = State.Idle
-    }
-
-    private fun releasePlayer() {
-        exoPlayer?.release()
-        exoPlayer = null
+        session?.stop()
+        session = null
+        sessionJob?.cancel()
+        sessionJob = null
+        renderer?.release()
+        renderer = null
+        victor.stopLivePreview()
     }
 
     override fun onCleared() {
@@ -264,25 +198,6 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
         // Bez tego okulary zostają w trybie podglądu po zamknięciu ekranu i
         // odmawiają przy następnej próbie - tak samo jak przy trybie transferu.
         stop()
-    }
-
-    private companion object {
-        const val TAG = "LivePreview"
-
-        /**
-         * Ile czekać na pierwszą klatkę, zanim uznamy, że nie będzie.
-         *
-         * Hojnie: sieć okularów właśnie wstała, a RTSP negocjuje sesję. Ale
-         * skończenie: ekran bez limitu to ekran, na którym nie da się odróżnić
-         * czekania od zawieszenia.
-         */
-        const val FIRST_FRAME_TIMEOUT_MS = 15_000L
-
-        /** Ile poziomów przyczyn rozwijać - głębiej to już ślad stosu, nie diagnoza. */
-        const val MAX_CAUSE_DEPTH = 5
-
-        /** Ile znaków łańcucha przyczyn zapisać. */
-        const val MAX_CAUSE_CHARS = 300
     }
 }
 
@@ -321,13 +236,34 @@ fun LivePreviewScreen(onBack: () -> Unit) {
                     .aspectRatio(4f / 3f),
                 contentAlignment = Alignment.Center
             ) {
+                // Powierzchnia jest na ekranie ZAWSZE, nie tylko gdy obraz gra.
+                // Dekoder potrzebuje jej przed startem, więc pokazywanie jej
+                // dopiero po sukcesie byłoby zaklęciem: powstałaby wtedy, gdy
+                // jest już za późno, żeby jej użyć.
+                AndroidView(
+                    factory = { ctx ->
+                        SurfaceView(ctx).apply {
+                            holder.addCallback(object : SurfaceHolder.Callback {
+                                override fun surfaceCreated(h: SurfaceHolder) =
+                                    viewModel.onSurfaceReady(h.surface)
+
+                                override fun surfaceChanged(
+                                    h: SurfaceHolder,
+                                    format: Int,
+                                    width: Int,
+                                    height: Int
+                                ) = viewModel.onSurfaceReady(h.surface)
+
+                                override fun surfaceDestroyed(h: SurfaceHolder) =
+                                    viewModel.onSurfaceLost()
+                            })
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
                 when (state) {
-                    is LivePreviewViewModel.State.Playing -> AndroidView(
-                        factory = { ctx -> PlayerView(ctx) },
-                        update = { view -> view.player = viewModel.player() },
-                        modifier = Modifier.fillMaxSize()
-                    )
                     is LivePreviewViewModel.State.Starting -> CircularProgressIndicator()
+                    is LivePreviewViewModel.State.Playing -> Unit
                     else -> Text(
                         "Podgląd wyłączony",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -336,15 +272,8 @@ fun LivePreviewScreen(onBack: () -> Unit) {
             }
 
             when (val current = state) {
-                is LivePreviewViewModel.State.Idle -> {
+                is LivePreviewViewModel.State.Idle ->
                     Button(onClick = { viewModel.start() }) { Text("Włącz podgląd") }
-                    Text(
-                        "Uwaga: w czasie podglądu telefon jest w sieci okularów " +
-                            "i nie ma internetu.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
                 is LivePreviewViewModel.State.Starting -> Text(
                     "Podnoszę sieć okularów...",
                     style = MaterialTheme.typography.bodySmall

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -43,9 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
-import androidx.media3.ui.PlayerView
 import pl.victor.app.livestream.LabState
 import pl.victor.app.livestream.LiveStreamLab
 import pl.victor.app.livestream.LiveStreamLabLog
@@ -183,15 +180,6 @@ private fun LiveStreamLabSection(lab: LiveStreamLab, state: LabState) {
                 }
             }
 
-            if (state is LabState.Playing) {
-                AndroidView(
-                    factory = { ctx -> PlayerView(ctx) },
-                    update = { view -> view.player = lab.getPlayer() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                )
-            }
         }
     }
 

@@ -2,12 +2,6 @@ package pl.victor.app.livestream
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.net.Uri
-import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -16,10 +10,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import pl.victor.app.ble.VictorManager
+import pl.victor.app.stream.RtspSession
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -64,12 +57,6 @@ class LiveStreamLab(context: Context) {
     private val _state = MutableStateFlow<LabState>(LabState.Idle)
     val state: StateFlow<LabState> = _state.asStateFlow()
 
-    @Volatile
-    private var exoPlayer: ExoPlayer? = null
-
-    /** Odtwarzacz aktywnego strumienia - `null` dopóki [LabState.Playing]. */
-    fun getPlayer(): ExoPlayer? = exoPlayer
-
     // === Komendy - każda wymaga jawnego wywołania z UI po potwierdzeniu ===
 
     /** Wysyła niepotwierdzoną komendę 0x07 (kandydat na aktywację trybu 8). */
@@ -112,9 +99,12 @@ class LiveStreamLab(context: Context) {
 
     /** Zatrzymuje próbę/odtwarzanie i zwalnia sieć P2P. */
     fun stopProbe() {
+        // Anulowanie zadania zamyka sesję RTSP: jej gniazdo żyje wewnątrz
+        // tej korutyny, a `RtspSession.run` kończy się razem z nią. Osobnego
+        // zwalniania odtwarzacza nie ma już czego wołać - sonda niczego nie
+        // wyświetla.
         probeJob?.cancel()
         probeJob = null
-        releasePlayer()
         // Komendą, nie samym rozłączeniem sieci: okulary zostawione w trybie
         // podglądu odmówią następnym razem - tak samo jak przy transferze.
         victor.stopLivePreview()
@@ -160,58 +150,39 @@ class LiveStreamLab(context: Context) {
         _state.value = LabState.Playing(url)
     }
 
-    private suspend fun tryPlayUrl(url: String): Boolean = withContext(Dispatchers.Main) {
-        val result = withTimeoutOrNull(PROBE_TIMEOUT_MS) {
-            suspendCancellableCoroutine { cont ->
-                val player = ExoPlayer.Builder(appContext).build()
-                val mediaSource = RtspMediaSource.Factory()
-                    .createMediaSource(MediaItem.fromUri(Uri.parse(url)))
-                var resolved = false
-
-                val listener = object : Player.Listener {
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (resolved) return
-                        when (playbackState) {
-                            Player.STATE_READY -> {
-                                resolved = true
-                                exoPlayer = player
-                                if (cont.isActive) cont.resume(true) {}
-                            }
-                            Player.STATE_ENDED -> {
-                                resolved = true
-                                player.release()
-                                if (cont.isActive) cont.resume(false) {}
-                            }
-                        }
-                    }
-
-                    override fun onPlayerError(error: PlaybackException) {
-                        if (resolved) return
-                        resolved = true
-                        log.append("RTSP_PROBE", "Błąd dla $url: ${error.errorCodeName}")
-                        player.release()
-                        if (cont.isActive) cont.resume(false) {}
-                    }
-                }
-
-                player.addListener(listener)
-                cont.invokeOnCancellation {
-                    player.removeListener(listener)
-                    player.release()
-                }
-                player.setMediaSource(mediaSource)
-                player.playWhenReady = true
-                player.prepare()
-            }
+    /**
+     * Sprawdza, czy strumień pod tym adresem NAPRAWDĘ rusza.
+     *
+     * ## Czemu nie przez odtwarzacz
+     * Bo ten panel sprawdzał to ExoPlayerem, a ExoPlayer odrzuca strumień z
+     * tych okularów na starcie - przez wiersz `a=decode_buf=300` w opisie
+     * sesji i przez brak parametrów obrazu tam, gdzie ich wymaga. Sonda oparta
+     * na nim meldowałaby "strumień nie ruszył" na sprzęcie, który nadaje
+     * poprawnie, czyli kłamałaby dokładnie w tej sprawie, do której służy.
+     *
+     * Idzie więc tym samym klientem co podgląd ([RtspSession]). Sonda niczego
+     * nie wyświetla - liczy jednostki obrazu i na tym poprzestaje, bo pytanie
+     * brzmi "czy leci", a nie "jak wygląda".
+     */
+    private suspend fun tryPlayUrl(url: String): Boolean = withContext(Dispatchers.IO) {
+        var units = 0
+        val session = RtspSession(
+            url = url,
+            socketFactory = victor.glassesSocketFactory,
+            onVideo = { units++ },
+            onEvent = { message, fields -> log.append("RTSP_PROBE", "$message $fields") }
+        )
+        val watchdog = launch {
+            kotlinx.coroutines.delay(PROBE_TIMEOUT_MS)
+            session.stop()
         }
-        result ?: false
+        val started = runCatching { session.run() }.getOrDefault(false)
+        watchdog.cancel()
+        session.stop()
+        log.append("RTSP_PROBE", "Zakończono $url: jednostek obrazu=$units")
+        started && units > 0
     }
 
-
-    private fun releasePlayer() {
-        exoPlayer?.release()
-        exoPlayer = null
-    }
 
     companion object {
         private const val PROBE_TIMEOUT_MS = 3_000L
