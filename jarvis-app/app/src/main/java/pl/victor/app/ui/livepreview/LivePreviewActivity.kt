@@ -70,6 +70,7 @@ class LivePreviewActivity : ComponentActivity() {
 class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app) {
 
     private val victor = (app as VictorApplication).glassesManager
+    private val diag = (app as VictorApplication).diag
 
     /**
      * Kontekst wzięty raz, jawnie.
@@ -107,6 +108,27 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
                 return@launch
             }
             openPlayer(url)
+
+            // LIMIT CZASU NA PIERWSZĄ KLATKĘ.
+            //
+            // Odtwarzacz zgłasza się sam tylko wtedy, gdy obraz ruszy albo gdy
+            // padnie z błędem. Serwer, który przyjmuje połączenie i milczy,
+            // zostawia go w buforowaniu BEZ KOŃCA - a ekran w "Podnoszę..."
+            // równie długo. W dzienniku z 14 września widać skutek: trzy próby
+            // pod rząd, bo nie było czym odróżnić czekania od zawieszenia.
+            kotlinx.coroutines.delay(FIRST_FRAME_TIMEOUT_MS)
+            if (_state.value is State.Starting) {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                    "Podgląd: brak obrazu w limicie czasu",
+                    mapOf("ms" to FIRST_FRAME_TIMEOUT_MS, "adres" to url)
+                )
+                _state.value = State.Failed(
+                    "Połączenie z okularami stoi, ale obraz nie ruszył przez " +
+                        "${FIRST_FRAME_TIMEOUT_MS / 1000} sekund."
+                )
+                releasePlayer()
+            }
         }
     }
 
@@ -115,6 +137,22 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
         val exo: ExoPlayer = ExoPlayer.Builder(appContext).build()
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
+                // Każdy stan do dziennika, nie tylko sukces. "Buforuje" i
+                // "skończył" to dwie różne odpowiedzi na pytanie, czemu nie ma
+                // obrazu, a bez nich obie wyglądają jak cisza.
+                val name = when (playbackState) {
+                    Player.STATE_IDLE -> "bezczynny"
+                    Player.STATE_BUFFERING -> "buforuje"
+                    Player.STATE_READY -> "OBRAZ LECI"
+                    Player.STATE_ENDED -> "strumień się skończył"
+                    else -> "stan $playbackState"
+                }
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                        "Podgląd: odtwarzacz - $name"
+                    )
+                }
                 if (playbackState == Player.STATE_READY) _state.value = State.Playing
             }
 
@@ -124,6 +162,13 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
                 // wysyłają obrazu. To jedyny stan, który mówi, że sam serwer
                 // RTSP nie działa - i tego właśnie nie wiedzieliśmy do tej pory.
                 Log.w(TAG, "Odtwarzacz nie odebrał obrazu", error)
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                        "Podgląd: błąd odtwarzacza",
+                        mapOf("kod" to error.errorCodeName, "treść" to error.message?.take(80))
+                    )
+                }
                 _state.value = State.Failed(
                     "Sieć okularów stoi, ale nie przysyłają obrazu (${error.errorCodeName})."
                 )
@@ -158,6 +203,15 @@ class LivePreviewViewModel(app: android.app.Application) : AndroidViewModel(app)
 
     private companion object {
         const val TAG = "LivePreview"
+
+        /**
+         * Ile czekać na pierwszą klatkę, zanim uznamy, że nie będzie.
+         *
+         * Hojnie: sieć okularów właśnie wstała, a RTSP negocjuje sesję. Ale
+         * skończenie: ekran bez limitu to ekran, na którym nie da się odróżnić
+         * czekania od zawieszenia.
+         */
+        const val FIRST_FRAME_TIMEOUT_MS = 15_000L
     }
 }
 

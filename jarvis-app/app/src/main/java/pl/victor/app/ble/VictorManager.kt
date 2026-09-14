@@ -2036,6 +2036,43 @@ class VictorManager private constructor(context: Context) {
         }
         wifiTransfer.awaitServerReady()
         val url = GlassesProtocol.rtspUrl(ip)
+
+        // SPRAWDŹ, CZY SERWER W OGÓLE NASŁUCHUJE - jedno gniazdo, ułamek sekundy.
+        //
+        // Bez tego "gotowe" znaczyło tylko tyle, że znamy adres. W dzienniku z
+        // 14 września widać, do czego to prowadzi: trzy próby pod rząd kończą
+        // się wierszem "gotowe", a użytkownik klika dalej, bo obrazu nie ma -
+        // i z dziennika nie da się rozstrzygnąć, czy serwera nie ma, czy jest,
+        // ale milczy.
+        //
+        // To jest ten jeden pomiar, który odpowiada na pytanie "czy okulary
+        // mają serwer RTSP", i kosztuje mniej niż sekundę.
+        val portOpen = withContext(Dispatchers.IO) {
+            runCatching {
+                java.net.Socket().use { socket ->
+                    socket.connect(
+                        java.net.InetSocketAddress(ip, GlassesProtocol.RTSP_PORT),
+                        RTSP_PROBE_TIMEOUT_MS
+                    )
+                    true
+                }
+            }.getOrDefault(false)
+        }
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            if (portOpen) "Podgląd na żywo: serwer RTSP odpowiada"
+            else "Podgląd na żywo: PORT ZAMKNIĘTY - okulary nie mają serwera RTSP",
+            mapOf("adres" to url, "port" to GlassesProtocol.RTSP_PORT)
+        )
+        if (!portOpen) {
+            lastTransferFailure =
+                "Okulary nie mają uruchomionego serwera podglądu (port " +
+                    "${GlassesProtocol.RTSP_PORT} zamknięty). Ten egzemplarz " +
+                    "prawdopodobnie nie obsługuje podglądu na żywo."
+            wifiTransfer.leaveAccessPoint()
+            return null
+        }
+
         diag.event(
             pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
             "Podgląd na żywo: gotowe",
@@ -3692,6 +3729,9 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile dać okularom na pozbieranie się po resecie łącza. */
         private const val TRANSFER_RESET_SETTLE_MS = 2_000L
+
+        /** Ile czekać na otwarcie gniazda serwera RTSP. */
+        private const val RTSP_PROBE_TIMEOUT_MS = 3_000
         private const val IP_POLL_INTERVAL_MS = 100L
 
         private const val CONNECT_TIMEOUT_MS = 5_000
