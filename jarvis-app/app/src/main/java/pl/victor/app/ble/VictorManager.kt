@@ -2056,10 +2056,12 @@ class VictorManager private constructor(context: Context) {
                 pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
                 "Podgląd na żywo: brak adresu okularów"
             )
+            stopSessionHeartbeat()
             wifiTransfer.leaveAccessPoint()
             return null
         }
         wifiTransfer.awaitServerReady()
+        startSessionHeartbeat()
         val url = GlassesProtocol.rtspUrl(ip)
 
         // SPRAWDŹ, CZY SERWER W OGÓLE NASŁUCHUJE - jedno gniazdo, ułamek sekundy.
@@ -2099,6 +2101,7 @@ class VictorManager private constructor(context: Context) {
                 "Okulary nie mają uruchomionego serwera podglądu (port " +
                     "${GlassesProtocol.RTSP_PORT} zamknięty). Ten egzemplarz " +
                     "prawdopodobnie nie obsługuje podglądu na żywo."
+            stopSessionHeartbeat()
             wifiTransfer.leaveAccessPoint()
             return null
         }
@@ -2119,6 +2122,7 @@ class VictorManager private constructor(context: Context) {
      * jak przy trybie transferu.
      */
     fun stopLivePreview() {
+        stopSessionHeartbeat()
         send(GlassesProtocol.stopLivePreview())
         if (simulator == null) wifiTransfer.stop()
         _glassesIp.value = null
@@ -3244,6 +3248,7 @@ class VictorManager private constructor(context: Context) {
                 "Hotspot okularów: sieć stoi, ale brak adresu",
                 mapOf("ms" to (System.currentTimeMillis() - startedAt))
             )
+            stopSessionHeartbeat()
             wifiTransfer.leaveAccessPoint()
             return false
         }
@@ -3251,6 +3256,7 @@ class VictorManager private constructor(context: Context) {
         // Serwer HTTP na okularach wstaje chwilę po sieci - bez tej pauzy
         // pierwsze żądanie spisu trafia w pustkę. Tak samo jak w ścieżce P2P.
         wifiTransfer.awaitServerReady()
+        startSessionHeartbeat()
         Log.i(tag, "Okulary osiągalne pod $ip (hotspot)")
         diag.event(
             pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
@@ -3535,8 +3541,61 @@ class VictorManager private constructor(context: Context) {
         return emptyList()
     }
 
-    /** Kończy sesję transferu: rozłącza Wi-Fi Direct i przywraca domyślny routing. */
+    private var heartbeatJob: Job? = null
+
+    /**
+     * Puls sesji Wi-Fi - `syncHeartBeat(4)` co pięć sekund, dopóki sesja trwa.
+     *
+     * ## Skąd to się wzięło
+     * Z rozebranej aplikacji producenta. Robią to DWA jej ekrany i dokładnie te
+     * dwa, które podnoszą sieć okularów: galeria (`PictureFragment`) i podgląd
+     * na żywo (`RealTimePreviewActivity`). Oba w tym samym rytmie, obie z tym
+     * samym typem 4, obie przerywają, gdy BLE padnie. Rozmowa głosowa używa
+     * typu 7 - czyli liczba nie znaczy "żyję", tylko "wciąż potrzebuję TEJ
+     * sesji".
+     *
+     * ## Czego NIE wiem
+     * Czy okulary bez pulsu zwijają sieć, i po jakim czasie. Nasza galeria
+     * działa bez niego - ale jej sesje są krótkie i cały czas płynie nimi ruch
+     * HTTP, więc to nie jest dowód. Podgląd na żywo bywa bezczynny między
+     * zestawieniem sieci a pierwszą klatką i to jest najwęższe miejsce, jakie
+     * znam. Wysyłamy więc puls tam, gdzie wysyła go producent, zamiast
+     * zakładać, że jest zbędny.
+     *
+     * Sama ramka idzie przez SDK producenta, nie składamy jej sami.
+     */
+    private fun startSessionHeartbeat() {
+        stopSessionHeartbeat()
+        heartbeatJob = scope.launch {
+            while (true) {
+                delay(SESSION_HEARTBEAT_MS)
+                // Ten sam warunek co u producenta: gdy BLE padnie, puls
+                // kończy się sam. Stan CONNECTED tu NIE wystarczy - po
+                // odkryciu usług stan idzie na READY i pętla zamilkłaby po
+                // pierwszym tyknięciu.
+                if (!isConnected()) break
+                runCatching { largeDataHandler.syncHeartBeat(SESSION_HEARTBEAT_TYPE) }
+                    .onFailure { Log.w(tag, "Puls sesji nie poszedł", it) }
+            }
+        }
+    }
+
+    /** Zatrzymuje puls sesji. Wolno wołać wielokrotnie i bez sesji. */
+    private fun stopSessionHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
+    /**
+     * Kończy sesję transferu: zatrzymuje puls, rozłącza sieć okularów i
+     * zapomina ich adres.
+     *
+     * Ścieżka Wi-Fi Direct przywraca przy tym domyślny routing telefonu, bo
+     * tamta przypina proces. Ścieżka hotspotu nie ma czego przywracać - ona
+     * procesu nie przypina.
+     */
     fun endTransferSession() {
+        stopSessionHeartbeat()
         if (simulator == null) wifiTransfer.stop()
         _glassesIp.value = null
     }
@@ -3787,6 +3846,17 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile czekać na otwarcie gniazda serwera RTSP. */
         private const val RTSP_PROBE_TIMEOUT_MS = 3_000
+
+        /** Co ile wysyłać puls sesji Wi-Fi - tyle samo, co producent. */
+        private const val SESSION_HEARTBEAT_MS = 5_000L
+
+        /**
+         * Typ pulsu dla sesji Wi-Fi.
+         *
+         * Producent wysyła 4 z galerii i z podglądu na żywo, a 7 z rozmowy
+         * głosowej - czyli liczba wskazuje rodzaj sesji, nie samo życie.
+         */
+        private const val SESSION_HEARTBEAT_TYPE = 4
         private const val IP_POLL_INTERVAL_MS = 100L
 
         private const val CONNECT_TIMEOUT_MS = 5_000
