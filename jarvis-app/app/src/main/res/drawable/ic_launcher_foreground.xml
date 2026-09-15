@@ -1,23 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Znak V.I.C.T.O.R. - okulary jako pierścień "nieskończoności": dwie
-    koncentryczne obwódki (soczewki) połączone mostkiem pośrodku. Ten sam
-    plik jest tagowany jako Compose ImageVector (VictorBrand.kt) i
-    przebarwiany w locie na potrzeby ekranów w aplikacji - tutaj kolor jest
-    stały, bo tło adaptive icon (ic_launcher_background, #0F172A) jest ciemne.
+    ZNAK V.I.C.T.O.R. - wygenerowany z design/logo_victor_black.svg, ścieżka
+    znaku (bez liternictwa). Nie edytować ręcznie: przy zmianie logo odtworzyć
+    z pliku źródłowego.
+
+    ## Czemu sam znak, bez napisu
+    Bo ikona wyświetla się w 48 dp. Napis "V.I.C.T.O.R." ma tam circa dwa
+    piksele na literę i zlewa się w plamę - a znak (proporcja 2,56:1) zostaje
+    rozpoznawalny.
+
+    ## Skąd ta transformacja
+    Znak zajmuje w oryginale prostokąt 233,854 - 3262,2038. Grupa skaluje go do 58 dp
+    szerokości i wyśrodkowuje na kanwie 108 dp. Szerokość dobrana tak, żeby
+    znak mieścił się w OKRĘGU bezpiecznym o średnicy 66 dp (cięciwa na
+    wysokości połowy znaku wychodzi circa 61 dp) - launchery przycinają ikonę
+    do koła i wszystko poza tym okręgiem może zniknąć.
+
+    Ten sam plik jest znakiem w aplikacji: [pl.victor.app.ui.brand.VictorMark]
+    przebarwia go motywem, więc jasne i ciemne tło obsługuje jeden zasób.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="@color/ic_launcher_foreground"
-        android:fillType="evenOdd"
-        android:pathData="
-            M22,53 A16,16 0 1,0 54,53 A16,16 0 1,0 22,53 Z
-            M27,53 A11,11 0 1,0 49,53 A11,11 0 1,0 27,53 Z
-            M54,53 A16,16 0 1,0 86,53 A16,16 0 1,0 54,53 Z
-            M59,53 A11,11 0 1,0 81,53 A11,11 0 1,0 59,53 Z
-            M49,50 L59,50 L59,56 L49,56 Z" />
+    <group
+        android:scaleX="0.019148"
+        android:scaleY="0.019148"
+        android:translateX="20.5385"
+        android:translateY="26.3117">
+        <path
+            android:fillColor="@color/ic_launcher_foreground"
+            android:fillType="evenOdd"
+            android:pathData="M233 1002l177 3c16,283 -70,701 378,890 167,71 380,49 536,-26 90,-43 304,-218 344,-297l-99 -90c-82,79 -165,185 -283,249 -250,137 -598,64 -703,-231 -44,-126 -38,-354 -32,-494 148,-8 400,-10 546,1 247,20 459,291 630,469 133,138 263,296 434,386 332,176 763,49 893,-343 54,-164 22,-341 33,-514l175 1 0 -143c-185,2 -759,-9 -890,6 -188,22 -320,122 -433,236l-111 124 89 86c6,-4 12,-13 19,-20 19,-19 39,-44 65,-71 70,-72 170,-157 300,-197 101,-31 524,-30 645,-21 5,148 14,377 -39,506 -53,129 -140,223 -293,267 -367,106 -595,-201 -737,-343 -94,-93 -180,-182 -272,-277 -295,-304 -383,-296 -816,-296l-555 4 -1 135z" />
+    </group>
 </vector>

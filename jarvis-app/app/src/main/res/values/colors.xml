@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#0F172A</color>
-    <color name="ic_launcher_foreground">#FFFFFF</color>
+    <!--
+        Barwy wprost z pliku marki (design/logo_victor_black.svg): czerń
+        #2B2A29 i cyjan #00A0E3. To jedyne dwa kolory w całym logo.
+
+        Znak na ikonie idzie CYJANEM, choć w samym pliku logo jest czarny albo
+        biały. Powód: ikona to jedyne miejsce, gdzie marka pokazuje się bez
+        liternictwa, a razem z nim znika jedyny kolorowy element znaku -
+        kropki. Cyjan na czerni oddaje więc markę wierniej niż biel, która
+        wygląda jak dowolna inna ciemna ikona. Zmiana na biel to jeden wiersz.
+    -->
+    <color name="ic_launcher_background">#2B2A29</color>
+    <color name="ic_launcher_foreground">#00A0E3</color>
+    <color name="victor_cyan">#00A0E3</color>
+    <color name="victor_ink">#2B2A29</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
 </resources>

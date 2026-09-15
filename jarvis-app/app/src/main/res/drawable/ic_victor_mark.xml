@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ZNAK V.I.C.T.O.R. bez marginesu - do użytku W APLIKACJI.
+
+    ## Czemu osobno od ic_launcher_foreground.xml
+    Bo to są dwie różne potrzeby i jedna liczba ich nie pogodzi. Ikona MUSI
+    mieć margines: launchery przycinają ją do koła o średnicy 66 dp ze 108,
+    więc znak zajmuje tam nieco ponad połowę kanwy. Ten sam plik użyty na
+    ekranie dawałby znak zajmujący 54% wysokości pola i otoczony pustką, której
+    nikt nie zamawiał.
+
+    Tutaj widok jest przycięty do samego znaku (3029 x 1184 jednostek oryginału),
+    więc `Modifier.size()` znaczy dokładnie tyle, ile widać.
+
+    Oba pliki pochodzą z tej samej ścieżki w design/logo_victor_black.svg -
+    przy zmianie logo odtworzyć OBA.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="121dp"
+    android:height="47dp"
+    android:viewportWidth="3029"
+    android:viewportHeight="1184">
+    <group android:translateX="-233.0" android:translateY="-854.0">
+        <path
+            android:fillColor="@color/ic_launcher_foreground"
+            android:fillType="evenOdd"
+            android:pathData="M233 1002l177 3c16,283 -70,701 378,890 167,71 380,49 536,-26 90,-43 304,-218 344,-297l-99 -90c-82,79 -165,185 -283,249 -250,137 -598,64 -703,-231 -44,-126 -38,-354 -32,-494 148,-8 400,-10 546,1 247,20 459,291 630,469 133,138 263,296 434,386 332,176 763,49 893,-343 54,-164 22,-341 33,-514l175 1 0 -143c-185,2 -759,-9 -890,6 -188,22 -320,122 -433,236l-111 124 89 86c6,-4 12,-13 19,-20 19,-19 39,-44 65,-71 70,-72 170,-157 300,-197 101,-31 524,-30 645,-21 5,148 14,377 -39,506 -53,129 -140,223 -293,267 -367,106 -595,-201 -737,-343 -94,-93 -180,-182 -272,-277 -295,-304 -383,-296 -816,-296l-555 4 -1 135z" />
+    </group>
+</vector>

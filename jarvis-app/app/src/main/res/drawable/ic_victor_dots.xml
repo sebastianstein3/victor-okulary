@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    KROPKI z logotypu V.I.C.T.O.R. - osiem kwadratów w cyjanie #00A0E3.
+
+    Ten sam układ współrzędnych co ic_victor_wordmark.xml: oba rysowane jeden
+    na drugim w tym samym rozmiarze trafiają idealnie. Kolor jest tu WPISANY NA
+    STAŁE i to jest sedno - patrz komentarz przy liternictwie.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="321dp"
+    android:height="25dp"
+    android:viewportWidth="3206"
+    android:viewportHeight="253">
+    <group android:translateX="-166.0" android:translateY="-2126.0">
+        <path
+            android:fillColor="#00A0E3"
+            android:pathData="M1697,2184L1847,2185L1847,2373L1887,2373L1888,2185L2040,2185L2041,2146L1697,2146Z" />
+        <path
+            android:fillColor="#00A0E3"
+            android:pathData="M856,2373L856,2146L816,2146L817,2373Z" />
+        <path
+            android:fillColor="#00A0E3"
+            android:pathData="M621,2324L673,2324L673,2376L621,2376Z" />
+        <path
+            android:fillColor="#00A0E3"
+            android:pathData="M966,2324L1018,2324L1018,2376L966,2376Z" />
+        <path
+            android:fillColor="#00A0E3"
+            android:pathData="M1568,2324L1620,2324L1620,2376L1568,2376Z" />
+        <path
+            android:fillColor="#00A0E3"
+            android:pathData="M2092,2324L2144,2324L2144,2376L2092,2376Z" />
+        <path
+            android:fillColor="#00A0E3"
+            android:pathData="M2715,2324L2767,2324L2767,2376L2715,2376Z" />
+        <path
+            android:fillColor="#00A0E3"
+            android:pathData="M3320,2324L3372,2324L3372,2376L3320,2376Z" />
+    </group>
+</vector>
