@@ -603,3 +603,9 @@
 21:18:00.843  +26596 ms  MOWA         koniec wypowiedzi  ms=18182
 21:18:00.867  +26619 ms  SESJA        --- KONIEC TURY e051: odpowiedziano ---
 21:18:00.871          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:18:01.598          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:18:10.720          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:18:12.130          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:18:12.132          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:18:12.144          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1421
+21:18:13.925          ms  ZDJĘCIE      próba 0: miniatura  bajtów=12348 jpeg=true kompletny=true
