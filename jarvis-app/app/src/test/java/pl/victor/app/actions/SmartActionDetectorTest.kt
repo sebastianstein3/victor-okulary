@@ -383,6 +383,71 @@ class SmartActionDetectorTest {
         assertFalse("prowadź = pieszo", onFoot.byCar)
     }
 
+    // --- z asystentem czy bez ---
+    //
+    // Wskazówki trasy liczą i mówią mapy, więc nic nie kosztują. Ostrzeganie o
+    // przeszkodach to nasza pętla pytająca model o obraz - circa 1600 tokenów
+    // za zapytanie przez całą drogę. Dlatego to musi być wybór, a nie domyślne
+    // zachowanie, którego nikt nie widzi.
+
+    @Test
+    fun `bez wyraznej prosby decyduje ustawienie`() {
+        val nav = detector.detect("prowadź do apteki")
+            .filterIsInstance<Action.Navigate>().first()
+        assertEquals(RouteAssist.FROM_SETTINGS, nav.assist)
+    }
+
+    @Test
+    fun `z asystentem wlacza ostrzeganie`() {
+        val nav = detector.detect("prowadź do apteki z asystentem")
+            .filterIsInstance<Action.Navigate>().first()
+        assertEquals(RouteAssist.ON, nav.assist)
+    }
+
+    @Test
+    fun `bez asystenta wylacza ostrzeganie`() {
+        val nav = detector.detect("prowadź do apteki bez asystenta")
+            .filterIsInstance<Action.Navigate>().first()
+        assertEquals(RouteAssist.OFF, nav.assist)
+    }
+
+    @Test
+    fun `prosba o asystenta NIE zostaje w nazwie celu`() {
+        // Bez tego mapy szukałyby miejsca o nazwie "apteki z asystentem".
+        listOf(
+            "prowadź do apteki z asystentem",
+            "prowadź do apteki bez asystenta",
+            "prowadź bez asystenta do apteki"
+        ).forEach { command ->
+            val dest = detector.detect(command)
+                .filterIsInstance<Action.Navigate>().first().destination
+            assertEquals("komenda: \"$command\"", "apteki", dest)
+        }
+    }
+
+    @Test
+    fun `bez wygrywa z z gdy padly oba`() {
+        // Tańsza pomyłka: nieoczekiwanie nieczynny asystent włącza się jednym
+        // zdaniem, nieoczekiwanie czynny pyta model przez całą drogę.
+        val nav = detector.detect("prowadź do apteki z asystentem bez asystenta")
+            .filterIsInstance<Action.Navigate>().first()
+        assertEquals(RouteAssist.OFF, nav.assist)
+    }
+
+    @Test
+    fun `inne slowa tez znacza asystenta`() {
+        assertEquals(
+            RouteAssist.ON,
+            detector.detect("prowadź do apteki z ostrzeżeniami")
+                .filterIsInstance<Action.Navigate>().first().assist
+        )
+        assertEquals(
+            RouteAssist.OFF,
+            detector.detect("nawiguj do apteki bez opisu")
+                .filterIsInstance<Action.Navigate>().first().assist
+        )
+    }
+
     @Test
     fun `otworz strone jest rozpoznawane`() {
         assertDetects<Action.OpenUrl>("otwórz stronę wikipedia.pl")

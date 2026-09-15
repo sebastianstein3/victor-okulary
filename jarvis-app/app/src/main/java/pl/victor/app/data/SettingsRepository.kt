@@ -350,6 +350,23 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_THINKING_LIMIT, enabled).apply()
     }
 
+    /**
+     * Czy przy prowadzeniu do celu ma też działać ostrzeganie o przeszkodach.
+     *
+     * ## Czemu domyślnie WYŁĄCZONE
+     * Bo wskazówki trasy liczą i mówią mapy - nas nie kosztują nic - a
+     * ostrzeganie o przeszkodach to nasza pętla pytająca model o obraz, circa
+     * 1600 tokenów za zapytanie. Przy trasie na drugi koniec miasta robi się z
+     * tego pozycja na rachunku, której nikt nie zamawiał.
+     *
+     * Kto chce obu naraz, włącza to tutaj albo mówi "prowadź do X z asystentem"
+     * - i wtedy jest to jego decyzja, a nie domyślne ustawienie, którego nie widać.
+     */
+    fun isRouteAssistEnabled(): Boolean = prefs.getBoolean(KEY_ROUTE_ASSIST, false)
+    fun setRouteAssistEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_ROUTE_ASSIST, enabled).apply()
+    }
+
     fun setProactiveIntervalMinutes(minutes: Int) {
         prefs.edit().putInt(KEY_PROACTIVE_INTERVAL, minutes).apply()
     }
@@ -1051,6 +1068,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_AUTO_POWER = "auto_power_mode"
         private const val KEY_AUTO_PROVIDER_FALLBACK = "auto_provider_fallback"
         private const val KEY_THINKING_LIMIT = "thinking_limit"
+        private const val KEY_ROUTE_ASSIST = "route_assist"
         private const val KEY_PROACTIVE_INTERVAL = "proactive_interval_min"
         private const val KEY_HISTORY_LIMIT = "history_limit"
         private const val KEY_WAKE_WORD = "wake_word"

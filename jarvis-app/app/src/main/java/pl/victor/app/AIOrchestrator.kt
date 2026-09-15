@@ -25,6 +25,7 @@ import pl.victor.app.actions.ActionExecutor
 import pl.victor.app.actions.ActionMode
 import pl.victor.app.actions.ActionResult
 import pl.victor.app.actions.ContactResolver
+import pl.victor.app.actions.RouteAssist
 import pl.victor.app.actions.DirectActionExecutor
 import pl.victor.app.actions.SmartActionDetector
 import pl.victor.app.audio.AudioManager
@@ -3723,7 +3724,24 @@ class AIOrchestrator(
     /**
      * Wykonuje listę akcji (używane zarówno po wykryciu jak i po potwierdzeniu).
      */
-    private fun executeActionsList(actions: List<Action>) {
+    private fun executeActionsList(rawActions: List<Action>) {
+        // PROWADZENIE Z ASYSTENTEM CZY BEZ - rozstrzygane TUTAJ, raz.
+        //
+        // Powiedziane wprost ("prowadź do apteki z asystentem") wygrywa; gdy nie
+        // padło, decyduje ustawienie. Rozstrzygamy przed wykonaniem, żeby
+        // wykonawca i wypowiadany komunikat mówiły o tym samym - inaczej
+        // asystent meldowałby jedno, a robił drugie.
+        val actions = rawActions.map { action ->
+            if (action is Action.Navigate && action.assist == RouteAssist.FROM_SETTINGS) {
+                action.copy(
+                    assist = if (settings.isRouteAssistEnabled()) RouteAssist.ON
+                    else RouteAssist.OFF
+                )
+            } else {
+                action
+            }
+        }
+
         // Obsługa accessibility (nie wymaga trybu DIRECT/SAFE)
         val accessibilityActions = actions.filter {
             it is Action.ReadText || it is Action.DescribeScene ||
@@ -3762,6 +3780,16 @@ class AIOrchestrator(
                 conversationalMode.onAiFinishedSpeaking()
                 return
             }
+        }
+
+        // Trasa z asystentem: mapy mówią, GDZIE SKRĘCIĆ, a my - W CO SIĘ NIE
+        // WYWRÓCIĆ. To są dwie różne rzeczy i dopiero razem dają to, o co w tej
+        // aplikacji chodzi; osobno każda z nich ma sens i każda działa sama.
+        //
+        // Włączamy przed odpaleniem map, bo za chwilę na wierzchu będzie cudza
+        // aplikacja i nasz kod nie dostanie już okazji.
+        if (actions.any { it is Action.Navigate && it.assist == RouteAssist.ON }) {
+            scope.launch { accessibility.enableNavigate() }
         }
 
         val mode = ActionMode.fromName(settings.getActionMode())

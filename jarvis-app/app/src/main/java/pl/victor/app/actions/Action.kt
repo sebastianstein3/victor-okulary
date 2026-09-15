@@ -120,10 +120,12 @@ sealed class Action {
      * @param byCar czy prowadzić samochodem. Domyślnie PIESZO, bo tak brzmi
      *   "prowadź do" i tak porusza się osoba, dla której ta aplikacja powstała;
      *   samochód włącza dopiero wyraźne "jedź do".
+     * @param assist czy przy okazji ma patrzeć asystent - patrz [RouteAssist]
      */
     data class Navigate(
         val destination: String,
-        val byCar: Boolean = false
+        val byCar: Boolean = false,
+        val assist: RouteAssist = RouteAssist.FROM_SETTINGS
     ) : Action() {
         override val type = ActionType.NAVIGATE
         override val description =
@@ -222,6 +224,32 @@ enum class ActionType {
 }
 
 enum class SkipDirection { NEXT, PREVIOUS }
+
+/**
+ * Czy podczas prowadzenia do celu ma też patrzeć asystent.
+ *
+ * ## Czemu to jest osobna decyzja, a nie zawsze włączone
+ * Bo to są dwie różne rzeczy i jedna z nich jest darmowa. Wskazówki trasy
+ * ("za pięćdziesiąt metrów skręć w prawo") liczą i mówią mapy - nas nie
+ * kosztują nic. Ostrzeganie o przeszkodach ("przed tobą schody") to nasza
+ * pętla pytająca model o obraz, czyli circa 1600 tokenów za zapytanie, i przy
+ * dłuższej trasie robi się z tego realna pozycja na rachunku.
+ *
+ * Bywają potrzebne razem - to jest właśnie ten asystent, o który chodzi: mapy
+ * prowadzą, a okulary pilnują, w co się nie wywrócić. Ale bywa też, że ktoś
+ * chce dojść na dworzec i nie płacić za opisywanie chodnika. Decyzja należy do
+ * człowieka, a nie do domyślnego ustawienia, którego nikt nie widzi.
+ */
+enum class RouteAssist {
+    /** Włącz ostrzeganie o przeszkodach razem z trasą. */
+    ON,
+
+    /** Sama trasa - asystent nie patrzy i nic nie kosztuje. */
+    OFF,
+
+    /** Nie powiedziano wprost; rozstrzyga ustawienie w aplikacji. */
+    FROM_SETTINGS
+}
 
 /**
  * Rezultat wykonania akcji - czy się udało, czy nie.

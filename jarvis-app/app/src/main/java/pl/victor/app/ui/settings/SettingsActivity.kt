@@ -1085,6 +1085,43 @@ private fun AIOptionsSection(
             }
         }
 
+        // PROWADZENIE DO CELU: Z ASYSTENTEM CZY BEZ.
+        //
+        // Stan czytamy prosto z ustawień, tak samo jak przełącznik wyżej.
+        run {
+            val ctx = LocalContext.current
+            val repo = remember {
+                (ctx.applicationContext as pl.victor.app.VictorApplication).settings
+            }
+            var routeAssist by remember { mutableStateOf(repo.isRouteAssistEnabled()) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Ostrzegaj o przeszkodach podczas prowadzenia")
+                    Text(
+                        "Gdy mówisz \"prowadź do...\", wskazówki trasy liczą i mówią " +
+                            "mapy i nic to nie kosztuje. Ta opcja dokłada do tego " +
+                            "ostrzeganie o przeszkodach z kamery okularów - pomaga, " +
+                            "ale pyta model przez całą drogę i zużywa tokeny. " +
+                            "Niezależnie od tego ustawienia możesz powiedzieć " +
+                            "\"prowadź do apteki z asystentem\" albo \"bez asystenta\".",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = routeAssist,
+                    onCheckedChange = {
+                        routeAssist = it
+                        repo.setRouteAssistEnabled(it)
+                    }
+                )
+            }
+        }
+
         // Język - uproszczone (tylko kilka opcji)
         var langExpanded by remember { mutableStateOf(false) }
         val languages = listOf(

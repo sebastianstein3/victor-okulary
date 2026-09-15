@@ -188,11 +188,19 @@ class ActionExecutor(private val context: Context) {
             Uri.parse("google.navigation:q=$where&mode=$mode")
         )
         val how = if (action.byCar) "samochodem" else "pieszo"
+        // Mówimy, czy asystent patrzy. Dla kogoś, kto nie widzi ekranu, to
+        // jedyny sposób, żeby się dowiedzieć - a różnica jest i w pomocy, i w
+        // rachunku.
+        val assist = if (action.assist == RouteAssist.ON) {
+            " Ostrzeganie o przeszkodach włączone."
+        } else {
+            ""
+        }
         val started = launchIntent(
             guided,
             errorIfNotFound = "",
             successMessage = "Prowadzę $how do „${action.destination}”. " +
-                "Wskazówek słuchaj z map."
+                "Wskazówek słuchaj z map.$assist"
         )
         if (started is ActionResult.Success) return started
 

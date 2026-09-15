@@ -201,14 +201,25 @@ class SmartActionDetector {
             """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
             RegexOption.IGNORE_CASE
         )
-        navRegex.find(lower)?.let { match ->
+        // Prośbę o asystenta wycinamy PRZED dopasowaniem trasy, bo po polsku
+        // wchodzi ona także MIĘDZY czasownik a cel: "prowadź bez asystenta do
+        // apteki". Przy takim szyku wzorzec wymagający "do" zaraz za
+        // czasownikiem nie łapał nic - i zamiast trasy ruszał tryb ostrzegania,
+        // czyli dokładnie to, o czym użytkownik powiedział "bez".
+        val navText = lower
+            .replace(ASSIST_ON_REGEX, " ")
+            .replace(ASSIST_OFF_REGEX, " ")
+        navRegex.find(navText)?.let { match ->
             val dest = cleanDestination(match.groupValues[2])
             if (dest.isNotBlank()) {
                 val verb = match.groupValues[1].lowercase()
                 actions.add(
                     Action.Navigate(
                         destination = dest,
-                        byCar = verb.startsWith("jed")
+                        byCar = verb.startsWith("jed"),
+                        // Wprost powiedziane wygrywa z ustawieniem - tak samo
+                        // jak przy każdej innej komendzie głosowej.
+                        assist = routeAssistIn(lower)
                     )
                 )
             }
@@ -493,9 +504,30 @@ class SmartActionDetector {
     private fun cleanDestination(raw: String): String = raw
         .trim()
         .replace(NEAREST_REGEX, "")
+        .replace(ASSIST_ON_REGEX, " ")
+        .replace(ASSIST_OFF_REGEX, " ")
+        .replace(Regex("""\s+"""), " ")
         .trim()
         .trim(',', '.', '!', '?')
         .trim()
+
+    /**
+     * Czy w komendzie padło "z asystentem" albo "bez asystenta".
+     *
+     * Szukamy w CAŁEJ wypowiedzi, nie tylko za nazwą miejsca: po polsku równie
+     * naturalne jest "prowadź do apteki bez asystenta" i "prowadź bez asystenta
+     * do apteki". Wycinaniem tego z nazwy celu zajmuje się [cleanDestination] -
+     * inaczej mapy szukałyby miejsca o nazwie "apteki bez asystenta".
+     *
+     * "Bez" ma pierwszeństwo, bo jest tańszą pomyłką: nieoczekiwanie nieczynny
+     * asystent da się włączyć jednym zdaniem, nieoczekiwanie czynny pyta model
+     * kilkadziesiąt razy na minutę.
+     */
+    private fun routeAssistIn(text: String): RouteAssist = when {
+        ASSIST_OFF_REGEX.containsMatchIn(text) -> RouteAssist.OFF
+        ASSIST_ON_REGEX.containsMatchIn(text) -> RouteAssist.ON
+        else -> RouteAssist.FROM_SETTINGS
+    }
 
     /**
      * Wykrywa akcje oznaczone przez AI znacznikiem `[[ACTION: ...]]` w JEGO
@@ -736,6 +768,24 @@ class SmartActionDetector {
          */
         private val NEAREST_REGEX = Regex(
             """^(?:najbli[żz]sz\w*)\s+""",
+            RegexOption.IGNORE_CASE
+        )
+
+        /**
+         * "z asystentem" i pokrewne - prośba o ostrzeganie o przeszkodach w drodze.
+         *
+         * Wariantów kilka, bo nikt nie pamięta jednej formułki, a odmiany
+         * zostawiamy tolerancyjne (`\w*`) - rozpoznawanie mowy i tak zwraca raz
+         * "asystentem", raz "asystenta".
+         */
+        private val ASSIST_ON_REGEX = Regex(
+            """\bz\s+(?:asystent\w*|ostrze[żz]eni\w*|ostrzeganiem|opisem|pomoc\w*|ai)\b""",
+            RegexOption.IGNORE_CASE
+        )
+
+        /** "bez asystenta" i pokrewne - sama trasa, bez patrzenia i bez kosztu. */
+        private val ASSIST_OFF_REGEX = Regex(
+            """\bbez\s+(?:asystent\w*|ostrze[żz]e\w*|ostrzegania|opisu|pomocy|ai)\b""",
             RegexOption.IGNORE_CASE
         )
 

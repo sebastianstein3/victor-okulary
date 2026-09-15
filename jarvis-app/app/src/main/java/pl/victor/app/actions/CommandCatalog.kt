@@ -78,8 +78,14 @@ object CommandCatalog {
         ),
         CommandInfo(
             ActionType.NAVIGATE, CommandGroup.NAVIGATION, "Prowadź",
-            "Uruchamia nawigację do wskazanego miejsca.",
-            listOf("Prowadź mnie do domu", "Nawiguj na dworzec")
+            "Uruchamia prowadzenie do celu - wskazówki mówią mapy. Dodaj " +
+                "\"z asystentem\", żeby po drodze ostrzegał też o przeszkodach " +
+                "(to zużywa tokeny), albo \"bez asystenta\", żeby tego nie robił.",
+            listOf(
+                "Prowadź do najbliższej Biedronki",
+                "Prowadź do apteki z asystentem",
+                "Jedź do Krakowa"
+            )
         ),
         CommandInfo(
             ActionType.SHOW_ON_MAP, CommandGroup.NAVIGATION, "Pokaż na mapie",
