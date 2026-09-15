@@ -6,6 +6,30 @@ plugins {
     kotlin("kapt")
 }
 
+/**
+ * Czy zbudować APK WYŁĄCZNIE pod arm64-v8a (`-Pvictor.abi.arm64=true`).
+ *
+ * ## Po co
+ * Debugowy APK waży 113,7 MB i prawie cały ten ciężar to biblioteki natywne
+ * powielone w czterech architekturach: llama.cpp, Vosk, Porcupine, ML Kit.
+ * Trzy z tych czterech kopii nie trafią na żaden telefon osoby testującej -
+ * każdy telefon z Androidem 8+ sprzedawany od lat jest arm64.
+ *
+ * Kwota artefaktów GitHuba to 500 MB, czyli cztery takie pliki. Po obcięciu do
+ * jednej architektury mieści się ich dwa razy więcej, a osoby testujące
+ * pobierają dwa razy mniej.
+ *
+ * ## Czemu przez właściwość, a nie na sztywno
+ * Bo test dymny chodzi na emulatorze **x86_64**. APK z bibliotekami wyłącznie
+ * arm64 nie zainstalowałby się tam w ogóle (INSTALL_FAILED_NO_MATCHING_ABIS) -
+ * i zielony build zamieniłby się w czerwony emulator. Właściwość ustawia tylko
+ * to zadanie w CI, które buduje plik DO POBRANIA; emulator buduje po staremu,
+ * ze wszystkimi architekturami.
+ *
+ * Lokalnie nie trzeba jej podawać - domyślnie nic się nie zmienia.
+ */
+val tylkoArm64 = providers.gradleProperty("victor.abi.arm64").orNull == "true"
+
 // android.kotlinOptions{} zostało usunięte w Kotlinie 2.2 - to jego zamiennik.
 // Na poziomie zadania zamiast rozszerzenia kotlin{}, żeby nie zgadywać, jaki
 // dokładnie kształt DSL wystawia akurat ta kombinacja pluginów.
@@ -88,6 +112,13 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             signingConfig = signingConfigs.getByName("debug")
+
+            // Patrz komentarz przy `tylkoArm64` na górze pliku.
+            if (tylkoArm64) {
+                ndk {
+                    abiFilters += "arm64-v8a"
+                }
+            }
         }
     }
 

@@ -73,11 +73,22 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           java -version
 
+      # -Pvictor.abi.arm64=true: APK tylko pod arm64-v8a. Uzasadnienie i dlaczego
+      # to jest właściwość, a nie stała w build.gradle.kts - w komentarzu przy
+      # `tylkoArm64` w jarvis-app/app/build.gradle.kts. W skrócie: ten plik idzie
+      # na TELEFONY osób testujących (wszystkie arm64), a test dymny buduje
+      # osobno i BEZ tej właściwości, bo emulator jest x86_64.
       - name: Build debug APK
         working-directory: jarvis-app
         run: |
           set -o pipefail
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
+          ./gradlew assembleDebug -Pvictor.abi.arm64=true --no-daemon --stacktrace 2>&1 \
+            | tee "$GITHUB_WORKSPACE/build.log"
+
+      # Rozmiar w logu, żeby przy następnej zadyszce kwoty nie trzeba było go
+      # zgadywać ani pobierać pliku.
+      - name: Rozmiar APK
+        run: du -h jarvis-app/app/build/outputs/apk/debug/*.apk
 
       # Bez tego log tonie w stack trace Gradle'a - tu zostaje sama treść błędów.
       - name: Podsumowanie błędów
@@ -108,8 +119,7 @@ jobs:
           path: jarvis-app/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
           # Trzy dni, nie domyślne dziewięćdziesiąt. APK do testu jest potrzebny
-          # tego samego dnia, a przy 113,7 MB każdy kolejny tydzień leżenia to
-          # jedna piąta całego limitu konta.
+          # tego samego dnia, a każdy kolejny tydzień leżenia zjada limit konta.
           retention-days: 3
 
       - name: Run unit tests
