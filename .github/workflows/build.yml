@@ -43,17 +43,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          usunięte=0
+          # NAZWY ZMIENNYCH PO ANGIELSKU - w bashu to nie jest wybór stylu.
+          # Dopuszcza on w nazwach wyłącznie [A-Za-z0-9_], więc "usunięte=0"
+          # nie jest przypisaniem, tylko nieznanym poleceniem: kod 127 i cztery
+          # czerwone buildy z rzędu. W Kotlinie polskie nazwy są legalne i cały
+          # ten projekt na nich stoi - tutaj nie.
+          removed=0
           for id in $(gh api --paginate \
             "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
             --jq '.artifacts[] | select(.name == "victor-debug-apk") | select(.expired == false) | .id'); do
             # Artefakt wygasły albo już skasowany oddaje 404 - to nie jest błąd,
             # tylko stan, o który nam chodziło.
             if gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id" 2>/dev/null; then
-              usunięte=$((usunięte + 1))
+              removed=$((removed + 1))
             fi
           done
-          echo "Skasowane stare APK: $usunięte"
+          echo "Skasowane stare APK: $removed"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
