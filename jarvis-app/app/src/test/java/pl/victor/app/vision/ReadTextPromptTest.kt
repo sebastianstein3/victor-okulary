@@ -59,14 +59,37 @@ class ReadTextPromptTest {
         // trzeba, przy funkcji, której cały sens to szybkość.
         val prompt = ReadTextPrompt.forLanguage("pl")
         assertTrue(prompt.contains("nie czytaj oryginału"))
-        assertTrue(prompt.contains("ani zapowiedzi"))
+        assertTrue(prompt.contains("nie zapowiadaj"))
     }
 
     @Test
-    fun `nazwy wlasne zostaja w oryginale`() {
+    fun `nazwy wlasne zostaja w oryginale, ale opis ma byc przetlumaczony`() {
         // Przetłumaczona nazwa ulicy jest bezużyteczna - nie da się o nią
-        // zapytać przechodnia ani znaleźć jej na tabliczce.
-        assertTrue(ReadTextPrompt.forLanguage("pl").contains("Nazwy własne"))
+        // zapytać przechodnia ani znaleźć jej na tabliczce. Ale samo „Ariel"
+        // też nic nie mówi: całą informacją jest stojące obok „mosópor".
+        val prompt = ReadTextPrompt.forLanguage("pl")
+        assertTrue(prompt.contains("nazwy własne"))
+        assertTrue(prompt.contains("OPISUJE"))
+    }
+
+    @Test
+    fun `przy wielu napisach czyta tylko dominujacy`() {
+        // Zdjęcie półki w sklepie to kilkanaście nazw, cen i naklejek. Bez tego
+        // warunku „przeczytaj tekst ze zdjęcia" znaczy minutę wyliczanki -
+        // czyli dokładnie to, czego przy szybkim tłumaczu nikt nie chce.
+        val prompt = ReadTextPrompt.forLanguage("pl")
+        assertTrue(prompt.contains("TYLKO ten najważniejszy"))
+        assertTrue(prompt.contains("Nie wyliczaj pozostałych"))
+    }
+
+    @Test
+    fun `odpowiedz ma byc krotka`() {
+        assertTrue(ReadTextPrompt.forLanguage("pl").contains("jednym lub dwoma zdaniami"))
+    }
+
+    @Test
+    fun `cena i gramatura sa czescia odpowiedzi na pytanie co to jest`() {
+        assertTrue(ReadTextPrompt.forLanguage("pl").contains("Cenę, wagę lub pojemność"))
     }
 
     @Test

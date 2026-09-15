@@ -1,8 +1,26 @@
 package pl.victor.app.vision
 
 /**
- * Polecenie dla przytrzymania przycisku: przeczytaj tekst ze zdjęcia, a jeśli
- * jest w obcym języku - powiedz go od razu w języku użytkownika.
+ * Polecenie dla przytrzymania przycisku: powiedz, co jest napisane na tym, na
+ * co patrzę - a jeśli to obcy język, od razu po naszemu.
+ *
+ * ## Do czego to służy naprawdę
+ * Nie do czytania stron tekstu, tylko do KRÓTKICH napisów w obcym kraju:
+ * nazwa produktu na półce, tabliczka informacyjna, etykieta, szyld. Stąd dwie
+ * rzeczy w poleceniu, które inaczej byłyby zbędne.
+ *
+ * Po pierwsze WYBÓR. Zdjęcie półki w sklepie zawiera kilkanaście nazw, cen i
+ * naklejek promocyjnych; „przeczytaj cały tekst ze zdjęcia" znaczyłoby tu
+ * minutę wyliczanki. Model ma więc czytać napis dominujący - największy,
+ * centralny, ten, na który widać, że użytkownik celuje.
+ *
+ * Po drugie ROZRÓŻNIENIE marki od opisu. Sama nazwa własna przetłumaczona nic
+ * nie daje („Ariel" to dalej „Ariel"), ale to, co przy niej stoi, jest całą
+ * informacją: węgierskie „mosópor" obok tej marki znaczy proszek do prania i
+ * dopiero to odpowiada na pytanie, po co się w ogóle patrzy na to opakowanie.
+ *
+ * Czytania długiego tekstu to NIE wyłącza - do tego jest tryb ciągły (OCR na
+ * telefonie, darmowy) albo zwykłe pytanie głosem.
  *
  * ## Czemu to w ogóle tłumaczy
  * Bo czytanie obcego tekstu polskim głosem TTS nie dawało nic użytecznego:
@@ -55,14 +73,23 @@ object ReadTextPrompt {
      */
     fun forLanguage(languageCode: String): String {
         val (mianownik, miejscownik) = NAMES[languageCode] ?: NAMES.getValue(FALLBACK)
-        return "Przeczytaj na głos cały tekst widoczny na zdjęciu. Jeśli tekst " +
-            "jest w innym języku niż $mianownik, od razu podaj jego tłumaczenie " +
-            "na $mianownik - nie czytaj oryginału. Jeśli jest już po " +
-            "$miejscownik, przeczytaj go bez zmian. Nazwy własne (ulic, miejsc, " +
-            "firm, ludzi) zostaw w oryginalnym brzmieniu. Nie streszczaj, nie " +
-            "komentuj i nie dodawaj nic od siebie - ani zapowiedzi, w jakim " +
-            "języku był oryginał. Jeśli tekstu nie ma albo jest nieczytelny, " +
-            "powiedz to jednym zdaniem."
+        return "Powiedz, co jest napisane na tym, na co patrzy użytkownik - " +
+            "opakowaniu produktu, tabliczce, etykiecie, szyldzie. " +
+            "Jeśli w kadrze jest WIELE osobnych napisów (półka w sklepie, " +
+            "ściana z ogłoszeniami), przeczytaj TYLKO ten najważniejszy: " +
+            "największy, najbardziej na środku, ten, na który użytkownik " +
+            "wyraźnie celuje. Nie wyliczaj pozostałych. Gdy napis jest krótki " +
+            "i jedyny, podaj go w całości. " +
+            "Jeśli jest w innym języku niż $mianownik, od razu podaj " +
+            "tłumaczenie na $mianownik - nie czytaj oryginału. Jeśli jest już " +
+            "po $miejscownik, podaj go bez zmian. " +
+            "Nazwy marek i nazwy własne (ulic, miejsc, firm, ludzi) zostaw w " +
+            "oryginalnym brzmieniu, ale to, co je OPISUJE, przetłumacz - " +
+            "przy obcym produkcie najważniejsze jest, CO TO JEST. " +
+            "Cenę, wagę lub pojemność podaj, jeśli widnieje przy tym napisie. " +
+            "Odpowiedz krótko, jednym lub dwoma zdaniami. Nie komentuj, nie " +
+            "streszczaj i nie zapowiadaj, w jakim języku był oryginał. " +
+            "Jeśli tekstu nie ma albo jest nieczytelny, powiedz to jednym zdaniem."
     }
 
     /** Języki, dla których mamy poprawną odmianę nazwy. */
