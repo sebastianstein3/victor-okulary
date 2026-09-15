@@ -243,5 +243,24 @@ class LocalAIProvider(private val context: Context) : AIProvider {
          * llama.cpp obok pierwszego nie ma sensu na telefonie.
          */
         private val engine: LocalInferenceEngine by lazy { LlamaCppInferenceEngine() }
+
+        /**
+         * Przerywa generowanie, jeśli akurat trwa.
+         *
+         * ## Po co to jest wołane z zewnątrz
+         * Bo limit czasu na dostawcę przerywa KORUTYNĘ, a nie pracę silnika.
+         * W dzienniku z 15 września widać obie liczby obok siebie:
+         *
+         *     20:45:51  dostawca nie odpowiedział w czasie  dostawca=local ms=45000
+         *     20:45:51  model lokalny: koniec generowania   ms=96964
+         *
+         * Limit wygasł po 45 s, a generowanie leciało 97 - czyli przez prawie
+         * minutę telefon liczył odpowiedź, której nikt już nie odbierze.
+         * To jest procesor i bateria wydane na nic, przy okazji spowalniające
+         * turę, która właśnie ruszyła w to miejsce.
+         */
+        suspend fun cancelOngoing() {
+            runCatching { engine.cancelGeneration() }
+        }
     }
 }

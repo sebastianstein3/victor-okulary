@@ -36,6 +36,13 @@ object ProviderFailure {
                 "Klucz API nie został przyjęty. Sprawdź go w ustawieniach."
             NO_NETWORK.any { it in text } ->
                 "Nie mam połączenia z siecią, więc nie zapytam modelu."
+            // NAJPIERW, przed kluczem: odpowiedź o nieznanym modelu bywa
+            // niesiona kodem 404, ale zdarza się i 400 razem ze słowem
+            // "permission" - a wtedy komunikat o kluczu wysyłałby człowieka
+            // sprawdzać coś, co jest w porządku.
+            UNKNOWN_MODEL.any { it in text } ->
+                "Wybrany model nie istnieje u tego dostawcy. Zmień go w " +
+                    "ustawieniach, w sekcji Model AI."
             TRUNCATED.any { it in text } ->
                 "Model zużył cały budżet na rozumowanie i nic nie powiedział. " +
                     "Wybierz w ustawieniach model bez rozumowania."
@@ -67,6 +74,23 @@ object ProviderFailure {
     // odpowiedzi, a brak środków jest wtedy prawdziwszym powodem niż limit.
     private val NO_FUNDS = listOf(
         "402", "insufficient", "balance", "quota", "billing", "exceeded your current"
+    )
+    /**
+     * Nieistniejąca nazwa modelu.
+     *
+     * Z dziennika z 15 września: w ustawieniach siedziały `deepseek-flash` i
+     * `gemini-3.8-flash`. Obie próby padały po 70 MILISEKUNDACH - tyle trwa
+     * odrzucenie przez serwer - aplikacja schodziła na model lokalny, a ten
+     * potrzebował 94 sekund na pierwszy token. Z zewnątrz: „AI myśli" i nic.
+     *
+     * Powód był do odczytania z odpowiedzi HTTP przez cały czas; nikt go tylko
+     * nie pokazywał. To jest dokładnie ten rodzaj awarii, z którym człowiek
+     * sobie poradzi w dziesięć sekund - pod warunkiem, że wie, co się stało.
+     */
+    private val UNKNOWN_MODEL = listOf(
+        "404", "model not found", "model_not_found", "is not found",
+        "does not exist", "unknown model", "invalid model", "unsupported model",
+        "no such model"
     )
     private val RATE_LIMITED = listOf("429", "rate limit", "rate_limit", "too many requests")
     private val BAD_KEY = listOf(

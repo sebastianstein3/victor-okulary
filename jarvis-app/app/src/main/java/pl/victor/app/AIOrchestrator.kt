@@ -3210,6 +3210,15 @@ class AIOrchestrator(
                                     "znakówOdpowiedzi" to accumulatedText.length
                                 )
                             )
+                            // Limit przerywa KORUTYNĘ, nie pracę silnika. Model
+                            // lokalny liczył dalej jeszcze 52 sekundy po
+                            // wygaśnięciu limitu (dziennik z 15 września, 20:45:51)
+                            // - procesor i bateria wydane na odpowiedź, której
+                            // nikt już nie odbierze, w dodatku spowalniające
+                            // turę, która właśnie ruszyła w to miejsce.
+                            if (attemptProviderId == AIProviderFactory.LOCAL_PROVIDER_ID) {
+                                pl.victor.app.ai.LocalAIProvider.cancelOngoing()
+                            }
                             if (accumulatedText.isBlank()) {
                                 throw IllegalStateException(
                                     "Dostawca $attemptProviderId nie odpowiedział w " +
@@ -3221,6 +3230,24 @@ class AIOrchestrator(
                         successfulProvider = attemptProvider
                         break  // sukces - koniec prób
                     } catch (e: Exception) {
+                        // POWÓD DO DZIENNIKA, nie tylko do logcata.
+                        //
+                        // W dzienniku z 15 września stoją trzy "wysyłam pytanie"
+                        // pod rząd i ani słowa o tym, czemu dwie pierwsze
+                        // odpadły po 70 ms. Powód był w wyjątku przez cały czas
+                        // - szedł wyłącznie do Log.w, którego nie ma jak
+                        // odczytać z telefonu osoby testującej. Bez tego wiersza
+                        // każda awaria dostawcy wygląda w dzienniku identycznie.
+                        diag.event(
+                            DiagFormat.Phase.MODEL, "dostawca zawiódł",
+                            mapOf(
+                                "dostawca" to attemptProviderId,
+                                "model" to settings.getSelectedModel(attemptProviderId),
+                                "poMs" to (System.currentTimeMillis() - modelStartedAt),
+                                "powód" to pl.victor.app.ai.ProviderFailure.describe(e.message),
+                                "komunikat" to (e.message ?: e.javaClass.simpleName).take(160)
+                            )
+                        )
                         // Bezpieczne do ponowienia tylko, gdy nic jeszcze nie zostało
                         // powiedziane - inaczej user usłyszałby dwa zaczątki odpowiedzi.
                         val canRetryWithNext = firstChunk && attemptIndex < candidates.lastIndex
