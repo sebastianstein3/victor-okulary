@@ -85,10 +85,23 @@ jobs:
           ./gradlew assembleDebug -Pvictor.abi.arm64=true --no-daemon --stacktrace 2>&1 \
             | tee "$GITHUB_WORKSPACE/build.log"
 
-      # Rozmiar w logu, żeby przy następnej zadyszce kwoty nie trzeba było go
-      # zgadywać ani pobierać pliku.
-      - name: Rozmiar APK
-        run: du -h jarvis-app/app/build/outputs/apk/debug/*.apk
+      # Rozmiar ORAZ skład w logu. Rozmiar sam w sobie nie mówi, co ciąć -
+      # obcięcie architektur do samego arm64 dało 113,7 -> 106 MB, czyli osiem
+      # razy mniej, niż zakładałem. Ta lista pokazuje, gdzie te megabajty
+      # naprawdę siedzą, zamiast kolejnej zgadywanki.
+      - name: Rozmiar i skład APK
+        run: |
+          apk=$(ls jarvis-app/app/build/outputs/apk/debug/*.apk | head -1)
+          du -h "$apk"
+          echo "======== NAJWIĘKSZE KATALOGI W APK (rozmiar przed kompresją) ========"
+          unzip -l "$apk" \
+            | awk '$2 ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ && $4 !~ /\/$/ {
+                     n = split($4, p, "/");
+                     key = (n > 2 ? p[1] "/" p[2] : (n > 1 ? p[1] : "(korzeń)"));
+                     sum[key] += $1
+                   }
+                   END { for (k in sum) printf "%8.1f MB  %s\n", sum[k] / 1048576, k }' \
+            | sort -rn | head -25
 
       # Bez tego log tonie w stack trace Gradle'a - tu zostaje sama treść błędów.
       - name: Podsumowanie błędów
@@ -111,8 +124,20 @@ jobs:
           grep -E "^Caused by:|Exception|Error:.*$|^\s+at [a-zA-Z]" build.log \
             | sort -u | head -60 || echo "(brak)"
 
+      # continue-on-error NIE jest zamiataniem awarii pod dywan - jest naprawą
+      # gorszej awarii. Dopóki ten krok potrafił wywrócić zadanie, zapchana
+      # kwota artefaktów kasowała NASTĘPNE kroki: testy jednostkowe (`if:
+      # success()`) i cały test dymny na emulatorze (`needs: build`). Przez
+      # ostatnie biegi CI mówiło więc wyłącznie "kompiluje się", choć testy
+      # istnieją i przechodziły. Kwota to problem z kontem GitHuba, nie sygnał o
+      # kodzie, i nie ma prawa wyłączać sygnałów o kodzie.
+      #
+      # Niepowodzenie nie znika po cichu: następny krok wypisuje ostrzeżenie,
+      # widoczne w podsumowaniu biegu.
       - name: Upload APK
+        id: upload-apk
         if: success()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: victor-debug-apk
@@ -121,6 +146,11 @@ jobs:
           # Trzy dni, nie domyślne dziewięćdziesiąt. APK do testu jest potrzebny
           # tego samego dnia, a każdy kolejny tydzień leżenia zjada limit konta.
           retention-days: 3
+
+      - name: APK nie został wysłany
+        if: steps.upload-apk.outcome == 'failure'
+        run: |
+          echo "::warning title=APK niedostępny::Kompilacja przeszła, ale nie udało się wysłać APK - najczęściej zapchana kwota artefaktów konta (GitHub przelicza zużycie co 6-12 godzin). Testy jednostkowe i test dymny idą dalej."
 
       - name: Run unit tests
         if: success()

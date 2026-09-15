@@ -9,15 +9,18 @@ plugins {
 /**
  * Czy zbudować APK WYŁĄCZNIE pod arm64-v8a (`-Pvictor.abi.arm64=true`).
  *
- * ## Po co
- * Debugowy APK waży 113,7 MB i prawie cały ten ciężar to biblioteki natywne
- * powielone w czterech architekturach: llama.cpp, Vosk, Porcupine, ML Kit.
- * Trzy z tych czterech kopii nie trafią na żaden telefon osoby testującej -
- * każdy telefon z Androidem 8+ sprzedawany od lat jest arm64.
+ * ## Ile to daje - ZMIERZONE, nie szacowane
+ * 113,7 MB -> 106 MB. Siedem megabajtów, czyli circa 7%.
  *
- * Kwota artefaktów GitHuba to 500 MB, czyli cztery takie pliki. Po obcięciu do
- * jednej architektury mieści się ich dwa razy więcej, a osoby testujące
- * pobierają dwa razy mniej.
+ * Zakładałem circa połowę, bo wychodziłem z założenia, że ciężar APK to
+ * biblioteki natywne powielone w czterech architekturach (llama.cpp, Vosk,
+ * Porcupine, ML Kit). Pomiar to obalił - te biblioteki są tylko ułamkiem pliku.
+ * Gdzie siedzi reszta, wypisuje teraz krok "Rozmiar i skład APK" w build.yml;
+ * dalsze cięcie ma sens dopiero na podstawie tej listy, nie kolejnej hipotezy.
+ *
+ * Zostaje mimo skromnego zysku: siedem megabajtów mniej przy każdym pobraniu
+ * kosztuje zero i nic nie psuje. Nie jest natomiast rozwiązaniem problemu kwoty
+ * artefaktów.
  *
  * ## Czemu przez właściwość, a nie na sztywno
  * Bo test dymny chodzi na emulatorze **x86_64**. APK z bibliotekami wyłącznie
@@ -26,7 +29,8 @@ plugins {
  * to zadanie w CI, które buduje plik DO POBRANIA; emulator buduje po staremu,
  * ze wszystkimi architekturami.
  *
- * Lokalnie nie trzeba jej podawać - domyślnie nic się nie zmienia.
+ * Każdy telefon z Androidem 8+ sprzedawany od lat jest arm64, więc dla osób
+ * testujących nic się nie zmienia. Lokalnie właściwości nie trzeba podawać.
  */
 val tylkoArm64 = providers.gradleProperty("victor.abi.arm64").orNull == "true"
 
