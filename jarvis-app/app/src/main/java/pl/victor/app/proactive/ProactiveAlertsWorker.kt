@@ -137,6 +137,13 @@ class ProactiveAlertsWorker(
         }.getOrDefault(false)
         if (!glassesOn && !app.settings.isAlertsSpokenWithoutGlasses()) {
             Log.d(tag, "Alert nie wypowiedziany - okulary niepołączone")
+            runCatching {
+                app.diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.MOWA,
+                    "alert pominięty - okulary niepołączone",
+                    mapOf("rodzaj" to alert.type.name)
+                )
+            }
             return
         }
 
@@ -151,9 +158,37 @@ class ProactiveAlertsWorker(
         }
 
         val spoken = "${alert.title}. ${alert.message}"
+
+        // POPROŚ OKULARY O TRYB MULTIMEDIÓW - tak samo jak zwykła tura.
+        //
+        // Zwykła odpowiedź robi to przed mówieniem (VictorManager.requestClassicAudio),
+        // alert nie robił tego nigdy. Okulary, które telefon widzi wyłącznie
+        // jako zestaw głośnomówiący, mają wtedy czynny sam profil rozmowy - i
+        // alert szedł albo przez telefon, albo przez gorszy kanał. Zgłoszone:
+        // "chyba nie czyta tych powiadomień o pogodzie normalnie przez okulary".
+        //
+        // Prośba jest bez czekania na skutek (profil zestawia system, nie my),
+        // więc nie opóźnia tego alertu - poprawia kolejny. To ta sama zasada,
+        // co na ścieżce tury.
+        if (glassesOn) {
+            runCatching { app.glassesManager.requestClassicAudio("alert proaktywny") }
+        }
+
         val held = runCatching { app.audio.beginConversationRouting() }.getOrDefault(false)
         try {
             runCatching { app.audio.speakAndAwait(spoken, language = "pl") }
+                .onSuccess {
+                    // DO DZIENNIKA, nie tylko do logcata: to jest jedyny ślad
+                    // po alercie, a zgłoszenie brzmiało "chyba nie czyta" -
+                    // czyli osoba testująca sama nie była pewna, czy zadziałało.
+                    runCatching {
+                        app.diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.MOWA,
+                            "alert wypowiedziany",
+                            mapOf("rodzaj" to alert.type.name, "okulary" to glassesOn)
+                        )
+                    }
+                }
                 .onFailure { Log.w(tag, "Nie udało się wypowiedzieć alertu", it) }
         } finally {
             if (held) runCatching { app.audio.endConversationRouting() }
