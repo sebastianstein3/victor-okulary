@@ -1229,6 +1229,28 @@ fun MediaScreen(onBack: () -> Unit) {
                 }
             }
 
+            // JAK SIĘ DOSTAĆ DO USUWANIA I UDOSTĘPNIANIA.
+            //
+            // Obie funkcje były tu od dawna, ale pokazują się dopiero po
+            // PRZYTRZYMANIU kafelka - a przytrzymanie niczego o sobie nie mówi.
+            // Zgłoszone z terenu jako brak funkcji: "w galerii nie widzę
+            // niczego w stylu udostępnij, usuń". Niewidoczna funkcja jest z
+            // punktu widzenia użytkownika nieistniejąca.
+            //
+            // Podpowiedź znika, gdy zaznaczanie już trwa - wtedy przyciski
+            // widać na górze i powtarzanie instrukcji jest tylko hałasem.
+            if (files.isNotEmpty() && selection.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        "Przytrzymaj zdjęcie, żeby je zaznaczyć - wtedy " +
+                            "pojawi się usuwanie i udostępnianie.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                    )
+                }
+            }
+
             files.forEach { (kind, items) ->
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(

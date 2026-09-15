@@ -432,7 +432,16 @@ class AccessibilityService(
                 ocr = capturePhotoOrExplain(sharp = true)?.let { ocrReader.readBytes(it) }
             }
 
-            val newText = ocr?.fullText?.trim().orEmpty()
+            // KOLEJNOŚĆ, NIE SUROWY fullText.
+            //
+            // ML Kit oddaje bloki z grubsza od góry do dołu, a na tabliczce,
+            // plakacie albo opakowaniu najważniejszy jest napis NAJWIĘKSZY -
+            // i ten stoi gdzie indziej niż najwyżej. Zgłoszone z terenu:
+            // "musi zaczynać od tego, co największe i najważniejsze, ale potem
+            // niech czyta dalej". Nic nie wypada, to jest przestawienie.
+            val newText = ocr?.let {
+                pl.victor.app.vision.ReadingOrder.arrange(it.blocks, it.fullText)
+            }?.trim().orEmpty()
             if (ocr?.isSuccess == true && newText.length > MIN_READABLE_TEXT) {
                 clearFailure(FAILURE_NO_TEXT)
                 Log.d(tag, "Odczytany tekst: ${newText.length} znaków")
