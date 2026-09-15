@@ -26,6 +26,12 @@ object Notes {
         "zapisz ze",
         "zapisz sobie że",
         "zapisz sobie ze",
+        // PRZED samym "zapisz", bo pierwszy pasujący zwrot wygrywa. Bez tego
+        // "zapisz notatkę notatkę testową" (dziennik, 20:47:54) zapisywało się
+        // jako "Notatkę notatkę testową" - słowo "notatkę" zostawało w treści,
+        // choć należało do polecenia, nie do notatki.
+        "zapisz notatkę",
+        "zapisz notatke",
         "zapisz",
         "zanotuj że",
         "zanotuj ze",
@@ -47,6 +53,20 @@ object Notes {
         "dodaj do listy zakupów",
         "dodaj do listy zakupow",
         "dopisz do listy",
+        // SAMA nazwa listy, gdy zaraz po niej idzie treść: "lista zakupów
+        // mleko, bułki, chleb". Tak to zostało powiedziane w teście z
+        // 15 września i poszło w całości do modelu, bo żaden zwrot otwierający
+        // tego nie łapał.
+        //
+        // Nie kłóci się z odczytaniem listy, choć wygląda podobnie: samo "lista
+        // zakupów" zostawia pustą treść, a [extract] odrzuca ją na warunku
+        // [MIN_BODY] i wypowiedź leci dalej, do [isListRequest]. Kolejność w
+        // AIOrchestrator (najpierw extract, potem isListRequest) jest tu
+        // warunkiem poprawności.
+        "lista zakupów",
+        "lista zakupow",
+        "na listę zakupów",
+        "na liste zakupow",
         "dodaj"
     ).sortedByDescending { it.length }
 
@@ -510,9 +530,17 @@ object Notes {
             } ?: return@let
             // Po odsyłaczu ma zostać SAMO słowo "notatkę" i nic więcej.
             // Bez tego warunku "zrób z tego zdjęcie" byłoby notatką.
-            val tail = afterVerb.substring(reference.length)
-                .trim { it in SEPARATORS || it in ".!?" }
-                .lowercase()
+            //
+            // Dopuszczamy jeden łącznik przed rzeczownikiem, bo "wpisz to JAK
+            // notatkę" i "zapisz to JAKO notatkę" to ten sam szyk z jednym
+            // słowem więcej - a bez tego wypowiedź szła do modelu. Warunek
+            // pozostaje ścisły: po łączniku dalej musi stać samo słowo
+            // notatkowe, więc "zrób z tego jak zdjęcie" nadal nie przejdzie.
+            val tail = stripNoteJoiner(
+                afterVerb.substring(reference.length)
+                    .trim { it in SEPARATORS || it in ".!?" }
+                    .lowercase()
+            )
             if (tail !in NOTE_NOUNS) return@let
             val source = when (reference) {
                 in LAST_ANSWER_REFERENCES -> Source.LAST_ANSWER
@@ -747,6 +775,22 @@ object Notes {
         "w notatkach", "do notatek", "w notatniku", "w notatce",
         "jako notatkę", "jako notatke", "jako notatka"
     ).sortedByDescending { it.length }
+
+    /**
+     * Łączniki, które po polsku wchodzą między odsyłacz a słowo "notatka":
+     * "wpisz to JAK notatkę", "zapisz to JAKO notatkę", "zrób z tego W FORMIE
+     * notatki".
+     */
+    private val NOTE_JOINERS = listOf("jako", "jak", "w formie", "w postaci")
+        .sortedByDescending { it.length }
+
+    /** Zdejmuje jeden łącznik z początku, jeśli tam stoi. */
+    private fun stripNoteJoiner(tail: String): String {
+        val joiner = NOTE_JOINERS.firstOrNull {
+            tail == it || tail.startsWith("$it ")
+        } ?: return tail
+        return tail.substring(joiner.length).trimStart()
+    }
 
     /** Rzeczowniki zamykające szyk drugi - patrz [describeRequest]. */
     private val NOTE_NOUNS = setOf(

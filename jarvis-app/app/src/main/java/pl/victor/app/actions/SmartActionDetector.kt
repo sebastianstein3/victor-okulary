@@ -101,6 +101,58 @@ class SmartActionDetector {
     }
 
     /**
+     * Trasa z wypowiedzi: "nawiguj do X", "prowadź do X", "jedź do X".
+     *
+     * ## Czemu to jest osobna, publiczna funkcja
+     * Bo prośba o trasę należy do warstwy 0, a nie do zapasowej [detect].
+     * Model, który dostaje takie zdanie, ODPOWIADA na nie słowami - w dzienniku
+     * z 15 września, 20:52:01, na "nawiguj do najbliższej biedronki" zapowiedział
+     * włączenie nawigacji i nie uruchomił niczego. Zapowiedź bez Intentu jest
+     * gorsza niż odmowa, bo użytkownik idzie dalej przekonany, że trasa leci.
+     *
+     * Wzorzec jest ścisły (czasownik ruchu + "do" + cel), więc do warstwy 0
+     * pasuje: dopasowanie znaczy prośbę o trasę, a nie rozmowę o drodze.
+     *
+     * ## Tryb podróży niesie CZASOWNIK
+     * Trasa samochodowa poprowadzona pieszemu każe iść obwodnicą, a piesza
+     * kierowcy - przez park.
+     *
+     * - "jedź do" -> samochód, bo mówi to wprost;
+     * - "prowadź do" -> pieszo, bo tego zwrotu używa osoba, dla której ta
+     *   aplikacja powstała, i idzie ona na własnych nogach;
+     * - "nawiguj do" -> SAMOCHÓD. Ten czasownik jest neutralny i dotąd szedł
+     *   pieszo razem z "prowadź", co zgłoszono z terenu: "ma nawigować jakby
+     *   pieszo a nie autem". W potocznym użyciu "nawiguj" znaczy jazdę.
+     */
+    fun detectNavigation(text: String): Action.Navigate? {
+        val lower = text.lowercase().trim()
+        // Prośbę o asystenta wycinamy PRZED dopasowaniem trasy, bo po polsku
+        // wchodzi ona także MIĘDZY czasownik a cel: "prowadź bez asystenta do
+        // apteki". Przy takim szyku wzorzec wymagający "do" zaraz za
+        // czasownikiem nie łapał nic - i zamiast trasy ruszał tryb ostrzegania,
+        // czyli dokładnie to, o czym użytkownik powiedział "bez".
+        val navText = lower
+            .replace(ASSIST_ON_REGEX, " ")
+            .replace(ASSIST_OFF_REGEX, " ")
+        val match = NAV_REGEX.find(navText) ?: return null
+        val dest = cleanDestination(match.groupValues[2])
+        if (dest.isBlank()) return null
+        val verb = match.groupValues[1].lowercase()
+        return Action.Navigate(
+            destination = dest,
+            byCar = verb.startsWith("jed") || verb.startsWith("nawiguj"),
+            // Wprost powiedziane wygrywa z ustawieniem - tak samo jak przy
+            // każdej innej komendzie głosowej.
+            assist = routeAssistIn(lower)
+        )
+    }
+
+    private val NAV_REGEX = Regex(
+        """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
      * Pełna detekcja wzorcami. Po wprowadzeniu warstw używana już tylko jako ZAPASOWA
      * ścieżka, gdy AI jest niedostępne (brak klucza, brak sieci) - patrz
      * [pl.victor.app.AIOrchestrator]. Gdy AI jest dostępne, routing robi model.
@@ -197,33 +249,7 @@ class SmartActionDetector {
         // Czasownik niesie TRYB PODRÓŻY i to nie jest szczegół: trasa
         // samochodowa poprowadzona pieszemu każe iść obwodnicą, a piesza
         // kierowcy - przez park.
-        val navRegex = Regex(
-            """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
-            RegexOption.IGNORE_CASE
-        )
-        // Prośbę o asystenta wycinamy PRZED dopasowaniem trasy, bo po polsku
-        // wchodzi ona także MIĘDZY czasownik a cel: "prowadź bez asystenta do
-        // apteki". Przy takim szyku wzorzec wymagający "do" zaraz za
-        // czasownikiem nie łapał nic - i zamiast trasy ruszał tryb ostrzegania,
-        // czyli dokładnie to, o czym użytkownik powiedział "bez".
-        val navText = lower
-            .replace(ASSIST_ON_REGEX, " ")
-            .replace(ASSIST_OFF_REGEX, " ")
-        navRegex.find(navText)?.let { match ->
-            val dest = cleanDestination(match.groupValues[2])
-            if (dest.isNotBlank()) {
-                val verb = match.groupValues[1].lowercase()
-                actions.add(
-                    Action.Navigate(
-                        destination = dest,
-                        byCar = verb.startsWith("jed"),
-                        // Wprost powiedziane wygrywa z ustawieniem - tak samo
-                        // jak przy każdej innej komendzie głosowej.
-                        assist = routeAssistIn(lower)
-                    )
-                )
-            }
-        }
+        detectNavigation(lower)?.let { actions.add(it) }
 
         // === KALENDARZ ===
         // "dodaj do kalendarza spotkanie z Anną jutro o 15" / "umów spotkanie z

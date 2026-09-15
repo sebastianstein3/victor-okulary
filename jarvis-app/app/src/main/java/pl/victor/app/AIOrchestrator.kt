@@ -2428,6 +2428,26 @@ class AIOrchestrator(
                 return
             }
 
+            // TRASA - w warstwie 0, nie w zapasowej.
+            //
+            // Model, który dostaje "nawiguj do najbliższej biedronki",
+            // ODPOWIADA na to słowami. W dzienniku z 15 września, 20:52:01,
+            // zapowiedział włączenie nawigacji i nie uruchomił niczego: żadnej
+            // akcji w logu, żadnego Intentu, a użytkownik poszedł dalej
+            // przekonany, że trasa leci. Zapowiedź bez wykonania jest gorsza
+            // niż odmowa.
+            //
+            // Wzorzec jest ścisły (czasownik ruchu + "do" + cel), więc nie
+            // przechwytuje rozmowy o drodze - patrz
+            // [SmartActionDetector.detectNavigation].
+            if (textIsQuestion) {
+                actionDetector.detectNavigation(textQuestion)?.let { route ->
+                    Log.i(TAG, "Warstwa 0: trasa do ${route.destination}")
+                    handleActions(listOf(route), textQuestion)
+                    return
+                }
+            }
+
             val critical = actionDetector.detectCritical(textQuestion)
             if (critical.isNotEmpty()) {
                 // "Zrób zdjęcie" nie jest akcją do wykonania przez Intent - to
