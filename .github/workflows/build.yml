@@ -15,9 +15,45 @@ jobs:
     name: assembleDebug
     runs-on: ubuntu-latest
 
+    # `actions: write` wyłącznie po to, żeby dało się kasować własne artefakty -
+    # patrz krok sprzątania niżej. Reszta zostaje na odczycie.
+    permissions:
+      contents: read
+      actions: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # SPRZĄTANIE PRZED BUDOWANIEM, NIE PO.
+      #
+      # Debugowy APK tego projektu waży 113,7 MB (zmierzone), a darmowe konto ma
+      # 500 MB na artefakty - czyli mieszczą się CZTERY. Przy domyślnym
+      # przechowywaniu 90 dni miejsce skończyło się po jednym dniu pracy, a
+      # wtedy GitHub przestaje przyjmować kolejne wysyłki i build kończy się bez
+      # pliku do zainstalowania.
+      #
+      # Krok stoi PRZED kompilacją z rozmysłu: gdyby sprzątał po wysyłce, to
+      # właśnie ta wysyłka odbijałaby się od pełnego limitu. Tu zwalnia miejsce,
+      # zanim będzie potrzebne - i robi to nawet wtedy, gdy build się wywróci.
+      #
+      # Zostaje ZAWSZE najnowszy APK: ten z bieżącego przebiegu jeszcze nie
+      # istnieje, więc kasujemy wszystkie wcześniejsze.
+      - name: Zwolnij miejsce po starych APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          usunięte=0
+          for id in $(gh api --paginate \
+            "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == "victor-debug-apk") | select(.expired == false) | .id'); do
+            # Artefakt wygasły albo już skasowany oddaje 404 - to nie jest błąd,
+            # tylko stan, o który nam chodziło.
+            if gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id" 2>/dev/null; then
+              usunięte=$((usunięte + 1))
+            fi
+          done
+          echo "Skasowane stare APK: $usunięte"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -66,6 +102,10 @@ jobs:
           name: victor-debug-apk
           path: jarvis-app/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
+          # Trzy dni, nie domyślne dziewięćdziesiąt. APK do testu jest potrzebny
+          # tego samego dnia, a przy 113,7 MB każdy kolejny tydzień leżenia to
+          # jedna piąta całego limitu konta.
+          retention-days: 3
 
       - name: Run unit tests
         if: success()
@@ -79,6 +119,7 @@ jobs:
           name: unit-test-report
           path: jarvis-app/app/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore
+          retention-days: 7
 
   # Test dymny na emulatorze: aplikacja ma się zainstalować, wstać i przejść
   # całą ścieżkę komunikacji z okularami na symulatorze. To jedyne miejsce,
@@ -200,3 +241,4 @@ jobs:
             jarvis-app/app/build/reports/androidTests
             jarvis-app/app/build/outputs/androidTest-results
           if-no-files-found: ignore
+          retention-days: 7
