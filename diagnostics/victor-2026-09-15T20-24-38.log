@@ -87,3 +87,46 @@
 20:45:49.943 +111702 ms  MOWA         koniec wypowiedzi  ms=16226
 20:45:50.076 +111835 ms  SESJA        --- KONIEC TURY e7a7: odpowiedziano ---
 20:45:50.140          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+20:45:51.059          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+20:45:51.573          ms  MODEL        model lokalny: koniec generowania  ms=96964 byłPierwszyToken=true
+20:45:51.575          ms  MODEL        dostawca nie odpowiedział w czasie  dostawca=local ms=45000 znakówOdpowiedzi=0
+20:45:51.606          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+20:45:52.266          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+20:47:47.002          ms  PRZYCISK     wciśnięto  numer=1
+20:47:47.210          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+20:47:47.932          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=19 ms=720
+20:47:48.056          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=16 mikrofonOkularów=true
+20:47:48.057      +0 ms  SESJA        --- TURA f97f ---  źródło=OKULARY
+20:47:48.058      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+20:47:48.674    +618 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 EB B6 12 01 00 10 0A 02 00 0F 00 03 00 10 0A 02 sztuk=2 pierwsza=false
+20:47:54.360   +6303 ms  NASŁUCH      koniec  ms=6303 telefonUsłyszał=zapisz notatkę notatkę testową mikrofon=mowa wykryta szczytDb=10.0 próbek=6 gotowyPoMs=2048
+20:47:54.658   +6601 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.3335 pakietów=67 rozkodowanych=67 odrzuconych=0 przesunięcie=6 ramka=-1
+20:47:55.532   +7475 ms  TRANSKRYPCJA z nagrania okularów  ms=873
+20:47:55.533   +7476 ms  SESJA        pytanie  tekst=zapisz notatkę notatkę testową wymuszonyObraz=false
+20:47:55.615   +7558 ms  SESJA        --- KONIEC TURY f97f: odpowiedziano ---
+20:47:55.617          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+20:47:55.665          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+20:48:11.114          ms  PRZYCISK     wciśnięto  numer=1
+20:48:11.383          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+20:48:11.682          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=12 ms=298
+20:48:11.745          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=11 mikrofonOkularów=true
+20:48:11.747      +1 ms  SESJA        --- TURA 17e7 ---  źródło=OKULARY
+20:48:11.747      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+20:48:16.383   +4637 ms  NASŁUCH      koniec  ms=4637 telefonUsłyszał=listwa zakupów mikrofon=mowa wykryta szczytDb=10.0 próbek=5 gotowyPoMs=375
+20:48:16.516   +4770 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.6535 pakietów=33 rozkodowanych=33 odrzuconych=0 przesunięcie=6 ramka=-1
+20:48:17.502   +5756 ms  TRANSKRYPCJA z nagrania okularów  ms=984 droga=Nasłuch telefonu
+20:48:17.505   +5759 ms  SESJA        pytanie  tekst=listwa zakupów wymuszonyObraz=false
+20:48:17.516   +5770 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+20:48:17.536   +5790 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+20:48:17.612   +5866 ms  KONTEKST     zebrany  ms=61 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+20:48:17.623   +5877 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=921
+20:48:17.879   +6133 ms  MODEL        wysyłam pytanie  dostawca=deepseek próba=2 zdjęć=0 znakówPromptu=921
+20:48:20.025   +8279 ms  MODEL        koniec odpowiedzi (249 znaków, 2574 tokenów)  ms=2402
+20:48:33.364  +21619 ms  PRZYCISK     wciśnięto  numer=1
+20:48:33.591  +21845 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=12
+20:48:33.870  +22124 ms  SESJA        PRZERWANO turę - weszło nowe wywołanie  stan=Thinking poMs=16318
+20:48:33.877  +22131 ms  SESJA        --- KONIEC TURY 17e7: BEZ ODPOWIEDZI (stan Idle, powód: nowe wywołanie użytkownika) ---
+20:48:33.913          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=321
+20:48:33.945          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=8 mikrofonOkularów=true
+20:48:33.946      +0 ms  SESJA        --- TURA 45bd ---  źródło=OKULARY
+20:48:33.947      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
