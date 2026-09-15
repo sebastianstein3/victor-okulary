@@ -505,3 +505,51 @@
 21:11:02.732  +16058 ms  MODEL        koniec odpowiedzi (0 znaków, 0 tokenów)  ms=4318
 21:11:07.955  +21281 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
 21:11:08.116  +21442 ms  SESJA        --- KONIEC TURY 9da2: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+21:12:00.041          ms  PRZYCISK     wciśnięto  numer=1
+21:12:00.207          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+21:12:00.947          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=19 ms=730
+21:12:01.076          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=26 mikrofonOkularów=true
+21:12:01.080      +1 ms  SESJA        --- TURA 6faa ---  źródło=OKULARY
+21:12:01.082      +2 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+21:12:01.696    +616 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 BA 73 12 01 00 10 0B 02 00 0F 00 03 00 10 0A 02 sztuk=3 pierwsza=false
+21:12:12.449  +11369 ms  NASŁUCH      koniec  ms=11368 mikrofon=mowa wykryta szczytDb=5.44 próbek=8 gotowyPoMs=2076
+21:12:12.744  +11664 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.2935 pakietów=65 rozkodowanych=65 odrzuconych=0 przesunięcie=6 ramka=-1
+21:12:13.549  +12469 ms  TRANSKRYPCJA z nagrania okularów  ms=801 droga=Bez transkrypcji - nagranie do modelu
+21:12:13.553  +12473 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=1293 jestMs=1293 tło=0 szczyt=5 ile razy=57.1
+21:12:13.607  +12527 ms  SESJA        --- KONIEC TURY 6faa: błąd ---
+21:12:13.610          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:12:13.682          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:12:27.091          ms  PRZYCISK     wciśnięto  numer=1
+21:12:27.418          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+21:12:27.913          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=486
+21:12:28.012          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=18 mikrofonOkularów=true
+21:12:28.015      +0 ms  SESJA        --- TURA 18d1 ---  źródło=OKULARY
+21:12:28.020      +5 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true
+21:12:38.375  +10360 ms  NASŁUCH      koniec  ms=10359 mikrofon=mowa wykryta szczytDb=-2.0 próbek=1 gotowyPoMs=851
+21:12:38.767  +10752 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.9535 pakietów=48 rozkodowanych=48 odrzuconych=0 przesunięcie=6 ramka=-1
+21:12:39.691  +11676 ms  TRANSKRYPCJA z nagrania okularów  ms=920 droga=Bez transkrypcji - nagranie do modelu
+21:12:39.698  +11684 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=953 jestMs=953 tło=0 szczyt=7 ile razy=129.5
+21:12:39.768  +11753 ms  SESJA        --- KONIEC TURY 18d1: błąd ---
+21:12:39.771          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:12:39.837          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:13:04.438          ms  PRZYCISK     wciśnięto  numer=1
+21:13:04.702          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+21:13:05.243          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=536
+21:13:05.333      +0 ms  SESJA        --- TURA 8170 ---  źródło=OKULARY
+21:13:05.334      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:13:05.811    +478 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 FA 72 12 01 00 10 0B 02 00 0F 00 03 00 10 0A 01 sztuk=7 pierwsza=false
+21:13:08.369   +3036 ms  NASŁUCH      koniec  ms=3036 odłożone=przetłumacz to na polski mikrofon=mowa wykryta szczytDb=10.0 próbek=3 gotowyPoMs=417
+21:13:08.440   +3107 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+21:13:09.288   +3955 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.7335 pakietów=187 rozkodowanych=187 odrzuconych=0 przesunięcie=6 ramka=-1
+21:13:09.298   +3965 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:13:09.306   +3973 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3733 jestMs=2000 tło=2 szczyt=11495 ile razy=4204.3
+21:13:09.308   +3975 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=przetłumacz to na polski
+21:13:09.309   +3976 ms  SESJA        pytanie  tekst=przetłumacz to na polski wymuszonyObraz=false
+21:13:09.317   +3984 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:13:09.328   +3995 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:13:11.047   +5715 ms  KONTEKST     zebrany  ms=1707 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:13:11.072   +5739 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=5529
+21:13:15.806  +10473 ms  MODEL        koniec odpowiedzi (214 znaków, 6067 tokenów)  ms=4735
+21:13:30.597  +25264 ms  MOWA         koniec wypowiedzi  ms=14779
+21:13:30.651  +25318 ms  SESJA        --- KONIEC TURY 8170: odpowiedziano ---
+21:13:30.662          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
