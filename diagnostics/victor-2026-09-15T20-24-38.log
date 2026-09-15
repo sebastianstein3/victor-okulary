@@ -44,3 +44,46 @@
 20:42:58.491 +134651 ms  MODEL        model lokalny: koniec generowania  ms=95377 byłPierwszyToken=true
 20:42:58.510 +134671 ms  AUDIO        zwinięte łącze audio tury  ms=3
 20:42:58.529 +134689 ms  SESJA        --- KONIEC TURY c6fa: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+20:43:19.842          ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 2A 76 12 01 00 10 0A 02 00 0F 00 03 00 10 0A 03 sztuk=1 pierwsza=false
+20:43:58.241      +1 ms  SESJA        --- TURA e7a7 ---  źródło=BUTTON
+20:43:58.247      +6 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+20:43:58.251     +11 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+20:43:58.282     +42 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+20:43:58.290     +49 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+20:44:00.675   +2434 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+20:44:00.676   +2435 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+20:44:00.702   +2461 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=2404
+20:44:04.030   +5789 ms  ZDJĘCIE      próba 0: miniatura  bajtów=26787 jpeg=true kompletny=true
+20:44:04.032   +5791 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+20:44:05.216   +6976 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+20:44:05.217   +6976 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 4B 0B 1A sztuk=14 pierwsza=false
+20:44:13.961  +15720 ms  BLE          Hotspot okularów: gotowe  ms=9929
+20:44:14.039  +15798 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=10007
+20:44:14.063  +15822 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=26787 pełnaRozdzielczość=false
+20:44:14.492  +16251 ms  KONTEKST     zebrany  ms=50 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+20:44:14.501  +16260 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=1 znakówPromptu=1142
+20:44:14.540  +16299 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=2 zdjęć=1 znakówPromptu=1142
+20:44:14.580  +16339 ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=1 znakówPromptu=1142
+20:44:14.610  +16369 ms  MODEL        model lokalny: generuję  znakówPromptu=3132
+20:44:21.583  +23342 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 2A 76 12 01 00 10 0A 02 00 0F 00 03 00 10 0A 03 sztuk=2 pierwsza=false
+20:44:44.278  +46037 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 30 01 00 00 00 00 00 00 01 01 sztuk=1 pierwsza=false
+20:45:24.833  +86593 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+20:45:25.967  +87726 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+20:45:25.976  +87735 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+20:45:26.027  +87786 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+20:45:26.310  +88069 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+20:45:28.560  +90319 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+20:45:28.561  +90320 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+20:45:28.567  +90326 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=2254
+20:45:30.731  +92490 ms  ZDJĘCIE      próba 0: miniatura  bajtów=25431 jpeg=true kompletny=true
+20:45:30.738  +92497 ms  ZDJĘCIE      pomijam Wi-Fi Direct - ostatnia próba zawiodła  sekundTemu=76
+20:45:30.762  +92521 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=25431 pełnaRozdzielczość=false
+20:45:31.159  +92918 ms  KONTEKST     zebrany  ms=57 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+20:45:31.179  +92938 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=1 znakówPromptu=1141
+20:45:31.699  +93458 ms  MODEL        wysyłam pytanie  dostawca=deepseek próba=2 zdjęć=1 znakówPromptu=1141
+20:45:33.711  +95470 ms  MODEL        koniec odpowiedzi (242 znaków, 2824 tokenów)  ms=2534
+20:45:35.891  +97650 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 AB B7 12 01 00 10 0A 02 00 0F 00 03 00 10 0A 01 sztuk=1 pierwsza=false
+20:45:43.172 +104932 ms  MODEL        model lokalny: PIERWSZY TOKEN  ms=88563
+20:45:49.943 +111702 ms  MOWA         koniec wypowiedzi  ms=16226
+20:45:50.076 +111835 ms  SESJA        --- KONIEC TURY e7a7: odpowiedziano ---
+20:45:50.140          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
