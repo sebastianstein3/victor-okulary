@@ -221,7 +221,7 @@ fun OnboardingScreen(
                             // gestu, który zrobi co innego, niż zapowiedziano.
                             points = listOf(
                                 "1 kliknięcie = zapytaj głosem, 2 = zdjęcie i opis widoku",
-                                "Przytrzymanie = przeczytaj tekst, na który patrzysz",
+                                "Przytrzymanie = przeczytaj tekst, na który patrzysz - obcy od razu po polsku",
                                 "3 kliknięcia = nowa rozmowa (kasuje historię)"
                             )
                         )

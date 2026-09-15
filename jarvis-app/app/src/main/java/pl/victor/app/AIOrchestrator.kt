@@ -2091,11 +2091,20 @@ class AIOrchestrator(
             // Przytrzymanie - najłatwiejszy gest do trafienia bez patrzenia,
             // więc dostaje funkcję, dla której nosi się te okulary, gdy nie
             // widzi się dobrze: odczytanie tego, co jest napisane.
+            //
+            // ## Czemu od razu po polsku
+            // Bo czytanie obcego tekstu polskim głosem TTS i tak nie dawało nic
+            // użytecznego - angielskie słowa wychodziły przekręcone, a osoba
+            // słuchająca i tak nie wiedziała, co znaczą. Model widzi zdjęcie i
+            // czyta z niego tekst, więc przetłumaczenie go to zmiana POLECENIA,
+            // nie druga runda: bez dodatkowego zapytania, bez OCR-a na telefonie
+            // i bez pobierania modeli tłumaczących.
+            //
+            // Tekst w języku docelowym jest po prostu czytany - „tłumaczenie"
+            // polskiej tabliczki na polski nie ma sensu, a model sam to widzi.
             ButtonAction.READ_TEXT -> handleUserTrigger(
                 TriggerSource.BUTTON,
-                "Przeczytaj na głos cały tekst widoczny na zdjęciu. Nie streszczaj " +
-                    "i nie komentuj - przeczytaj dokładnie to, co jest napisane. " +
-                    "Jeśli tekstu nie ma albo jest nieczytelny, powiedz to jednym zdaniem.",
+                pl.victor.app.vision.ReadTextPrompt.forLanguage(settings.getResponseLanguage()),
                 forceVision = true
             )
             ButtonAction.SCAN_QR -> handleUserTrigger(
