@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Okulary V.I.C.T.O.R. — instrukcja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap&subset=latin,latin-ext">
+<style>
+  :root {
+    --paper: #FCFCFA;
+    --surface: #FFFFFF;
+    --sunk: #F2F3EF;
+    --ink: #1B2420;
+    --soft: #5F6B65;
+    --rule: #DFE3DD;
+    --accent: #0B6B4F;
+    --accent-soft: #E6F2EC;
+    --warn: #9A5B00;
+    --warn-soft: #FBF0DC;
+    --stop: #A3271F;
+    --stop-soft: #FBEAE8;
+    --shadow: 0 1px 3px rgba(27, 36, 32, .07);
+
+    --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --body: "Literata", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #121613;
+      --surface: #1A201C;
+      --sunk: #222925;
+      --ink: #E8EDE9;
+      --soft: #9AA79F;
+      --rule: #2C3531;
+      --accent: #4FD1A5;
+      --accent-soft: #10291F;
+      --warn: #E0A758;
+      --warn-soft: #2B2113;
+      --stop: #F08A80;
+      --stop-soft: #2E1815;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .45);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #121613;
+    --surface: #1A201C;
+    --sunk: #222925;
+    --ink: #E8EDE9;
+    --soft: #9AA79F;
+    --rule: #2C3531;
+    --accent: #4FD1A5;
+    --accent-soft: #10291F;
+    --warn: #E0A758;
+    --warn-soft: #2B2113;
+    --stop: #F08A80;
+    --stop-soft: #2E1815;
+    --shadow: 0 1px 3px rgba(0, 0, 0, .45);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 52px 96px;
+  }
+
+  /* ---- nagłówek ---- */
+  .masthead { display: flex; flex-direction: column; gap: 16px; }
+  .kicker {
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.2rem, 7vw, 3.4rem);
+    line-height: 1.02;
+    letter-spacing: -.025em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .intro { font-size: 1.12rem; margin: 0; max-width: 36rem; }
+  .intro + .intro { margin-top: 2px; }
+
+  /* ---- sekcje ---- */
+  section { margin-top: 60px; }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: -.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.08rem;
+    margin: 28px 0 8px;
+  }
+  p { margin: 0 0 14px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ---- kroki pierwszego uruchomienia ---- */
+  ol.steps { counter-reset: s; list-style: none; margin: 0; padding: 0; }
+  ol.steps > li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 4px 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  ol.steps > li:last-child { border-bottom: none; }
+  ol.steps > li::before {
+    content: counter(s);
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-soft);
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    grid-row: span 2;
+  }
+  ol.steps .what { font-family: var(--display); font-weight: 700; font-size: 1.02rem; }
+  ol.steps .how { color: var(--soft); font-size: .96rem; }
+
+  /* ---- gesty ---- */
+  .gestures { display: grid; gap: 10px; }
+  .gesture {
+    display: grid;
+    grid-template-columns: 116px 1fr;
+    gap: 4px 16px;
+    align-items: baseline;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .gesture .move {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .gesture .does { font-family: var(--display); font-weight: 700; font-size: 1.02rem; }
+  .gesture .note { grid-column: 2; color: var(--soft); font-size: .93rem; }
+
+  /* ---- zdania do powiedzenia ---- */
+  .says { display: flex; flex-direction: column; gap: 5px; margin: 10px 0 0; }
+  .say {
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.55;
+    padding: 6px 12px;
+    background: var(--sunk);
+    border-radius: 4px;
+  }
+  .say::before { content: "„"; color: var(--soft); }
+  .say::after { content: "”"; color: var(--soft); }
+
+  .topic { margin-top: 26px; }
+  .topic > .label {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: .98rem;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .topic > .desc { color: var(--soft); font-size: .95rem; }
+
+  /* ---- tabela usterek ---- */
+  .table-scroll { overflow-x: auto; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: .95rem; }
+  th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: .86rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--soft);
+    border-bottom: 2px solid var(--rule);
+  }
+  td:first-child { font-weight: 600; width: 38%; }
+
+  /* ---- ramki ---- */
+  .box {
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin: 18px 0;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  .box.warn { background: var(--warn-soft); border-color: transparent; }
+  .box.stop { background: var(--stop-soft); border-color: transparent; }
+  .box .head {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: .95rem;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .box.warn .head { color: var(--warn); }
+  .box.stop .head { color: var(--stop); }
+  .box p { font-size: .96rem; }
+
+  ul.plain { margin: 0; padding-left: 1.2em; }
+  ul.plain li { margin-bottom: 8px; }
+  ul.plain li:last-child { margin-bottom: 0; }
+
+  .closing {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 2px solid var(--ink);
+    font-size: .95rem;
+    color: var(--soft);
+  }
+
+  @media (max-width: 480px) {
+    body { font-size: 16px; }
+    .wrap { padding-block: 36px 72px; }
+    .gesture { grid-template-columns: 1fr; gap: 3px; }
+    .gesture .note { grid-column: 1; }
+    ol.steps > li { grid-template-columns: 28px 1fr; gap: 4px 12px; }
+    ol.steps > li::before { width: 26px; height: 26px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">Instrukcja dla osób testujących</div>
+    <h1>Okulary V.I.C.T.O.R.</h1>
+    <p class="intro">Okulary z kamerą i głośnikiem, połączone z aplikacją na telefonie. Mówisz do nich, a one odpowiadają — i potrafią powiedzieć Ci, co widzą.</p>
+    <p class="intro">Ta instrukcja prowadzi od włączenia do codziennego używania. Nie musisz nic wiedzieć wcześniej.</p>
+  </header>
+
+  <div class="box">
+    <span class="head">Zanim zaczniesz — trzy rzeczy do wiedzenia</span>
+    <p><strong>Myśli telefon, nie okulary.</strong> Okulary to mikrofon, głośnik, kamera i przycisk. Cała reszta dzieje się w aplikacji, więc telefon musi być przy sobie i mieć internet.</p>
+    <p style="margin-top:10px"><strong>To jest wersja testowa.</strong> Część rzeczy nie działa jeszcze dobrze — dlatego ją testujesz. Lista tego, o czym już wiemy, jest na końcu.</p>
+    <p style="margin-top:10px"><strong>Odpowiedzi kosztują.</strong> Każde pytanie idzie do zewnętrznego modelu AI, opłacanego z konta właściciela. Nie zostawiaj włączonych trybów ciągłych „na wszelki wypadek”.</p>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>Pierwsze uruchomienie</h2></div>
+    <p>Aplikacja przeprowadzi Cię przez to sama. Poniżej to, co Cię czeka, żeby nic Cię nie zaskoczyło.</p>
+    <ol class="steps">
+      <li>
+        <span class="what">Zainstaluj aplikację</span>
+        <span class="how">Plik APK dostajesz od właściciela. Android zapyta, czy zezwolić na instalację z nieznanego źródła — to normalne przy aplikacji, której nie ma w sklepie.</span>
+      </li>
+      <li>
+        <span class="what">Przejdź samouczek</span>
+        <span class="how">Kilka ekranów z opisem funkcji. Można je przeklikać, ale ten o przycisku warto przeczytać — przyda się w sekcji 02.</span>
+      </li>
+      <li>
+        <span class="what">Wybierz model AI i wklej klucz</span>
+        <span class="how">Klucz dostajesz od właściciela. Bez niego asystent nie odpowie na nic — to jedyny krok, którego nie da się pominąć.</span>
+      </li>
+      <li>
+        <span class="what">Zgody</span>
+        <span class="how">Mikrofon, Bluetooth, urządzenia w pobliżu, powiadomienia. Bez mikrofonu i Bluetootha nie zadziała nic. Kalendarz, kontakty i lokalizacja są opcjonalne i można je dodać później.</span>
+      </li>
+      <li>
+        <span class="what">Wyłącz optymalizację baterii dla aplikacji</span>
+        <span class="how">Android inaczej uśpi połączenie z okularami po kilku minutach w kieszeni. Aplikacja sama o to poprosi i pokaże właściwy ekran.</span>
+      </li>
+      <li>
+        <span class="what">Sparuj okulary</span>
+        <span class="how">Włącz okulary, w aplikacji wejdź w „Połącz z okularami” i poczekaj na skanowanie. Gdy urządzenie pojawi się na liście — dotknij go. Jeśli nie widać go po kilkunastu sekundach, sprawdź, czy Bluetooth w telefonie jest włączony.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>Przycisk na oprawce</h2></div>
+    <p>To jest najważniejsza strona tej instrukcji. Cztery gesty, wszystkie na jednym przycisku — kliknięcia trzeba wykonać szybko po sobie, bo okulary liczą je w oknie pół sekundy.</p>
+    <div class="gestures">
+      <div class="gesture">
+        <span class="move">1 × klik</span>
+        <span class="does">Zadaj pytanie</span>
+        <span class="note">Asystent zaczyna słuchać. Mów od razu po kliknięciu, normalnym głosem.</span>
+      </div>
+      <div class="gesture">
+        <span class="move">2 × klik</span>
+        <span class="does">Popatrz i opisz</span>
+        <span class="note">Robi zdjęcie i mówi, co widzi. Nie musisz nic mówić.</span>
+      </div>
+      <div class="gesture">
+        <span class="move">przytrzymaj</span>
+        <span class="does">Przeczytaj tekst</span>
+        <span class="note">Odczytuje napisy, na które patrzysz — etykietę, ulotkę, tabliczkę. Trzymaj głowę nieruchomo przez chwilę.</span>
+      </div>
+      <div class="gesture">
+        <span class="move">3 × klik</span>
+        <span class="does">Nowa rozmowa</span>
+        <span class="note">Kasuje pamięć bieżącej rozmowy. Użyj, gdy asystent zaczyna mieszać wątki.</span>
+      </div>
+    </div>
+    <div class="box warn">
+      <span class="head">Jeśli masz starszą wersję aplikacji</span>
+      <p>Samouczek w niej podaje dwa ostatnie gesty odwrotnie (że przytrzymanie zaczyna nową rozmowę, a trzy kliknięcia czytają kod QR). Prawdziwa jest tabelka powyżej — błąd w samouczku został poprawiony.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>Mówienie do asystenta</h2></div>
+    <p>Najpewniejsza droga to przycisk. Można też powiedzieć słowo wybudzające — domyślnie jest nim angielskie <strong>„computer”</strong> — albo nacisnąć przycisk rozmowy na ekranie telefonu.</p>
+    <p>Mów całymi zdaniami, tak jak do człowieka. Nie ma sztywnych formułek poza tymi, które podajemy niżej dosłownie.</p>
+
+    <div class="topic">
+      <span class="label">Pytania o świat</span>
+      <span class="desc">Zwykła rozmowa. Asystent zna datę i godzinę, a gdy trzeba — poszuka w sieci.</span>
+      <div class="says">
+        <div class="say">Ile jest stopni na zewnątrz?</div>
+        <div class="say">Opowiedz mi o zamku w Bodrum</div>
+        <div class="say">Jak powiedzieć po angielsku „dziękuję”?</div>
+      </div>
+    </div>
+
+    <div class="topic">
+      <span class="label">Co widzę</span>
+      <span class="desc">Wymaga połączonych okularów.</span>
+      <div class="says">
+        <div class="say">Co właśnie widzę?</div>
+        <div class="say">Zrób zdjęcie</div>
+        <div class="say">Przeczytaj mi to</div>
+      </div>
+    </div>
+
+    <div class="topic">
+      <span class="label">Telefon i sprawy</span>
+      <span class="desc">SMS, telefon, mail, budzik, minutnik, kalendarz.</span>
+      <div class="says">
+        <div class="say">Zadzwoń do domu</div>
+        <div class="say">Wyślij SMS do Ani, że się spóźnię</div>
+        <div class="say">Ustaw budzik na 7:00</div>
+        <div class="say">Umów spotkanie jutro na 15</div>
+      </div>
+    </div>
+
+    <div class="topic">
+      <span class="label">W drodze</span>
+      <span class="desc">Prowadzenie uruchamia mapy w telefonie — to one mówią „za pięćdziesiąt metrów skręć w prawo”.</span>
+      <div class="says">
+        <div class="say">Prowadź do najbliższej Biedronki</div>
+        <div class="say">Jedź do Krakowa</div>
+        <div class="say">Pokaż na mapie najbliższą aptekę</div>
+      </div>
+    </div>
+
+    <div class="topic">
+      <span class="label">Muzyka i telefon</span>
+      <div class="says">
+        <div class="say">Włącz muzykę</div>
+        <div class="say">Następna</div>
+        <div class="say">Zapal latarkę</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>Potwierdzanie głosem</h2></div>
+    <p>Zanim asystent zrobi coś, czego nie da się cofnąć — wyśle SMS, zadzwoni, dopisze wydarzenie do kalendarza — <strong>zapyta na głos</strong> i poczeka około siedmiu sekund na odpowiedź.</p>
+    <p>Wystarczy powiedzieć <strong>„tak”</strong> albo <strong>„nie”</strong>. Działa też „potwierdzam”, „dawaj”, „anuluj”, „nie trzeba”.</p>
+    <div class="box">
+      <span class="head">Wahanie liczy się jako odmowa</span>
+      <p>„Chyba tak” albo „może” nie wykona akcji — asystent powie, że nie odczytał odpowiedzi, i nic nie zrobi. To jest celowe: przy rzeczy nieodwracalnej lepiej zapytać drugi raz niż wysłać SMS, którego nikt nie chciał.</p>
+      <p style="margin-top:10px">Jeśli nie odpowiesz wcale, na telefonie zostaje okno z przyciskami. Możesz też nacisnąć przycisk na oprawce i powiedzieć samo „tak”.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>Notatki</h2></div>
+    <p>Notatki zapisuje sama aplikacja, więc działają nawet bez internetu. Są dwa sposoby i warto znać oba.</p>
+
+    <div class="topic">
+      <span class="label">Dyktujesz treść</span>
+      <span class="desc">Zapisuje się dokładnie to, co powiesz.</span>
+      <div class="says">
+        <div class="say">Notatka: kupić baterie AA</div>
+        <div class="say">Zapisz, że mam oddać książkę do biblioteki</div>
+        <div class="say">Dodaj do listy zakupów mleko</div>
+      </div>
+    </div>
+
+    <div class="topic">
+      <span class="label">Notatkę pisze asystent</span>
+      <span class="desc">Z tego, o czym przed chwilą mówiliście, albo z tego, na co patrzysz.</span>
+      <div class="says">
+        <div class="say">Zrób z tego notatkę</div>
+        <div class="say">Zanotuj to</div>
+        <div class="say">Opowiedz mi o zamku w Bodrum i zrób z tego notatkę</div>
+        <div class="say">Zrób notatkę z tego co widzisz</div>
+      </div>
+    </div>
+
+    <div class="topic">
+      <span class="label">Odczytanie</span>
+      <div class="says">
+        <div class="say">Notatki</div>
+        <div class="say">Co mam w notatkach</div>
+        <div class="say">Lista zakupów</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">06</span><h2>Tryby dla osób niewidomych</h2></div>
+    <p>Trzy tryby ciągłe. Włączasz je zdaniem, a kończysz mówiąc <strong>„wyłącz tryb”</strong> albo „dziękuję, wystarczy”.</p>
+
+    <div class="topic">
+      <span class="label">Czytanie tekstu — „Czytaj tekst na głos”</span>
+      <span class="desc">Czyta napisy w pętli. Rozpoznaje litery sam telefon, więc ten tryb nic nie kosztuje.</span>
+    </div>
+    <div class="topic">
+      <span class="label">Opis otoczenia — „Opisuj mi otoczenie”</span>
+      <span class="desc">Co jakiś czas mówi, co widać dookoła. Pomija opis, gdy nic się nie zmieniło, więc nieruchomy pokój nie jest opisywany w kółko.</span>
+    </div>
+    <div class="topic">
+      <span class="label">Ostrzeganie o przeszkodach — „Prowadź mnie”</span>
+      <span class="desc">Mówi o schodach, krawężnikach i przeszkodach. To co innego niż „prowadź do…”, które wyznacza trasę.</span>
+    </div>
+
+    <div class="box stop">
+      <span class="head">To nie jest system bezpieczeństwa</span>
+      <p>Asystent widzi pojedyncze zdjęcie sprzed kilku sekund, nie mierzy odległości i nie widzi ruchu. Nigdy nie powie, że droga jest wolna — i nie wolno tak zakładać. To pomoc uzupełniająca do laski albo psa, nie ich zamiennik.</p>
+    </div>
+
+    <div class="box warn">
+      <span class="head">Dwa tryby ciągłe kosztują</span>
+      <p>Opis otoczenia i ostrzeganie o przeszkodach pytają model raz za razem, przez cały czas działania. Włączaj je, gdy są potrzebne, i wyłączaj, gdy przestaną być. Czytanie tekstu jest darmowe.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">07</span><h2>Gdy coś nie działa</h2></div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Objaw</th><th>Co zrobić</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Naciskam przycisk i nic się nie dzieje</td>
+            <td>Sprawdź w aplikacji, czy okulary są połączone. Po dłuższej przerwie połączenie trzeba czasem odświeżyć — wejdź w „Połącz z okularami”.</td>
+          </tr>
+          <tr>
+            <td>Słychać, że robi zdjęcie, ale nic nie mówi</td>
+            <td>Najczęściej brak internetu w telefonie albo skończyły się środki na koncie AI. Asystent powinien to powiedzieć — jeśli milczy, zgłoś to, bo cisza jest błędem samym w sobie.</td>
+          </tr>
+          <tr>
+            <td>Nie rozpoznaje tego, co mówię</td>
+            <td>Mów zaraz po kliknięciu i nie za cicho. W hałasie bywa gorzej. Jeśli powtarza się w ciszy — zgłoś, podając zdanie, które próbowałeś powiedzieć.</td>
+          </tr>
+          <tr>
+            <td>Odpowiedź się urywa w połowie</td>
+            <td>Zgłoś. Podaj, czy słuchałeś przez okulary, czy przez telefon.</td>
+          </tr>
+          <tr>
+            <td>Połączenie znika, gdy telefon leży w kieszeni</td>
+            <td>Sprawdź, czy optymalizacja baterii dla aplikacji jest wyłączona (krok 5 pierwszego uruchomienia).</td>
+          </tr>
+          <tr>
+            <td>Galeria nie pokazuje zdjęć z okularów</td>
+            <td>Wejdź w „Połącz i wczytaj”. Pobieranie idzie przez Wi-Fi okularów i trwa — internet w telefonie działa przy tym normalnie.</td>
+          </tr>
+          <tr>
+            <td>Mówi coś, czego nie ma w moim kalendarzu</td>
+            <td>Zgłoś dokładne zdanie. To był znany błąd i został poprawiony, więc każdy nawrót jest ważny.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">08</span><h2>Co zgłaszać i jak</h2></div>
+    <p>Najcenniejsze zgłoszenie to takie, które da się powtórzyć. Trzy rzeczy wystarczą:</p>
+    <ul class="plain">
+      <li><strong>Co powiedziałeś</strong> — dosłownie, tymi samymi słowami. Różnica między „zanotuj to” a „zrób notatkę” bywa całą przyczyną usterki.</li>
+      <li><strong>Czego się spodziewałeś</strong> i co się stało zamiast tego.</li>
+      <li><strong>Mniej więcej kiedy</strong> — wystarczy godzina. Aplikacja prowadzi własny dziennik zdarzeń i po godzinie da się w nim znaleźć dokładnie ten moment.</li>
+    </ul>
+    <div class="box">
+      <span class="head">O dzienniku</span>
+      <p>Aplikacja zapisuje przebieg swojego działania do pliku i — jeśli właściciel to skonfigurował — wysyła go do siebie. Klucze i hasła są z niego usuwane automatycznie. Nie zapisuje treści Twoich rozmów jako takich, ale zapisuje, co i kiedy robiła.</p>
+      <p style="margin-top:10px">Jeśli coś jest prywatne i nie chcesz, żeby trafiło do dziennika — powiedz o tym właścicielowi, dziennik da się wyłączyć w ustawieniach.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">09</span><h2>O czym już wiemy</h2></div>
+    <p>Żeby nie tracić czasu na zgłaszanie tego samego:</p>
+    <ul class="plain">
+      <li><strong>Nie wiadomo, jak szybko schodzi bateria okularów</strong> przy dłuższym podglądzie obrazu. Jeśli zauważysz, ile procent ubyło w ciągu kilkunastu minut — to akurat bardzo przydatna obserwacja.</li>
+      <li><strong>Mapy i asystent mogą odezwać się jednocześnie</strong> i wejść sobie w słowo podczas prowadzenia. Wiemy, jeszcze nie rozstrzygnięto, które zdanie ma mieć pierwszeństwo.</li>
+      <li><strong>Słowo wybudzające jest angielskie</strong> („computer”) i nie da się go na razie zmienić na polskie. Przycisk działa zawsze i jest pewniejszy.</li>
+      <li><strong>Nie każde zdanie zostanie zrozumiane.</strong> Jeśli asystent poprosi, żebyś powiedział coś w konkretnej formie — to znaczy, że Twojego sformułowania jeszcze nie rozpoznaje. Zgłoś je; to najprostsza rzecz do poprawienia.</li>
+    </ul>
+  </section>
+
+  <p class="closing">Instrukcja opisuje wersję testową aplikacji z 15 września 2026. W razie wątpliwości pytaj właściciela sprzętu — szybciej niż zgadywać.</p>
+
+</div>
+
+</body>
+</html>
