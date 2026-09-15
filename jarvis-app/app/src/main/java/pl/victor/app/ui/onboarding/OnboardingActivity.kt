@@ -206,10 +206,23 @@ fun OnboardingScreen(
                             accent = MaterialTheme.colorScheme.secondary,
                             title = "Przycisk i panel dotykowy",
                             tagline = "Fizyczne sterowanie na samych okularach",
+                            // GESTY MUSZĄ ZGADZAĆ SIĘ Z [ButtonActionDetector].
+                            //
+                            // Dwa z czterech były tu na odwrót: samouczek uczył,
+                            // że potrójne kliknięcie czyta kod QR, a
+                            // przytrzymanie zaczyna nową rozmowę. Kod robi
+                            // dokładnie odwrotnie, odkąd przytrzymanie dostało
+                            // czytanie tekstu - bo to jest funkcja, dla której
+                            // nosi się te okulary, a reset zszedł do
+                            // najrzadziej potrzebnego gestu.
+                            //
+                            // Pierwsze zdanie, jakie nowa osoba czyta o
+                            // sterowaniu, nie może być nieprawdą: uczy się jej
+                            // gestu, który zrobi co innego, niż zapowiedziano.
                             points = listOf(
                                 "1 kliknięcie = zapytaj głosem, 2 = zdjęcie i opis widoku",
-                                "3 kliknięcia = odczytaj kod QR, przytrzymanie = nowa rozmowa",
-                                "Przesunięcie palcem po panelu = głośność, dotknięcie = wycisz"
+                                "Przytrzymanie = przeczytaj tekst, na który patrzysz",
+                                "3 kliknięcia = nowa rozmowa (kasuje historię)"
                             )
                         )
                         OnboardingStep.FEATURE_SMART -> FeatureSlide(
