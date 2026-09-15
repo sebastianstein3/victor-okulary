@@ -412,19 +412,15 @@ private fun IdleContent(
 
     // === Panel Accessibility (niewidomi) ===
     Spacer(modifier = Modifier.height(12.dp))
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-        )
+    // PANEL, NIE KARTA. Materialowa karta oddziela treść cieniem i
+    // wypełnieniem - wygląda jak kartonik na tle. Panel oddziela ją kreską i
+    // zostawia tło prawie takie samo jak dookoła; tak buduje się pola w
+    // przyrządach. Patrz [pl.victor.app.ui.theme.VictorPanel].
+    pl.victor.app.ui.theme.VictorPanel(
+        label = "Asystent niewidomych",
+        accent = accessibilityMode != pl.victor.app.accessibility.AccessibilityMode.OFF
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                "Asystent niewidomych",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.size(4.dp))
+        Column {
             Text(
                 if (accessibilityMode != pl.victor.app.accessibility.AccessibilityMode.OFF)
                     "Aktywny: ${accessibilityMode.emoji} ${accessibilityMode.displayName}"
