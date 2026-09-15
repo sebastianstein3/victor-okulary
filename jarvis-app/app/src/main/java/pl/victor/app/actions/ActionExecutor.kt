@@ -163,15 +163,49 @@ class ActionExecutor(private val context: Context) {
 
     // === Nawigacja ===
 
+    /**
+     * Uruchamia PROWADZENIE do celu - takie, przy którym mapy same mówią.
+     *
+     * ## Czemu nie samo `geo:`
+     * Bo `geo:0,0?q=...` tylko POKAZUJE pinezkę. Dla osoby widzącej to połowa
+     * roboty, dla niewidomej - dokładnie nic, tyle że wygląda na sukces:
+     * asystent melduje "otwieram mapę", telefon wyświetla punkt, którego nikt
+     * nie zobaczy, i zapada cisza. Dopiero `google.navigation:` włącza
+     * prowadzenie krok po kroku, a wskazówki ("za pięćdziesiąt metrów skręć w
+     * prawo") mówi już aplikacja map, nie my.
+     *
+     * ## Czemu `geo:` mimo to zostaje
+     * Jako zapas i z tego samego powodu, dla którego wybrano je wcześniej:
+     * `google.navigation:` rozumie Google Maps, a `geo:` KAŻDA aplikacja map.
+     * Gdy Map Google nie ma, lepiej pokazać miejsce w czymkolwiek niż nie
+     * zrobić nic - ale wtedy komunikat mówi wprost, że wskazówek nie będzie.
+     */
     private fun navigate(action: Action.Navigate): ActionResult {
-        // Schemat geo: obsługuje każda aplikacja map, nie tylko Google - i o to
-        // chodzi. Wcześniejsze resolveActivity() odsyłało do instalacji Google
-        // Maps nawet wtedy, gdy inna aplikacja map była zainstalowana, bo nie
-        // było jej w <queries> (patrz [launchIntent]).
-        val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(action.destination)}")
+        val where = Uri.encode(action.destination)
+        val mode = if (action.byCar) TRAVEL_CAR else TRAVEL_WALK
+        val guided = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("google.navigation:q=$where&mode=$mode")
+        )
+        val how = if (action.byCar) "samochodem" else "pieszo"
+        val started = launchIntent(
+            guided,
+            errorIfNotFound = "",
+            successMessage = "Prowadzę $how do „${action.destination}”. " +
+                "Wskazówek słuchaj z map."
+        )
+        if (started is ActionResult.Success) return started
+
+        // Zapas: pinezka w dowolnej aplikacji map. Mówimy, CZEGO NIE BĘDZIE -
+        // "otworzyłem mapę" brzmi jak sukces, a bez wskazówek głosowych nie jest
+        // nim dla kogoś, kto na tę mapę nie patrzy.
+        val pin = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=$where"))
         return launchIntent(
-            Intent(Intent.ACTION_VIEW, geoUri),
-            "Brak aplikacji map - zainstaluj np. Google Maps"
+            pin,
+            errorIfNotFound = "Brak aplikacji map - zainstaluj np. Google Maps",
+            successMessage = "Nie mam czym poprowadzić, więc tylko pokazałem " +
+                "„${action.destination}” na mapie. Wskazówek głosowych nie będzie - " +
+                "do prowadzenia potrzebne są Mapy Google."
         )
     }
 
@@ -432,6 +466,10 @@ class ActionExecutor(private val context: Context) {
          * Jedna stała po obu stronach, żeby jej zmiana nie rozjechała ich po cichu.
          */
         const val GENERIC_SUCCESS = "Otwarto"
+
+        /** Tryby podróży schematu `google.navigation:` - `w` pieszo, `d` samochodem. */
+        const val TRAVEL_WALK = "w"
+        const val TRAVEL_CAR = "d"
     }
 
 }

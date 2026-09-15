@@ -114,10 +114,20 @@ sealed class Action {
     }
 
     // === Nawigacja ===
-    /** Nawiguj do adresu/ miejsca. Otwiera Google Maps. */
-    data class Navigate(val destination: String) : Action() {
+    /**
+     * Prowadź do miejsca - z wskazówkami głosowymi, nie samą pinezką na mapie.
+     *
+     * @param byCar czy prowadzić samochodem. Domyślnie PIESZO, bo tak brzmi
+     *   "prowadź do" i tak porusza się osoba, dla której ta aplikacja powstała;
+     *   samochód włącza dopiero wyraźne "jedź do".
+     */
+    data class Navigate(
+        val destination: String,
+        val byCar: Boolean = false
+    ) : Action() {
         override val type = ActionType.NAVIGATE
-        override val description = "Nawiguj do: $destination"
+        override val description =
+            if (byCar) "Prowadź samochodem do: $destination" else "Prowadź pieszo do: $destination"
     }
 
     // === Kalendarz ===

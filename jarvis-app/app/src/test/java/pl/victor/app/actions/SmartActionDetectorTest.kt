@@ -332,6 +332,58 @@ class SmartActionDetectorTest {
     }
 
     @Test
+    fun `prowadz do miejsca NIE wlacza trybu ostrzegania`() {
+        // To jest ten przypadek, który robił dwie złe rzeczy naraz: otwierał
+        // mapę I uruchamiał w tle pętlę pytającą model o obraz kilkadziesiąt
+        // razy na minutę, o co nikt nie prosił.
+        val actions = detector.detect("prowadź do najbliższej biedronki")
+        assertTrue("miała powstać trasa", actions.any { it is Action.Navigate })
+        assertTrue(
+            "tryb ostrzegania o przeszkodach nie miał się włączyć, było: " +
+                actions.map { it.type },
+            actions.none { it is Action.StartNavigation }
+        )
+    }
+
+    @Test
+    fun `samo prowadz dalej wlacza tryb ostrzegania`() {
+        // Druga strona tej samej reguły: bez celu "prowadź" znaczy to co zawsze.
+        val actions = detector.detect("prowadź")
+        assertTrue(actions.any { it is Action.StartNavigation })
+        assertTrue(actions.none { it is Action.Navigate })
+    }
+
+    @Test
+    fun `najblizsza znika z celu trasy`() {
+        // Mapy i tak szukają od bieżącego położenia, a słowo zostawione w
+        // zapytaniu bywa dopasowywane do nazwy miejsca.
+        val dest = detector.detect("prowadź do najbliższej biedronki")
+            .filterIsInstance<Action.Navigate>().first().destination
+        assertEquals("biedronki", dest)
+    }
+
+    @Test
+    fun `najblizsza bez ogonkow tez znika`() {
+        // Rozpoznawanie mowy zwraca jedno i drugie.
+        val dest = detector.detect("nawiguj do najblizszej apteki")
+            .filterIsInstance<Action.Navigate>().first().destination
+        assertEquals("apteki", dest)
+    }
+
+    @Test
+    fun `jedz do znaczy samochodem, prowadz do znaczy pieszo`() {
+        // Trasa samochodowa poprowadzona pieszemu każe iść obwodnicą, a piesza
+        // kierowcy - przez park.
+        val byCar = detector.detect("jedź do Krakowa")
+            .filterIsInstance<Action.Navigate>().first()
+        assertTrue("jedź = samochodem", byCar.byCar)
+
+        val onFoot = detector.detect("prowadź do apteki")
+            .filterIsInstance<Action.Navigate>().first()
+        assertFalse("prowadź = pieszo", onFoot.byCar)
+    }
+
+    @Test
     fun `otworz strone jest rozpoznawane`() {
         assertDetects<Action.OpenUrl>("otwórz stronę wikipedia.pl")
         assertDetects<Action.OpenUrl>("wejdź na https://example.com")

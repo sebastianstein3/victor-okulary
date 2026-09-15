@@ -193,14 +193,24 @@ class SmartActionDetector {
 
         // === NAWIGACJA ===
         // "nawiguj do X" / "prowadź do X" / "jedź do X"
+        //
+        // Czasownik niesie TRYB PODRÓŻY i to nie jest szczegół: trasa
+        // samochodowa poprowadzona pieszemu każe iść obwodnicą, a piesza
+        // kierowcy - przez park.
         val navRegex = Regex(
-            """(?:nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
+            """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
             RegexOption.IGNORE_CASE
         )
         navRegex.find(lower)?.let { match ->
-            val dest = match.groupValues[1].trim()
+            val dest = cleanDestination(match.groupValues[2])
             if (dest.isNotBlank()) {
-                actions.add(Action.Navigate(destination = dest))
+                val verb = match.groupValues[1].lowercase()
+                actions.add(
+                    Action.Navigate(
+                        destination = dest,
+                        byCar = verb.startsWith("jed")
+                    )
+                )
             }
         }
 
@@ -447,7 +457,14 @@ class SmartActionDetector {
         if (matchesAny(lower, "co przede mną", "co widzisz", "opisz", "co jest przed", "co tam")) {
             actions.add(Action.DescribeScene)
         }
-        if (matchesAny(lower, "prowadź", "nawiguj", "idź ze mną", "idziemy")) {
+        // "prowadź" WŁĄCZA ostrzeganie o przeszkodach, ale "prowadź DO
+        // BIEDRONKI" to prośba o trasę - i dotąd odpalały się OBIE naraz.
+        // Skutek był podwójnie zły: otwierała się mapa, a w tle ruszała pętla
+        // pytająca model o obraz kilkadziesiąt razy na minutę, o co nikt nie
+        // prosił. Ten sam wzorzec pierwszeństwa co przy [Action.ShowOnMap] wyżej.
+        if (matchesAny(lower, "prowadź", "nawiguj", "idź ze mną", "idziemy") &&
+            actions.none { it is Action.Navigate }
+        ) {
             actions.add(Action.StartNavigation)
         }
         if (matchesAny(lower, "stop czytanie", "stop opis", "zatrzymaj tryb", "wyłącz tryb")) {
@@ -463,6 +480,22 @@ class SmartActionDetector {
     private fun matchesAny(text: String, vararg phrases: String): Boolean {
         return phrases.any { text.contains(it) }
     }
+
+    /**
+     * Sprząta cel trasy z tego, co wnosi mowa, a nie miejsce.
+     *
+     * "Najbliższa" jest tu najczęstsza i akurat zbędna: mapy szukają od
+     * bieżącego położenia i same podają najbliższy wynik, a zostawione w
+     * zapytaniu bywa dopasowywane do nazwy miejsca. Odmiany nie prostujemy -
+     * "biedronki" mapy znajdą tak samo jak "biedronka", a prostowanie polskiej
+     * odmiany regułą kończy się gorzej niż jej zostawienie.
+     */
+    private fun cleanDestination(raw: String): String = raw
+        .trim()
+        .replace(NEAREST_REGEX, "")
+        .trim()
+        .trim(',', '.', '!', '?')
+        .trim()
 
     /**
      * Wykrywa akcje oznaczone przez AI znacznikiem `[[ACTION: ...]]` w JEGO
@@ -616,7 +649,18 @@ class SmartActionDetector {
                 )
             }
             "play_music" -> Action.PlayMusic(query = params["query"] ?: "")
-            "navigate" -> params["destination"]?.let { Action.Navigate(destination = it) }
+            "navigate" -> params["destination"]?.let {
+                val dest = cleanDestination(it)
+                dest.ifBlank { null }?.let { where ->
+                    Action.Navigate(
+                        destination = where,
+                        // Domyślnie pieszo, tak jak przy komendzie głosowej;
+                        // samochód tylko gdy model wyraźnie o niego poprosi.
+                        byCar = params["mode"]?.lowercase()?.startsWith("car") == true ||
+                            params["mode"]?.lowercase()?.startsWith("sam") == true
+                    )
+                }
+            }
             "set_alarm" -> {
                 val hour = params["hour"]?.toIntOrNull() ?: return null
                 val minute = params["minute"]?.toIntOrNull() ?: 0
@@ -685,6 +729,16 @@ class SmartActionDetector {
     }
 
     companion object {
+        /**
+         * "najbliższa/najbliższego/najblizszy..." na początku celu trasy.
+         *
+         * Z ogonkami i bez, bo rozpoznawanie mowy zwraca jedno i drugie.
+         */
+        private val NEAREST_REGEX = Regex(
+            """^(?:najbli[żz]sz\w*)\s+""",
+            RegexOption.IGNORE_CASE
+        )
+
         /**
          * Znacznik akcji, patrz [detectAiMarkedActions] i [AI_ACTION_CAPABILITIES_PROMPT].
          *
@@ -835,7 +889,8 @@ Dostępne typy i klucze:
 - make_call: to (numer lub imię)
 - send_email: to (adres), subject (temat), body (treść)
 - play_music: query (czego szukać)
-- navigate: destination (adres lub miejsce)
+- navigate: destination (adres lub miejsce), mode (opcjonalnie: "car" gdy
+  samochodem; domyślnie pieszo)
 - set_alarm: hour, minute (opcjonalnie), label (opcjonalnie)
 - set_timer: minutes, seconds (opcjonalnie)
 - web_search: query
