@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import pl.victor.app.ai.ProviderFailure
 import pl.victor.app.audio.AudioManager
 import pl.victor.app.data.HistoryRepository
 import pl.victor.app.stream.YuvFrame
@@ -83,6 +84,7 @@ class AccessibilityService(
         active.set(true)
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb czytania włączony. Skieruj okulary na tekst.", language = "pl")
+        resetHealth()
         workerJob = scope.launch {
             startLiveVisionOrExplain()
             readTextLoop()
@@ -100,6 +102,7 @@ class AccessibilityService(
         active.set(true)
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb opisu włączony. Będę Ci mówił co widzisz.", language = "pl")
+        resetHealth()
         workerJob = scope.launch {
             startLiveVisionOrExplain()
             describeSceneLoop()
@@ -117,6 +120,7 @@ class AccessibilityService(
         active.set(true)
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb nawigacji włączony. Uważaj - będę Cię prowadził.", language = "pl")
+        resetHealth()
         workerJob = scope.launch {
             startLiveVisionOrExplain()
             navigateLoop()
@@ -174,6 +178,102 @@ class AccessibilityService(
      * zdjęcia, ale AI nic nie mówi".
      */
     private val failureCounters = mutableMapOf<String, Int>()
+
+    /**
+     * Powód, dla którego dalsze pytanie modelu NIE MA SENSU - albo `null`.
+     *
+     * Ustawiany tylko przy awariach trwałych (puste konto, odrzucony klucz);
+     * patrz [ProviderFailure.isPermanent]. Zerwana sieć tu nie trafia, bo sieć
+     * wraca sama i ponawianie jest wtedy właściwym zachowaniem.
+     */
+    @Volatile
+    private var modelDead: String? = null
+
+    /** Ile zapytań do modelu nie udało się z rzędu - do odczekania. */
+    @Volatile
+    private var modelFailures = 0
+
+    /** Ile udanych zapytań od włączenia trybu - do zapisania tempa w dzienniku. */
+    @Volatile
+    private var modelCalls = 0
+
+    /** Kasuje ślady poprzedniego trybu. Bez tego wczorajsza awaria gasi dzisiejszy tryb. */
+    private fun resetHealth() {
+        modelDead = null
+        modelFailures = 0
+        modelCalls = 0
+        failureCounters.clear()
+        runCatching { pl.victor.app.VictorApplication.get().usage.resetRate() }
+    }
+
+    /**
+     * Ile DODATKOWO odczekać po nieudanych zapytaniach.
+     *
+     * ## Czemu to nie jest kosmetyka
+     * Bo pętla trybu ciągłego pyta model co półtorej sekundy i po awarii leciała
+     * dalej w tym samym tempie. Przy zerwanej sieci znaczyło to czterdzieści
+     * nieudanych zapytań na minutę - obciążenie łącza i baterii za nic, w
+     * sytuacji, w której i tak nic nie zadziała.
+     *
+     * Rośnie dwukrotnie i ma sufit: awaria przejściowa ma zostać zauważona
+     * szybko, gdy minie, a nie po kwadransie ciszy.
+     */
+    private fun failureBackoffMs(): Long {
+        if (modelFailures <= 0) return 0L
+        val shift = (modelFailures - 1).coerceAtMost(BACKOFF_MAX_SHIFT)
+        return (BACKOFF_STEP_MS shl shift).coerceAtMost(BACKOFF_CEILING_MS)
+    }
+
+    /**
+     * Kończy tryb, gdy dalsze pytanie modelu nie ma sensu.
+     *
+     * ## Czemu wyłączenie, a nie samo milczenie
+     * Bo przy pustym koncie pętla dobijała się do serwera co półtorej sekundy w
+     * nieskończoność, a użytkownik słyszał w kółko ten sam komunikat i nie miał
+     * skąd wiedzieć, że to nie minie samo. Tryb, który nie może działać, ma to
+     * powiedzieć RAZ i się skończyć - wtedy widać, że trzeba coś zrobić.
+     *
+     * @return `true`, gdy tryb został zakończony
+     */
+    private fun stopIfModelDead(): Boolean {
+        val reason = modelDead ?: return false
+        audio.speak(reason, language = "pl")
+        disable(reason = "model trwale niedostępny")
+        return true
+    }
+
+    /**
+     * Zapisuje w dzienniku, ile ten tryb naprawdę pali.
+     *
+     * ## Po co
+     * Bo to jest ta liczba, której do tej pory nie było, a bez której nie da
+     * się uczciwie ustawić żadnego limitu. Zapytanie o obraz to zmierzone circa
+     * 1600 tokenów; ile ich wychodzi na minutę, zależy od tempa pętli, czasu
+     * odpowiedzi modelu i tego, jak często zmienia się scena - czyli od rzeczy,
+     * których nie policzę z kodu. Dziennik policzy je na sprzęcie.
+     */
+    private fun logUsageRate() {
+        if (modelCalls == 0 || modelCalls % RATE_REPORT_EVERY != 0) return
+        runCatching {
+            val app = pl.victor.app.VictorApplication.get()
+            // Bez wyjścia z funkcji spod `runCatching`: wyjście spod wbudowanej
+            // lambdy jest legalne, ale to jest dokładnie ta subtelność, na
+            // której nie chcę opierać buildu trwającego siedem minut.
+            val rate = app.usage.ratePerMinute()
+            val day = app.usage.todayAsOf()
+            if (rate != null) app.diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.MODEL,
+                "TEMPO trybu ${_mode.value.displayName}",
+                mapOf(
+                    "tokenówNaMinutę" to rate,
+                    "zapytańWTrybie" to modelCalls,
+                    "tokenówDziś" to day.tokens,
+                    "zapytańDziś" to day.requests
+                )
+            )
+        }
+    }
+
 
     /**
      * Mówi o awarii - ale przy trwałej usterce nie za każdym obrotem pętli,
@@ -244,14 +344,20 @@ class AccessibilityService(
     ): String? = try {
         val answer = ask(photo)
         clearFailure(key)
+        modelFailures = 0
+        modelCalls++
+        logUsageRate()
         answer.takeIf { it.isNotBlank() }
     } catch (e: Exception) {
         Log.e(tag, "Zapytanie do modelu nie powiodło się", e)
-        reportFailure(
-            key,
-            "Nie mogę teraz zapytać asystenta. " +
-                (e.message?.take(MAX_SPOKEN_ERROR) ?: "Sprawdź internet i klucz API.")
-        )
+        modelFailures++
+        // ProviderFailure zamiast doklejania treści wyjątku: to jest klasa
+        // zrobiona dokładnie do tego i mówi, CO ZROBIĆ ("konto nie ma
+        // środków - sprawdź w ustawieniach"), a nie jak brzmi odpowiedź HTTP.
+        // Surowa treść zostaje w dzienniku, gdzie się przydaje.
+        val spoken = ProviderFailure.describe(e.message)
+        if (ProviderFailure.isPermanent(e.message)) modelDead = spoken
+        reportFailure(key, spoken)
         null
     }
 
@@ -403,6 +509,7 @@ class AccessibilityService(
                 val photo = capturePhotoOrExplain()
                 if (photo != null) {
                     val description = askOrExplain(photo, FAILURE_DESCRIBE, onDescribeScene)
+                    if (stopIfModelDead()) return
                     if (description != null) {
                         // Zapamiętujemy scenę, KTÓRĄ OPISALIŚMY, a nie tę z
                         // chwili sprawdzania: między jednym a drugim mija
@@ -420,7 +527,7 @@ class AccessibilityService(
                 Log.e(tag, "describeSceneLoop error", e)
             }
             if (!active.get()) break
-            delay(describeIntervalMs)
+            delay(describeIntervalMs + failureBackoffMs())
         }
     }
 
@@ -443,14 +550,50 @@ class AccessibilityService(
 
     /**
      * Loop dla trybu nawigacji.
+     *
+     * ## Czemu ten tryb dostał bramkę zmiany sceny dopiero teraz
+     * Bo do czasu strumienia `navigateIntervalMs` było MARTWĄ LITERĄ: zdjęcie
+     * przez Wi-Fi Direct kosztowało kilka sekund, więc obieg i tak nie schodził
+     * poniżej dziesięciu. Klatka ze strumienia jest od ręki, przez co obieg
+     * skrócił się do czasu odpowiedzi modelu - a półtorasekundowy odstęp, dotąd
+     * nieszkodliwy, zaczął znaczyć kilkadziesiąt zapytań na minutę po circa
+     * 1600 tokenów każde. Przy koncie przedpłaconym to są minuty, nie godziny.
+     *
+     * Bramka jest ta sama co w opisie otoczenia i z tym samym progiem -
+     * dobranym ostrożnie W STRONĘ PYTANIA: brak odcisku (czyli brak strumienia)
+     * znaczy "pytaj", więc przy zdjęciach nic się nie zmienia.
+     *
+     * ## Czego bramka NIE załatwia
+     * Idącemu człowiekowi scena zmienia się bez przerwy, więc dokładnie wtedy,
+     * gdy tryb jest używany zgodnie z przeznaczeniem, oszczędność jest
+     * najmniejsza. Bramka ucina przypadek postoju - realny i częsty (przystanek,
+     * winda, czekanie na przejściu) - ale prawdziwego tempa marszu nie zmieni.
+     * Ile ono wynosi, powie [logUsageRate] z dziennika; dopiero wtedy da się
+     * uczciwie ustawić odstęp albo limit, zamiast zgadywać liczbę.
      */
     private suspend fun navigateLoop() {
+        var warnedScene: IntArray? = null
         while (active.get()) {
             try {
+                val sceneNow = glassesManager.liveFingerprint()
+                if (warnedScene != null && !YuvFrame.sceneChanged(warnedScene, sceneNow)) {
+                    // Nic się nie zmieniło od ostatniego ostrzeżenia. Powtarzanie
+                    // go co półtorej sekundy nie dokłada wiedzy o przeszkodzie -
+                    // o schodach użytkownik już usłyszał - a kosztuje tyle samo,
+                    // co ostrzeżenie o czymś nowym.
+                    delay(navigateIntervalMs)
+                    continue
+                }
+
                 val photo = capturePhotoOrExplain()
                 if (photo != null) {
                     val alert = askOrExplain(photo, FAILURE_NAVIGATE, onNavigate)
+                    if (stopIfModelDead()) return
                     if (alert != null) {
+                        // Zapamiętujemy scenę, O KTÓREJ OSTRZEGLIŚMY, a nie tę z
+                        // chwili sprawdzania - między jednym a drugim mija czas
+                        // odpowiedzi modelu, a w marszu to jest kilka kroków.
+                        warnedScene = glassesManager.liveFingerprint() ?: sceneNow
                         // Alert nawigacyjny - krótszy, bardziej pilny
                         playBeep(BeepType.NAVIGATION_ALERT)
                         audio.speak(alert, language = "pl")
@@ -459,7 +602,8 @@ class AccessibilityService(
             } catch (e: Exception) {
                 Log.e(tag, "navigateLoop error", e)
             }
-            delay(navigateIntervalMs)
+            if (!active.get()) break
+            delay(navigateIntervalMs + failureBackoffMs())
         }
     }
 
@@ -488,8 +632,29 @@ class AccessibilityService(
         const val FAILURE_NO_TEXT = "no_text"
         const val FAILURE_READ = "read"
 
-        /** Ile znaków komunikatu błędu wypowiadamy - reszta to i tak stos wywołań. */
-        const val MAX_SPOKEN_ERROR = 120
+        /**
+         * Pierwszy krok odczekania po nieudanym zapytaniu - patrz [failureBackoffMs].
+         *
+         * Dwie sekundy, bo tyle mniej więcej trwa przełączenie sieci w telefonie:
+         * krócej znaczyłoby ponawiać w trakcie, dłużej - przegapić moment, gdy
+         * łączność wróciła.
+         */
+        const val BACKOFF_STEP_MS = 2_000L
+
+        /** Ile razy odczekanie zdąży się podwoić, zanim trafi na sufit. */
+        const val BACKOFF_MAX_SHIFT = 5
+
+        /**
+         * Sufit odczekania.
+         *
+         * Pół minuty: awaria przejściowa ma zostać zauważona, gdy minie, a nie
+         * po kwadransie ciszy - zwłaszcza w trybie, z którego ktoś korzysta
+         * idąc ulicą.
+         */
+        const val BACKOFF_CEILING_MS = 30_000L
+
+        /** Co ile udanych zapytań zapisujemy tempo - patrz [logUsageRate]. */
+        const val RATE_REPORT_EVERY = 10
 
         /** Krótszy tekst to zwykle szum OCR, nie napis. */
         const val MIN_READABLE_TEXT = 5

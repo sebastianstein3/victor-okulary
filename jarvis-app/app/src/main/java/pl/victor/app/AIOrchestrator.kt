@@ -126,6 +126,10 @@ class AIOrchestrator(
      */
     private val diag: pl.victor.app.diagnostics.DiagnosticLog
         get() = VictorApplication.get().diag
+
+    /** Licznik zużycia tokenów - leniwie z tego samego powodu co [diag]. */
+    private val usage: pl.victor.app.ai.UsageMeter
+        get() = VictorApplication.get().usage
     private val actionExecutor = ActionExecutor(context)
     private val directActionExecutor = DirectActionExecutor(context)
     private val contactResolver = ContactResolver(context)
@@ -175,6 +179,10 @@ class AIOrchestrator(
                 enableWebSearch = false,
                 systemPrompt = ACCESSIBILITY_SYSTEM_PROMPT
             )
+            // Tryby ciągłe omijają główną drogę tury, więc zużycie doliczamy
+            // tutaj - inaczej najdroższa część aplikacji byłaby jedyną, której
+            // w liczniku nie widać.
+            usage.record(response.tokensUsed)
             response.text
         },
         onNavigate = { photoBytes ->
@@ -194,6 +202,7 @@ class AIOrchestrator(
                 enableWebSearch = false,
                 systemPrompt = ACCESSIBILITY_SYSTEM_PROMPT
             )
+            usage.record(response.tokensUsed)
             response.text
         }
     )
@@ -2946,6 +2955,18 @@ class AIOrchestrator(
                 }
 
                 val accumulatedText = StringBuilder()
+
+                // ZUŻYCIE TURY - DOTĄD GUBIONE.
+                //
+                // Prawdziwa liczba przychodzi TYLKO w ostatnim fragmencie
+                // strumienia, a `AIResponse` niżej powstawał bez niej, z
+                // domyślnym zerem. Skutek widać było na ekranie historii: przy
+                // każdym wpisie stało "0 tokenów", niezależnie od tego, jak
+                // długa była odpowiedź.
+                //
+                // Sumujemy, a nie nadpisujemy: przy przejściu na kolejnego
+                // dostawcę płaci się także za próbę, która się nie udała.
+                var turnTokens = 0
                 val language = settings.getResponseLanguage()
                 var firstChunk = true
                 // Nowa odpowiedź = nowy strumień mowy. Bez tego pierwsze zdanie
@@ -3065,6 +3086,7 @@ class AIOrchestrator(
                             accumulatedText.append(chunk.text)
 
                             if (chunk.isFinal) {
+                                turnTokens += chunk.tokensUsed
                                 Log.i(TAG, "Stream complete, ${chunk.tokensUsed} tokens, text len=${accumulatedText.length}")
                                 diag.took(
                                     DiagFormat.Phase.MODEL,
@@ -3241,9 +3263,13 @@ class AIOrchestrator(
 
                 val response = AIResponse(
                     text = answerText,
-                    providerId = successfulProvider.id
+                    providerId = successfulProvider.id,
+                    tokensUsed = turnTokens
                 )
                 _lastResponse.value = response
+                // Jedno miejsce dla całej rozmowy - tryby dla niewidomych
+                // dopisują się osobno, bo omijają tę drogę.
+                usage.record(turnTokens)
 
                 // Pamięć rozmowy trzyma WYŁĄCZNIE conversationContext. Były tu
                 // obok dwa pola z ostatnim pytaniem i ostatnią odpowiedzią, ale

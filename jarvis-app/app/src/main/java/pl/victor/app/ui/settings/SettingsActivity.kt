@@ -1009,6 +1009,27 @@ private fun AIOptionsSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Opcje AI", style = MaterialTheme.typography.titleMedium)
 
+        // ZUŻYCIE DZISIAJ - u samej góry, bo to jest odpowiedź na pytanie, z
+        // którym się tu wchodzi przy koncie przedpłaconym. Liczba szła dotąd
+        // wyłącznie do dziennika diagnostycznego, czyli do pliku, który trzeba
+        // najpierw komuś wysłać.
+        run {
+            val ctx = LocalContext.current
+            val meter = remember {
+                (ctx.applicationContext as pl.victor.app.VictorApplication).usage
+            }
+            val day by meter.today.collectAsState()
+            Text(
+                if (day.requests == 0) {
+                    "Dzisiaj: jeszcze żadnego zapytania do modelu."
+                } else {
+                    "Dzisiaj: ${day.tokens} tokenów w ${day.requests} zapytaniach."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

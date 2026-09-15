@@ -44,6 +44,24 @@ object ProviderFailure {
         }
     }
 
+    /**
+     * Czy ponawianie tego zapytania NIE MA SENSU, dopóki człowiek czegoś nie zmieni.
+     *
+     * ## Po co to rozróżnienie
+     * Bo tryby ciągłe (opis otoczenia, nawigacja) pytają model w pętli. Przy
+     * zerwanej sieci ponowienie za chwilę jest właściwym zachowaniem - sieć
+     * wraca sama. Przy pustym koncie albo odrzuconym kluczu nie wróci nic:
+     * pętla dobija się wtedy do serwera co półtorej sekundy w nieskończoność,
+     * a użytkownik słyszy w kółko ten sam komunikat.
+     *
+     * Limit zapytań celowo NIE jest tu trwały: to jest właśnie ten przypadek,
+     * w którym odczekanie pomaga.
+     */
+    fun isPermanent(message: String?): Boolean {
+        val text = (message ?: "").lowercase()
+        return NO_FUNDS.any { it in text } || BAD_KEY.any { it in text }
+    }
+
     // Kolejność list ma znaczenie tylko tyle, ile kolejność gałęzi wyżej:
     // "insufficient balance" DeepSeeka niesie czasem i 402, i 429 w tej samej
     // odpowiedzi, a brak środków jest wtedy prawdziwszym powodem niż limit.

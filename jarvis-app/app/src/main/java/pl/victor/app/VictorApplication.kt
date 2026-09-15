@@ -66,6 +66,17 @@ class VictorApplication : Application() {
     }
 
     /**
+     * Licznik zużycia tokenów - patrz [pl.victor.app.ai.UsageMeter].
+     *
+     * Tutaj, obok dziennika, bo dotyczy tak samo każdej warstwy: zapytanie z
+     * rozmowy, z trybu opisu otoczenia i z nawigacji płacone jest z tego
+     * samego salda i ma się liczyć do jednej sumy.
+     */
+    val usage: pl.victor.app.ai.UsageMeter by lazy {
+        pl.victor.app.ai.UsageMeter(this)
+    }
+
+    /**
      * Wersja aplikacji do nagłówka dziennika.
      *
      * Z PackageManagera, nie z `BuildConfig`: log z telefonu, którego nie mam,
