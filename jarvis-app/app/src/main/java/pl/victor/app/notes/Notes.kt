@@ -371,8 +371,25 @@ object Notes {
         /** Materiałem jest ostatnia odpowiedź asystenta - "zrób z tego notatkę". */
         LAST_ANSWER,
 
-        /** Materiałem jest to, co widzą okulary - "zrób notatkę o tym zamku". */
-        SIGHT
+        /** Materiałem jest to, co widzą okulary - "zrób notatkę z tego co widzisz". */
+        SIGHT,
+
+        /**
+         * Wskazanie, którego SAMA WYPOWIEDŹ NIE ROZSTRZYGA - "zrób notatkę o tym
+         * zamku", "zanotuj to".
+         *
+         * ## Czemu to jest osobna wartość, a nie domyślne zgadnięcie
+         * Bo "o tym" znaczy co innego w zależności od tego, co się przed chwilą
+         * działo, a tej wiedzy nie ma w zdaniu. Wcześniej wszystkie takie zwroty
+         * szły na sztywno do [SIGHT] - czyli po zdjęcie. Skutek widać było na
+         * zgłoszeniu: asystent opowiadał o zamku w Bodrum, użytkownik prosił
+         * "zrób notatkę o tym zamku", a aplikacja szła fotografować pokój.
+         *
+         * Rozstrzyga wołający, bo tylko on wie, czy jest o czym pisać: gdy
+         * przed chwilą padła odpowiedź, materiałem jest ONA, a dopiero gdy jej
+         * nie ma - obraz z okularów.
+         */
+        RECENT
     }
 
     /**
@@ -400,11 +417,13 @@ object Notes {
     ).sortedByDescending { it.length }
 
     /**
-     * Zwroty odsyłające do TEGO, NA CO UŻYTKOWNIK PATRZY.
+     * Zwroty odsyłające do TEGO, NA CO UŻYTKOWNIK PATRZY - i tylko takie.
      *
-     * "o tym" i "o tej" są tu z rozmysłem bez dalszego ciągu: po nich prawie
-     * zawsze idzie rzeczownik ("o tym zamku", "o tej tablicy"), a tego nie ma
-     * po co wyliczać - wystarczy, że wypowiedź zaczyna się od wskazania.
+     * Zostały tu wyłącznie te, które mówią o PATRZENIU wprost. "o tym" i "o
+     * tej" stały tu wcześniej i to był błąd: po nich idzie rzeczownik ("o tym
+     * zamku"), ale nic w tym zdaniu nie mówi, czy zamek stoi przed
+     * użytkownikiem, czy asystent właśnie o nim opowiadał. Przeniesione do
+     * [RECENT_REFERENCES].
      */
     private val SIGHT_REFERENCES = listOf(
         "co widzisz",
@@ -412,12 +431,34 @@ object Notes {
         "co tu widac",
         "z tego co widzisz",
         "z tego widoku",
-        "o tym",
-        "o tej",
-        "o tych",
         "z tego zdjęcia",
         "z tego zdjecia"
     ).sortedByDescending { it.length }
+
+    /**
+     * Wskazania, po których MOŻE iść treść - "o tym zamku", "o tej tablicy".
+     *
+     * Rozstrzyga je dopiero kontekst rozmowy, patrz [Source.RECENT].
+     */
+    private val RECENT_REFERENCES = listOf(
+        "o tym",
+        "o tej",
+        "o tych"
+    ).sortedByDescending { it.length }
+
+    /**
+     * Wskazania GOŁE - takie, po których nie ma już nic.
+     *
+     * "zanotuj to", "zapisz to w notatkach", "dodaj to do notatek". Wszystkie
+     * trzy nie działały: samo "to" nie było nigdzie odsyłaczem, więc do
+     * notatnika trafiał dosłowny tekst "To w notatkach" albo nie działo się nic.
+     *
+     * Sprawdzane inaczej niż [RECENT_REFERENCES] i to jest tu warunek
+     * poprawności: po gołym wskazaniu NIE MOŻE nic stać. Inaczej "zapisz to
+     * mleko" przestałoby być notatką o mleku, a stało się prośbą o wymyślenie
+     * treści.
+     */
+    private val BARE_REFERENCES = setOf("to", "tego", "tym", "tamto")
 
     /**
      * Rozpoznaje prośbę o notatkę, której treść ma NAPISAĆ model.
@@ -431,7 +472,7 @@ object Notes {
      *   notatka w ogóle
      */
     fun describeRequest(text: String): Described? {
-        val trimmed = text.trim()
+        val trimmed = dropFillerPronoun(text.trim())
         if (trimmed.isEmpty()) return null
         val lower = trimmed.lowercase()
 
@@ -444,6 +485,15 @@ object Notes {
         PREFIXES.firstOrNull { startsWithPrefix(lower, it) }?.let { prefix ->
             val rest = trimmed.substring(prefix.length).trimStart { it in SEPARATORS }.trim()
             sourceOf(rest)?.let { return Described(it, rest) }
+            // SAMO "zrób notatkę", bez tematu.
+            //
+            // Dotąd nie działo się NIC: treści brak, więc zwykła ścieżka też
+            // odpadała na warunku minimalnej długości. Prośba wyraźnie nazywa
+            // notatkę, więc odmowa jest tu ostatnią rzeczą, jakiej się
+            // spodziewać - a "o czym" wynika z tego, co się przed chwilą działo.
+            if (rest.isEmpty() && prefix.namesANote()) {
+                return Described(Source.RECENT, null)
+            }
         }
 
         // SZYK DRUGI: "zrób Z TEGO notatkę" - odsyłacz stoi MIĘDZY czasownikiem
@@ -464,8 +514,11 @@ object Notes {
                 .trim { it in SEPARATORS || it in ".!?" }
                 .lowercase()
             if (tail !in NOTE_NOUNS) return@let
-            val source =
-                if (reference in LAST_ANSWER_REFERENCES) Source.LAST_ANSWER else Source.SIGHT
+            val source = when (reference) {
+                in LAST_ANSWER_REFERENCES -> Source.LAST_ANSWER
+                in SIGHT_REFERENCES -> Source.SIGHT
+                else -> Source.RECENT
+            }
             return Described(source, afterVerb)
         }
 
@@ -499,10 +552,12 @@ object Notes {
      */
     private fun sourceAnywhereIn(text: String): Source? {
         val lower = text.lowercase()
-        if (LAST_ANSWER_REFERENCES.any { containsReference(lower, it) }) {
-            return Source.LAST_ANSWER
-        }
-        if (SIGHT_REFERENCES.any { containsReference(lower, it) }) return Source.SIGHT
+        REFERENCE_SOURCES.firstOrNull { containsReference(lower, it.first) }
+            ?.let { return it.second }
+        // Gołe wskazanie liczy się tylko wtedy, gdy JEST CAŁĄ treścią - patrz
+        // [BARE_REFERENCES]. To jest ta różnica między "zapisz to" (wskazanie) a
+        // "zapisz to mleko" (zwykła notatka o mleku).
+        if (lower.trim() in BARE_REFERENCES) return Source.RECENT
         return null
     }
 
@@ -524,12 +579,156 @@ object Notes {
     private fun sourceOf(rest: String): Source? {
         if (rest.isEmpty()) return null
         val lower = rest.lowercase()
-        if (LAST_ANSWER_REFERENCES.any { startsWithReference(lower, it) }) {
-            return Source.LAST_ANSWER
-        }
-        if (SIGHT_REFERENCES.any { startsWithReference(lower, it) }) return Source.SIGHT
+        REFERENCE_SOURCES.firstOrNull { startsWithReference(lower, it.first) }
+            ?.let { return it.second }
+        if (lower.trim() in BARE_REFERENCES) return Source.RECENT
         return null
     }
+
+    /**
+     * Wszystkie zwroty odsyłające razem, OD NAJDŁUŻSZEGO, każdy ze swoim źródłem.
+     *
+     * ## Czemu razem, a nie lista po liście
+     * Bo sprawdzanie kolejno "najpierw rozmowa, potem wzrok" gubi dłuższe
+     * dopasowanie: "z tego co widzisz" zaczyna się od "z tego", więc wygrywała
+     * rozmowa i prośba o notatkę Z OBRAZU szła po ostatnią odpowiedź. Znalazł to
+     * test dopisany przy okazji zupełnie innej poprawki.
+     *
+     * Przy jednej liście posortowanej po długości wygrywa zwrot BARDZIEJ
+     * SZCZEGÓŁOWY, niezależnie od tego, do którego źródła należy.
+     */
+    private val REFERENCE_SOURCES: List<Pair<String, Source>> = (
+        LAST_ANSWER_REFERENCES.map { it to Source.LAST_ANSWER } +
+            SIGHT_REFERENCES.map { it to Source.SIGHT } +
+            RECENT_REFERENCES.map { it to Source.RECENT }
+        ).sortedByDescending { it.first.length }
+
+    /**
+     * Wyłuskuje PYTANIE z wypowiedzi, która kończy się prośbą o notatkę.
+     *
+     * ## Czego nie łapał żaden z trzech szyków
+     * Wszystkie zakładają, że prośba o notatkę OTWIERA wypowiedź. Tymczasem
+     * najbardziej naturalne jest powiedzieć jedno i drugie naraz:
+     *
+     *     "opowiedz mi o zamku w Bodrum i zrób z tego notatkę"
+     *
+     * Dotąd nie działo się nic: prośba szła w całości do modelu, model - zgodnie
+     * z tym, co ma napisane w poleceniu - tłumaczył, że tej notatki nie zapisał,
+     * i podawał formułę "Notatka: ...". Wyglądało to na upór aplikacji, a było
+     * brakiem jednego wzorca.
+     *
+     * ## Czemu to zwraca PYTANIE, a nie źródło materiału
+     * Bo materiału jeszcze NIE MA - powstanie dopiero z odpowiedzi na to samo
+     * pytanie. Wołający ma więc zadać pytanie normalnie i zapisać odpowiedź;
+     * służy do tego istniejące `saveAsNote`. [describeRequest] odpowiada na inne
+     * pytanie: "z czego zrobić notatkę, skoro materiał już jest".
+     *
+     * Bierzemy tylko takie zakończenia, które ODSYŁAJĄ ("zrób z tego notatkę",
+     * "zanotuj to"). Zakończenie z własną treścią ("...i zapisz, że mam kupić
+     * mleko") to dwie osobne prośby i tego tu nie rozstrzygamy - lepiej nie
+     * ruszyć, niż zrobić połowę.
+     *
+     * @return pytanie bez końcówki o notatce, albo `null`
+     */
+    fun trailingNoteRequest(text: String): String? {
+        val trimmed = text.trim()
+        if (trimmed.length < MIN_HEAD) return null
+        // Kalendarz ma pierwszeństwo tak samo jak w [extract] i [describeRequest].
+        if (CALENDAR_WORDS.any { trimmed.lowercase().contains(it) }) return null
+        val lower = trimmed.lowercase()
+
+        // Wszystkie miejsca podziału naraz, OD KOŃCA: prośba o notatkę stoi na
+        // końcu, ale przed nią samo pytanie może mieć jeszcze kilka spójników
+        // ("opowiedz o zamku i o mieście i zrób z tego notatkę"). Branie tylko
+        // ostatniego wystąpienia jednego spójnika gubiłoby te przypadki.
+        val splits = TRAILING_JOINERS
+            .flatMap { joiner -> occurrencesOf(lower, joiner).map { it to joiner.length } }
+            .sortedByDescending { it.first }
+
+        splits.forEach { (at, length) ->
+            val head = stripDanglingJoiner(trimmed.substring(0, at).trim().trimEnd(',', '-', ';'))
+            val tail = trimmed.substring(at + length).trim()
+            if (head.length < MIN_HEAD || tail.isEmpty()) return@forEach
+            // Sam początek też nie może być prośbą o notatkę - inaczej
+            // "zapisz X i zanotuj to" rozjechałoby się na dwie notatki.
+            if (describeRequest(head) != null || extract(head) != null) return@forEach
+            if (describeRequest(tail) != null) return head
+        }
+        return null
+    }
+
+    /**
+     * Zdejmuje spójnik zwisający na końcu pytania.
+     *
+     * Bierze się stąd, że podziałów szukamy OD KOŃCA, a "a potem" zawiera
+     * "potem": krótszy spójnik stoi dalej, więc wygrywa, i w pytaniu zostaje
+     * samotne "a" ("jak zrobić pizzę a"). Do modelu poszłoby wtedy pytanie
+     * urwane w pół słowa.
+     */
+    private fun stripDanglingJoiner(head: String): String {
+        val lower = head.lowercase()
+        DANGLING_JOINERS.forEach { word ->
+            if (lower.endsWith(" $word")) {
+                return head.dropLast(word.length + 1).trim().trimEnd(',', '-', ';')
+            }
+        }
+        return head
+    }
+
+    private val DANGLING_JOINERS = listOf("a", "i", "oraz")
+
+    private fun occurrencesOf(lower: String, needle: String): List<Int> {
+        val out = mutableListOf<Int>()
+        var from = 0
+        while (true) {
+            val at = lower.indexOf(needle, from)
+            if (at < 0) return out
+            out.add(at)
+            from = at + 1
+        }
+    }
+
+    /**
+     * Spójniki, po których może iść dołożona prośba o notatkę.
+     *
+     * Ze spacjami po obu stronach, żeby "i" nie łapało się w środku wyrazu.
+     * Szukamy OSTATNIEGO wystąpienia, bo prośba o notatkę stoi na końcu, a
+     * przed nią może być jeszcze kilka spójników w samym pytaniu.
+     */
+    private val TRAILING_JOINERS = listOf(
+        " a potem ", " a następnie ", " a nastepnie ",
+        " i potem ", " i następnie ", " i nastepnie ",
+        " następnie ", " nastepnie ", " potem ",
+        " oraz ", " i "
+    ).sortedByDescending { it.length }
+
+    /** Krótszy początek to nie pytanie, tylko urwane słowo. */
+    private const val MIN_HEAD = 6
+
+    /**
+     * Czy ten zwrot otwierający NAZYWA notatkę wprost.
+     *
+     * "zrób notatkę" i "notatka" tak, "zapisz" i "dodaj" nie - te drugie same z
+     * siebie nie mówią, o co chodzi, i bez treści są po prostu urwanym zdaniem.
+     */
+    private fun String.namesANote(): Boolean = contains("notat") || contains("notk")
+
+    /**
+     * Wyrzuca zaimek wstawiony między czasownik a resztę prośby.
+     *
+     * "Zrób MI notatkę o tym zamku" nie działało w ogóle - ani jako prośba o
+     * notatkę pisaną przez model, ani jako zwykła notatka - bo wszystkie wzorce
+     * zakładają, że po czasowniku idzie od razu rzeczownik. A "mi" i "sobie"
+     * wchodzą tam w mowie bez przerwy i nie wnoszą nic poza uprzejmością.
+     */
+    private fun dropFillerPronoun(text: String): String =
+        FILLER_PRONOUN_REGEX.replace(text) { match -> match.groupValues[1] + " " }
+
+    private val FILLER_PRONOUN_REGEX = Regex(
+        """^(zr[oó]b|zapisz|zanotuj|dodaj|dopisz|wpisz|stw[oó]rz|sporz[aą]d[źz])\s+""" +
+            """(?:mi|sobie|nam|mu|jej)\s+""",
+        RegexOption.IGNORE_CASE
+    )
 
     /** Czasowniki, po których może stać odsyłacz, a dopiero potem "notatkę". */
     private val NOTE_VERBS = listOf(
@@ -555,7 +754,8 @@ object Notes {
     )
 
     private val ALL_REFERENCES =
-        (LAST_ANSWER_REFERENCES + SIGHT_REFERENCES).sortedByDescending { it.length }
+        (LAST_ANSWER_REFERENCES + SIGHT_REFERENCES + RECENT_REFERENCES + BARE_REFERENCES)
+            .sortedByDescending { it.length }
 
     /**
      * Czy treść zaczyna się od zwrotu odsyłającego, zakończonego granicą słowa.

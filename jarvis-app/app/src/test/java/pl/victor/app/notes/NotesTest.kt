@@ -2,6 +2,7 @@ package pl.victor.app.notes
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -180,9 +181,13 @@ class NotesTest {
     }
 
     @Test
-    fun `zrob notatke o tym zamku idzie po zdjecie`() {
+    fun `zrob notatke o tym zamku to WSKAZANIE, nie z gory zdjecie`() {
+        // ZMIENIONE ŚWIADOMIE. Ten test pilnował wcześniej, że taka prośba
+        // ZAWSZE idzie po zdjęcie - i to właśnie zostało zgłoszone jako usterka:
+        // asystent opowiadał o zamku w Bodrum, padło "zrób notatkę o tym zamku",
+        // a aplikacja fotografowała pokój. Samo zdanie tego nie rozstrzyga.
         val request = Notes.describeRequest("Zrób notatkę o tym zamku")
-        assertEquals(Notes.Source.SIGHT, request?.source)
+        assertEquals(Notes.Source.RECENT, request?.source)
         assertEquals("o tym zamku", request?.topic)
     }
 
@@ -193,8 +198,10 @@ class NotesTest {
             Notes.Source.LAST_ANSWER,
             Notes.describeRequest("Zrób z tego notatkę")?.source
         )
+        // "o tym" jest wskazaniem, którego zdanie nie rozstrzyga - patrz
+        // [Notes.Source.RECENT].
         assertEquals(
-            Notes.Source.SIGHT,
+            Notes.Source.RECENT,
             Notes.describeRequest("Zapisz o tym notatkę")?.source
         )
     }
@@ -236,8 +243,13 @@ class NotesTest {
 
     @Test
     fun `sam zwrot bez odsylacza to nie jest prosba o napisanie`() {
-        assertNull(Notes.describeRequest("Zrób notatkę"))
+        // ZMIENIONE ŚWIADOMIE: "Zrób notatkę" bez tematu nie robiło wcześniej
+        // NIC - ani tu, ani zwykłą ścieżką (treść za krótka). Prośba wyraźnie
+        // nazywa notatkę, więc milczenie było najgorszą z możliwych odpowiedzi.
+        assertEquals(Notes.Source.RECENT, Notes.describeRequest("Zrób notatkę")?.source)
         assertNull(Notes.describeRequest(""))
+        // Sam czasownik bez słowa "notatka" nadal nic nie znaczy.
+        assertNull(Notes.describeRequest("Zapisz"))
     }
 
     @Test
@@ -299,7 +311,7 @@ class NotesTest {
         // Dokładnie to zdanie ze zgłoszenia - trzeci szyk, którego nie łapał
         // żaden z dwóch poprzednich wzorców.
         val request = Notes.describeRequest("wpisz informacje o tym zamku w notatkach")
-        assertEquals(Notes.Source.SIGHT, request?.source)
+        assertEquals(Notes.Source.RECENT, request?.source)
         assertEquals("informacje o tym zamku", request?.topic)
     }
 
@@ -397,5 +409,127 @@ class NotesTest {
     @Test
     fun `pusta lista nadal nie daje sekcji`() {
         assertNull(Notes.buildPromptContext(emptyList(), NOW))
+    }
+
+    // === Zgłoszenie: "zrób notatkę o tym zamku" ===
+    //
+    // Trzy osobne luki, każda widoczna jako co innego, a wszystkie z jednego
+    // zestawu zdań, które człowiek naprawdę mówi.
+
+    @Test
+    fun `wskazanie o tym NIE jest z gory prosba o zdjecie`() {
+        // Sedno zgłoszenia: asystent opowiadał o zamku w Bodrum, padło "zrób
+        // notatkę o tym zamku", a aplikacja szła fotografować pokój. Samo
+        // zdanie tego nie rozstrzyga - rozstrzyga je dopiero to, czy przed
+        // chwilą coś powiedziano, a o tym wie orkiestrator, nie ta funkcja.
+        val request = Notes.describeRequest("zrób notatkę o tym zamku")
+        assertNotNull(request)
+        assertEquals(Notes.Source.RECENT, request!!.source)
+        assertEquals("o tym zamku", request.topic)
+    }
+
+    @Test
+    fun `wyrazne wskazanie na wzrok dalej znaczy zdjecie`() {
+        // Druga strona tej samej reguły: gdy użytkownik mówi o PATRZENIU,
+        // nie ma czego rozstrzygać.
+        assertEquals(
+            Notes.Source.SIGHT,
+            Notes.describeRequest("zrób notatkę z tego co widzisz")?.source
+        )
+    }
+
+    @Test
+    fun `wyrazne wskazanie na rozmowe dalej znaczy ostatnia odpowiedz`() {
+        assertEquals(
+            Notes.Source.LAST_ANSWER,
+            Notes.describeRequest("zrób notatkę z tego co powiedziałeś")?.source
+        )
+    }
+
+    @Test
+    fun `gole wskazanie to tez prosba o notatke`() {
+        // "Zanotuj to" i "zapisz to w notatkach" nie działały wcale: samo "to"
+        // nie było nigdzie odsyłaczem, więc do notatnika trafiał dosłowny tekst
+        // "To w notatkach" albo nie działo się nic.
+        listOf("zanotuj to", "zapisz to w notatkach", "dodaj to do notatek").forEach {
+            assertEquals("komenda: \"$it\"", Notes.Source.RECENT, Notes.describeRequest(it)?.source)
+        }
+    }
+
+    @Test
+    fun `po golym wskazaniu NIE MOZE nic stac`() {
+        // To jest warunek, bez którego poprzedni test psułby zwykłe notatki:
+        // "zapisz to mleko" ma zostać notatką o mleku, a nie prośbą o
+        // wymyślenie treści.
+        assertNull(Notes.describeRequest("zapisz to mleko"))
+        assertEquals("To mleko", Notes.extract("zapisz to mleko"))
+    }
+
+    @Test
+    fun `zaimek miedzy czasownikiem a notatka nie psuje rozpoznania`() {
+        // "Zrób MI notatkę o tym zamku" nie działało w ogóle - ani jedną drogą,
+        // ani drugą - bo wszystkie wzorce zakładały rzeczownik zaraz po
+        // czasowniku.
+        assertEquals(
+            Notes.Source.RECENT,
+            Notes.describeRequest("zrób mi notatkę o tym zamku")?.source
+        )
+    }
+
+    @Test
+    fun `sama prosba o notatke bez tematu tez dziala`() {
+        val request = Notes.describeRequest("zrób notatkę")
+        assertNotNull(request)
+        assertEquals(Notes.Source.RECENT, request!!.source)
+        assertNull(request.topic)
+    }
+
+    @Test
+    fun `sam czasownik bez slowa notatka to nadal nie prosba`() {
+        // "zapisz" i "dodaj" same z siebie nie mówią, o co chodzi.
+        assertNull(Notes.describeRequest("zapisz"))
+        assertNull(Notes.describeRequest("dodaj"))
+    }
+
+    // === Zgłoszenie: prośba o notatkę na końcu zdania ===
+
+    @Test
+    fun `pytanie z prosba o notatke na koncu oddaje samo pytanie`() {
+        assertEquals(
+            "opowiedz mi o zamku w Bodrum",
+            Notes.trailingNoteRequest("opowiedz mi o zamku w Bodrum i zrób z tego notatkę")
+        )
+    }
+
+    @Test
+    fun `spojniki w samym pytaniu nie mylia podzialu`() {
+        assertEquals(
+            "opowiedz o zamku i o mieście",
+            Notes.trailingNoteRequest("opowiedz o zamku i o mieście i zrób z tego notatkę")
+        )
+    }
+
+    @Test
+    fun `dluzszy spojnik nie zostawia ogona w pytaniu`() {
+        // "a potem" zawiera "potem", a podziałów szukamy od końca - bez
+        // sprzątania w pytaniu zostawałoby samotne "a".
+        assertEquals(
+            "jak zrobić pizzę",
+            Notes.trailingNoteRequest("jak zrobić pizzę a potem zapisz to w notatkach")
+        )
+    }
+
+    @Test
+    fun `zwykle zdanie ze spojnikiem NIE jest prosba o notatke`() {
+        assertNull(Notes.trailingNoteRequest("kup mleko i chleb"))
+        assertNull(Notes.trailingNoteRequest("opowiedz mi o Bodrum"))
+    }
+
+    @Test
+    fun `notatka z wlasna trescia nie jest dzielona`() {
+        // "Zapisz, że mam kupić mleko i chleb" to JEDNA notatka, a nie pytanie
+        // z doklejoną prośbą - chleb ma w niej zostać.
+        assertNull(Notes.trailingNoteRequest("zapisz że mam kupić mleko i chleb"))
+        assertEquals("Mam kupić mleko i chleb", Notes.extract("zapisz że mam kupić mleko i chleb"))
     }
 }

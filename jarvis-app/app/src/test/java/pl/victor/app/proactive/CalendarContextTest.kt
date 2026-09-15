@@ -154,4 +154,49 @@ class CalendarContextTest {
         assertEquals("za 2 godziny 30 minut", CalendarContext.describeDelay(150 * 60_000L))
         assertEquals("za 1 godzinę 1 minutę", CalendarContext.describeDelay(61 * 60_000L))
     }
+
+    // === Zgłoszenie: "zmyślał, że mam coś w kalendarzu, czego nie mam" ===
+    //
+    // Przyczyna nie była w modelu, tylko tutaj: gdy pytanie nie zostanie uznane
+    // za dotyczące planów, kalendarz nie jest doklejany i model odpowiada z
+    // wyobraźni. Na dziesięciu prawdziwych pytaniach przechodziło JEDNO.
+
+    @Test
+    fun `pytania o plan dnia bez slowa kalendarz tez licza sie jako plan`() {
+        listOf(
+            "czy mam coś jutro",
+            "czy jestem dziś wolny wieczorem",
+            "czy mam coś wieczorem",
+            "co robię w piątek",
+            "kiedy mam wizytę u lekarza",
+            "czy coś mnie dziś czeka",
+            "o której mam jutro wyjść",
+            "czy jutro jestem zajęty"
+        ).forEach {
+            assertTrue("pytanie: \"$it\"", CalendarContext.isAboutSchedule(it))
+        }
+    }
+
+    @Test
+    fun `sam czasownik bez czasu to jeszcze nie plan`() {
+        // Warunek jest podwójny z rozmysłu: fałszywe trafienie wysyła prywatne
+        // dane do modelu, więc "mam" samo w sobie nie może wystarczyć.
+        assertFalse(CalendarContext.isAboutSchedule("mam ochotę na kawę"))
+        assertFalse(CalendarContext.isAboutSchedule("czy masz rację"))
+    }
+
+    @Test
+    fun `sam czas bez czasownika to tez nie plan`() {
+        // Inaczej każde pytanie o pogodę ciągnęłoby kalendarz.
+        assertFalse(CalendarContext.isAboutSchedule("jaka będzie jutro pogoda"))
+        assertFalse(CalendarContext.isAboutSchedule("co się stało wczoraj w Warszawie"))
+    }
+
+    @Test
+    fun `slowo w srodku innego nie liczy sie jako czasownik`() {
+        // "mam" w "mamy", "mama", "mamut" - to są dokładnie te rozmowy, w
+        // których kalendarz nie ma nic do rzeczy.
+        assertFalse(CalendarContext.isAboutSchedule("czy mamy dziś mleko"))
+        assertFalse(CalendarContext.isAboutSchedule("co mama robiła wczoraj"))
+    }
 }

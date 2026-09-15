@@ -2327,8 +2327,37 @@ class AIOrchestrator(
             // Kolejność jest tu warunkiem poprawności, a nie preferencją: obie
             // funkcje łapią te same zwroty otwierające, więc ta bardziej
             // szczegółowa musi być pierwsza.
+            // PYTANIE Z PROŚBĄ O NOTATKĘ NA KOŃCU - sprawdzane jeszcze wcześniej.
+            //
+            // "Opowiedz mi o zamku w Bodrum I ZRÓB Z TEGO NOTATKĘ" nie ma jeszcze
+            // materiału: on dopiero powstanie z odpowiedzi na to samo pytanie.
+            // Dotąd całość szła do modelu, a model - zgodnie z tym, co ma
+            // napisane w poleceniu - tłumaczył, że tej notatki nie zapisał, i
+            // podawał formułę "Notatka: ...". Wyglądało to na upór aplikacji, a
+            // było brakiem jednego wzorca.
+            pl.victor.app.notes.Notes.trailingNoteRequest(textQuestion)?.let { question ->
+                Log.i(TAG, "Warstwa 0: pytanie z prośbą o notatkę na końcu")
+                handleUserTrigger(trigger, question, saveAsNote = true)
+                return
+            }
+
             pl.victor.app.notes.Notes.describeRequest(textQuestion)?.let { request ->
-                when (request.source) {
+                // WSKAZANIE ROZSTRZYGAMY TUTAJ, bo tylko tu wiadomo, czy jest o
+                // czym pisać. "Zrób notatkę o tym zamku" znaczy co innego zaraz
+                // po opowieści o zamku, a co innego, gdy użytkownik stoi przed
+                // zamkiem i milczał do tej pory. Wcześniej wszystkie takie
+                // zwroty szły na sztywno po zdjęcie - stąd zgłoszenie, że
+                // asystent opowiada o Bodrum, a notatka wychodzi z pokoju.
+                val source = if (request.source == pl.victor.app.notes.Notes.Source.RECENT) {
+                    if (!_lastResponse.value?.text.isNullOrBlank()) {
+                        pl.victor.app.notes.Notes.Source.LAST_ANSWER
+                    } else {
+                        pl.victor.app.notes.Notes.Source.SIGHT
+                    }
+                } else {
+                    request.source
+                }
+                when (source) {
                     pl.victor.app.notes.Notes.Source.LAST_ANSWER -> {
                         val material = _lastResponse.value?.text
                         if (material.isNullOrBlank()) {
@@ -2349,7 +2378,9 @@ class AIOrchestrator(
                             saveAsNote = true
                         )
                     }
-                    pl.victor.app.notes.Notes.Source.SIGHT -> {
+                    else -> {
+                        // SIGHT - i tylko on, bo RECENT jest wyżej zamieniany na
+                        // jedno z dwóch konkretnych źródeł.
                         Log.i(TAG, "Warstwa 0: notatka z tego, co widzą okulary")
                         handleUserTrigger(
                             trigger,
@@ -2744,6 +2775,7 @@ class AIOrchestrator(
                     "\n\n" + pl.victor.app.actions.SmartActionDetector.AI_ACTION_CAPABILITIES_PROMPT +
                     visionStatus +
                     NOTES_CAPABILITY_PROMPT +
+                    PRIVATE_DATA_HONESTY_PROMPT +
                     ENGLISH_QUOTING_PROMPT
                 Log.d(TAG, "Using persona: ${persona.name}")
 
@@ -4434,6 +4466,34 @@ class AIOrchestrator(
                 "formułę, która działa: \"Notatka: ...\" albo \"Zapisz, że ...\". " +
                 "Notatki, które user ma zapisane, dostajesz w kontekście i " +
                 "możesz o nich swobodnie mówić."
+
+        /**
+         * Zakaz wymyślania cudzych danych, gdy ich w poleceniu nie ma.
+         *
+         * ## Skąd to się wzięło
+         * Ze zgłoszenia: "zmyślał coś o tym, że mam coś w kalendarzu, czego nie
+         * mam". Kalendarz, poczta i pogoda doklejane są WARUNKOWO - tylko gdy
+         * pytanie zostanie rozpoznane jako ich dotyczące. Rozpoznanie poprawiłem
+         * i z dziesięciu prawdziwych pytań przechodzi teraz dziesięć zamiast
+         * jednego, ale ŻADNA lista słów nie będzie pełna. Zawsze znajdzie się
+         * zdanie, po którym model dostanie pytanie o plany i ani jednej danej.
+         *
+         * Wtedy potrzebna jest reguła, nie słownik: brak sekcji ZNACZY brak
+         * danych. Bez niej model wypełnia lukę tym, co brzmi prawdopodobnie - a
+         * wymyślone spotkanie jest gorsze niż przyznanie się do niewiedzy,
+         * bo na nim buduje się potem cały dzień.
+         */
+        private const val PRIVATE_DATA_HONESTY_PROMPT =
+            "\n\nDANE OSOBISTE UŻYTKOWNIKA: jego kalendarz, pocztę, pogodę i " +
+                "notatki dostajesz WYŁĄCZNIE jako osobne sekcje w tym poleceniu " +
+                "(np. \"=== KALENDARZ UŻYTKOWNIKA ===\"). Nie masz do nich " +
+                "żadnego innego dostępu. Jeśli takiej sekcji tutaj NIE MA, to " +
+                "znaczy, że tych danych nie dostałeś - i wtedy NIE WOLNO Ci " +
+                "podawać ani zgadywać wydarzeń, godzin, wiadomości czy " +
+                "temperatur. Powiedz krótko, że nie masz tych danych pod ręką i " +
+                "poproś o powtórzenie pytania ze słowem \"kalendarz\", " +
+                "\"poczta\" albo \"pogoda\". Zmyślone spotkanie jest gorsze " +
+                "niż przyznanie, że czegoś nie wiesz."
 
         private const val ACCESSIBILITY_SYSTEM_PROMPT =
             "Jesteś asystentem osoby niewidomej. Widzisz pojedyncze zdjęcie z kamery " +

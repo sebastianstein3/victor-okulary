@@ -26,8 +26,55 @@ object CalendarContext {
      */
     fun isAboutSchedule(question: String): Boolean {
         val text = question.lowercase(Locale.ROOT)
-        return KEYWORDS.any { it in text }
+        if (KEYWORDS.any { it in text }) return true
+        // DRUGA DROGA: czasownik posiadania planu RAZEM z określeniem czasu.
+        //
+        // Sama lista słów nigdy nie będzie pełna - zmierzone na dziesięciu
+        // prawdziwych pytaniach, z których przechodziło JEDNO. "Czy mam coś
+        // jutro", "czy jestem dziś wolny wieczorem", "o której mam jutro wyjść"
+        // - żadne z nich nie zawiera słowa "kalendarz", a wszystkie są o
+        // kalendarzu. Model bez tych danych odpowiadał z wyobraźni.
+        //
+        // Warunek jest PODWÓJNY z rozmysłu: samo "mam" łapałoby połowę rozmów, a
+        // samo "jutro" - pytania o pogodę. Dopiero razem znaczą plan.
+        return SCHEDULE_VERBS.any { containsWord(text, it) } &&
+            TIME_WORDS.any { containsWord(text, it) }
     }
+
+    /**
+     * Czy słowo występuje jako OSOBNE słowo, nie jako fragment innego.
+     *
+     * Bez tego "mam" łapałoby "mamy", "mama" i "mamut", czyli dokładnie te
+     * rozmowy, w których kalendarz nie ma nic do rzeczy - a jego doklejenie
+     * wysyła prywatne dane do modelu.
+     */
+    private fun containsWord(text: String, word: String): Boolean {
+        var from = 0
+        while (true) {
+            val at = text.indexOf(word, from)
+            if (at < 0) return false
+            val before = at == 0 || !text[at - 1].isLetterOrDigit()
+            val afterAt = at + word.length
+            val after = afterAt == text.length || !text[afterAt].isLetterOrDigit()
+            if (before && after) return true
+            from = at + 1
+        }
+    }
+
+    /** Czasowniki, którymi mówi się o zajętości - patrz [isAboutSchedule]. */
+    private val SCHEDULE_VERBS = listOf(
+        "mam", "masz", "jestem", "jesteś", "jestes",
+        "robię", "robie", "robisz", "czeka", "wypada", "planuję", "planuje"
+    )
+
+    /** Określenia czasu, przy których pytanie zwykle dotyczy planu dnia. */
+    private val TIME_WORDS = listOf(
+        "dziś", "dzis", "dzisiaj", "jutro", "pojutrze", "wieczorem", "rano",
+        "popołudniu", "weekend", "tydzień", "tygodniu", "kiedy",
+        "poniedziałek", "poniedzialek", "wtorek", "środę", "srode", "środa",
+        "czwartek", "piątek", "piatek", "sobotę", "sobote", "sobota",
+        "niedzielę", "niedziele", "niedziela"
+    )
 
     /**
      * Składa opis wydarzeń dla modelu.
