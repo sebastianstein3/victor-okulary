@@ -611,3 +611,24 @@
 21:18:13.925          ms  ZDJĘCIE      próba 0: miniatura  bajtów=12348 jpeg=true kompletny=true
 21:18:17.317          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 07 49 0B 1C sztuk=16 pierwsza=false
 21:18:47.307          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 00 01 00 00 00 00 04 00 01 01 sztuk=2 pierwsza=false
+21:20:46.712          ms  PRZYCISK     wciśnięto  numer=1
+21:20:46.871          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:20:47.386          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=20 ms=508
+21:20:47.493      +0 ms  SESJA        --- TURA 09fc ---  źródło=OKULARY
+21:20:47.497      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:20:48.186    +694 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 FA 72 12 01 00 10 0B 02 00 0F 00 03 00 10 0A 01 sztuk=8 pierwsza=false
+21:20:53.129   +5636 ms  NASŁUCH      koniec  ms=5636 odłożone=skąd pochodzi hasło jebać bydgoszcz mikrofon=mowa wykryta szczytDb=6.5199995 próbek=12 gotowyPoMs=455
+21:20:53.140   +5647 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+21:20:55.631   +8138 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.2535 pakietów=313 rozkodowanych=313 odrzuconych=0 przesunięcie=6 ramka=-1
+21:20:55.645   +8153 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:20:55.668   +8177 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6253 jestMs=2720 tło=3 szczyt=8388 ile razy=2706.0
+21:20:55.674   +8181 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=skąd pochodzi hasło jebać bydgoszcz
+21:20:55.679   +8186 ms  SESJA        pytanie  tekst=skąd pochodzi hasło jebać bydgoszcz wymuszonyObraz=false
+21:20:55.714   +8221 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:20:55.742   +8249 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:20:57.442   +9949 ms  KONTEKST     zebrany  ms=1689 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:20:57.493  +10000 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=6451
+21:21:00.086  +12594 ms  MODEL        koniec odpowiedzi (335 znaków, 5755 tokenów)  ms=2597
+21:21:22.660  +35167 ms  MOWA         koniec wypowiedzi  ms=22532
+21:21:22.714  +35221 ms  SESJA        --- KONIEC TURY 09fc: odpowiedziano ---
+21:21:22.729          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
