@@ -16,9 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     # `actions: write` wyłącznie po to, żeby dało się kasować własne artefakty -
-    # patrz krok sprzątania niżej. Reszta zostaje na odczycie.
+    # patrz krok sprzątania niżej. `contents: write` po to, żeby dało się wrzucić
+    # APK do wydania - patrz krok "APK do wydania".
     permissions:
-      contents: read
+      contents: write
       actions: write
 
     steps:
@@ -177,6 +178,61 @@ jobs:
           path: jarvis-app/app/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore
           retention-days: 7
+
+      # APK DO WYDANIA - obejście kwoty artefaktów, nie ozdobnik.
+      #
+      # Pliki dołączone do wydania idą do INNEJ puli miejsca niż artefakty
+      # Actions, więc działają wtedy, gdy wysyłka artefaktu pada na kwocie -
+      # a padała przez kilkanaście biegów z rzędu, mimo że po sprzątaniu to
+      # repozytorium trzyma 8,3 MB i ani jednego APK.
+      #
+      # Przy okazji naprawia dwie rzeczy, które i tak doskwierały osobom
+      # testującym: link nie wygasa po trzech dniach i nie trzeba grzebać w
+      # zakładce Actions ani nawet mieć konta - wystarczy zwykły adres.
+      #
+      # PO TESTACH, nie przed. Dwa powody, oba z dzisiejszych biegów:
+      #
+      # 1. Ten krok NIE ma `continue-on-error` - jeśli wrzucenie APK się nie
+      #    uda, zadanie ma być czerwone, bo to jest teraz jedyna droga pliku do
+      #    osób testujących. Ale krok, który potrafi wywrócić zadanie, nie może
+      #    stać przed testami: dokładnie tak zapchana kwota artefaktów kasowała
+      #    testy jednostkowe i cały test dymny przez kilkanaście biegów.
+      # 2. Build z czerwonymi testami nie ma trafiać do osób testujących.
+      #    `if: success()` załatwia to samo przez to, że stoi tutaj.
+      #
+      # JEDNO wydanie, nadpisywane przy każdym buildzie (`--clobber`), zamiast
+      # nowego taga przy każdym commicie. Osoby testujące dostają wtedy jeden
+      # stały link, który zawsze wskazuje najnowszą wersję, a repozytorium nie
+      # zapełnia się tagami. Jest oznaczone jako `--prerelease`, bo to jest
+      # build debugowy, a nie wydanie.
+      #
+      # `|| true` przy `create`: wydanie istnieje po pierwszym biegu, więc od
+      # drugiego to polecenie ma prawo zawieść i nie jest to błąd. Samo
+      # `upload` błędu już nie wybacza.
+      - name: APK do wydania
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(ls jarvis-app/app/build/outputs/apk/debug/*.apk | head -1)
+          cp "$apk" victor-debug.apk
+          gh release create build-latest \
+            --title "V.I.C.T.O.R. - build testowy" \
+            --prerelease \
+            --target "${{ github.sha }}" \
+            --notes "Najnowszy build do testów. Ten adres zawsze wskazuje ostatnią wersję." \
+            || true
+          gh release upload build-latest victor-debug.apk --clobber
+          gh release edit build-latest \
+            --notes "Najnowszy build do testów - ten adres zawsze wskazuje ostatnią wersję.
+
+          Commit: ${{ github.sha }}
+          Gałąź: ${{ github.ref_name }}
+          Zbudowano: $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          Instrukcja obsługi: docs/instrukcja-dla-osob-testujacych.docx"
+          echo "APK w wydaniu: ${{ github.server_url }}/${{ github.repository }}/releases/tag/build-latest"
+
 
   # Test dymny na emulatorze: aplikacja ma się zainstalować, wstać i przejść
   # całą ścieżkę komunikacji z okularami na symulatorze. To jedyne miejsce,
