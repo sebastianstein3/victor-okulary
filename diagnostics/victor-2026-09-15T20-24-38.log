@@ -1,0 +1,46 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: deepseek
+# transkrypcja w chmurze: false
+# mikrofon okularów: true
+# źródło zdjęcia: full (dzielnik 2)
+20:24:38.096          ms  SESJA        start sesji
+20:40:20.381          ms  BLE          POŁĄCZONO  noweŁącze=true
+20:40:20.385          ms  BLE          powitanie okularów - start
+20:40:20.393          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+20:40:20.674          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+20:40:22.482          ms  BLE          POŁĄCZONO  noweŁącze=false
+20:40:25.393          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+20:40:43.840      +0 ms  SESJA        --- TURA c6fa ---  źródło=BUTTON
+20:40:43.846      +6 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+20:40:43.850     +10 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+20:40:43.893     +53 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+20:40:43.903     +63 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+20:40:44.543    +703 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+20:40:44.650    +810 ms  BLE          nieobsługiwana ramka notify  typ=0x12 ramka=BC 73 0E 00 EB B6 12 01 00 10 0A 02 00 0F 00 03 00 10 0A 02 sztuk=1 pierwsza=true
+20:40:46.107   +2268 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+20:40:46.110   +2270 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+20:40:46.142   +2302 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1597
+20:40:49.897   +6057 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+20:40:53.244   +9404 ms  ZDJĘCIE      próba 0: miniatura  bajtów=17761 jpeg=true kompletny=true
+20:40:53.247   +9407 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+20:40:54.432  +10592 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+20:40:54.433  +10593 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 5B 0B 25 sztuk=1 pierwsza=true
+20:41:03.562  +19722 ms  BLE          Hotspot okularów: gotowe  ms=10315
+20:41:03.642  +19802 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=10395
+20:41:03.652  +19813 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=17761 pełnaRozdzielczość=false
+20:41:04.347  +20507 ms  KONTEKST     zebrany  ms=91 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+20:41:04.357  +20518 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=1 znakówPromptu=1135
+20:41:04.435  +20595 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.8-flash próba=2 zdjęć=1 znakówPromptu=1135
+20:41:04.505  +20665 ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=1 znakówPromptu=1135
+20:41:04.532  +20692 ms  MODEL        model lokalny: ładuję plik  okno=2048
+20:41:23.107  +39267 ms  MODEL        model lokalny: plik załadowany  ms=18573
+20:41:23.113  +39273 ms  MODEL        model lokalny: generuję  znakówPromptu=3125
+20:41:33.484  +49644 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 30 01 00 00 00 00 00 00 01 01 sztuk=1 pierwsza=true
+20:41:44.750  +60910 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+20:42:56.989 +133151 ms  MODEL        model lokalny: PIERWSZY TOKEN  ms=93872
+20:42:58.491 +134651 ms  MODEL        model lokalny: koniec generowania  ms=95377 byłPierwszyToken=true
+20:42:58.510 +134671 ms  AUDIO        zwinięte łącze audio tury  ms=3
+20:42:58.529 +134689 ms  SESJA        --- KONIEC TURY c6fa: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
