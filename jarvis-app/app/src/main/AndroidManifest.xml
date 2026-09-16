@@ -118,6 +118,22 @@
         <package android:name="com.google.android.gm" />
         <package android:name="com.whatsapp" />
         <package android:name="org.telegram.messenger" />
+        <!-- Zadania w cudzych aplikacjach (AppLinks). Bez tych wpisów Android 11+
+             UDAJE, że aplikacji nie ma: getLaunchIntentForPackage zwraca null, a
+             setPackage rzuca wyjątkiem MIMO ŻE aplikacja jest zainstalowana.
+             Lista prób wtedy przelatuje do końca i funkcja cicho nie działa. -->
+        <package android:name="pl.jakdojade" />
+        <package android:name="com.shazam.android" />
+        <package android:name="com.ubercab" />
+        <package android:name="ee.mtakso.client" />
+        <package android:name="pl.neptis.yanosik.mobi.android" />
+        <!-- Wszystko, co da się uruchomić z pulpitu - żeby "otwórz X" działało dla
+             DOWOLNEJ aplikacji, nie tylko z naszej listy. To zwykłe zapytanie o
+             intencję, nie uprawnienie QUERY_ALL_PACKAGES. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <!-- Przeglądarka -->
         <intent>
             <action android:name="android.intent.action.VIEW" />

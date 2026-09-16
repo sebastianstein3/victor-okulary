@@ -29,6 +29,19 @@ class ActionExecutor(private val context: Context) {
     private val tag = "ActionExecutor"
 
     /**
+     * Dziennik diagnostyczny - ten sam, który użytkownik wysyła jako plik.
+     *
+     * Logcat wystarcza, gdy telefon wisi na kablu. Wyniki prób z [appTask]
+     * powstają w sklepie albo na przystanku, a nie przy biurku, więc muszą
+     * trafić do pliku, inaczej pomiar, dla którego ta lista prób w ogóle
+     * istnieje, nie dojdzie do nikogo.
+     *
+     * `as?`, bo ActionExecutor bywa tworzony też w podglądzie ustawień.
+     */
+    private val diag: pl.victor.app.diagnostics.DiagnosticLog?
+        get() = (context.applicationContext as? pl.victor.app.VictorApplication)?.diag
+
+    /**
      * Wykonuje akcję. Zwraca rezultat.
      */
     fun execute(action: Action): ActionResult {
@@ -141,10 +154,25 @@ class ActionExecutor(private val context: Context) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val ok = runCatching { context.startActivity(intent); true }.getOrDefault(false)
             if (ok) {
+                diag?.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.AKCJA,
+                    "Zadanie w cudzej aplikacji: udane",
+                    mapOf(
+                        "zadanie" to action.kind.name,
+                        "proba" to "${index + 1}/${attempts.size}",
+                        "aplikacja" to attempt.packageName,
+                        "adres" to (attempt.uri ?: attempt.action)
+                    )
+                )
                 Log.i(tag, "AppTask ${action.kind}: zadziałała próba ${index + 1}/${attempts.size}")
                 return ActionResult.Success(attempt.describe)
             }
         }
+        diag?.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.AKCJA,
+            "Zadanie w cudzej aplikacji: żadna próba nie weszła",
+            mapOf("zadanie" to action.kind.name, "prob" to attempts.size)
+        )
         return ActionResult.Failed(
             "Nie mam na tym telefonie aplikacji, którą dałoby się to zrobić."
         )
@@ -415,10 +443,45 @@ class ActionExecutor(private val context: Context) {
     private fun resolvePackage(appName: String): String? {
         if (appName.isBlank()) return null
         val wanted = appName.trim().lowercase()
-        val installed = getInstalledApps().filter { it.installed }
-        return installed.firstOrNull { it.appName.lowercase() == wanted }?.packageName
-            ?: installed.firstOrNull { it.appName.lowercase().contains(wanted) }?.packageName
-            ?: installed.firstOrNull { wanted.contains(it.appName.lowercase()) }?.packageName
+        // Najpierw lista własna, bo ma nazwy w formie, w jakiej ludzie je mówią,
+        // i jest darmowa. Dopiero gdy nic nie pasuje, przeglądamy CAŁY pulpit -
+        // inaczej "otwórz X" działałoby tylko dla kilkunastu aplikacji, które
+        // ktoś kiedyś wpisał tu ręcznie.
+        //
+        // Kolejność ma znaczenie dla PŁYNNOŚCI, nie tylko dla trafności: akcje
+        // idą po Dispatchers.Main, a odczytanie nazw stu kilkudziesięciu
+        // aplikacji to setki milisekund z dysku. Typowe "otwórz Spotify" nie ma
+        // za co płacić tym czasem.
+        val known = getInstalledApps().filter { it.installed }
+        // Trafienie CO DO ZNAKU na własnej liście kończy sprawę - nic lepszego
+        // już nie będzie, a to pokrywa prawie każde "otwórz X", jakie pada.
+        known.firstOrNull { it.appName.lowercase() == wanted }?.let { return it.packageName }
+        // Dalej już z całym pulpitem i w JEDNYM rankingu, nie dwóch po kolei.
+        // Osobne przebiegi dawałyby byle dopasowanie z własnej listy przed
+        // trafieniem co do znaku z pulpitu: "otwórz uber eats" otwierałoby
+        // Ubera, bo "uber eats" zawiera "uber".
+        val all = known + launchableApps()
+        return all.firstOrNull { it.appName.lowercase() == wanted }?.packageName
+            ?: all.firstOrNull { it.appName.lowercase().contains(wanted) }?.packageName
+            ?: all.firstOrNull { wanted.contains(it.appName.lowercase()) }?.packageName
+    }
+
+    /**
+     * Wszystko, co ma ikonę na pulpicie, z nazwą widoczną dla użytkownika.
+     *
+     * Wymaga wpisu `<intent>` z MAIN/LAUNCHER w `<queries>` manifestu - bez
+     * niego Android 11+ oddaje pustą listę.
+     */
+    private fun launchableApps(): List<AppInfo> {
+        val pm = context.packageManager
+        val query = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return runCatching {
+            @Suppress("DEPRECATION")
+            pm.queryIntentActivities(query, 0).mapNotNull { info ->
+                val pkg = info.activityInfo?.packageName ?: return@mapNotNull null
+                AppInfo(pkg, info.loadLabel(pm).toString(), true)
+            }
+        }.getOrDefault(emptyList())
     }
 
     private fun translate(action: Action.Translate): ActionResult {
@@ -544,7 +607,11 @@ class ActionExecutor(private val context: Context) {
             "com.slack" to "Slack",
             "com.netflix.mediaclient" to "Netflix",
             "com.amazon.mShop.android.shopping" to "Amazon",
-            "com.uber" to "Uber",
+            "com.ubercab" to "Uber",
+            "ee.mtakso.client" to "Bolt",
+            "pl.jakdojade" to "Jakdojade",
+            "com.shazam.android" to "Shazam",
+            "pl.neptis.yanosik.mobi.android" to "Yanosik",
             "pl.victor.app" to "V.I.C.T.O.R. (ta apka)"
         )
 
