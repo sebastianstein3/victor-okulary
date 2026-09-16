@@ -338,13 +338,11 @@ class ActionExecutor(private val context: Context) {
     }
 
     /**
-     * Otwiera dowolną zainstalowaną apkę kalendarza (nie tylko Google) z gotowym
-     * formularzem nowego wydarzenia - user zapisuje ostatnim krokiem sam, więc nie
-     * trzeba tu żadnego OAuth. Wersja DIRECT (przez Google Calendar API) jest w
-     * [DirectActionExecutor].
-     */
-    /**
      * Otwiera formularz nowego wydarzenia - NIE zapisuje go.
+     *
+     * Dowolna zainstalowana aplikacja kalendarza, nie tylko Google: użytkownik
+     * zapisuje ostatnim krokiem sam, więc nie trzeba tu żadnego OAuth. Wersja
+     * DIRECT (przez Google Calendar API) jest w [DirectActionExecutor].
      *
      * Zapis robi dopiero użytkownik, klikając w aplikacji kalendarza. Komunikat
      * musi to mówić wprost, bo zgłoszenie brzmiało: "mówi, że dodaje coś do
@@ -567,8 +565,7 @@ class ActionExecutor(private val context: Context) {
      * Ograniczenie dotyczy WYŁĄCZNIE odpytywania - `startActivity()` z intencją
      * niejawną system rozwiązuje normalnie. Odpowiedzią na "czy da się to
      * otworzyć" jest więc próba otwarcia, a nie pytanie o pozwolenie na pytanie.
-     */
-    /**
+     *
      * @param successMessage co powiedzieć, gdy samo "Otwarto" wprowadza w błąd -
      *   czyli wszędzie tam, gdzie otwarcie okna to dopiero POŁOWA roboty, a
      *   resztę musi zrobić użytkownik.
@@ -589,7 +586,12 @@ class ActionExecutor(private val context: Context) {
     }
 
     /**
-     * Lista zainstalowanych popularnych apek (do UI "Otwórz apkę").
+     * Wybrane popularne aplikacje z informacją, czy są zainstalowane.
+     *
+     * To lista NA POTRZEBY EKRANU USTAWIEŃ - ma stałą treść, żeby dało się
+     * pokazać ptaszek przy obecnych i krzyżyk przy brakujących. Do szukania
+     * aplikacji po nazwie służy [resolvePackage], które sięga dalej, bo tutaj
+     * z natury nie ma wszystkiego.
      */
     fun getInstalledApps(): List<AppInfo> {
         val pm = context.packageManager

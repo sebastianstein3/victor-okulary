@@ -115,35 +115,6 @@ class SettingsRepository private constructor(private val context: Context) {
     val wakeWordEnabledFlow: StateFlow<Boolean> = _wakeWordEnabledFlow.asStateFlow()
 
     /**
-     * Czy nasłuch frazy ma iść przez MIKROFON OKULARÓW zamiast telefonu.
-     *
-     * ## Domyślnie WYŁĄCZONE i to jest ważne
-     * Mikrofon zestawu Bluetooth działa wyłącznie przez profil rozmowy (SCO/HFP).
-     * Nasłuch frazy trwa bez przerwy, więc włączenie tego trzyma okulary w trybie
-     * ROZMOWY przez cały czas - a wtedy Android pokazuje je jako urządzenie "do
-     * połączeń", nie "do multimediów", i nie da się przez nie słuchać muzyki.
-     * Przełącznik multimediów w ustawieniach systemu wraca wtedy sam do wyłączenia,
-     * bo aplikacja natychmiast zajmuje profil rozmowy z powrotem.
-     *
-     * Zgłoszone dokładnie tak: "okulary łączą się jako używane do połączeń, a nie
-     * do odtwarzania, po kliknięciu tej opcji sama się wyłącza".
-     *
-     * Wybudzanie okularami i tak działa bez tego - okulary wysyłają je własną
-     * drogą po BLE. To ustawienie dotyczy wyłącznie frazy wypowiadanej do telefonu.
-     */
-    /**
-     * Czy pytanie wolno przepisywać na tekst przez usługę w chmurze.
-     *
-     * ## Domyślnie WŁĄCZONE, ale bez klucza i tak nic nie wysyła
-     * Rozpoznawanie lokalne myli słowa na tyle, że model odpowiada pewnie i nie na
-     * temat - a to jest gorsze niż brak odpowiedzi. Dlatego droga przez chmurę
-     * jest domyślna, gdy klucz OpenAI jest już w ustawieniach.
-     *
-     * Kto nie chce wysyłać nagrań poza telefon, wyłącza to i zostaje przy
-     * rozpoznawaniu systemowym oraz Vosku. Nagranie głosu to dane wrażliwe, więc
-     * ta decyzja ma być widoczna, a nie schowana w innej funkcji.
-     */
-    /**
      * Co dostaje model: miniaturę czy zdjęcie w pełnej rozdzielczości.
      *
      * Wartości: [PHOTO_THUMBNAIL] albo [PHOTO_FULL].
@@ -198,6 +169,18 @@ class SettingsRepository private constructor(private val context: Context) {
 
     fun hasGithubToken(): Boolean = getGithubToken().isNotBlank()
 
+    /**
+     * Czy pytanie wolno przepisywać na tekst przez usługę w chmurze.
+     *
+     * ## Domyślnie WŁĄCZONE, ale bez klucza i tak nic nie wysyła
+     * Rozpoznawanie lokalne myli słowa na tyle, że model odpowiada pewnie i nie na
+     * temat - a to jest gorsze niż brak odpowiedzi. Dlatego droga przez chmurę
+     * jest domyślna, gdy klucz OpenAI jest już w ustawieniach.
+     *
+     * Kto nie chce wysyłać nagrań poza telefon, wyłącza to i zostaje przy
+     * rozpoznawaniu systemowym oraz Vosku. Nagranie głosu to dane wrażliwe, więc
+     * ta decyzja ma być widoczna, a nie schowana w innej funkcji.
+     */
     fun isCloudTranscriptionEnabled(): Boolean =
         prefs.getBoolean(KEY_CLOUD_TRANSCRIPTION, true)
 
@@ -205,6 +188,23 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_CLOUD_TRANSCRIPTION, enabled).apply()
     }
 
+    /**
+     * Czy nasłuch frazy ma iść przez MIKROFON OKULARÓW zamiast telefonu.
+     *
+     * ## Domyślnie WYŁĄCZONE i to jest ważne
+     * Mikrofon zestawu Bluetooth działa wyłącznie przez profil rozmowy (SCO/HFP).
+     * Nasłuch frazy trwa bez przerwy, więc włączenie tego trzyma okulary w trybie
+     * ROZMOWY przez cały czas - a wtedy Android pokazuje je jako urządzenie "do
+     * połączeń", nie "do multimediów", i nie da się przez nie słuchać muzyki.
+     * Przełącznik multimediów w ustawieniach systemu wraca wtedy sam do wyłączenia,
+     * bo aplikacja natychmiast zajmuje profil rozmowy z powrotem.
+     *
+     * Zgłoszone dokładnie tak: "okulary łączą się jako używane do połączeń, a nie
+     * do odtwarzania, po kliknięciu tej opcji sama się wyłącza".
+     *
+     * Wybudzanie okularami i tak działa bez tego - okulary wysyłają je własną
+     * drogą po BLE. To ustawienie dotyczy wyłącznie frazy wypowiadanej do telefonu.
+     */
     fun isWakeWordOverGlassesMic(): Boolean =
         prefs.getBoolean(KEY_WAKE_WORD_GLASSES_MIC, false)
 

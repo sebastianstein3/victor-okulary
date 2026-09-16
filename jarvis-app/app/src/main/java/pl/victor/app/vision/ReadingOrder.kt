@@ -51,11 +51,6 @@ object ReadingOrder {
     private const val MIN_BLOCKS = 2
 
     /**
-     * @return tekst do wypowiedzenia - dominujący napis na przodzie, reszta w
-     *   kolejności czytania. Gdy nie ma czego przestawiać (brak ramek, jeden
-     *   blok, tekst jednolity), oddaje [fallback] bez zmian.
-     */
-    /**
      * Blok tekstu sprowadzony do tego, co tu potrzebne: treść i położenie.
      *
      * @param top górna krawędź - po niej idzie kolejność czytania
@@ -64,6 +59,11 @@ object ReadingOrder {
      */
     data class Piece(val text: String, val top: Int, val left: Int, val height: Int)
 
+    /**
+     * @return tekst do wypowiedzenia - dominujący napis na przodzie, reszta w
+     *   kolejności czytania. Gdy nie ma czego przestawiać (brak ramek, jeden
+     *   blok, tekst jednolity), oddaje [fallback] bez zmian.
+     */
     fun arrange(blocks: List<Piece>, fallback: String): String {
         val usable = blocks.filter { it.text.isNotBlank() }
         if (usable.size < MIN_BLOCKS) return fallback
