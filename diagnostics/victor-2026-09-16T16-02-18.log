@@ -520,3 +520,37 @@
 18:44:34.056  +10422 ms  MOWA         koniec wypowiedzi  ms=4571
 18:44:34.128  +10493 ms  SESJA        --- KONIEC TURY cac0: odpowiedziano ---
 18:44:34.136          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:44:34.193          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:44:35.416          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:44:35.486          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:44:38.837          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:46:33.826          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 06 8A 0B 18 sztuk=1 pierwsza=false
+18:47:09.982          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+18:47:10.566          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,12,3
+18:47:11.467          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,3
+18:47:27.478          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 FC 01 00 00 00 00 05 00 01 01 sztuk=2 pierwsza=false
+18:47:34.806          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 5A 0B 26 sztuk=19 pierwsza=false
+18:47:59.072          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+18:47:59.086          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+18:48:04.957          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=14275 jpeg=true kompletny=true
+18:48:04.973      +1 ms  SESJA        --- TURA f445 ---  źródło=BUTTON
+18:48:04.977      +5 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+18:48:05.003     +31 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+18:48:05.256    +284 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:48:05.270    +298 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+18:48:06.878   +1906 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+18:48:06.906   +1934 ms  BŁĄD         Hotspot okularów: nie dołączyłem  sieć=W610T_6A7234AD04C5 ms=1636 powód=Wi-Fi jest wyłączone - włącz je, żeby telefon mógł połączyć się z okularami.
+18:48:06.917   +1945 ms  BLE          Wi-Fi Direct: podnoszę łącze
+18:48:09.932   +4961 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+18:48:12.947   +7976 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+18:48:15.964  +10992 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+18:48:15.975  +11003 ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=9057 powód=Wi-Fi jest wyłączone. Okulary rozdają pliki własną siecią Wi-Fi - włącz Wi-Fi w telefonie i spróbuj ponownie. Nie musisz się do niczego logować.
+18:48:15.985  +11013 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=10716
+18:48:16.009  +11037 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=14275 źródło=migawka pełnaRozdzielczość=false
+18:48:17.970  +12999 ms  KONTEKST     zebrany  ms=1586 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:48:18.004  +13032 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=1 znakówPromptu=7620
+18:48:19.741  +14769 ms  MODEL        koniec odpowiedzi (207 znaków, 6231 tokenów)  ms=1739
+18:48:22.236  +17265 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,1
+18:48:34.612  +29641 ms  MOWA         koniec wypowiedzi  ms=14850
+18:48:34.661  +29689 ms  SESJA        --- KONIEC TURY f445: odpowiedziano ---
+18:48:34.671          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
