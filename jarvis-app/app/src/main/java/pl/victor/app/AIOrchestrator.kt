@@ -2762,7 +2762,7 @@ class AIOrchestrator(
                     }
                 } else {
                     null
-                }
+                } ?: streamFrameForText(useVision, textQuestion)
 
                 val captureResult = if (useVision && streamFrame == null) {
                     val preferredMode = pl.victor.app.ai.CaptureMode.valueOf(
@@ -4326,6 +4326,64 @@ class AIOrchestrator(
      * Słowa kluczowe: "przeczytaj", "co pisze", "co jest napisane",
      * "przetłumacz", "menu", "etykieta", "tablica"
      */
+    /**
+     * Ostatnia droga do LITER, gdy Wi-Fi Direct tu nie wstaje.
+     *
+     * ## Czemu to nie przeczy wąskiemu warunkowi wyżej
+     * Tamten mówi: nie podnoś strumienia pod jedno pytanie, bo kosztuje circa
+     * 12 s, a migawka odda ostre zdjęcie szybciej. To prawda, DOPÓKI migawka
+     * faktycznie je oddaje. Gdy bezpiecznik Wi-Fi Direct jest zatrzaśnięty,
+     * wiemy z POMIARU, że nie odda - wróci miniatura, na której liter nie ma.
+     * Wtedy wybór nie brzmi "12 sekund czy szybciej", tylko "12 sekund czy
+     * odpowiedź zgadywana z szarej plamy".
+     *
+     * Dziennik z 21:55 pokazuje obie strony naraz: pobranie oryginału zawiodło
+     * po 10,4 s i model dostał 17 761 bajtów, a strumień w tym samym czasie
+     * oddawał 1600x1200 bez zarzutu.
+     *
+     * ## Warunki są wąskie z rozmysłu
+     * Wchodzi wyłącznie wtedy, gdy pytanie DOTYCZY liter, strumień jeszcze nie
+     * stoi, a bezpiecznik jest zatrzaśnięty. Przy "co przede mną jest"
+     * miniatura wystarcza i nikt nie ma czekać 12 sekund za nic.
+     *
+     * Strumień jest po wszystkim gaszony: podniesiony pod jedno pytanie i
+     * zostawiony trzymałby łącze oraz baterię okularów bez powodu.
+     */
+    private suspend fun streamFrameForText(useVision: Boolean, textQuestion: String): ByteArray? {
+        if (!useVision) return null
+        if (glassesManager.isLiveVisionRunning) return null
+        if (!glassesManager.wifiDirectKnownBroken) return null
+        if (!pl.victor.app.ai.VisionDetail.needsDetail(textQuestion)) return null
+
+        _state.value = OrchestratorState.Capturing(
+            progress = 1,
+            total = 1,
+            label = "Ostre zdjęcie tu nie przechodzi - biorę obraz ze strumienia. " +
+                "Chwilę to potrwa."
+        )
+        val startedAt = System.currentTimeMillis()
+        if (!glassesManager.startLiveVision()) {
+            diag.event(
+                DiagFormat.Phase.ZDJĘCIE, "strumień dla liter nie wstał",
+                mapOf("ms" to (System.currentTimeMillis() - startedAt))
+            )
+            return null
+        }
+        return try {
+            glassesManager.liveFrame(detail = true)?.also { frame ->
+                diag.event(
+                    DiagFormat.Phase.ZDJĘCIE, "litery ze strumienia zamiast miniatury",
+                    mapOf(
+                        "bajtów" to frame.size,
+                        "ms" to (System.currentTimeMillis() - startedAt)
+                    )
+                )
+            }
+        } finally {
+            glassesManager.stopLiveVision()
+        }
+    }
+
     private fun shouldRunOcr(text: String): Boolean {
         val triggers = listOf(
             "przeczytaj", "co pisze", "co napisane", "co tu pisze",

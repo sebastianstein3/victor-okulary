@@ -270,6 +270,21 @@ class VictorManager private constructor(context: Context) {
     private var wifiDirectFailedAtMs = 0L
 
     /**
+     * Czy wiemy z pomiaru, że Wi-Fi Direct tu nie wstaje.
+     *
+     * `true` tylko przez [WIFI_RETRY_AFTER_MS] od nieudanej próby - potem
+     * pytamy sprzęt jeszcze raz, bo warunki się zmieniają (inne miejsce,
+     * restart okularów).
+     *
+     * Wystawione, żeby wołający mógł wybrać INNĄ drogę do ostrego obrazu,
+     * zamiast dostać miniaturę, na której i tak nie ma liter. Sama migawka
+     * tego nie rozstrzygnie: ona zawsze odda cokolwiek.
+     */
+    val wifiDirectKnownBroken: Boolean
+        get() = wifiDirectFailedAtMs > 0L &&
+            System.currentTimeMillis() - wifiDirectFailedAtMs < WIFI_RETRY_AFTER_MS
+
+    /**
      * Kiedy okulary ostatnio odpowiedziały NA JAKĄKOLWIEK komendę sterującą.
      *
      * ## Po co osobny licznik
