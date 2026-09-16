@@ -197,3 +197,50 @@
 18:37:08.333  +13503 ms  MOWA         koniec wypowiedzi  ms=10273
 18:37:08.394  +13564 ms  SESJA        --- KONIEC TURY b121: odpowiedziano ---
 18:37:08.413          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:37:08.480          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:37:29.570      +0 ms  SESJA        --- TURA d20d ---  źródło=VOICE
+18:37:29.571      +1 ms  SESJA        pytanie  tekst=powiedz jakiś inny ryby nie bo tak to takie mniejsze są kuleczki albo ten taki siostra ma większe kulki wymuszonyObraz=false
+18:37:29.579      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:37:29.731    +161 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+18:37:29.731    +161 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+18:37:31.669   +2099 ms  KONTEKST     zebrany  ms=1918 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:37:31.704   +2134 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=7223
+18:37:32.469   +2900 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=767
+18:37:32.755   +3185 ms  MODEL        zużycie tokenów  wejście=5330 odpowiedź=62 razem=5392 limit=1200 koniec=STOP
+18:37:32.760   +3191 ms  MODEL        koniec odpowiedzi (208 znaków, 5392 tokenów)  ms=1058
+18:37:35.760   +6191 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+18:37:46.200  +16631 ms  MOWA         koniec wypowiedzi  ms=13430
+18:37:46.250  +16680 ms  SESJA        --- KONIEC TURY d20d: odpowiedziano ---
+18:37:46.262          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:37:46.941          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:37:51.617      +0 ms  SESJA        --- TURA 70c8 ---  źródło=VOICE
+18:37:51.618      +1 ms  SESJA        pytanie  tekst=na co stopy wymuszonyObraz=false
+18:37:51.622      +5 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:37:51.634     +18 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+18:37:53.146   +1529 ms  KONTEKST     zebrany  ms=1506 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:37:53.157   +1540 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=6708
+18:37:53.840   +2223 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=685
+18:37:54.074   +2457 ms  MODEL        zużycie tokenów  wejście=5177 odpowiedź=44 razem=5221 limit=1200 koniec=STOP
+18:37:54.078   +2461 ms  MODEL        koniec odpowiedzi (152 znaków, 5221 tokenów)  ms=923
+18:38:01.976  +10359 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+18:38:02.139  +10522 ms  SESJA        --- KONIEC TURY 70c8: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+18:38:23.023          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:38:26.455          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:38:30.399      +1 ms  SESJA        --- TURA 02b1 ---  źródło=VOICE
+18:38:30.403      +4 ms  SESJA        pytanie  tekst=włącz światło przychodzi wymuszonyObraz=false
+18:38:30.416     +17 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:38:30.633    +236 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:38:31.186    +788 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:38:32.682   +2283 ms  KONTEKST     zebrany  ms=1993 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:38:32.694   +2295 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=6905
+18:38:33.778   +3379 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1084
+18:38:33.807   +3408 ms  MODEL        zużycie tokenów  wejście=5238 odpowiedź=46 razem=5284 limit=1200 koniec=STOP
+18:38:33.821   +3422 ms  MODEL        koniec odpowiedzi (167 znaków, 5284 tokenów)  ms=1128
+18:38:35.320   +4921 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:38:43.732  +13333 ms  PRZYCISK     wciśnięto  numer=1
+18:38:43.961  +13562 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:38:44.241  +13842 ms  SESJA        PRZERWANO turę - weszło nowe wywołanie  stan=Streaming poMs=10410
+18:38:44.265  +13866 ms  SESJA        --- KONIEC TURY 02b1: BEZ ODPOWIEDZI (stan Idle, powód: nowe wywołanie użytkownika) ---
+18:38:44.593          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=627
+18:38:44.690      +1 ms  SESJA        --- TURA 414a ---  źródło=OKULARY
+18:38:44.693      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
