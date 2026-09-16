@@ -96,3 +96,22 @@
 16:20:03.530  +18431 ms  MOWA         koniec wypowiedzi  ms=13911
 16:20:03.551  +18451 ms  SESJA        --- KONIEC TURY 241d: odpowiedziano ---
 16:20:03.553          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:20:04.055          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:20:06.092      +0 ms  SESJA        --- TURA 3b70 ---  źródło=TELEFON
+16:20:06.093      +1 ms  NASŁUCH      start  strumieńBLE=false sco=false mikrofonBT=false
+16:20:09.594   +3503 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+16:20:16.172  +10080 ms  NASŁUCH      koniec  ms=10080 mikrofon=mowa wykryta szczytDb=10.0 próbek=30 gotowyPoMs=293
+16:20:16.176  +10084 ms  NASŁUCH      nagranie z okularów  jest=false
+16:20:16.199  +10107 ms  SESJA        --- KONIEC TURY 3b70: błąd ---
+16:20:16.203          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:20:16.291          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:20:16.337          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,1
+16:20:20.260          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+16:21:36.769          ms  MODEL        zużycie tokenów  wejście=100 odpowiedź=14 razem=114 limit=1200 koniec=STOP
+16:22:07.740          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,1
+16:22:08.984          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+16:22:10.958          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+16:22:10.961          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+16:22:10.970          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1984
+16:22:12.141          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+16:22:14.069          ms  ZDJĘCIE      próba 0: miniatura  bajtów=18666 jpeg=true kompletny=true
