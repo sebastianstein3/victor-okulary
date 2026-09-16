@@ -83,7 +83,20 @@ class AccessibilityService(
         _mode.value = AccessibilityMode.READ_TEXT
         active.set(true)
         playBeep(BeepType.MODE_CHANGED)
-        audio.speak("Tryb czytania włączony. Skieruj okulary na tekst.", language = "pl")
+        // MÓWIMY, JAK POPROSIĆ O KOLEJNE CZYTANIE.
+        //
+        // Ten tryb czyta RAZ i czeka - świadomie, żeby nie robić zdjęć bez
+        // przerwy. Ale użytkownik tego nie wie: włącza tryb, słyszy jedno
+        // czytanie i cisza. Zgłoszone z terenu jako "tryb czytania niczego nie
+        // czyta", choć przeczytał dokładnie tyle, ile miał.
+        //
+        // Funkcja, która działa poprawnie i wygląda na zepsutą, jest z punktu
+        // widzenia użytkownika zepsuta.
+        audio.speak(
+            "Tryb czytania włączony. Skieruj okulary na tekst. " +
+                "Naciśnij przycisk, żeby przeczytać jeszcze raz.",
+            language = "pl"
+        )
         resetHealth()
         workerJob = scope.launch {
             startLiveVisionOrExplain()
