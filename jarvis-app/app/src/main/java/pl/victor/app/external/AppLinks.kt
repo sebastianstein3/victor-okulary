@@ -1,6 +1,6 @@
 package pl.victor.app.external
 
-import android.net.Uri
+import java.net.URLEncoder
 
 /**
  * Otwieranie CUDZYCH aplikacji z gotowym zadaniem.
@@ -23,6 +23,23 @@ import android.net.Uri
  * na podstawie pomiaru, a nie mojego przypuszczenia.
  */
 object AppLinks {
+
+    /**
+     * Kodowanie celu do adresu - czystą Javą, nie klasą Androida.
+     *
+     * ## Czemu nie klasa Uri z Androida
+     * Bo w testach jednostkowych jest ATRAPĄ: przy
+     * `unitTests.isReturnDefaultValues = true` jej `encode` oddaje null i test
+     * pada, choć na telefonie wszystko działa. Dokładnie ten sam błąd
+     * popełniłem dzień wcześniej w ReadingOrder z klasą Rect - mój lokalny
+     * runner ma `android-all.jar` z PRAWDZIWĄ implementacją, więc pokazuje
+     * zieloną tam, gdzie CI pokaże czerwoną.
+     *
+     * `URLEncoder` tej pułapki nie ma. Plus zamieniamy na %20, bo w adresie
+     * `geo:` plus bywa pokazywany dosłownie zamiast jako spacja.
+     */
+    private fun enc(text: String): String =
+        URLEncoder.encode(text, "UTF-8").replace("+", "%20")
 
     /** Jedna próba otwarcia: adres albo jawna akcja, opcjonalnie w konkretnej aplikacji. */
     data class Attempt(
@@ -50,7 +67,7 @@ object AppLinks {
      * ich własnego formatu.
      */
     fun jakdojade(destination: String): List<Attempt> {
-        val q = Uri.encode(destination)
+        val q = enc(destination)
         return listOf(
             Attempt(
                 uri = "geo:0,0?q=$q",
@@ -87,7 +104,7 @@ object AppLinks {
 
     /** Kurs do X: najpierw Uber, potem Bolt, bo tylko Uber dokumentuje swój adres. */
     fun ride(destination: String): List<Attempt> {
-        val q = Uri.encode(destination)
+        val q = enc(destination)
         return listOf(
             Attempt(
                 uri = "uber://?action=setPickup&pickup=my_location" +

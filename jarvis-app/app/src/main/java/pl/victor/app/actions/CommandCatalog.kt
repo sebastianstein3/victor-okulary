@@ -62,6 +62,18 @@ object CommandCatalog {
             )
         ),
         CommandInfo(
+            ActionType.APP_TASK, CommandGroup.COMMUNICATION, "Zadanie w innej aplikacji",
+            "Otwiera Jakdojade, Shazama, Ubera, Bolta albo Yanosika z gotowym " +
+                "zadaniem. Gdy aplikacja nie przyjmie zadania, otwiera się " +
+                "zwyczajnie - asystent mówi wtedy, że cel trzeba wpisać samemu.",
+            listOf(
+                "Sprawdź w Jakdojade do dworca głównego",
+                "Co to za piosenka",
+                "Zamów Ubera do domu",
+                "Włącz Yanosika"
+            )
+        ),
+        CommandInfo(
             ActionType.MAKE_CALL, CommandGroup.COMMUNICATION, "Zadzwoń",
             "Dzwoni pod numer albo do kontaktu z książki adresowej.",
             listOf("Zadzwoń do domu", "Wybierz numer do Piotra")
