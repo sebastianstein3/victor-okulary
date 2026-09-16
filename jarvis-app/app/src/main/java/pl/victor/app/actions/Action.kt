@@ -52,6 +52,27 @@ sealed class Action {
             "Otwórz WhatsAppa do ${resolvedName ?: to} z wiadomością: \"$body\""
     }
 
+    /**
+     * Otwarcie CUDZEJ aplikacji z gotowym zadaniem.
+     *
+     * Adresy głębokie tych aplikacji są niepewne, więc wykonanie polega na
+     * próbowaniu kolejnych kandydatów - patrz
+     * [pl.victor.app.external.AppLinks]. Komunikat mówi, co naprawdę się
+     * udało, a nie co zamierzaliśmy.
+     */
+    data class AppTask(
+        val kind: AppTaskKind,
+        val argument: String = ""
+    ) : Action() {
+        override val type = ActionType.APP_TASK
+        override val description = when (kind) {
+            AppTaskKind.TRANSIT_PLAN -> "Zaplanuj dojazd do $argument w Jakdojade"
+            AppTaskKind.RECOGNIZE_SONG -> "Rozpoznaj piosenkę Shazamem"
+            AppTaskKind.ORDER_RIDE -> "Zamów kurs do $argument"
+            AppTaskKind.ROAD_ASSIST -> "Otwórz Yanosika"
+        }
+    }
+
     /** Zadzwoń do kogoś. Otwiera dialer z numerem. */
     data class MakeCall(
         val to: String,
@@ -249,6 +270,7 @@ enum class ActionType {
     TRANSLATE, SHOW_ON_MAP,
     TOGGLE_WIFI, TOGGLE_BLUETOOTH, TOGGLE_FLASHLIGHT,
     SEND_WHATSAPP,
+    APP_TASK,
     READ_TEXT, DESCRIBE_SCENE, START_NAVIGATION, STOP_ACCESSIBILITY,
     TAKE_PHOTO
 }
@@ -288,4 +310,19 @@ sealed class ActionResult {
     data class Success(val message: String) : ActionResult()
     data class Failed(val reason: String) : ActionResult()
     data class NeedsConfirmation(val question: String) : ActionResult()
+}
+
+/** Rodzaj zadania zlecanego cudzej aplikacji - patrz [Action.AppTask]. */
+enum class AppTaskKind {
+    /** Plan dojazdu komunikacją w Jakdojade. */
+    TRANSIT_PLAN,
+
+    /** "Co to za piosenka" w Shazamie. */
+    RECOGNIZE_SONG,
+
+    /** Zamówienie kursu (Uber, potem Bolt). */
+    ORDER_RIDE,
+
+    /** Yanosik - ostrzeżenia drogowe. */
+    ROAD_ASSIST
 }

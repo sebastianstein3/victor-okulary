@@ -198,6 +198,40 @@ class SmartActionDetector {
      * "Komunikacją" i "transportem publicznym" nikt na co dzień nie mówi -
      * mówi się nazwą pojazdu. Stąd autobus, tramwaj, metro i pociąg.
      */
+    // Wzorce zadań w cudzych aplikacjach - patrz detect().
+    //
+    // Jakdojade wymaga NAZWY aplikacji, żeby nie kłóciło się z "jedź autobusem
+    // do X", które obsługują Mapy (plan podróży bez instalowania czegokolwiek).
+    // GRUPA NIEPRZECHWYTUJĄCA wokół alternatywy jest tu warunkiem działania, a
+    // nie kosmetyką: bez niej `|` rozdziela CAŁY wzorzec, więc pierwsza gałąź
+    // to samo słowo "jakdojade", a cel nigdy się nie łapie. Wzorzec pasował
+    // wtedy do zdania i oddawał pusty cel.
+    private val JAKDOJADE_REGEX = Regex(
+        """(?:jak\s?dojade|jakdojade).*?\bdo\s+["']?(.+?)["']?$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private val SONG_REGEX = Regex(
+        """(co\s+to\s+(jest\s+)?za\s+(piosenk|utw[oó]r|kawa[lł]ek)|""" +
+            """rozpoznaj\s+(t[eę]\s+)?(piosenk|utw[oó]r|muzyk)|""" +
+            """\bshazam\S*|jaka\s+to\s+piosenka)""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private val RIDE_REGEX = Regex(
+        """(?:zam[oó]w|wezw[ij]?|weź)\s+(?:mi\s+)?""" +
+            // \S, nie \w: w Javie (a więc i w Kotlinie) `\w` to
+            // [a-zA-Z_0-9] BEZ polskich liter, więc "taksówkę" urywało się na
+            // "ę" i całe zdanie przepadało.
+            """(?:ubera|uber|bolta|bolt|taks[oó]wk\S*|przejazd\S*|kurs\S*)\s+do\s+["']?(.+?)["']?$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private val YANOSIK_REGEX = Regex(
+        """(w[lł][aą]cz|odpal|otw[oó]rz|uruchom)\s+yanosik\S*""",
+        RegexOption.IGNORE_CASE
+    )
+
     /** Nazwy pojazdów do WYCIĘCIA z tekstu przed dopasowaniem trasy. */
     private val TRANSIT_REGEX = Regex(
         """\b(autobusem|autobusu|tramwajem|tramwaju|metrem|metra|""" +
@@ -242,6 +276,30 @@ class SmartActionDetector {
             if (to.isNotBlank() && body.isNotBlank()) {
                 actions.add(Action.SendSms(to = to, body = body))
             }
+        }
+
+        // === ZADANIA W CUDZYCH APLIKACJACH ===
+        //
+        // Wzorce są WĄSKIE z rozmysłu: każdy wymaga słowa, które jednoznacznie
+        // nazywa czynność albo aplikację. "Co to za piosenka" nie może porwać
+        // zwykłego pytania, a "zamów" bez celu nie ma czego zamawiać.
+        JAKDOJADE_REGEX.find(lower)?.let { m ->
+            val dest = cleanDestination(m.groupValues[1])
+            if (dest.isNotBlank()) {
+                actions.add(Action.AppTask(AppTaskKind.TRANSIT_PLAN, dest))
+            }
+        }
+        if (SONG_REGEX.containsMatchIn(lower)) {
+            actions.add(Action.AppTask(AppTaskKind.RECOGNIZE_SONG))
+        }
+        RIDE_REGEX.find(lower)?.let { m ->
+            val dest = cleanDestination(m.groupValues[1])
+            if (dest.isNotBlank()) {
+                actions.add(Action.AppTask(AppTaskKind.ORDER_RIDE, dest))
+            }
+        }
+        if (YANOSIK_REGEX.containsMatchIn(lower)) {
+            actions.add(Action.AppTask(AppTaskKind.ROAD_ASSIST))
         }
 
         // === WHATSAPP ===

@@ -106,6 +106,9 @@ object CustomCommands {
             // zostawiamy je modelowi - on wyciągnie je ze zdania.
             ActionType.SEND_SMS,
             ActionType.SEND_WHATSAPP,
+            // APP_TASK niesie rodzaj zadania I cel, więc jedno pole tekstowe
+            // własnej komendy mu nie wystarczy.
+            ActionType.APP_TASK,
             ActionType.SEND_EMAIL,
             ActionType.TRANSLATE,
             ActionType.SET_ALARM,

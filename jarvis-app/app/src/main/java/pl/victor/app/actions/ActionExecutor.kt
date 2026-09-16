@@ -37,6 +37,7 @@ class ActionExecutor(private val context: Context) {
             when (action) {
                 is Action.SendSms -> sendSms(action)
                 is Action.SendWhatsApp -> sendWhatsApp(action)
+                is Action.AppTask -> appTask(action)
                 is Action.MakeCall -> makeCall(action)
                 is Action.SendEmail -> sendEmail(action)
                 is Action.PlayMusic -> playMusic(action)
@@ -102,6 +103,51 @@ class ActionExecutor(private val context: Context) {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         return launchIntent(intent, "WhatsApp nie jest zainstalowany")
+    }
+
+    /**
+     * Próbuje kolejnych sposobów otwarcia cudzej aplikacji z zadaniem.
+     *
+     * ## Czemu pętla, a nie jeden Intent
+     * Bo adresów głębokich tych aplikacji nie da się sprawdzić z góry i
+     * zmieniają się między wersjami. Jeden wpisany na sztywno dałby funkcję,
+     * która CICHO NIE DZIAŁA. Tu idziemy od najbardziej szczegółowej próby do
+     * zwykłego uruchomienia aplikacji, a mówimy to, co SIĘ UDAŁO.
+     *
+     * Który kandydat zadziałał, trafia do dziennika - po jednym teście w
+     * terenie da się listę skrócić na podstawie pomiaru, a nie domysłu.
+     */
+    private fun appTask(action: Action.AppTask): ActionResult {
+        val attempts = when (action.kind) {
+            pl.victor.app.actions.AppTaskKind.TRANSIT_PLAN ->
+                pl.victor.app.external.AppLinks.jakdojade(action.argument)
+            pl.victor.app.actions.AppTaskKind.RECOGNIZE_SONG ->
+                pl.victor.app.external.AppLinks.shazam()
+            pl.victor.app.actions.AppTaskKind.ORDER_RIDE ->
+                pl.victor.app.external.AppLinks.ride(action.argument)
+            pl.victor.app.actions.AppTaskKind.ROAD_ASSIST ->
+                pl.victor.app.external.AppLinks.yanosik()
+        }
+
+        for ((index, attempt) in attempts.withIndex()) {
+            val intent = when {
+                attempt.action != null -> Intent(attempt.action)
+                attempt.uri != null -> Intent(Intent.ACTION_VIEW, Uri.parse(attempt.uri))
+                attempt.packageName != null ->
+                    context.packageManager.getLaunchIntentForPackage(attempt.packageName)
+                else -> null
+            } ?: continue
+            attempt.packageName?.let { if (attempt.uri != null || attempt.action != null) intent.setPackage(it) }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val ok = runCatching { context.startActivity(intent); true }.getOrDefault(false)
+            if (ok) {
+                Log.i(tag, "AppTask ${action.kind}: zadziałała próba ${index + 1}/${attempts.size}")
+                return ActionResult.Success(attempt.describe)
+            }
+        }
+        return ActionResult.Failed(
+            "Nie mam na tym telefonie aplikacji, którą dałoby się to zrobić."
+        )
     }
 
     private fun makeCall(action: Action.MakeCall): ActionResult {
