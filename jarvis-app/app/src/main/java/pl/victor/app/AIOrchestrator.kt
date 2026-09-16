@@ -2206,7 +2206,7 @@ class AIOrchestrator(
             //
             // Tekst w języku docelowym jest po prostu czytany - „tłumaczenie"
             // polskiej tabliczki na polski nie ma sensu, a model sam to widzi.
-            ButtonAction.READ_TEXT -> handleUserTrigger(
+            ButtonAction.READ_AND_TRANSLATE -> handleUserTrigger(
                 TriggerSource.BUTTON,
                 pl.victor.app.vision.ReadTextPrompt.forLanguage(settings.getResponseLanguage()),
                 forceVision = true

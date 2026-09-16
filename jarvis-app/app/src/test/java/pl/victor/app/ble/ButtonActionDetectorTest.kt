@@ -46,10 +46,10 @@ class ButtonActionDetectorTest {
     }
 
     @Test
-    fun `trzy klikniecia czytaja tekst`() {
+    fun `trzy klikniecia czytaja i tlumacza napis`() {
         // Czytanie siedzi najniżej, jak się da NA TYM SPRZĘCIE - patrz test
         // "kazda akcja da sie wywolac samymi klikami" niżej.
-        assertEquals(ButtonAction.READ_TEXT, actionFor(3))
+        assertEquals(ButtonAction.READ_AND_TRANSLATE, actionFor(3))
     }
 
     @Test
@@ -78,7 +78,7 @@ class ButtonActionDetectorTest {
         val wymagane = listOf(
             ButtonAction.QUICK_QUESTION,
             ButtonAction.LOOK_AND_DESCRIBE,
-            ButtonAction.READ_TEXT,
+            ButtonAction.READ_AND_TRANSLATE,
             ButtonAction.NEW_CONVERSATION
         )
         val osiagalne = (1..6).map { actionFor(it) }.toSet()
@@ -99,7 +99,7 @@ class ButtonActionDetectorTest {
     }
 
     @Test
-    fun `przytrzymanie tez czyta tekst, gdyby sprzet je przysylal`() = runBlocking {
+    fun `przytrzymanie tez tlumaczy, gdyby sprzet je przysylal`() = runBlocking {
         // Gałąź zostaje, bo nic nie kosztuje, a inny egzemplarz może ją
         // wysyłać. Ale NIE WOLNO na niej niczego opierać - na tym sprzęcie
         // nie przychodzi ani razu.
@@ -107,15 +107,15 @@ class ButtonActionDetectorTest {
         val awaited = async { detector.action.first() }
         delay(50)
         detector.processEvent(ButtonEvent.LongPress)
-        assertEquals(ButtonAction.READ_TEXT, awaited.await())
+        assertEquals(ButtonAction.READ_AND_TRANSLATE, awaited.await())
     }
 
     @Test
-    fun `gotowe zdarzenie potrojnego klikniecia tez czyta tekst`() = runBlocking {
+    fun `gotowe zdarzenie potrojnego klikniecia tez tlumaczy`() = runBlocking {
         val detector = ButtonActionDetector()
         val awaited = async { detector.action.first() }
         delay(50)
         detector.processEvent(ButtonEvent.TripleClick)
-        assertEquals(ButtonAction.READ_TEXT, awaited.await())
+        assertEquals(ButtonAction.READ_AND_TRANSLATE, awaited.await())
     }
 }

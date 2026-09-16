@@ -170,6 +170,6 @@ private fun formatTime(timestampMs: Long): String =
 private val GESTURES = listOf(
     "1× klik" to "zapytaj głosem",
     "2× klik" to "zdjęcie i opis widoku",
-    "3× klik" to "odczytaj kod QR",
-    "przytrzymaj" to "nowa rozmowa"
+    "3× klik" to "przeczytaj i przetłumacz napis",
+    "4× klik" to "nowa rozmowa"
 )

@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  * Mapuje eventy z ButtonEvent na konkretne akcje użytkownika:
  * - 1x kliknięcie  → QUICK_QUESTION (słuchaj, o co pytam)
  * - 2x kliknięcie  → LOOK_AND_DESCRIBE (zrób zdjęcie i powiedz, co widzisz)
- * - 3x kliknięcie  → READ_TEXT (przeczytaj tekst, na który patrzę)
+ * - 3x kliknięcie  → READ_AND_TRANSLATE (przeczytaj i przetłumacz napis)
  * - 4x kliknięcie  → NEW_CONVERSATION (nowa rozmowa, reset historii)
  *
  * ## Dlaczego akurat tak
@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
  * odwracalny głosem ("nowy temat"), więc zszedł najniżej.
  *
  * ## CZYTANIE WISIAŁO NA GEŚCIE, KTÓREGO TEN SPRZĘT NIE WYSYŁA
- * Do 16 września READ_TEXT było pod PRZYTRZYMANIEM - gestem najłatwiejszym do
+ * Do 16 września ta akcja była pod PRZYTRZYMANIEM - gestem najłatwiejszym do
  * trafienia bez patrzenia, więc z zamiaru słusznym. Tyle że okulary nie
  * zgłaszają przytrzymania W OGÓLE (patrz niżej: jedyne, co przychodzi, to
  * `ShortClick`), więc najważniejsza funkcja dostała jedyny gest NIEOSIĄGALNY.
@@ -84,12 +84,12 @@ class ButtonActionDetector {
             ButtonEvent.TripleClick -> {
                 flushJob?.cancel()
                 clickCount = 3
-                tryEmitAction(ButtonAction.READ_TEXT)
+                tryEmitAction(ButtonAction.READ_AND_TRANSLATE)
                 reset()
             }
             ButtonEvent.LongPress -> {
                 flushJob?.cancel()
-                tryEmitAction(ButtonAction.READ_TEXT)
+                tryEmitAction(ButtonAction.READ_AND_TRANSLATE)
                 reset()
             }
             ButtonEvent.Release -> {
@@ -130,7 +130,7 @@ class ButtonActionDetector {
         when {
             clickCount == 1 -> tryEmitAction(ButtonAction.QUICK_QUESTION)
             clickCount == 2 -> tryEmitAction(ButtonAction.LOOK_AND_DESCRIBE)
-            clickCount == 3 -> tryEmitAction(ButtonAction.READ_TEXT)
+            clickCount == 3 -> tryEmitAction(ButtonAction.READ_AND_TRANSLATE)
             clickCount >= 4 -> tryEmitAction(ButtonAction.NEW_CONVERSATION)
         }
         reset()
@@ -154,8 +154,20 @@ sealed class ButtonAction {
     object QUICK_QUESTION : ButtonAction()
     object LOOK_AND_DESCRIBE : ButtonAction()
 
-    /** Zdjęcie i odczytanie tekstu, który na nim jest. */
-    object READ_TEXT : ButtonAction()
+    /**
+     * Zdjęcie, odczytanie napisu i PRZETŁUMACZENIE go na język odpowiedzi.
+     *
+     * Nazywało się to READ_TEXT i było mylące aż do szkody: obok istnieje
+     * [pl.victor.app.actions.Action.ReadText], które robi coś INNEGO - włącza
+     * ciągły tryb czytania dla osoby niewidomej, kawałek po kawałku na
+     * żądanie. Ta akcja jest jednorazowa i tłumaczy: powstała z prośby
+     * "żeby po przytrzymaniu od razu czytał po polsku to, co widzi - taki
+     * szybki tłumacz", do nazw produktów w sklepie i tabliczek.
+     *
+     * Dwie nazwy różniące się wielkością liter, dla dwóch różnych funkcji,
+     * kosztowały już jedną złą diagnozę.
+     */
+    object READ_AND_TRANSLATE : ButtonAction()
 
     object SCAN_QR : ButtonAction()
     object NEW_CONVERSATION : ButtonAction()

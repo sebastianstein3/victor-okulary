@@ -208,21 +208,20 @@ fun OnboardingScreen(
                             tagline = "Fizyczne sterowanie na samych okularach",
                             // GESTY MUSZĄ ZGADZAĆ SIĘ Z [ButtonActionDetector].
                             //
-                            // Dwa z czterech były tu na odwrót: samouczek uczył,
-                            // że potrójne kliknięcie czyta kod QR, a
-                            // przytrzymanie zaczyna nową rozmowę. Kod robi
-                            // dokładnie odwrotnie, odkąd przytrzymanie dostało
-                            // czytanie tekstu - bo to jest funkcja, dla której
-                            // nosi się te okulary, a reset zszedł do
-                            // najrzadziej potrzebnego gestu.
+                            // Przytrzymania TU NIE MA i nie może być: okulary
+                            // nie zgłaszają go wcale (patrz ButtonActionDetector),
+                            // więc uczenie go byłoby uczeniem gestu, który nie
+                            // robi nic. Czytanie i tłumaczenie zeszło na trzy
+                            // kliknięcia, a reset - najrzadszy i odwracalny
+                            // głosem - na cztery.
                             //
                             // Pierwsze zdanie, jakie nowa osoba czyta o
                             // sterowaniu, nie może być nieprawdą: uczy się jej
                             // gestu, który zrobi co innego, niż zapowiedziano.
                             points = listOf(
                                 "1 kliknięcie = zapytaj głosem, 2 = zdjęcie i opis widoku",
-                                "Przytrzymanie = co tu jest napisane, obce od razu po polsku",
-                                "3 kliknięcia = nowa rozmowa (kasuje historię)"
+                                "3 kliknięcia = co tu jest napisane, obce od razu po polsku",
+                                "4 kliknięcia = nowa rozmowa (kasuje historię)"
                             )
                         )
                         OnboardingStep.FEATURE_SMART -> FeatureSlide(
