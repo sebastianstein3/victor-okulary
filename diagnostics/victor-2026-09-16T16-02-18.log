@@ -1,0 +1,49 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: deepseek
+# transkrypcja w chmurze: false
+# mikrofon okularów: false
+# źródło zdjęcia: full (dzielnik 1)
+16:02:18.167          ms  SESJA        start sesji
+16:02:47.264          ms  BLE          ROZŁĄCZONO  świadome=false
+16:02:53.512          ms  BLE          POŁĄCZONO  noweŁącze=true
+16:02:53.517          ms  BLE          powitanie okularów - start
+16:02:53.538          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+16:02:53.871          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:02:54.241          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+16:02:55.660          ms  BLE          POŁĄCZONO  noweŁącze=false
+16:02:58.535          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+16:09:08.713          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+16:12:46.998          ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=alert proaktywny
+16:12:53.016          ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+16:12:57.733          ms  MOWA         alert wypowiedziany  rodzaj=LIGHT_RAIN okulary=true
+16:18:35.150          ms  PRZYCISK     wciśnięto  numer=1
+16:18:35.424          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+16:18:35.950          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=524
+16:18:35.983      +0 ms  SESJA        --- TURA 0cb4 ---  źródło=OKULARY
+16:18:35.984      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+16:18:40.157   +4174 ms  NASŁUCH      koniec  ms=4174 odłożone=pogoda mikrofon=mowa wykryta szczytDb=10.0 próbek=13 gotowyPoMs=352
+16:18:40.164   +4181 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+16:18:41.131   +5148 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.7935 pakietów=240 rozkodowanych=240 odrzuconych=0 przesunięcie=6 ramka=-1
+16:18:41.135   +5152 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+16:18:41.163   +5180 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4793 jestMs=3120 tło=20 szczyt=4603 ile razy=225.8
+16:18:41.165   +5182 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=pogoda
+16:18:41.166   +5183 ms  SESJA        pytanie  tekst=pogoda wymuszonyObraz=false
+16:18:41.190   +5207 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:18:41.244   +5262 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+16:18:41.245   +5262 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+16:18:42.259   +6276 ms  KONTEKST     zebrany  ms=516 pamięć=false kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+16:18:42.272   +6289 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash próba=1 zdjęć=0 znakówPromptu=1298
+16:18:42.709   +6726 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash poMs=438 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+16:18:42.713   +6730 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=1298
+16:18:45.561   +9578 ms  MODEL        koniec odpowiedzi (239 znaków, 2836 tokenów)  ms=3290
+16:18:47.247  +11264 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+16:19:00.705  +24722 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,1
+16:19:01.079  +25097 ms  MOWA         koniec wypowiedzi  ms=15514
+16:19:01.123  +25140 ms  SESJA        --- KONIEC TURY 0cb4: odpowiedziano ---
+16:19:01.133          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
