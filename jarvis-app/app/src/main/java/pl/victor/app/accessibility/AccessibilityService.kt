@@ -439,8 +439,19 @@ class AccessibilityService(
             // i ten stoi gdzie indziej niż najwyżej. Zgłoszone z terenu:
             // "musi zaczynać od tego, co największe i najważniejsze, ale potem
             // niech czyta dalej". Nic nie wypada, to jest przestawienie.
-            val newText = ocr?.let {
-                pl.victor.app.vision.ReadingOrder.arrange(it.blocks, it.fullText)
+            val newText = ocr?.let { result ->
+                pl.victor.app.vision.ReadingOrder.arrange(
+                    result.blocks.mapNotNull { block ->
+                        val box = block.boundingBox ?: return@mapNotNull null
+                        pl.victor.app.vision.ReadingOrder.Piece(
+                            text = block.text,
+                            top = box.top,
+                            left = box.left,
+                            height = box.height()
+                        )
+                    },
+                    result.fullText
+                )
             }?.trim().orEmpty()
             if (ocr?.isSuccess == true && newText.length > MIN_READABLE_TEXT) {
                 clearFailure(FAILURE_NO_TEXT)

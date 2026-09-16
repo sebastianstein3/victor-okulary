@@ -1,13 +1,20 @@
 package pl.victor.app.vision
 
-import android.graphics.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Bloki z ramkami - tak jak oddaje je ML Kit. */
-private fun block(text: String, left: Int, top: Int, width: Int, height: Int) =
-    OCRBlock(text = text, confidence = 1f, boundingBox = Rect(left, top, left + width, top + height))
+/**
+ * Blok z położeniem.
+ *
+ * BEZ android.graphics.Rect - i to jest warunek działania tych testów, nie
+ * uproszczenie. Pod Gradle Rect jest atrapą: przy
+ * `unitTests.isReturnDefaultValues = true` jego `height()` oddaje zero, więc
+ * cztery z tych testów padły w buildzie 86, mimo że lokalnie przechodziły na
+ * `android-all.jar` z prawdziwą implementacją.
+ */
+private fun block(text: String, left: Int, top: Int, @Suppress("UNUSED_PARAMETER") width: Int, height: Int) =
+    ReadingOrder.Piece(text = text, top = top, left = left, height = height)
 
 class ReadingOrderTest {
 
@@ -59,10 +66,12 @@ class ReadingOrderTest {
     }
 
     @Test
-    fun `bez ramek oddaje tekst bez zmian`() {
+    fun `zerowa wysokosc oddaje tekst bez zmian`() {
+        // Blok bez ramki nie trafia tu w ogóle - wołający go odsiewa - ale
+        // wysokość zero ma dawać ten sam skutek: tekst bez zmian.
         val blocks = listOf(
-            OCRBlock("A", 1f, null),
-            OCRBlock("B", 1f, null)
+            ReadingOrder.Piece("A", 0, 0, 0),
+            ReadingOrder.Piece("B", 0, 0, 0)
         )
         assertEquals("oryginał", ReadingOrder.arrange(blocks, "oryginał"))
     }

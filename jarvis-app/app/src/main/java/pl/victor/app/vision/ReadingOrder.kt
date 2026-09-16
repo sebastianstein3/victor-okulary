@@ -23,6 +23,18 @@ package pl.victor.app.vision
  * Bo wysokość ramki to rozmiar LITER, a pole zależy głównie od tego, ile słów
  * jest w bloku. Długi wiersz drobnym drukiem ma większe pole niż dwuwyrazowy
  * nagłówek, a to nagłówek jest tym, po co ktoś patrzy.
+ *
+ * ## Czemu własny [Piece], a nie OCRBlock z android.graphics.Rect
+ * Bo w testach jednostkowych `android.graphics.Rect` jest ATRAPĄ: przy
+ * `unitTests.isReturnDefaultValues = true` jego `height()` oddaje zero, więc
+ * cała ta funkcja schodziła na tekst zapasowy i cztery testy padały - build 86.
+ * U mnie przechodziły, bo lokalny kompilator ma `android-all.jar` z prawdziwą
+ * implementacją. To była fałszywa zielona i klasyczna pułapka: kod, który
+ * działa na telefonie i w moim sprawdzeniu, ale nie w CI.
+ *
+ * Właściwą naprawą nie jest obejście w teście, tylko zdjęcie zależności: ta
+ * funkcja to czysta arytmetyka na liczbach i nie ma powodu, żeby potrzebowała
+ * Androida. Przepisanie OCRBlock na [Piece] robi wołający.
  */
 object ReadingOrder {
 
@@ -43,17 +55,25 @@ object ReadingOrder {
      *   kolejności czytania. Gdy nie ma czego przestawiać (brak ramek, jeden
      *   blok, tekst jednolity), oddaje [fallback] bez zmian.
      */
-    fun arrange(blocks: List<OCRBlock>, fallback: String): String {
-        val usable = blocks.filter { it.text.isNotBlank() && it.boundingBox != null }
+    /**
+     * Blok tekstu sprowadzony do tego, co tu potrzebne: treść i położenie.
+     *
+     * @param top górna krawędź - po niej idzie kolejność czytania
+     * @param left lewa krawędź - rozstrzyga przy tej samej wysokości
+     * @param height wysokość ramki, czyli rozmiar liter
+     */
+    data class Piece(val text: String, val top: Int, val left: Int, val height: Int)
+
+    fun arrange(blocks: List<Piece>, fallback: String): String {
+        val usable = blocks.filter { it.text.isNotBlank() }
         if (usable.size < MIN_BLOCKS) return fallback
 
-        val heights = usable.map { it.boundingBox!!.height() }
+        val heights = usable.map { it.height }
         if (heights.any { it <= 0 }) return fallback
         val average = heights.sum().toDouble() / heights.size
 
-        val dominant = usable.maxByOrNull { it.boundingBox!!.height() } ?: return fallback
-        val dominantHeight = dominant.boundingBox!!.height()
-        if (dominantHeight < average * DOMINANT_RATIO) return fallback
+        val dominant = usable.maxByOrNull { it.height } ?: return fallback
+        if (dominant.height < average * DOMINANT_RATIO) return fallback
 
         // Reszta w naturalnej kolejności czytania: z góry na dół, a w obrębie
         // tej samej wysokości od lewej. Porównanie po GÓRNEJ krawędzi, nie po
@@ -61,9 +81,7 @@ object ReadingOrder {
         // niżej niż stojący nad nim wiersz.
         val rest = usable
             .filter { it !== dominant }
-            .sortedWith(
-                compareBy({ it.boundingBox!!.top }, { it.boundingBox!!.left })
-            )
+            .sortedWith(compareBy({ it.top }, { it.left }))
 
         return buildString {
             append(dominant.text.trim())
