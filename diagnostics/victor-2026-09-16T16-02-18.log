@@ -762,3 +762,62 @@
 18:58:25.245          ms  ZDJĘCIE      próba 0: miniatura  bajtów=15759 jpeg=true kompletny=true
 18:58:28.569          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 46 8B 0B 1B sztuk=7 pierwsza=false
 18:58:58.609          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 74 01 01 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+18:59:28.967          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 5A 0B 26 sztuk=19 pierwsza=false
+19:03:07.957          ms  PRZYCISK     wciśnięto  numer=1
+19:03:08.040          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+19:03:08.835          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=24 ms=792
+19:03:09.157      +1 ms  SESJA        --- TURA f24d ---  źródło=OKULARY
+19:03:09.158      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+19:03:09.722    +566 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,1
+19:03:12.847   +3692 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,3
+19:03:12.864   +3709 ms  NASŁUCH      koniec  ms=3709 odłożone=kod kreskowy mikrofon=mowa wykryta szczytDb=10.0 próbek=11 gotowyPoMs=403
+19:03:12.880   +3724 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=24
+19:03:13.321   +4165 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,1
+19:03:14.546   +5390 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.8135 pakietów=241 rozkodowanych=241 odrzuconych=0 przesunięcie=6 ramka=-1
+19:03:14.552   +5396 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+19:03:14.570   +5415 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4813 jestMs=1300 tło=17 szczyt=17093 ile razy=975.6
+19:03:14.577   +5422 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=kod kreskowy
+19:03:14.580   +5425 ms  SESJA        pytanie  tekst=kod kreskowy wymuszonyObraz=false
+19:03:14.612   +5456 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:03:14.635   +5479 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+19:03:14.641   +5486 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+19:03:15.928   +6772 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+19:03:15.931   +6776 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+19:03:15.958   +6803 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1314
+19:03:17.292   +8136 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,3
+19:03:17.581   +8426 ms  ZDJĘCIE      próba 0: miniatura  bajtów=10470 jpeg=true kompletny=true
+19:03:17.602   +8446 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+19:03:18.772   +9617 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 07 49 0B 1C sztuk=1 pierwsza=false
+19:03:18.783   +9628 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+19:03:18.793   +9638 ms  BŁĄD         Hotspot okularów: nie dołączyłem  sieć=W610T_6A7234AD04C5 ms=1193 powód=Wi-Fi jest wyłączone - włącz je, żeby telefon mógł połączyć się z okularami.
+19:03:18.800   +9645 ms  BLE          Wi-Fi Direct: podnoszę łącze
+19:03:18.874   +9718 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 74 01 01 00 00 00 06 00 01 01 sztuk=2 pierwsza=false
+19:03:21.819  +12663 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+19:03:24.840  +15684 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+19:03:27.856  +18701 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+19:03:27.864  +18708 ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=9064 powód=Wi-Fi jest wyłączone. Okulary rozdają pliki własną siecią Wi-Fi - włącz Wi-Fi w telefonie i spróbuj ponownie. Nie musisz się do niczego logować.
+19:03:27.872  +18716 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=10272
+19:03:30.100  +20945 ms  KONTEKST     zebrany  ms=2167 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:03:30.153  +20997 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=6305
+19:03:31.955  +22800 ms  MODEL        koniec odpowiedzi (125 znaków, 5540 tokenów)  ms=1806
+19:03:35.600  +26444 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,1
+19:03:41.497  +32342 ms  SESJA        pytanie  tekst=kod kreskowy wymuszonyObraz=true
+19:03:41.518  +32362 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+19:03:41.662  +32506 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+19:03:41.664  +32508 ms  BLE          Podgląd na żywo: podnoszę
+19:03:42.091  +32935 ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=false
+19:03:43.246  +34090 ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+19:03:43.250  +34094 ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Wi-Fi jest wyłączone - włącz je, żeby telefon mógł połączyć się z okularami.
+19:03:43.252  +34096 ms  ZDJĘCIE      strumień dla liter nie wstał  ms=1588
+19:03:43.262  +34107 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+19:03:44.971  +35815 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,3
+19:03:48.276  +39120 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=false ms=5006
+19:03:48.284  +39128 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+19:03:53.297  +44142 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5005
+19:03:53.305  +44150 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+19:03:58.321  +49166 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+19:03:58.331  +49176 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+19:04:14.359  +65203 ms  ZDJĘCIE      próba 2: miniatura  notify=false
+19:04:14.368  +65213 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 źródło=migawka pełnaRozdzielczość=false powódBłędu=Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo.
+19:04:14.386  +65231 ms  SESJA        --- KONIEC TURY f24d: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo. ---
+19:04:14.403          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
