@@ -4334,8 +4334,20 @@ class AIOrchestrator(
      * 12 s, a migawka odda ostre zdjęcie szybciej. To prawda, DOPÓKI migawka
      * faktycznie je oddaje. Gdy bezpiecznik Wi-Fi Direct jest zatrzaśnięty,
      * wiemy z POMIARU, że nie odda - wróci miniatura, na której liter nie ma.
-     * Wtedy wybór nie brzmi "12 sekund czy szybciej", tylko "12 sekund czy
+     * Wtedy wybór nie brzmi "szybciej czy wolniej", tylko "czekanie czy
      * odpowiedź zgadywana z szarej plamy".
+     *
+     * ## Ile to naprawdę kosztuje, łącznie z gorszym przypadkiem
+     * Circa 12 s, gdy strumień wstaje - i to jest przypadek typowy. Gdy NIE
+     * wstaje, [pl.victor.app.ble.VictorManager.startLiveVision] czeka na
+     * pierwszą klatkę do dwudziestu sekund, zanim się podda. Tyle wynosi
+     * sufit, i dopiero po nim schodzimy na zwykłą drogę ze zdjęciem.
+     *
+     * Ten sufit jest świadomie przyjęty: dotyczy wyłącznie pytań O LITERY przy
+     * zatrzaśniętym bezpieczniku, czyli sytuacji, w której druga droga jest
+     * już zmierzona jako nieskuteczna. Gdyby pomiar z terenu pokazał, że
+     * strumień też tam nie wstaje, ten warunek trzeba będzie odwołać - i
+     * dlatego wynik idzie do dziennika z czasem.
      *
      * Dziennik z 21:55 pokazuje obie strony naraz: pobranie oryginału zawiodło
      * po 10,4 s i model dostał 17 761 bajtów, a strumień w tym samym czasie
