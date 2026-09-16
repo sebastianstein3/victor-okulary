@@ -47,3 +47,52 @@
 16:19:01.079  +25097 ms  MOWA         koniec wypowiedzi  ms=15514
 16:19:01.123  +25140 ms  SESJA        --- KONIEC TURY 0cb4: odpowiedziano ---
 16:19:01.133          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:19:01.997          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:19:04.531          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+16:19:11.684          ms  PRZYCISK     wciśnięto  numer=1
+16:19:11.867          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+16:19:12.305          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=19 ms=432
+16:19:12.372      +0 ms  SESJA        --- TURA 5451 ---  źródło=OKULARY
+16:19:12.373      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+16:19:12.979    +607 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,1
+16:19:16.175   +3804 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+16:19:20.995   +8623 ms  NASŁUCH      koniec  ms=8622 mikrofon=mowa wykryta szczytDb=10.0 próbek=23 gotowyPoMs=518
+16:19:20.999   +8627 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+16:19:21.665   +9294 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,1
+16:19:22.114   +9743 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1735 pakietów=459 rozkodowanych=459 odrzuconych=0 przesunięcie=6 ramka=-1
+16:19:25.105  +12733 ms  TRANSKRYPCJA z nagrania okularów  ms=2985 droga=Nasłuch telefonu
+16:19:25.130  +12758 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=9173 jestMs=1320 tło=13 szczyt=7397 ile razy=551.5
+16:19:25.137  +12765 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=126764 B wymuszonyObraz=false
+16:19:25.141  +12769 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+16:19:25.156  +12784 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:19:25.584  +13212 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+16:19:28.136  +15764 ms  KONTEKST     zebrany  ms=2971 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:19:28.153  +15781 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash próba=1 zdjęć=0 znakówPromptu=6948
+16:19:28.717  +16345 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash poMs=564 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+16:19:28.720  +16348 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=6948
+16:19:30.881  +18509 ms  MODEL        koniec odpowiedzi (125 znaków, 5636 tokenów)  ms=2729
+16:19:32.245  +19873 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,1
+16:19:39.559  +27187 ms  MOWA         koniec wypowiedzi  ms=8675
+16:19:39.580  +27208 ms  SESJA        --- KONIEC TURY 5451: odpowiedziano ---
+16:19:39.583          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:19:39.662          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:19:43.044          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,3
+16:19:45.100      +0 ms  SESJA        --- TURA 241d ---  źródło=TEXT_INPUT
+16:19:45.101      +1 ms  SESJA        pytanie  tekst=pogoda  wymuszonyObraz=false
+16:19:45.106      +6 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:19:45.137     +37 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:19:46.793   +1693 ms  KONTEKST     zebrany  ms=1651 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:19:46.801   +1701 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash próba=1 zdjęć=0 znakówPromptu=6589
+16:19:47.084   +1984 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash poMs=283 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+16:19:47.086   +1987 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=6589
+16:19:49.615   +4515 ms  MODEL        koniec odpowiedzi (229 znaków, 5525 tokenów)  ms=2814
+16:19:50.467   +5367 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,11,1
+16:20:03.530  +18431 ms  MOWA         koniec wypowiedzi  ms=13911
+16:20:03.551  +18451 ms  SESJA        --- KONIEC TURY 241d: odpowiedziano ---
+16:20:03.553          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
