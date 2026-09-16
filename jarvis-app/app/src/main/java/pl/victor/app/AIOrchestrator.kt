@@ -2607,7 +2607,41 @@ class AIOrchestrator(
                 val provider = getOrCreateProvider()
                 val capabilities = provider.capabilities
 
-                val captureResult = if (useVision) {
+                // KLATKA ZE STRUMIENIA MA PIERWSZEŃSTWO PRZED MIGAWKĄ.
+                //
+                // Tryby ciągłe robiły tak od dawna (AccessibilityService), a ta
+                // ścieżka - przycisk, pytanie o obraz - nie. Dziennik z 15
+                // września mówi, ile to kosztowało: W KAŻDEJ próbie oryginał
+                // przez Wi-Fi Direct nie doszedł, model dostał miniaturę
+                // 13-27 kB, a samo czekanie na nieudany hotspot zjadało circa
+                // 10 sekund:
+                //
+                //     próba 0: miniatura  bajtów=17761
+                //     Hotspot okularów: gotowe  ms=10315
+                //     Wi-Fi Direct nie oddał oryginału  ms=10395
+                //     przechwycone  bajtów=17761 pełnaRozdzielczość=false
+                //
+                // Ten sam dziennik pokazuje, że strumień działa bez zarzutu i
+                // oddaje 1600x1200 (Klatki: PIERWSZA KLATKA WYJĘTA). Gdy więc
+                // strumień JUŻ STOI, migawka jest w tym momencie gorsza na obu
+                // osiach naraz: wolniejsza i w gorszej jakości.
+                //
+                // Warunek jest celowo wąski - tylko gdy strumień już chodzi.
+                // Podnoszenie go pod jedno pytanie kosztuje circa 12 s i o tym
+                // ma decydować tryb, a nie ta gałąź.
+                val streamFrame = if (useVision && glassesManager.isLiveVisionRunning) {
+                    val wantsText = pl.victor.app.ai.VisionDetail.needsDetail(textQuestion)
+                    glassesManager.liveFrame(detail = wantsText)?.also { frame ->
+                        diag.event(
+                            DiagFormat.Phase.ZDJĘCIE, "klatka ze strumienia zamiast migawki",
+                            mapOf("bajtów" to frame.size, "szczegół" to wantsText)
+                        )
+                    }
+                } else {
+                    null
+                }
+
+                val captureResult = if (useVision && streamFrame == null) {
                     val preferredMode = pl.victor.app.ai.CaptureMode.valueOf(
                         settings.getPreferredCaptureMode()
                     )
@@ -2672,14 +2706,16 @@ class AIOrchestrator(
                     null
                 }
 
-                val photos = captureResult?.images.orEmpty()
+                val photos = streamFrame?.let { listOf(it) } ?: captureResult?.images.orEmpty()
                 if (useVision) {
                     diag.event(
                         DiagFormat.Phase.ZDJĘCIE, "przechwycone",
                         mapOf(
                             "sztuk" to photos.size,
                             "bajtów" to photos.sumOf { it.size },
-                            "pełnaRozdzielczość" to glassesManager.lastPhotoWasFullResolution,
+                            "źródło" to if (streamFrame != null) "strumień" else "migawka",
+                            "pełnaRozdzielczość" to
+                                (streamFrame != null || glassesManager.lastPhotoWasFullResolution),
                             "powódBłędu" to glassesManager.lastPhotoFailure
                         )
                     )
