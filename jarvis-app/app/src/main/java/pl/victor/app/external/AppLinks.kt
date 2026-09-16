@@ -46,13 +46,33 @@ object AppLinks {
         val uri: String? = null,
         val action: String? = null,
         val packageName: String? = null,
+        /**
+         * Nazwa aplikacji widoczna na pulpicie - zapas, gdy [packageName] nie
+         * trafia. Patrz [Target]: nazwy pakietów bywają zgadnięte źle, nazwy
+         * z pulpitu czyta się z systemu.
+         */
+        val label: String? = null,
         /** Co powiedzieć, gdy ta próba się powiedzie. */
         val describe: String
     )
 
     /** Aplikacja docelowa wraz z nazwą pakietu i ludzką nazwą. */
+    /**
+     * Aplikacja docelowa: nazwa pakietu i nazwa, jaką widać na pulpicie.
+     *
+     * ## Nazwa pakietu jest WSKAZÓWKĄ, nie jedyną drogą
+     * Zgadłem "pl.jakdojade", a naprawdę jest to "com.citynav.jakdojade.pl.android"
+     * - i przez to aplikacja meldowała, że Jakdojade nie jest zainstalowane,
+     * stojąc obok jego ikony. Nazwy pakietów nie da się wywnioskować z nazwy
+     * aplikacji i producenci je zmieniają, więc opieranie całej funkcji na
+     * jednym takim ciągu znaków jest kruche.
+     *
+     * Dlatego [label] nie jest ozdobą: gdy pakiet się nie znajdzie, wołający
+     * szuka aplikacji po nazwie widocznej na pulpicie. To działa także wtedy,
+     * gdy zgadłem źle albo gdy pakiet się zmienił.
+     */
     enum class Target(val packageName: String, val label: String) {
-        JAKDOJADE("pl.jakdojade", "Jakdojade"),
+        JAKDOJADE("com.citynav.jakdojade.pl.android", "Jakdojade"),
         SHAZAM("com.shazam.android", "Shazam"),
         UBER("com.ubercab", "Uber"),
         BOLT("ee.mtakso.client", "Bolt"),
@@ -72,6 +92,7 @@ object AppLinks {
             Attempt(
                 uri = "geo:0,0?q=$q",
                 packageName = Target.JAKDOJADE.packageName,
+                label = Target.JAKDOJADE.label,
                 describe = "Otwieram Jakdojade z celem „$destination”."
             ),
             Attempt(
@@ -93,6 +114,7 @@ object AppLinks {
         Attempt(
             action = "com.shazam.android.intent.actions.START_TAGGING",
             packageName = Target.SHAZAM.packageName,
+            label = Target.SHAZAM.label,
             describe = "Shazam słucha."
         ),
         Attempt(
@@ -125,7 +147,7 @@ object AppLinks {
         listOf(launchOnly(Target.YANOSIK, "Otwieram Yanosika."))
 
     private fun launchOnly(target: Target, describe: String) =
-        Attempt(packageName = target.packageName, describe = describe)
+        Attempt(packageName = target.packageName, label = target.label, describe = describe)
 
     /** Czy ta próba jest ostatecznością, czyli zwykłym uruchomieniem aplikacji. */
     fun Attempt.isPlainLaunch(): Boolean = uri == null && action == null

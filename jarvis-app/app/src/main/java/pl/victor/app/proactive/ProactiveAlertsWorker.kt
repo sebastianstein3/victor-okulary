@@ -182,10 +182,35 @@ class ProactiveAlertsWorker(
                     // po alercie, a zgłoszenie brzmiało "chyba nie czyta" -
                     // czyli osoba testująca sama nie była pewna, czy zadziałało.
                     runCatching {
+                        // "okulary" ZNACZYŁO "okulary są połączone", a nie
+                        // "słychać je w okularach" - i to jest różnica między
+                        // meldunkiem a prawdą. W dzienniku z 16 września stało
+                        // obok siebie:
+                        //
+                        //     tryb multimediów NIE wstał mimo prośby  A2DP: brak
+                        //     alert wypowiedziany  rodzaj=LIGHT_RAIN okulary=true
+                        //
+                        // Kanał multimediów nie wstał, alert poszedł w telefon,
+                        // a dziennik meldował okulary. Zgłoszenie brzmiało
+                        // "nie czyta alertów - przychodzą tylko powiadomienia
+                        // na telefonie" i dziennik mu PRZECZYŁ, zamiast pomóc.
+                        //
+                        // Teraz zapisujemy jedno i drugie osobno: czy okulary
+                        // są połączone i czy dało się przez nie mówić.
+                        val przezOkulary = runCatching { app.audio.canSpeakOverMedia() }
+                            .getOrDefault(false)
                         app.diag.event(
                             pl.victor.app.diagnostics.DiagFormat.Phase.MOWA,
-                            "alert wypowiedziany",
-                            mapOf("rodzaj" to alert.type.name, "okulary" to glassesOn)
+                            if (glassesOn && !przezOkulary) {
+                                "alert wypowiedziany, ale NIE przez okulary"
+                            } else {
+                                "alert wypowiedziany"
+                            },
+                            mapOf(
+                                "rodzaj" to alert.type.name,
+                                "okularyPołączone" to glassesOn,
+                                "kanałMultimediów" to przezOkulary
+                            )
                         )
                     }
                 }

@@ -143,14 +143,26 @@ class ActionExecutor(private val context: Context) {
         }
 
         for ((index, attempt) in attempts.withIndex()) {
+            // NAZWA PAKIETU BYWA ZGADNIĘTA ŹLE - NAZWA Z PULPITU NIE.
+            //
+            // "pl.jakdojade" brzmiało sensownie i było nieprawdą (naprawdę:
+            // com.citynav.jakdojade.pl.android), więc aplikacja meldowała brak
+            // Jakdojade, stojąc obok jego ikony. Nazwy pakietu nie da się
+            // wywnioskować z nazwy aplikacji, a producenci ją zmieniają.
+            //
+            // Gdy więc pakiet się nie znajduje, szukamy tej samej aplikacji po
+            // nazwie widocznej na pulpicie. Kosztuje to jedno przejrzenie listy
+            // i tylko wtedy, gdy pierwsza droga zawiodła.
+            val pkg = attempt.packageName?.let { known ->
+                if (isInstalled(known)) known else attempt.label?.let { resolvePackage(it) } ?: known
+            }
             val intent = when {
                 attempt.action != null -> Intent(attempt.action)
                 attempt.uri != null -> Intent(Intent.ACTION_VIEW, Uri.parse(attempt.uri))
-                attempt.packageName != null ->
-                    context.packageManager.getLaunchIntentForPackage(attempt.packageName)
+                pkg != null -> context.packageManager.getLaunchIntentForPackage(pkg)
                 else -> null
             } ?: continue
-            attempt.packageName?.let { if (attempt.uri != null || attempt.action != null) intent.setPackage(it) }
+            pkg?.let { if (attempt.uri != null || attempt.action != null) intent.setPackage(it) }
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val ok = runCatching { context.startActivity(intent); true }.getOrDefault(false)
             if (ok) {
@@ -160,7 +172,8 @@ class ActionExecutor(private val context: Context) {
                     mapOf(
                         "zadanie" to action.kind.name,
                         "proba" to "${index + 1}/${attempts.size}",
-                        "aplikacja" to attempt.packageName,
+                        "aplikacja" to pkg,
+                        "pakietZgadnięty" to attempt.packageName,
                         "adres" to (attempt.uri ?: attempt.action)
                     )
                 )
@@ -438,6 +451,12 @@ class ActionExecutor(private val context: Context) {
     }
 
     /** Szuka zainstalowanej aplikacji po nazwie widocznej dla użytkownika. */
+    /** Czy pakiet o tej nazwie jest zainstalowany i widoczny dla nas. */
+    private fun isInstalled(packageName: String): Boolean = runCatching {
+        context.packageManager.getPackageInfo(packageName, 0)
+        true
+    }.getOrDefault(false)
+
     private fun resolvePackage(appName: String): String? {
         if (appName.isBlank()) return null
         val wanted = appName.trim().lowercase()
@@ -611,7 +630,7 @@ class ActionExecutor(private val context: Context) {
             "com.amazon.mShop.android.shopping" to "Amazon",
             "com.ubercab" to "Uber",
             "ee.mtakso.client" to "Bolt",
-            "pl.jakdojade" to "Jakdojade",
+            "com.citynav.jakdojade.pl.android" to "Jakdojade",
             "com.shazam.android" to "Shazam",
             "pl.neptis.yanosik.mobi.android" to "Yanosik",
             "pl.victor.app" to "V.I.C.T.O.R. (ta apka)"

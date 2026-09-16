@@ -96,6 +96,33 @@ class SmartActionDetector {
             lower.matches(Regex("""^(poprzednia|poprzedni utw[oó]r|cofnij utw[oó]r)$""")) ->
                 listOf(Action.SkipTrack(SkipDirection.PREVIOUS))
 
+            // ROZPOZNANIE PIOSENKI NIE ZNOSI OBIEGU PRZEZ SIEĆ.
+            //
+            // Zanim model odpowie, mija kilka sekund - a piosenka przez ten
+            // czas leci dalej albo się kończy. Shazam musi zacząć słuchać
+            // WTEDY, kiedy pada prośba, nie kilka sekund później.
+            //
+            // To ten sam wniosek co przy trasie (patrz [detectNavigation]):
+            // model zapytany o czynność ODPOWIADA NA NIĄ SŁOWAMI. Z dziennika
+            // z 16 września: "otwórz shazam" i "włącz shazam" poszły do modelu
+            // i wróciły zapowiedzią, że może otworzyć - bez otwierania.
+            //
+            // Wzorzec obejmuje CAŁE zdanie, więc "lubię tę piosenkę" i
+            // "opowiedz mi o tej piosence" tu nie wchodzą - Shazam włączony
+            // w środku rozmowy zagłusza asystenta i wygląda na awarię.
+            lower.matches(
+                Regex(
+                    """^(co\s+to\s+(jest\s+)?za\s+(piosenka|utw[oó]r|kawa[lł]ek)|""" +
+                        """jaka\s+to\s+piosenka|""" +
+                        """rozpoznaj\s+(t[eę]\s+)?(piosenk[eę]|utw[oó]r|muzyk[eę])|""" +
+                        """(w[lł][aą]cz|odpal|otw[oó]rz|uruchom)\s+shazam\S*)$"""
+                )
+            ) -> listOf(Action.AppTask(AppTaskKind.RECOGNIZE_SONG))
+
+            lower.matches(
+                Regex("""^(w[lł][aą]cz|odpal|otw[oó]rz|uruchom)\s+yanosik\S*$""")
+            ) -> listOf(Action.AppTask(AppTaskKind.ROAD_ASSIST))
+
             else -> emptyList()
         }
     }
@@ -206,8 +233,16 @@ class SmartActionDetector {
     // nie kosmetyką: bez niej `|` rozdziela CAŁY wzorzec, więc pierwsza gałąź
     // to samo słowo "jakdojade", a cel nigdy się nie łapie. Wzorzec pasował
     // wtedy do zdania i oddawał pusty cel.
+    // "do" NIE WYSTARCZY - i to nie jest drobiazg.
+    //
+    // Z terenu przyszło "sprawdź w jakdojade jak dotrę NA polną 140 w toruniu"
+    // i wzorzec nie złapał nic. Dwa powody naraz: cel stał po "na", a nie po
+    // "do", a samo "dotrę" zaczyna się od liter "do" BEZ spacji, więc `\bdo\s`
+    // przechodziło obok. Po polsku mówi się do celu i na cel wymiennie
+    // ("na dworzec", "na Polną", "do apteki"), więc jedno z nich to połowa
+    // zdań, jakie ktoś naprawdę powie.
     private val JAKDOJADE_REGEX = Regex(
-        """(?:jak\s?dojade|jakdojade).*?\bdo\s+["']?(.+?)["']?$""",
+        """(?:jak\s?doja[dz]\S*|jakdojade)\b.*?\b(?:do|na)\s+["']?(.+?)["']?$""",
         RegexOption.IGNORE_CASE
     )
 
@@ -878,6 +913,16 @@ class SmartActionDetector {
             // "com.spotify.music" musiałby zgadnąć - i zgaduje źle. Zamianę
             // nazwy na pakiet robi ActionExecutor, który jako jedyny wie, co
             // faktycznie jest na tym telefonie.
+            // Zadanie W aplikacji, nie samo jej otwarcie. Rozdzielone od
+            // open_app, bo "otwórz Shazama" i "co to za piosenka" kończą się
+            // gdzie indziej: pierwsze na ekranie startowym, drugie na
+            // słuchającym mikrofonie.
+            "app_task" -> params["kind"]?.let { given ->
+                val kind = runCatching {
+                    AppTaskKind.valueOf(given.trim().uppercase())
+                }.getOrNull()
+                kind?.let { Action.AppTask(kind = it, argument = params["argument"] ?: "") }
+            }
             "open_app" -> (params["package"] ?: params["name"])?.let { given ->
                 Action.OpenApp(
                     packageName = params["package"] ?: "",
@@ -1128,6 +1173,17 @@ Dostępne typy i klucze:
 - show_on_map: query (co pokazać na mapie)
 - open_app: name (nazwa aplikacji tak, jak mówi ją człowiek - "Spotify",
   "Mapy". NIE zgaduj nazwy pakietu)
+- app_task: kind, argument (opcjonalnie). ZADANIE w cudzej aplikacji, a nie
+  samo jej otwarcie - użyj, gdy człowiek chce WYNIK, nie ekran startowy.
+  Dostępne kind:
+  * TRANSIT_PLAN - dojazd komunikacją miejską; argument to cel podróży
+    ("sprawdź w jakdojade, jak dotrę na Polną 140", "jak dojadę na dworzec")
+  * RECOGNIZE_SONG - rozpoznanie granej muzyki, bez argumentu
+    ("co to za piosenka", "włącz shazama")
+  * ORDER_RIDE - zamówienie kursu; argument to cel ("zamów ubera na lotnisko")
+  * ROAD_ASSIST - ostrzeżenia drogowe, bez argumentu ("włącz yanosika")
+  Gdy człowiek prosi tylko o OTWARCIE aplikacji ("otwórz jakdojade"), użyj
+  open_app. Gdy prosi o wynik - app_task.
 - open_url: url (pełny adres ze schematem, np. "https://...")
 - describe_scene: (bez kluczy) - opisz otoczenie osobie niewidomej
 - read_text: (bez kluczy) - czytaj tekst z otoczenia na głos

@@ -59,7 +59,21 @@ class AppLinksTest {
     fun `geo jest pierwsze, bo to standard Androida`() {
         val first = AppLinks.jakdojade("plac zamkowy").first()
         assertTrue(first.uri!!.startsWith("geo:"))
-        assertEquals("pl.jakdojade", first.packageName)
+        // Wartość SPRAWDZONA w Google Play, nie zgadnięta. Poprzednio stało tu
+        // "pl.jakdojade" - nazwa, którą wymyśliłem, bo brzmiała sensownie. Test
+        // przechodził i utrwalał błąd, przez który aplikacja meldowała brak
+        // Jakdojade, stojąc obok jego ikony.
+        assertEquals("com.citynav.jakdojade.pl.android", first.packageName)
+    }
+
+    @Test
+    fun `kazda proba wskazujaca aplikacje niesie tez jej nazwe`() {
+        // Nazwa z pulpitu jest jedynym zapasem, gdy nazwa pakietu nie trafia -
+        // a raz już nie trafiła. Próba bez niej nie miałaby jak się podnieść.
+        val wszystkie = AppLinks.jakdojade("dworzec") + AppLinks.shazam() +
+            AppLinks.ride("lotnisko") + AppLinks.yanosik()
+        val bezNazwy = wszystkie.filter { it.packageName != null && it.label == null }
+        assertTrue("próby z pakietem, ale bez nazwy zapasowej: $bezNazwy", bezNazwy.isEmpty())
     }
 
     @Test

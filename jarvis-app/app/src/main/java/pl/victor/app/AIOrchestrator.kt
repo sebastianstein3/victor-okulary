@@ -3464,6 +3464,31 @@ class AIOrchestrator(
                 val (responseText, aiDetectedActions) =
                     actionDetector.detectAiMarkedActions(accumulatedText.toString().trim())
 
+                // CO MODEL ZLECIŁ - ZAWSZE, TAKŻE GDY NIC.
+                //
+                // Bez tego wpisu z dziennika NIE DA SIĘ odróżnić trzech różnych
+                // rzeczy: model nie wysłał znacznika, wysłał i nie sparsował się,
+                // albo wysłał i akcja padła. Wyglądają tak samo - jako brak.
+                //
+                // Kosztowało to całą sesję w terenie: pięć aplikacji "nie
+                // działało", a z dziennika nie dało się orzec, czy w ogóle
+                // cokolwiek zostało zlecone. Okazało się, że model nie MIAŁ jak
+                // ich zlecić, bo app_task nie był w jego słowniku - ale żeby to
+                // stwierdzić, trzeba było czytać kod, a nie dziennik.
+                diag.event(
+                    DiagFormat.Phase.AKCJA,
+                    if (aiDetectedActions.isEmpty()) {
+                        "model nie zlecił żadnej akcji"
+                    } else {
+                        "model zlecił akcje"
+                    },
+                    mapOf(
+                        "akcje" to aiDetectedActions.joinToString(",") { it.type.name }
+                            .ifBlank { null },
+                        "znakówOdpowiedzi" to responseText.length
+                    )
+                )
+
                 // === WARSTWA 1 ZLECA WARSTWIE 0: "muszę to zobaczyć" ===
                 // Model odpowiedział znacznikiem take_photo, bo bez obrazu nie
                 // odpowie na pytanie. Robimy zdjęcie i zadajemy TO SAMO pytanie
@@ -3520,6 +3545,34 @@ class AIOrchestrator(
                 // zamiast wypuścić samo "Chwila, spojrzę." i zamilknąć.
                 val answerText = if (wantsPhoto && !useVision) {
                     "Musiałbym to zobaczyć, ale okulary nie są połączone."
+                } else if (wantsPhoto) {
+                    // MODEL PROSI O ZDJĘCIE, CHOĆ JEDNO JUŻ DOSTAŁ.
+                    //
+                    // Gałąź wyżej celowo nie powtarza pytania drugi raz i to
+                    // jest słuszne - inaczej model, który nie widzi dość,
+                    // kazałby robić zdjęcia w kółko. Ale drugi przypadek nie
+                    // był obsłużony WCALE: `wantsPhoto` przestawało być
+                    // potrzebne, znacznik znikał, a na głos szła sama
+                    // zapowiedź, którą prompt każe modelowi powiedzieć PRZED
+                    // znacznikiem - "Chwila, spojrzę.".
+                    //
+                    // Z zewnątrz wyglądało to dokładnie tak, jak zgłoszono:
+                    // zdjęcie się robi, POTEM pada "zrobię zdjęcie i sprawdzę"
+                    // i nic się już nie dzieje. Zapowiedź czynności, która nie
+                    // nastąpi, jest gorsza od przyznania się, bo człowiek czeka.
+                    //
+                    // Prawdziwy powód jest jeden: obraz, który poszedł, nie
+                    // wystarczył. Mówimy więc to, a przy miniaturze dodajemy,
+                    // co z tym zrobić - "podejdź bliżej" jest wskazówką, którą
+                    // da się wykonać bez patrzenia na ekran.
+                    if (glassesManager.lastPhotoWasFullResolution) {
+                        "Mam zdjęcie, ale nie widać na nim dość, żeby to " +
+                            "rozpoznać. Podejdź bliżej albo ustaw lepsze światło."
+                    } else {
+                        "Mam tylko zdjęcie w małej rozdzielczości i nie widać na " +
+                            "nim dość. Włącz Wi-Fi w telefonie - bez niego nie " +
+                            "pobiorę z okularów ostrego zdjęcia."
+                    }
                 } else {
                     // PUSTA ODPOWIEDŹ NIE MOŻE ZNACZYĆ CISZY.
                     //
@@ -4375,9 +4428,17 @@ class AIOrchestrator(
         )
         val startedAt = System.currentTimeMillis()
         if (!glassesManager.startLiveVision()) {
+            // POWÓD, NIE TYLKO CZAS. Pierwszy pomiar z terenu oddał samo
+            // "nie wstał ms=1242" i trzeba było szukać przyczyny trzy wiersze
+            // wyżej, w zdarzeniu z innej fazy. A przyczyna była jedna i
+            // banalna: wyłączone Wi-Fi w telefonie, które blokuje OBIE drogi
+            // do ostrego obrazu naraz.
             diag.event(
                 DiagFormat.Phase.ZDJĘCIE, "strumień dla liter nie wstał",
-                mapOf("ms" to (System.currentTimeMillis() - startedAt))
+                mapOf(
+                    "ms" to (System.currentTimeMillis() - startedAt),
+                    "powód" to glassesManager.lastTransferFailure
+                )
             )
             return null
         }

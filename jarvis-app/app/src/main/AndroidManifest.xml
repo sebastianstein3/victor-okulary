@@ -122,7 +122,7 @@
              UDAJE, że aplikacji nie ma: getLaunchIntentForPackage zwraca null, a
              setPackage rzuca wyjątkiem MIMO ŻE aplikacja jest zainstalowana.
              Lista prób wtedy przelatuje do końca i funkcja cicho nie działa. -->
-        <package android:name="pl.jakdojade" />
+        <package android:name="com.citynav.jakdojade.pl.android" />
         <package android:name="com.shazam.android" />
         <package android:name="com.ubercab" />
         <package android:name="ee.mtakso.client" />
