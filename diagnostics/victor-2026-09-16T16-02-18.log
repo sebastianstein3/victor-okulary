@@ -117,3 +117,40 @@
 16:22:14.069          ms  ZDJĘCIE      próba 0: miniatura  bajtów=18666 jpeg=true kompletny=true
 16:22:17.167          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 4E 0B 16 sztuk=1 pierwsza=true
 16:22:47.161          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 00 01 00 00 00 00 04 00 01 01 sztuk=1 pierwsza=true
+16:23:25.085          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+16:45:05.808          ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=alert proaktywny
+16:45:11.855          ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+16:45:17.321          ms  MOWA         alert wypowiedziany  rodzaj=LIGHT_RAIN okulary=true
+18:34:54.626          ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=alert proaktywny
+18:34:54.698          ms  MOWA         alert wypowiedziany  rodzaj=SUNSET okulary=true
+18:35:00.664          ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+18:35:09.248          ms  NASŁUCH      usłyszane, ale nie do mnie - brak frazy poza rozmową  usłyszane=fajne szkody
+18:35:26.687          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+18:35:26.704          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+18:35:32.497          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=10977 jpeg=true kompletny=true
+18:35:32.500      +0 ms  SESJA        --- TURA b479 ---  źródło=BUTTON
+18:35:32.502      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+18:35:32.507      +7 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+18:35:32.528     +28 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+18:35:32.528     +28 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+18:35:32.832    +332 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+18:35:34.217   +1718 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+18:35:34.219   +1720 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 4F 0B 15 sztuk=11 pierwsza=false
+18:35:34.221   +1722 ms  BŁĄD         Hotspot okularów: nie dołączyłem  sieć=W610T_6A7234AD04C5 ms=1389 powód=Wi-Fi jest wyłączone - włącz je, żeby telefon mógł połączyć się z okularami.
+18:35:34.225   +1725 ms  BLE          Wi-Fi Direct: podnoszę łącze
+18:35:34.305   +1805 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C6 00 01 00 00 00 00 04 00 01 01 sztuk=1 pierwsza=false
+18:35:37.250   +4750 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+18:35:38.536   +6037 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+18:35:40.268   +7769 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+18:35:43.286  +10787 ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+18:35:43.297  +10798 ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=9073 powód=Wi-Fi jest wyłączone. Okulary rozdają pliki własną siecią Wi-Fi - włącz Wi-Fi w telefonie i spróbuj ponownie. Nie musisz się do niczego logować.
+18:35:43.308  +10809 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=10477
+18:35:43.338  +10838 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=10977 źródło=migawka pełnaRozdzielczość=false
+18:35:46.467  +13967 ms  KONTEKST     zebrany  ms=2632 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:35:46.507  +14007 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=6008
+18:35:47.970  +15470 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1466
+18:35:48.339  +15839 ms  MODEL        zużycie tokenów  wejście=6031 odpowiedź=72 razem=6103 limit=1200 koniec=STOP
+18:35:48.343  +15843 ms  MODEL        koniec odpowiedzi (241 znaków, 6103 tokenów)  ms=1839
+18:36:06.243  +33743 ms  MOWA         koniec wypowiedzi  ms=17887
+18:36:06.318  +33818 ms  SESJA        --- KONIEC TURY b479: odpowiedziano ---
+18:36:06.330          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
