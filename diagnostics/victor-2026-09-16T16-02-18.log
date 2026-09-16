@@ -380,3 +380,63 @@
 18:41:19.916  +11613 ms  MOWA         koniec wypowiedzi  ms=4843
 18:41:19.949  +11647 ms  SESJA        --- KONIEC TURY 2699: odpowiedziano ---
 18:41:19.953          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:41:20.083          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:41:23.370          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:41:30.704          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:41:31.963          ms  PRZYCISK     wciśnięto  numer=1
+18:41:32.143          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:41:32.518          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=373
+18:41:32.570      +0 ms  SESJA        --- TURA 4d1d ---  źródło=OKULARY
+18:41:32.572      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+18:41:36.376   +3806 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:41:39.398   +6828 ms  NASŁUCH      koniec  ms=6828 odłożone=sprawdź w jakdojade jak dotrę na polną 140 w toruniu mikrofon=mowa wykryta szczytDb=10.0 próbek=15 gotowyPoMs=312
+18:41:39.625   +7055 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+18:41:40.517   +7947 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.267 pakietów=364 rozkodowanych=363 odrzuconych=1 przesunięcie=6 ramka=-1
+18:41:40.520   +7950 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+18:41:40.526   +7956 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7267 jestMs=4240 tło=46 szczyt=14569 ile razy=312.0
+18:41:40.528   +7958 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=sprawdź w jakdojade jak dotrę na polną 140 w toruniu
+18:41:40.529   +7959 ms  SESJA        pytanie  tekst=sprawdź w jakdojade jak dotrę na polną 140 w toruniu wymuszonyObraz=false
+18:41:40.534   +7964 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:41:40.542   +7972 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:41:41.931   +9361 ms  KONTEKST     zebrany  ms=1384 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:41:41.940   +9370 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=7832
+18:41:46.272  +13702 ms  MODEL        koniec odpowiedzi (285 znaków, 6560 tokenów)  ms=4333
+18:41:46.679  +14109 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:42:01.245  +28675 ms  MOWA         koniec wypowiedzi  ms=14967
+18:42:02.664  +30095 ms  SESJA        --- KONIEC TURY 4d1d: odpowiedziano ---
+18:42:02.703          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:42:03.347          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:42:04.338          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:42:04.720          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:42:08.864          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:42:14.894          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:42:18.323          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:42:25.121          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:42:28.231          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:42:34.565          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:42:37.625          ms  PRZYCISK     wciśnięto  numer=1
+18:42:37.888          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+18:42:38.273          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=382
+18:42:38.350      +0 ms  SESJA        --- TURA 9fcd ---  źródło=OKULARY
+18:42:38.352      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+18:42:38.430     +81 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:42:38.700    +350 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:42:42.068   +3719 ms  NASŁUCH      koniec  ms=3718 odłożone=co to za piosenka mikrofon=mowa wykryta szczytDb=10.0 próbek=6 gotowyPoMs=316
+18:42:42.080   +3731 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+18:42:42.251   +3901 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:42:42.481   +4131 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:42:43.472   +5123 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.2135 pakietów=211 rozkodowanych=211 odrzuconych=0 przesunięcie=6 ramka=-1
+18:42:43.486   +5137 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+18:42:43.514   +5164 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4213 jestMs=1620 tło=2 szczyt=9047 ile razy=4200.4
+18:42:43.520   +5171 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co to za piosenka
+18:42:43.526   +5176 ms  SESJA        pytanie  tekst=co to za piosenka wymuszonyObraz=false
+18:42:43.535   +5185 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:42:43.553   +5204 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:42:45.301   +6951 ms  KONTEKST     zebrany  ms=1734 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:42:45.341   +6991 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=7444
+18:42:46.489   +8139 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+18:42:47.284   +8935 ms  MODEL        koniec odpowiedzi (172 znaków, 6013 tokenów)  ms=1946
+18:42:50.038  +11688 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+18:42:58.104  +19755 ms  MOWA         koniec wypowiedzi  ms=10795
+18:42:58.208  +19858 ms  SESJA        --- KONIEC TURY 9fcd: odpowiedziano ---
+18:42:58.219          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
