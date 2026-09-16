@@ -253,10 +253,54 @@ jobs:
   # całą ścieżkę komunikacji z okularami na symulatorze. To jedyne miejsce,
   # w którym kod BLE, Compose i szyfrowane preferencje spotykają prawdziwy
   # runtime Androida przed sprzętem.
+  # CZY KOD APLIKACJI SIĘ ZMIENIŁ.
+  #
+  # Zadanie w sekundy, żeby nie płacić za czterdziestominutowy emulator przy
+  # commitach, które go nie dotyczą. Zmierzone: circa 1955 z 2000 darmowych
+  # minut miesiąca zjadł emulator, a wśród jego uruchomień były poprawki samej
+  # instrukcji i tego pliku - czyli rzeczy, których żaden test dymny nie
+  # sprawdza.
+  zmiany:
+    name: Co się zmieniło
+    runs-on: ubuntu-latest
+    outputs:
+      kod: ${{ steps.sprawdz.outputs.kod }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Dwa commity, żeby dało się porównać z poprzednim. Domyślny płytki
+          # checkout ma jeden i `git diff HEAD^` nie miałby z czym porównywać.
+          fetch-depth: 2
+
+      - name: Czy zmienił się kod aplikacji
+        id: sprawdz
+        run: |
+          # Pierwszy commit na gałęzi nie ma rodzica - wtedy budujemy wszystko,
+          # bo nie ma jak stwierdzić, co się zmieniło.
+          if ! git rev-parse HEAD^ >/dev/null 2>&1; then
+            echo "kod=true" >> "$GITHUB_OUTPUT"
+            echo "Brak poprzedniego commita - uruchamiam pełny test."
+            exit 0
+          fi
+          zmienione=$(git diff --name-only HEAD^ HEAD)
+          echo "Zmienione pliki:"; echo "$zmienione"
+          # Test dymny sprawdza DZIAŁAJĄCĄ APLIKACJĘ, więc interesuje go kod,
+          # zasoby, zależności i on sam. Dokumentacja i narzędzia pomocnicze -
+          # nie.
+          if echo "$zmienione" | grep -qE '^jarvis-app/|^\.github/workflows/'; then
+            echo "kod=true" >> "$GITHUB_OUTPUT"
+            echo "=> kod aplikacji dotknięty, test dymny POTRZEBNY"
+          else
+            echo "kod=false" >> "$GITHUB_OUTPUT"
+            echo "=> zmiany poza aplikacją, test dymny POMIJAM"
+          fi
+
   emulator:
     name: Test dymny na emulatorze
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, zmiany]
+    if: needs.zmiany.outputs.kod == 'true'
     timeout-minutes: 45
 
     steps:
