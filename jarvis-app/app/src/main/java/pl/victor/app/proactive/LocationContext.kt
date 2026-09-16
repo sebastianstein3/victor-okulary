@@ -73,7 +73,6 @@ object LocationContext {
         }
     }
 
-    @SuppressLint("MissingPermission")
     /**
      * Współrzędne "tutaj" albo `null`.
      *
@@ -109,6 +108,7 @@ object LocationContext {
      * a człowiek stoi w tym czasie przy samochodzie i czeka na "zapamiętane".
      * Dłużej znaczyłoby, że odejdzie, zanim usłyszy potwierdzenie.
      */
+    @SuppressLint("MissingPermission")
     private suspend fun freshLocation(context: Context): Location? {
         if (!hasLocationPermission(context)) return null
         val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
@@ -151,6 +151,7 @@ object LocationContext {
     /** Patrz [freshLocation]. */
     private const val FRESH_FIX_TIMEOUT_MS = 8_000L
 
+    @SuppressLint("MissingPermission")
     private fun lastKnownLocation(context: Context): Location? {
         if (!hasLocationPermission(context)) {
             Log.d(TAG, "Brak uprawnienia do lokalizacji - pomijam kontekst miejsca")

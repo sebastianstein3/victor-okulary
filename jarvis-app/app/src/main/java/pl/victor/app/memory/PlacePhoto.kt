@@ -39,13 +39,29 @@ object PlacePhoto {
                     MediaStore.Images.Media.RELATIVE_PATH,
                     "${Environment.DIRECTORY_PICTURES}/VICTOR"
                 )
+                // IS_PENDING ukrywa wpis, dopóki plik nie jest zapisany w
+                // całości. Bez tego galeria widzi go już w chwili insert(),
+                // czyli PUSTY, i potrafi zapamiętać uszkodzoną miniaturę -
+                // zdjęcie wygląda na zepsute, choć na dysku jest całe.
+                put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }
         val resolver = context.contentResolver
         val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
             ?: return false
         return runCatching {
-            resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return false
+            // Brak strumienia to też porażka, nie wyjątek - musi więc iść tą
+            // samą drogą co wyjątek. Wcześniej wychodziło stąd `return false`
+            // PRZED sprzątaniem i zostawiało w galerii dokładnie ten pusty
+            // wpis, przed którym broni się kilka linijek niżej.
+            val stream = resolver.openOutputStream(uri) ?: error("brak strumienia")
+            stream.use { it.write(bytes) }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val done = ContentValues().apply {
+                    put(MediaStore.Images.Media.IS_PENDING, 0)
+                }
+                resolver.update(uri, done, null, null)
+            }
             true
         }.getOrElse {
             // Sprzątamy po sobie: pusty wpis w galerii wygląda jak uszkodzone

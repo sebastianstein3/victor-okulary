@@ -608,12 +608,33 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
             put(MediaStore.MediaColumns.MIME_TYPE, MediaThumbnails.mimeTypeOf(shortName))
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.MediaColumns.RELATIVE_PATH, "$folder/VICTOR")
+                // IS_PENDING chowa wpis, dopóki plik nie jest cały. Bez tego
+                // galeria widzi go już w chwili insert(), czyli PUSTY, i
+                // potrafi zapamiętać uszkodzoną miniaturę. Przy filmie z
+                // okularów zapis trwa sekundy, więc okno na taki podglądu jest
+                // długie, a raz zapamiętana miniatura zostaje.
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
         }
         val uri = resolver.insert(collection, values)
             ?: throw IllegalStateException("system nie dał miejsca na plik")
-        resolver.openOutputStream(uri)?.use { it.write(bytes) }
-            ?: throw IllegalStateException("nie udało się otworzyć pliku do zapisu")
+        // Każde niepowodzenie PO insert() musi po sobie posprzątać. Wcześniej
+        // wyjątek leciał wyżej, a wpis zostawał w galerii na zawsze - pusty
+        // kafelek wyglądający jak uszkodzone zdjęcie, którego nie da się
+        // otworzyć ani wytłumaczyć.
+        try {
+            resolver.openOutputStream(uri)?.use { it.write(bytes) }
+                ?: throw IllegalStateException("nie udało się otworzyć pliku do zapisu")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val done = ContentValues().apply {
+                    put(MediaStore.MediaColumns.IS_PENDING, 0)
+                }
+                resolver.update(uri, done, null, null)
+            }
+        } catch (e: Throwable) {
+            runCatching { resolver.delete(uri, null, null) }
+            throw e
+        }
     }
 
     // === Zaznaczanie ===
