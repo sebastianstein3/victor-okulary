@@ -282,6 +282,63 @@ class AIOrchestrator(
     private fun msOf(pcmBytes: Int): Long =
         pcmBytes.toLong() * 1000L / (pl.victor.app.audio.OpusDecoder.SAMPLE_RATE.toLong() * 2L)
 
+    /**
+     * Zapisuje bieżącą pozycję pod nazwą.
+     *
+     * Bez uprawnienia albo bez ustalonej pozycji mówimy to WPROST. Cicha
+     * porażka byłaby tu najgorsza z możliwych: człowiek odchodzi przekonany, że
+     * miejsce jest zapamiętane, i dowiaduje się, że nie, dopiero gdy wraca.
+     */
+    private fun handlePlaceSave(name: String) {
+        scope.launch {
+            val position = pl.victor.app.proactive.LocationContext.currentPosition(context)
+            if (position == null) {
+                val message = "Nie znam swojego położenia, więc nie zapamiętam tego miejsca. " +
+                    "Sprawdź, czy aplikacja ma dostęp do lokalizacji."
+                audio.speak(message, language = settings.getResponseLanguage())
+                _state.value = OrchestratorState.Completed(message)
+                return@launch
+            }
+            settings.savePlace(name, position.first, position.second, System.currentTimeMillis())
+            diag.event(
+                DiagFormat.Phase.SESJA, "miejsce zapamiętane",
+                mapOf("nazwa" to name)
+            )
+            val message = "Zapamiętane."
+            audio.speak(message, language = settings.getResponseLanguage())
+            _state.value = OrchestratorState.Completed(message)
+        }
+    }
+
+    /** Mówi, gdzie stoi zapamiętane miejsce względem bieżącej pozycji. */
+    private fun handlePlaceRecall(name: String) {
+        scope.launch {
+            val place = settings.getPlace(name)
+            if (place == null) {
+                val message = "Nie mam zapamiętanego takiego miejsca. Powiedz " +
+                    "\"zapamiętaj, gdzie zaparkowałem\", gdy będziesz wychodzić."
+                audio.speak(message, language = settings.getResponseLanguage())
+                _state.value = OrchestratorState.Completed(message)
+                return@launch
+            }
+            val position = pl.victor.app.proactive.LocationContext.currentPosition(context)
+            if (position == null) {
+                val message = "Znam zapamiętane miejsce, ale nie wiem, gdzie jestem teraz, " +
+                    "więc nie powiem, w którą stronę iść."
+                audio.speak(message, language = settings.getResponseLanguage())
+                _state.value = OrchestratorState.Completed(message)
+                return@launch
+            }
+            val message = pl.victor.app.memory.PlaceMemory.describe(
+                place = place,
+                here = pl.victor.app.memory.PlaceMemory.Here(position.first, position.second),
+                nowMs = System.currentTimeMillis()
+            )
+            audio.speak(message, language = settings.getResponseLanguage())
+            _state.value = OrchestratorState.Completed(message)
+        }
+    }
+
     private fun languageTagFor(languageCode: String): String = when (languageCode) {
         "pl" -> "pl-PL"
         "en" -> "en-US"
@@ -2427,6 +2484,25 @@ class AIOrchestrator(
                 audio.speak(speech, language = settings.getResponseLanguage())
                 _state.value = OrchestratorState.Completed(speech)
                 return
+            }
+
+            // PAMIĘĆ MIEJSCA - "zapamiętaj, gdzie zaparkowałem" i "gdzie
+            // zaparkowałem".
+            //
+            // W warstwie 0 z tego samego powodu co trasa: model zapytany o to,
+            // gdzie stoi samochód, ODPOWIE - i odpowiedź będzie zmyślona, bo
+            // nie ma skąd znać współrzędnych sprzed godziny. Zapamiętanie musi
+            // przy tym kosztować jedno zdanie w chwili odchodzenia, więc nie
+            // może czekać na obieg przez sieć.
+            if (textIsQuestion) {
+                pl.victor.app.memory.PlaceMemory.saveRequest(textQuestion)?.let { name ->
+                    handlePlaceSave(name)
+                    return
+                }
+                pl.victor.app.memory.PlaceMemory.recallRequest(textQuestion)?.let { name ->
+                    handlePlaceRecall(name)
+                    return
+                }
             }
 
             // TRASA - w warstwie 0, nie w zapasowej.

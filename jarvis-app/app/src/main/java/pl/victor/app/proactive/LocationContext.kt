@@ -71,6 +71,18 @@ object LocationContext {
     }
 
     @SuppressLint("MissingPermission")
+    /**
+     * Współrzędne "tutaj" albo `null`.
+     *
+     * Wystawione na zewnątrz dla pamięci miejsca
+     * ([pl.victor.app.memory.PlaceMemory]): tam potrzebne są same liczby, a nie
+     * gotowy opis dla modelu, który buduje [buildPromptContext].
+     */
+    suspend fun currentPosition(context: Context): Pair<Double, Double>? =
+        withContext(Dispatchers.IO) {
+            lastKnownLocation(context)?.let { it.latitude to it.longitude }
+        }
+
     private fun lastKnownLocation(context: Context): Location? {
         if (!hasLocationPermission(context)) {
             Log.d(TAG, "Brak uprawnienia do lokalizacji - pomijam kontekst miejsca")

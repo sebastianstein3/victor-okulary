@@ -137,6 +137,76 @@ object PlaceMemory {
     private fun roundKilometers(m: Double): String =
         String.format(java.util.Locale.US, "%.1f", m / KILOMETER_M).replace('.', ',')
 
+    // === Rozpoznanie zdania ===
+    //
+    // Osobno od arytmetyki, ale w tym samym pliku, bo to jest ta sama funkcja
+    // opisana z dwóch stron. Czyste napisy - da się uruchomić w teście.
+
+    /** Domyślna nazwa, gdy ktoś mówi o parkowaniu, a nie o "tym miejscu". */
+    const val CAR = "Samochód"
+
+    /** Nazwa dla ogólnego "zapamiętaj to miejsce". */
+    const val SPOT = "To miejsce"
+
+    /**
+     * Czy to prośba o ZAPAMIĘTANIE miejsca - i pod jaką nazwą.
+     *
+     * @return nazwa miejsca albo `null`, gdy zdanie nie jest taką prośbą
+     */
+    fun saveRequest(text: String): String? {
+        val t = simplify(text)
+        if (SAVE_OPENERS.none { t.startsWith(it) }) return null
+        return when {
+            CAR_WORDS.any { t.contains(it) } -> CAR
+            PLACE_WORDS.any { t.contains(it) } -> SPOT
+            else -> null
+        }
+    }
+
+    /**
+     * Czy to pytanie O ZAPAMIĘTANE miejsce.
+     *
+     * Wymaga słowa pytającego NA POCZĄTKU. Bez tego "nie pamiętam, gdzie
+     * zaparkowałem, ale to nieważne" byłoby pytaniem - a jest zdaniem w
+     * rozmowie.
+     */
+    fun recallRequest(text: String): String? {
+        val t = simplify(text)
+        if (ASK_OPENERS.none { t.startsWith(it) }) return null
+        return when {
+            CAR_WORDS.any { t.contains(it) } -> CAR
+            PLACE_WORDS.any { t.contains(it) } -> SPOT
+            else -> null
+        }
+    }
+
+    /** Małe litery, bez ogonków i interpunkcji - tekst idzie z rozpoznawania mowy. */
+    private fun simplify(text: String): String =
+        text.lowercase()
+            .replace('ł', 'l')
+            .let { java.text.Normalizer.normalize(it, java.text.Normalizer.Form.NFD) }
+            .replace(Regex("\\p{Mn}+"), "")
+            .replace(Regex("[^a-z0-9 ]+"), " ")
+            .trim()
+            .replace(Regex("\\s+"), " ")
+
+    private val SAVE_OPENERS = listOf(
+        "zapamietaj", "zapisz gdzie", "zapisz sobie gdzie", "zanotuj gdzie"
+    )
+
+    private val ASK_OPENERS = listOf(
+        "gdzie", "znajdz", "zaprowadz mnie do", "doprowadz mnie do", "jak wrocic do"
+    )
+
+    private val CAR_WORDS = listOf(
+        "zaparkowal", "parkowal", "parking", "samochod", "auto", "auta", "wozu", "woz"
+    )
+
+    private val PLACE_WORDS = listOf(
+        "to miejsce", "tego miejsca", "tym miejscu", "gdzie jestem", "gdzie stoje",
+        "miejsce", "miejsca"
+    )
+
     private val COMPASS = listOf(
         "północ", "północny wschód", "wschód", "południowy wschód",
         "południe", "południowy zachód", "zachód", "północny zachód"

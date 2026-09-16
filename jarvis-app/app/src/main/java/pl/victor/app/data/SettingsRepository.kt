@@ -584,6 +584,33 @@ class SettingsRepository private constructor(private val context: Context) {
      * nie tysiące, a osobna baza kosztowałaby migracje i zależność, których ta
      * funkcja nie potrzebuje.
      */
+    // === Zapamiętane miejsca ===
+    //
+    // W preferencjach, nie w bazie: to są dwa-trzy wpisy o czterech polach,
+    // a migracja Room kosztowałaby więcej niż cała funkcja. Jeden klucz na
+    // miejsce, wartość rozdzielana średnikiem - bez biblioteki, bo przy takim
+    // kształcie danych parser mieści się w jednym wierszu.
+
+    /** Zapisuje miejsce pod nazwą; nadpisuje poprzednie o tej samej nazwie. */
+    fun savePlace(name: String, latitude: Double, longitude: Double, atMs: Long) {
+        prefs.edit()
+            .putString(placeKey(name), "$latitude;$longitude;$atMs")
+            .apply()
+    }
+
+    /** Zapamiętane miejsce albo `null`, gdy nic pod tą nazwą nie stoi. */
+    fun getPlace(name: String): pl.victor.app.memory.PlaceMemory.Place? {
+        val raw = prefs.getString(placeKey(name), null) ?: return null
+        val parts = raw.split(';')
+        if (parts.size != PLACE_FIELDS) return null
+        val lat = parts[0].toDoubleOrNull() ?: return null
+        val lon = parts[1].toDoubleOrNull() ?: return null
+        val at = parts[2].toLongOrNull() ?: return null
+        return pl.victor.app.memory.PlaceMemory.Place(name, lat, lon, at)
+    }
+
+    private fun placeKey(name: String) = "$KEY_PLACE_PREFIX${name.lowercase()}"
+
     fun getNotes(): List<pl.victor.app.notes.Notes.Note> {
         val raw = prefs.getString(KEY_NOTES, "").orEmpty()
         if (raw.isBlank()) return emptyList()
@@ -1085,6 +1112,12 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_ALERTS_SPOKEN = "alerts_spoken"
         private const val KEY_CUSTOM_COMMANDS = "custom_commands"
         private const val KEY_NOTES = "notes"
+
+        /** Przedrostek klucza zapamiętanego miejsca - patrz [savePlace]. */
+        private const val KEY_PLACE_PREFIX = "place_"
+
+        /** Szerokość, długość, czas zapisu. */
+        private const val PLACE_FIELDS = 3
         private const val KEY_FACTS = "user_facts"
         private const val KEY_TTS_ENGINE = "tts_engine"
         private const val KEY_WAKE_ENGINE = "wake_engine"

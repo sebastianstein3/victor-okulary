@@ -1,6 +1,7 @@
 package pl.victor.app.memory
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -89,5 +90,57 @@ class PlaceMemoryTest {
             nowMs = 20 * 60_000L
         )
         assertEquals("Samochód: 100 metrów na północ. Zapisane 20 minut temu.", out)
+    }
+}
+
+/** Rozpoznanie zdania - tekst przychodzi z rozpoznawania mowy, więc bywa bez ogonków. */
+class PlaceMemoryPhrasesTest {
+
+    @Test
+    fun `zapamietanie parkingu`() {
+        assertEquals(PlaceMemory.CAR, PlaceMemory.saveRequest("zapamiętaj, gdzie zaparkowałem"))
+        assertEquals(PlaceMemory.CAR, PlaceMemory.saveRequest("zapamiętaj gdzie stoi samochód"))
+        assertEquals(PlaceMemory.CAR, PlaceMemory.saveRequest("zapisz gdzie zaparkowałem auto"))
+    }
+
+    @Test
+    fun `zapamietanie zwyklego miejsca`() {
+        assertEquals(PlaceMemory.SPOT, PlaceMemory.saveRequest("zapamiętaj to miejsce"))
+        assertEquals(PlaceMemory.SPOT, PlaceMemory.saveRequest("zapamiętaj gdzie jestem"))
+    }
+
+    @Test
+    fun `pytanie o parking`() {
+        assertEquals(PlaceMemory.CAR, PlaceMemory.recallRequest("gdzie zaparkowałem"))
+        assertEquals(PlaceMemory.CAR, PlaceMemory.recallRequest("gdzie jest mój samochód"))
+        assertEquals(PlaceMemory.CAR, PlaceMemory.recallRequest("zaprowadź mnie do samochodu"))
+    }
+
+    @Test
+    fun `bez ogonkow tez dziala`() {
+        // Rozpoznawanie mowy oddaje raz tak, raz tak.
+        assertEquals(PlaceMemory.CAR, PlaceMemory.saveRequest("zapamietaj gdzie zaparkowalem"))
+        assertEquals(PlaceMemory.CAR, PlaceMemory.recallRequest("gdzie zaparkowalem"))
+    }
+
+    @Test
+    fun `zdanie w rozmowie to nie polecenie`() {
+        // Bez wymagania słowa otwierającego NA POCZĄTKU to zdanie byłoby
+        // pytaniem o parking - a jest wtrąceniem w rozmowie.
+        assertNull(PlaceMemory.recallRequest("nie pamiętam, gdzie zaparkowałem, ale to nieważne"))
+        assertNull(PlaceMemory.saveRequest("wczoraj zapamiętałem gdzie zaparkowałem"))
+    }
+
+    @Test
+    fun `zapamietaj bez przedmiotu to nie jest prosba o miejsce`() {
+        // "Zapamiętaj, że mam oddać książkę" to notatka, nie miejsce.
+        assertNull(PlaceMemory.saveRequest("zapamiętaj, że mam oddać książkę"))
+        assertNull(PlaceMemory.saveRequest("zapamiętaj mój numer telefonu"))
+    }
+
+    @Test
+    fun `gdzie o czyms innym nie porywa parkingu`() {
+        assertNull(PlaceMemory.recallRequest("gdzie jest najbliższa apteka"))
+        assertNull(PlaceMemory.recallRequest("gdzie leży Bodrum"))
     }
 }
