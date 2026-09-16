@@ -21,14 +21,26 @@ on:
 # `cancel-in-progress` załatwia przy okazji drugą rzecz: przestajemy płacić za
 # minuty budowania czegoś, co i tak zaraz przestanie być aktualne. Przy limicie
 # rozliczeniowym konta to nie jest drobiazg.
-concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: true
-
+#
+# ALE GRUPA SIEDZI NA ZADANIACH, NIE NA CAŁYM BIEGU - i to jest cała różnica.
+#
+# Anulowanie całego biegu ubija razem z nim emulator, i to NATYCHMIAST po
+# kolejnym pchnięciu. Skutek był taki, że test dymny nie doszedł do końca trzy
+# razy z rzędu (biegi 100, 101, 103), a ostatni wynik, jaki ktokolwiek widział,
+# był CZERWONY (biegi 94 i 95). Awaria schowała się pod "cancelled" na
+# dziesięć commitów.
+#
+# Teraz emulator ma własną grupę. Dalej zostaje z niej tylko najnowszy, więc
+# kolejka się nie piętrzy i rachunek nie rośnie - ale anuluje go dopiero
+# emulator NASTĘPNEGO biegu, a ten rusza po `needs: [build, zmiany]`, czyli
+# jakieś osiem minut później. Tyle wystarcza, żeby test zdążył się skończyć.
 jobs:
   build:
     name: assembleDebug
     runs-on: ubuntu-latest
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: true
 
     # `actions: write` wyłącznie po to, żeby dało się kasować własne artefakty -
     # patrz krok sprzątania niżej. `contents: write` po to, żeby dało się wrzucić
@@ -263,6 +275,9 @@ jobs:
   zmiany:
     name: Co się zmieniło
     runs-on: ubuntu-latest
+    concurrency:
+      group: zmiany-${{ github.ref }}
+      cancel-in-progress: true
     outputs:
       kod: ${{ steps.sprawdz.outputs.kod }}
     steps:
@@ -301,6 +316,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, zmiany]
     if: needs.zmiany.outputs.kod == 'true'
+    concurrency:
+      group: emulator-${{ github.ref }}
+      cancel-in-progress: true
     timeout-minutes: 45
 
     steps:
