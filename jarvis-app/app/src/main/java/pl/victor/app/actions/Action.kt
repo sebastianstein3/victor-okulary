@@ -143,6 +143,17 @@ sealed class Action {
     data class Navigate(
         val destination: String,
         val byCar: Boolean = false,
+        /**
+         * Komunikacja miejska - wyklucza się z [byCar].
+         *
+         * ## Czemu osobne pole, a nie trzeci stan wspólnego trybu
+         * Bo to nie jest ten sam rodzaj trasy. Samochód i pieszo prowadzi
+         * `google.navigation:` krok po kroku. Komunikacji miejskiej ten adres
+         * NIE OBSŁUGUJE - trzeba adresu Map z `travelmode=transit`, a ten
+         * otwiera PLAN PODRÓŻY, nie prowadzenie. Różnica jest dla użytkownika
+         * zasadnicza i komunikat musi ją oddać.
+         */
+        val byTransit: Boolean = false,
         val assist: RouteAssist = RouteAssist.FROM_SETTINGS
     ) : Action() {
         override val type = ActionType.NAVIGATE

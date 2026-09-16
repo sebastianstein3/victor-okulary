@@ -202,6 +202,32 @@ class ActionExecutor(private val context: Context) {
      */
     private fun navigate(action: Action.Navigate): ActionResult {
         val where = Uri.encode(action.destination)
+
+        // KOMUNIKACJA MIEJSKA IDZIE INNĄ DROGĄ.
+        //
+        // `google.navigation:` zna samochód, pieszo, rower i jednoślad - ale
+        // NIE komunikację miejską. Dla niej jest adres Map z
+        // `travelmode=transit`, który otwiera PLAN PODRÓŻY: linie, przesiadki,
+        // godziny odjazdu. To nie jest prowadzenie krok po kroku i komunikat
+        // musi to powiedzieć wprost, bo ktoś, kto nie patrzy na ekran,
+        // usłyszałby "prowadzę" i czekał na wskazówki, które nie przyjdą.
+        if (action.byTransit) {
+            val plan = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse(
+                    "https://www.google.com/maps/dir/?api=1" +
+                        "&destination=$where&travelmode=transit"
+                )
+            )
+            return launchIntent(
+                plan,
+                errorIfNotFound = "Brak aplikacji map - zainstaluj np. Google Maps",
+                successMessage = "Pokazuję połączenia do „${action.destination}”. " +
+                    "To plan podróży z liniami i przesiadkami, a nie prowadzenie " +
+                    "krok po kroku."
+            )
+        }
+
         val mode = if (action.byCar) TRAVEL_CAR else TRAVEL_WALK
         val guided = Intent(
             Intent.ACTION_VIEW,

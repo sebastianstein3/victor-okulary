@@ -131,16 +131,27 @@ class SmartActionDetector {
         // apteki". Przy takim szyku wzorzec wymagający "do" zaraz za
         // czasownikiem nie łapał nic - i zamiast trasy ruszał tryb ostrzegania,
         // czyli dokładnie to, o czym użytkownik powiedział "bez".
+        // Nazwa pojazdu wchodzi MIĘDZY czasownik a cel: "jedź AUTOBUSEM do
+        // dworca". Wzorzec wymaga "do" zaraz za czasownikiem, więc bez wycięcia
+        // nie łapałby nic - dokładnie tak, jak wcześniej przy "prowadź bez
+        // asystenta do apteki". Wycinamy PO zapamiętaniu, że padła, bo to z
+        // niej bierze się tryb podróży.
         val navText = lower
             .replace(ASSIST_ON_REGEX, " ")
             .replace(ASSIST_OFF_REGEX, " ")
+            .replace(TRANSIT_REGEX, " ")
         val match = NAV_REGEX.find(navText) ?: return null
         val dest = cleanDestination(match.groupValues[2])
         if (dest.isBlank()) return null
         val verb = match.groupValues[1].lowercase()
+        // Komunikacja miejska rozpoznawana ze SŁOWA, nie z czasownika: mówi się
+        // "jak dojadę autobusem do dworca", a czasownik jest tam ten sam co
+        // przy samochodzie.
+        val transit = TRANSIT_WORDS.any { lower.contains(it) }
         return Action.Navigate(
             destination = dest,
-            byCar = verb.startsWith("jed") || verb.startsWith("nawiguj"),
+            byCar = !transit && (verb.startsWith("jed") || verb.startsWith("nawiguj")),
+            byTransit = transit,
             // Wprost powiedziane wygrywa z ustawieniem - tak samo jak przy
             // każdej innej komendzie głosowej.
             assist = routeAssistIn(lower)
@@ -179,6 +190,31 @@ class SmartActionDetector {
             // Treść.
             """["']?(.+?)["']?$""",
         RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * Słowa, po których wiadomo, że chodzi o komunikację miejską.
+     *
+     * "Komunikacją" i "transportem publicznym" nikt na co dzień nie mówi -
+     * mówi się nazwą pojazdu. Stąd autobus, tramwaj, metro i pociąg.
+     */
+    /** Nazwy pojazdów do WYCIĘCIA z tekstu przed dopasowaniem trasy. */
+    private val TRANSIT_REGEX = Regex(
+        """\b(autobusem|autobusu|tramwajem|tramwaju|metrem|metra|""" +
+            """poci[aą]giem|poci[aą]gu|kolejk[aą]|komunikacj[aą]|""" +
+            """transportem\s+publicznym|miejsk[aą])\b""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private val TRANSIT_WORDS = listOf(
+        // Rdzenie, które bezpiecznie łapią odmianę: "autobus" bierze
+        // "autobusem" i "autobusu", "tramwaj" bierze "tramwajem".
+        "autobus", "tramwaj", "pociąg", "pociag", "kolejk", "szynobus",
+        // METRO wymaga form jawnych. Skrót do "metr" łapałby "sto metrów" i
+        // zamieniał odległość w środek transportu.
+        "metro", "metrem", "metra",
+        "komunikacją", "komunikacja miejsk", "transportem publicznym",
+        "jakdojade", "jak dojade", "jak dojadę"
     )
 
     private val NAV_REGEX = Regex(

@@ -69,3 +69,42 @@ class NavigationDetectionTest {
         assertNull(detector.detectNavigation("prowadź do"))
     }
 }
+
+/** Komunikacja miejska - inna droga niż samochód i pieszo. */
+class TransitDetectionTest {
+
+    private val detector = SmartActionDetector()
+
+    private fun route(text: String) = detector.detectNavigation(text)
+
+    @Test
+    fun `nazwa pojazdu wlacza komunikacje miejska`() {
+        // Nikt nie mówi "transportem publicznym" - mówi nazwą pojazdu.
+        assertTrue(route("jedź autobusem do dworca")!!.byTransit)
+        assertTrue(route("nawiguj tramwajem do ratusza")!!.byTransit)
+        assertTrue(route("prowadź metrem do centrum")!!.byTransit)
+        assertTrue(route("jedź pociągiem do Krakowa")!!.byTransit)
+    }
+
+    @Test
+    fun `komunikacja wyklucza samochod`() {
+        // Bez tego "jedź autobusem" byłoby JEDNOCZEŚNIE trasą samochodową -
+        // czasownik jest przecież ten sam.
+        val r = route("jedź autobusem do dworca")!!
+        assertTrue(r.byTransit)
+        assertFalse("trasa nie może być naraz autem i autobusem", r.byCar)
+    }
+
+    @Test
+    fun `bez nazwy pojazdu nic sie nie zmienia`() {
+        assertFalse(route("jedź do Krakowa")!!.byTransit)
+        assertTrue(route("jedź do Krakowa")!!.byCar)
+        assertFalse(route("prowadź do apteki")!!.byTransit)
+        assertFalse(route("prowadź do apteki")!!.byCar)
+    }
+
+    @Test
+    fun `cel nie wciaga nazwy pojazdu`() {
+        assertEquals("dworca", route("jedź autobusem do dworca")!!.destination)
+    }
+}
