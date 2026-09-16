@@ -105,6 +105,7 @@ object CustomCommands {
             // I minuta), więc jedno pole tekstowe im nie wystarczy. Świadomie
             // zostawiamy je modelowi - on wyciągnie je ze zdania.
             ActionType.SEND_SMS,
+            ActionType.SEND_WHATSAPP,
             ActionType.SEND_EMAIL,
             ActionType.TRANSLATE,
             ActionType.SET_ALARM,

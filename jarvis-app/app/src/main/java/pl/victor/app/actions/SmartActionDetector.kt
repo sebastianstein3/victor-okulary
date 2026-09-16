@@ -147,6 +147,40 @@ class SmartActionDetector {
         )
     }
 
+    /**
+     * Wzorzec "wyślij <kanałem> do <kogoś> <treść>" dla jednego kanału.
+     *
+     * ## Czemu wspólny, a nie dwa osobne
+     * Bo różnią się JEDNYM słowem, a myliły się w obu tak samo. Wzorzec SMS-a
+     * nie łapał dwóch własnych przykładów z katalogu komend:
+     *
+     *     "wyślij SMS do Ani, ŻE się spóźnię"     -> nic
+     *     "wyślij WIADOMOŚĆ do mamy, że już jadę" -> nic
+     *
+     * Dwie przyczyny, obie drobne i obie zabójcze. Po pierwsze przecinek nie
+     * był separatorem - działał tylko dwukropek i myślnik, a po polsku pisze
+     * się i mówi przecinkiem. Po drugie spójnik był wpisany BEZ OGONKÓW ("ze"),
+     * a rozpoznawanie mowy oddaje "że" - więc wpadało wyłącznie zdanie wpisane
+     * z klawiatury bez polskich znaków.
+     *
+     * Skutek widać było w dzienniku jako ciszę: zdanie szło do modelu i model
+     * mówił, co by zrobił, zamiast wysłać.
+     *
+     * @param channel alternatywa nazw kanału, np. `sms|wiadomo[sś][cć]`
+     */
+    private fun messageRegex(channel: String): Regex = Regex(
+        // czasownik + (opcjonalne "na") + kanał + "do" + odbiorca
+        """(?:napisz|wy[sś]lij|wyslij|nadaj|wy[lł]ij)\s+(?:na\s+)?(?:$channel)\s+do\s+""" +
+            // Odbiorca: bez przecinka w środku, bo przecinek JEST separatorem.
+            """([^\s,:;-]+)""" +
+            // Separator: znak interpunkcyjny albo spójnik - a po znaku
+            // interpunkcyjnym spójnik może jeszcze wystąpić ("do Ani, że ...").
+            """(?:\s*[,:;-]\s*(?:[zż]e|i[zż])?|\s+(?:o\s+tre[sś]ci|tre[sś][cć]|tekst|[zż]e|i[zż]))\s*""" +
+            // Treść.
+            """["']?(.+?)["']?$""",
+        RegexOption.IGNORE_CASE
+    )
+
     private val NAV_REGEX = Regex(
         """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
         RegexOption.IGNORE_CASE
@@ -165,15 +199,26 @@ class SmartActionDetector {
 
         // === SMS ===
         // "wyślij SMS do Ani o treści cześć" / "wyślij SMS do Ani: cześć"
-        val smsRegex = Regex(
-            """(?:wy[lł]ij|wy[lś]lij|wy[lś]lij|wyslij)\s+(?:sms|wiadomosc)\s+do\s+(\S+?)(?:\s*[:\-]|\s+(?:o\s+tresci|tresc|tekst|ze)\s+)["']?(.+?)["']?$""",
-            RegexOption.IGNORE_CASE
-        )
+        val smsRegex = messageRegex("""sms|wiadomo[sś][cć]|wiadomo[sś]ci""")
         smsRegex.find(lower)?.let { match ->
             val to = match.groupValues[1].trim()
             val body = match.groupValues[2].trim()
             if (to.isNotBlank() && body.isNotBlank()) {
                 actions.add(Action.SendSms(to = to, body = body))
+            }
+        }
+
+        // === WHATSAPP ===
+        // Osobny wzorzec przed SMS-em nie jest potrzebny - kolejność tu nie gra,
+        // bo oba wymagają SWOJEGO słowa kluczowego. Ważne jest co innego: bez
+        // tego wzorca "napisz na whatsappie" wpadało w SMS-a i wiadomość szła
+        // kanałem, którego adresat może nie sprawdzać.
+        val whatsAppRegex = messageRegex("""whatsapp(?:ie|em|a|zie)?|wa""")
+        whatsAppRegex.find(lower)?.let { match ->
+            val to = match.groupValues[1].trim()
+            val body = match.groupValues[2].trim()
+            if (to.isNotBlank() && body.isNotBlank()) {
+                actions.add(Action.SendWhatsApp(to = to, body = body))
             }
         }
 
@@ -698,6 +743,9 @@ class SmartActionDetector {
             "send_sms" -> params["to"]?.let { to ->
                 Action.SendSms(to = to, body = params["body"] ?: "")
             }
+            "send_whatsapp" -> params["to"]?.let { to ->
+                Action.SendWhatsApp(to = to, body = params["body"] ?: "")
+            }
             "make_call" -> params["to"]?.let { Action.MakeCall(to = it) }
             "send_email" -> params["to"]?.let { to ->
                 Action.SendEmail(
@@ -896,6 +944,8 @@ class SmartActionDetector {
 
         private val TYPE_ALIASES = mapOf(
             "sms" to "send_sms",
+            "whatsapp" to "send_whatsapp",
+            "wa" to "send_whatsapp",
             "text" to "send_sms",
             "message" to "send_sms",
             "call" to "make_call",
@@ -962,6 +1012,9 @@ formacie, w nowej linii:
 
 Dostępne typy i klucze:
 - send_sms: to (numer lub imię), body (treść)
+- send_whatsapp: to (numer lub imię), body (treść). UWAGA: to tylko OTWIERA
+  rozmowę z wpisaną wiadomością - wysłanie zatwierdza człowiek. Nie mów, że
+  wiadomość została wysłana.
 - make_call: to (numer lub imię)
 - send_email: to (adres), subject (temat), body (treść)
 - play_music: query (czego szukać)

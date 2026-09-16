@@ -52,6 +52,16 @@ object CommandCatalog {
             listOf("Wyślij SMS do Ani, że się spóźnię", "Napisz do mamy, że już jadę")
         ),
         CommandInfo(
+            ActionType.SEND_WHATSAPP, CommandGroup.COMMUNICATION, "Napisz na WhatsAppie",
+            "Otwiera rozmowę na WhatsAppie z gotową wiadomością. WYSŁANIE " +
+                "zatwierdzasz sam jednym dotknięciem - WhatsApp nie pozwala " +
+                "obcej aplikacji wysyłać wiadomości w Twoim imieniu.",
+            listOf(
+                "Napisz na WhatsAppie do Ani, że się spóźnię",
+                "Wyślij WhatsAppem do Tomka, że już jadę"
+            )
+        ),
+        CommandInfo(
             ActionType.MAKE_CALL, CommandGroup.COMMUNICATION, "Zadzwoń",
             "Dzwoni pod numer albo do kontaktu z książki adresowej.",
             listOf("Zadzwoń do domu", "Wybierz numer do Piotra")

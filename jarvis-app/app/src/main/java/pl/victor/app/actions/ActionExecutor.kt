@@ -36,6 +36,7 @@ class ActionExecutor(private val context: Context) {
         return try {
             when (action) {
                 is Action.SendSms -> sendSms(action)
+                is Action.SendWhatsApp -> sendWhatsApp(action)
                 is Action.MakeCall -> makeCall(action)
                 is Action.SendEmail -> sendEmail(action)
                 is Action.PlayMusic -> playMusic(action)
@@ -82,6 +83,25 @@ class ActionExecutor(private val context: Context) {
             putExtra("sms_body", action.body)
         }
         return launchIntent(intent, "Klient SMS nie jest zainstalowany")
+    }
+
+    /**
+     * Otwiera rozmowę na WhatsAppie z wpisaną wiadomością.
+     *
+     * Wysyłki tu nie ma i nie da się jej dopisać: WhatsApp nie udostępnia
+     * żadnej drogi, którą obca aplikacja wysłałaby wiadomość w czyimś imieniu.
+     * Komunikat mówi to wprost, żeby nikt nie wyszedł z domu przekonany, że
+     * uprzedził o spóźnieniu.
+     */
+    private fun sendWhatsApp(action: Action.SendWhatsApp): ActionResult {
+        val url = WhatsAppLink.forNumber(action.to, action.body)
+            ?: return ActionResult.Failed(
+                "To nie wygląda na numer telefonu, więc nie otwieram WhatsAppa."
+            )
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        return launchIntent(intent, "WhatsApp nie jest zainstalowany")
     }
 
     private fun makeCall(action: Action.MakeCall): ActionResult {

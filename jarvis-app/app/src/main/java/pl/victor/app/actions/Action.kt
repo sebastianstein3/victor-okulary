@@ -34,6 +34,24 @@ sealed class Action {
         override val description = "Wyślij SMS do ${resolvedName ?: to}: \"$body\""
     }
 
+    /**
+     * Otwórz WhatsAppa z gotową wiadomością do kogoś.
+     *
+     * NIE wysyła - patrz [pl.victor.app.actions.WhatsAppLink]. Nazwa akcji
+     * mówi "wyślij", bo tak brzmi prośba użytkownika, ale opis i komunikat
+     * głosowy mają mówić prawdę: wiadomość czeka na jedno dotknięcie.
+     */
+    data class SendWhatsApp(
+        val to: String,
+        val body: String,
+        /** Patrz [SendSms.resolvedName]. */
+        val resolvedName: String? = null
+    ) : Action() {
+        override val type = ActionType.SEND_WHATSAPP
+        override val description =
+            "Otwórz WhatsAppa do ${resolvedName ?: to} z wiadomością: \"$body\""
+    }
+
     /** Zadzwoń do kogoś. Otwiera dialer z numerem. */
     data class MakeCall(
         val to: String,
@@ -219,6 +237,7 @@ enum class ActionType {
     WEB_SEARCH, OPEN_URL, OPEN_APP,
     TRANSLATE, SHOW_ON_MAP,
     TOGGLE_WIFI, TOGGLE_BLUETOOTH, TOGGLE_FLASHLIGHT,
+    SEND_WHATSAPP,
     READ_TEXT, DESCRIBE_SCENE, START_NAVIGATION, STOP_ACCESSIBILITY,
     TAKE_PHOTO
 }
