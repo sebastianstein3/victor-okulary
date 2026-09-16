@@ -119,6 +119,7 @@ class AIOrchestrator(
     private val qrScanner: QRScanner = QRScanner()
     private val ocrReader: OCRReader = OCRReader()
     private val actionDetector = SmartActionDetector()
+    private val productLookup = pl.victor.app.vision.ProductLookupClient()
 
     /**
      * Dziennik diagnostyczny. Leniwie, bo orkiestrator powstaje w
@@ -2791,6 +2792,35 @@ class AIOrchestrator(
                     Log.w(TAG, "Pytanie o kod, ale żadnego nie odczytano")
                 }
 
+                // 1b-bis. KOD KRESKOWY PRODUKTU -> CO TO JEST.
+                //
+                // EAN-13 i EAN-8 skanowaliśmy od dawna, ale kod produktu
+                // kończył jako trzynaście cyfr przeczytanych na głos - czyli
+                // informacja zerowa. Baza Open Food Facts oddaje nazwę, markę,
+                // gramaturę i ALERGENY, czyli dokładnie to, czego na froncie
+                // opakowania nie ma, a model patrzący na zdjęcie nie ma skąd
+                // wziąć.
+                //
+                // Dla osoby niewidomej w sklepie to jest różnica między "chyba
+                // płatki" a "płatki owsiane, 500 g, zawiera gluten". Nie
+                // kosztuje przy tym ani jednego tokenu modelu.
+                var productContext: String? = null
+                val productCode = scannedCodes.firstOrNull {
+                    it.format == "EAN_13" || it.format == "EAN_8"
+                }
+                if (productCode != null) {
+                    productLookup.describe(productCode.rawValue)?.let { described ->
+                        productContext = described
+                        diag.event(
+                            DiagFormat.Phase.ZDJĘCIE, "produkt rozpoznany z kodu",
+                            mapOf("kod" to productCode.rawValue, "opis" to described)
+                        )
+                    } ?: diag.event(
+                        DiagFormat.Phase.ZDJĘCIE, "kodu nie ma w bazie produktów",
+                        mapOf("kod" to productCode.rawValue)
+                    )
+                }
+
                 // 1c. URL z QR - fetch content jeśli user chce info
                 var webContext: WebContent? = null
                 if (scannedCodes.isNotEmpty() && shouldFetchUrl(textQuestion, scannedCodes)) {
@@ -3034,6 +3064,14 @@ class AIOrchestrator(
                     }
                     if (webContext != null) {
                         append(urlAnalyzer.buildPromptContext(webContext))
+                        append("\n\n")
+                    }
+                    productContext?.let { described ->
+                        append("Kod kreskowy na zdjęciu należy do tego produktu: ")
+                        append(described)
+                        append(" To są dane z bazy produktów, pewniejsze niż odczyt z ")
+                        append("opakowania - jeśli pytanie dotyczy tego produktu, ")
+                        append("odpowiedz na ich podstawie.")
                         append("\n\n")
                     }
                     if (ocrContext != null && ocrContext.isSuccess) {
