@@ -10,6 +10,21 @@ on:
       - claude/repo-exploration-jj1wsm
   workflow_dispatch:
 
+# JEDEN BIEG NA GAŁĄŹ - starsze są przerywane.
+#
+# Bez tego dwa pchnięcia pod rząd dają dwa równoległe biegi, a wydanie
+# `build-latest` dostaje APK od tego, który skończy PÓŹNIEJ - niekoniecznie od
+# nowszego commita. Tak się właśnie stało: bieg 94 (5f78a7b, start 10:44,
+# koniec 10:55) nadpisał bieg 95 (ed1b48e, start 10:45, koniec 10:54). Osoba
+# testująca pobrała wtedy starszą wersję niż ta, o której jej powiedziano.
+#
+# `cancel-in-progress` załatwia przy okazji drugą rzecz: przestajemy płacić za
+# minuty budowania czegoś, co i tak zaraz przestanie być aktualne. Przy limicie
+# rozliczeniowym konta to nie jest drobiazg.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: assembleDebug
