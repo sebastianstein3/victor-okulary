@@ -678,7 +678,16 @@ class SmartActionDetector {
         ) {
             actions.add(Action.StartNavigation)
         }
-        if (matchesAny(lower, "stop czytanie", "stop opis", "zatrzymaj tryb", "wyłącz tryb")) {
+        // Zwroty MUSZĄ obejmować to, czego uczy katalog komend - inaczej
+        // człowiek mówi zdanie z instrukcji i nic się nie dzieje. Tak było z
+        // "dziękuję, wystarczy" i "przestań czytać": obu tu brakowało, a oba
+        // stoją w katalogu jako przykłady. Pilnuje tego test.
+        if (matchesAny(
+                lower, "stop czytanie", "stop opis", "zatrzymaj tryb", "wyłącz tryb",
+                "wystarczy", "przestań czytać", "przestan czytać", "przestań opisywać",
+                "skończ czytać", "koniec czytania"
+            )
+        ) {
             actions.add(Action.StopAccessibility)
         }
 

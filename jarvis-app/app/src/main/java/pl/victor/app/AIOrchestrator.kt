@@ -3850,6 +3850,38 @@ class AIOrchestrator(
             return true
         }
 
+        // HAMULEC TRYBU CIĄGŁEGO - LOKALNY, BO INACZEJ ZALEŻY OD SIECI.
+        //
+        // Tryby dostępności chodzą w pętli i pytają model kilkadziesiąt razy na
+        // minutę po circa 1600 tokenów. Zatrzymanie ich szło dotąd JEDYNIE przez
+        // model: warstwa 0 nie miała żadnego wzorca na "przestań", a wzorce
+        // zapasowe ([SmartActionDetector.detect]) uruchamiają się tylko wtedy,
+        // gdy AI jest niedostępne. Czyli dokładnie wtedy, gdy pętla kosztuje
+        // najwięcej, jej wyłączenie wymagało obiegu przez sieć - a gdy sieć
+        // padła, nie dało się jej wyłączyć głosem WCALE.
+        //
+        // Drugi błąd był w tym, co obiecuje katalog komend: uczy mówić
+        // "Dziękuję, wystarczy" i "Przestań czytać", a lista wzorców znała
+        // "stop czytanie" i "wyłącz tryb". Człowiek mówił więc zdanie z
+        // instrukcji i nic się nie działo.
+        //
+        // Bramkujemy to stanem trybu, nie samym tekstem: gdy nic nie chodzi,
+        // "przestań czytać" leci dalej do modelu jak zwykłe zdanie. Dzięki temu
+        // szeroka lista zwrotów nie przechwytuje rozmowy.
+        if (accessibility.mode.value != pl.victor.app.accessibility.AccessibilityMode.OFF &&
+            pl.victor.app.conversation.MetaCommands.stopsAccessibility(text)
+        ) {
+            Log.i(TAG, "Zatrzymuję tryb dostępności lokalnie: \"$text\"")
+            diag.event(
+                DiagFormat.Phase.AKCJA, "tryb dostępności zatrzymany bez modelu",
+                mapOf("tryb" to accessibility.mode.value.name)
+            )
+            audio.stopSpeaking()
+            accessibility.disable()
+            _state.value = OrchestratorState.Idle
+            return true
+        }
+
         // "Stop"/"cicho" ucisza V.I.C.T.O.R.-a, a nie steruje odtwarzaczem muzyki.
         // Osobno od warstwy 0, bo tam wszystko kończy się akcją przez Intent,
         // a tu chodzi tylko o zamknięcie ust syntezatorowi.

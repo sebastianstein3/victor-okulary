@@ -84,6 +84,35 @@ object MetaCommands {
      */
     fun detectContextReset(text: String): Boolean = RESET_REGEX.containsMatchIn(text.trim())
 
+    /**
+     * Czy to jest prośba o zakończenie trwającego trybu ciągłego.
+     *
+     * ## Czemu to musi być sprawdzane LOKALNIE
+     * Tryby dostępności chodzą w pętli i pytają model kilkadziesiąt razy na
+     * minutę. Zatrzymanie ich szło dotąd jedynie przez model, a wzorce zapasowe
+     * uruchamiają się wyłącznie wtedy, gdy AI jest niedostępne - czyli gdy sieć
+     * padła, pętli nie dało się wyłączyć głosem WCALE.
+     *
+     * ## Wolno być szerokim, bo bramkuje to stan trybu
+     * Wołający sprawdza to DOPIERO wtedy, gdy jakiś tryb faktycznie chodzi.
+     * Poza trybem te same słowa idą do modelu jak zwykłe zdanie, więc szeroka
+     * lista nie przechwytuje rozmowy.
+     *
+     * Lista obejmuje oba zdania, których uczy katalog komend ("dziękuję,
+     * wystarczy", "przestań czytać") - to one padną najpierw, a wcześniej nie
+     * znał ich żaden lokalny wzorzec.
+     *
+     * `containsMatchIn`, nie `matches`: człowiek, któremu okulary właśnie czytają
+     * do ucha, rzadko mówi samo hasło - mówi "dobra, dziękuję, wystarczy".
+     */
+    fun stopsAccessibility(text: String): Boolean =
+        ACCESSIBILITY_STOP_REGEX.containsMatchIn(text.lowercase().trim())
+
+    private val ACCESSIBILITY_STOP_REGEX = Regex(
+        """(wystarczy|przesta[nń]|sko[nń]cz|zako[nń]cz|dosy[cć]|dzi[eę]kuj[eę])|""" +
+            """(stop|wy[lł][aą]cz|zatrzymaj)\s+(czytani|opis|tryb|nawigacj)"""
+    )
+
     private val RESET_REGEX = Regex(
         """(?:nowy\s+temat|zapomnij\s+(?:co\s+)?(?:m[oó]wili[sś]my|rozmawiali[sś]my)|""" +
             """wyczy[sś][cć]\s+(?:kontekst|rozmow[eę]|histori[eę])|""" +
