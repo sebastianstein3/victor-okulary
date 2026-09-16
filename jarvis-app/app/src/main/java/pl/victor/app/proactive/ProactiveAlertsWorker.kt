@@ -159,24 +159,45 @@ class ProactiveAlertsWorker(
 
         val spoken = "${alert.title}. ${alert.message}"
 
-        // POPROŚ OKULARY O TRYB MULTIMEDIÓW - tak samo jak zwykła tura.
+        // CZEKAMY NA KANAŁ, ZAMIAST MÓWIĆ W PRÓŻNIĘ.
         //
-        // Zwykła odpowiedź robi to przed mówieniem (VictorManager.requestClassicAudio),
-        // alert nie robił tego nigdy. Okulary, które telefon widzi wyłącznie
-        // jako zestaw głośnomówiący, mają wtedy czynny sam profil rozmowy - i
-        // alert szedł albo przez telefon, albo przez gorszy kanał. Zgłoszone:
-        // "chyba nie czyta tych powiadomień o pogodzie normalnie przez okulary".
+        // Dotąd szła tu prośba bezzwłoczna: aplikacja prosiła okulary o tryb
+        // multimediów i NATYCHMIAST zaczynała mówić. Kanał wstaje wolniej, więc
+        // alert leciał w to, co akurat było - a gdy nie było nic, w głośnik
+        // telefonu. Zgłoszone wprost: "nie czyta alertów pogodowych, przychodzą
+        // tylko powiadomienia na telefonie".
         //
-        // Prośba jest bez czekania na skutek (profil zestawia system, nie my),
-        // więc nie opóźnia tego alertu - poprawia kolejny. To ta sama zasada,
-        // co na ścieżce tury.
-        if (glassesOn) {
-            runCatching { app.glassesManager.requestClassicAudio("alert proaktywny") }
+        // Tura może sobie pozwolić na prośbę bez czekania, bo i tak potrwa i
+        // poprawi kolejną wypowiedź. Alert trwa dwa zdania i albo pójdzie w
+        // okulary, albo przepadnie.
+        val przezOkulary = if (glassesOn) {
+            runCatching { app.glassesManager.ensureClassicAudio("alert proaktywny") }
+                .getOrDefault(false)
+        } else {
+            false
+        }
+
+        // JEDEN RAZ POWIEDZ, CZEGO BRAKUJE.
+        //
+        // Gdy okulary są połączone, a kanału multimediów nie ma, alert leci w
+        // telefon - i człowiek, który ma okulary na głowie, nie usłyszy nic.
+        // Kod umiał to rozpoznać od dawna i tylko ZAPISYWAŁ do dziennika, z
+        // komentarzem, że użytkownik "ma prawo to usłyszeć". Nie usłyszał.
+        //
+        // To naprawia się jednym przełącznikiem w ustawieniach Bluetooth
+        // telefonu ("Dźwięk multimediów" przy okularach), ale trzeba o tym
+        // wiedzieć. Mówimy więc RAZ na uruchomienie aplikacji - powtarzane przy
+        // każdym alercie byłoby gorsze od samej usterki.
+        val podpowiedz = if (glassesOn && !przezOkulary && !hintSpoken.getAndSet(true)) {
+            " Nie słyszysz mnie w okularach? W ustawieniach Bluetooth telefonu " +
+                "włącz przy nich dźwięk multimediów."
+        } else {
+            ""
         }
 
         val held = runCatching { app.audio.beginConversationRouting() }.getOrDefault(false)
         try {
-            runCatching { app.audio.speakAndAwait(spoken, language = "pl") }
+            runCatching { app.audio.speakAndAwait(spoken + podpowiedz, language = "pl") }
                 .onSuccess {
                     // DO DZIENNIKA, nie tylko do logcata: to jest jedyny ślad
                     // po alercie, a zgłoszenie brzmiało "chyba nie czyta" -
@@ -197,8 +218,6 @@ class ProactiveAlertsWorker(
                         //
                         // Teraz zapisujemy jedno i drugie osobno: czy okulary
                         // są połączone i czy dało się przez nie mówić.
-                        val przezOkulary = runCatching { app.audio.canSpeakOverMedia() }
-                            .getOrDefault(false)
                         app.diag.event(
                             pl.victor.app.diagnostics.DiagFormat.Phase.MOWA,
                             if (glassesOn && !przezOkulary) {
@@ -275,5 +294,17 @@ class ProactiveAlertsWorker(
     companion object {
         const val CHANNEL_ID = "proactive_alerts"
         const val WORK_NAME = "proactive_alerts_worker"
+
+        /**
+         * Czy podpowiedź o dźwięku multimediów już padła w tym uruchomieniu.
+         *
+         * W [java.util.concurrent.atomic.AtomicBoolean], a nie w preferencjach:
+         * to stan JEDNEGO uruchomienia aplikacji, nie ustawienie. Po restarcie
+         * telefonu warto powiedzieć jeszcze raz, bo profil Bluetooth mógł się
+         * zmienić. Statyczne, bo WorkManager tworzy nową instancję workera na
+         * każde uruchomienie - w polu obiektu licznik resetowałby się co alert
+         * i podpowiedź leciałaby za każdym razem.
+         */
+        private val hintSpoken = java.util.concurrent.atomic.AtomicBoolean(false)
     }
 }

@@ -742,7 +742,21 @@ class VictorManager private constructor(context: Context) {
             is NotifyEvent.OtaProgress -> {
                 Log.d(tag, "Notify: OTA ${event.download}/${event.soc}/${event.nor}")
             }
-            is NotifyEvent.LowMemory -> Log.w(tag, "Notify: mało pamięci na okularach")
+            is NotifyEvent.LowMemory -> {
+                // Do DZIENNIKA, nie tylko do logcata. To jedyna chwila, w której
+                // okulary same mówią, czemu zaraz przestaną robić zdjęcia - a
+                // dotąd ta informacja ginęła, podczas gdy komunikat o nieudanej
+                // migawce ZGADYWAŁ pełną pamięć bez żadnej podstawy.
+                Log.w(tag, "Notify: mało pamięci na okularach")
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                        "okulary zgłaszają MAŁO PAMIĘCI"
+                    )
+                }
+                lastPhotoFailure = "Okulary zgłaszają brak miejsca w pamięci. " +
+                    "Pobierz z nich pliki albo je wyczyść."
+            }
             is NotifyEvent.SpeechInterrupted -> {
                 Log.i(tag, "Notify: użytkownik uciszył V.I.C.T.O.R.-a")
                 _speechInterrupted.tryEmit(Unit)
@@ -1599,6 +1613,71 @@ class VictorManager private constructor(context: Context) {
 
     @Volatile
     private var lastClassicAudioRequestAtMs = 0L
+
+    /**
+     * Prosi o tryb multimediów i CZEKA na wynik. `true`, gdy kanał wstał.
+     *
+     * ## Czym się różni od [requestClassicAudio]
+     * Tamta jest bezzwłoczna: prosi i wraca, a wynik sprawdza sobie w tle po
+     * sześciu sekundach - do dziennika. Nadaje się przed zwykłą turą, bo tura
+     * i tak potrwa, a prośba poprawia kolejną wypowiedź.
+     *
+     * Alert proaktywny ma inną naturę: nikt go nie oczekuje, trwa dwa zdania i
+     * albo pójdzie w okulary, albo przepadnie. Mówienie ZANIM kanał wstanie
+     * znaczy mówienie w próżnię - i dokładnie to zgłoszono: "nie czyta alertów,
+     * przychodzą tylko powiadomienia na telefonie".
+     *
+     * Odpytujemy zamiast czekać na sztywno, bo kanał zwykle wstaje szybciej niż
+     * limit, a każda sekunda ciszy przed alertem to sekunda, w której człowiek
+     * już odszedł od tego, czego alert dotyczy.
+     */
+    suspend fun ensureClassicAudio(
+        reason: String,
+        timeoutMs: Long = CLASSIC_AUDIO_CHECK_MS
+    ): Boolean {
+        val router = pl.victor.app.audio.BluetoothAudioRouter.getInstance(appContext)
+        if (router.hasA2dpOutput()) return true
+        if (simulator != null || !isConnected()) return false
+
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                "proszę okulary o tryb multimediów i czekam",
+                mapOf("powód" to reason, "limitMs" to timeoutMs)
+            )
+        }
+        runCatching { largeDataHandler.openBT() }
+            .onFailure { Log.w(tag, "openBT nie powiodło się", it) }
+        runCatching { largeDataHandler.speakSoundSwitch(true) }
+            .onFailure { Log.w(tag, "speakSoundSwitch nie powiodło się", it) }
+
+        val doKiedy = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < doKiedy) {
+            if (router.hasA2dpOutput()) {
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                        "tryb multimediów wstał na żądanie",
+                        mapOf("poMs" to (timeoutMs - (doKiedy - System.currentTimeMillis())))
+                    )
+                }
+                return true
+            }
+            delay(CLASSIC_AUDIO_POLL_MS)
+        }
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                "tryb multimediów nie wstał w limicie",
+                mapOf(
+                    "poMs" to timeoutMs,
+                    "jakTelefonWidziOkulary" to
+                        router.audioProfileSummary().replace("\n", " / ")
+                )
+            )
+        }
+        return false
+    }
 
     /** Opis zdarzenia po polsku - na ekran diagnostyczny. */
     private fun describe(event: NotifyEvent): String = when (event) {
@@ -2883,8 +2962,39 @@ class VictorManager private constructor(context: Context) {
                     "zdarzenia. Rozłącz je i połącz ponownie; jeśli to nie pomoże, " +
                     "zrestartuj okulary."
             } else {
-                "Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają " +
-                    "pełnej pamięci i czy nie nagrywają w tej chwili wideo."
+                // SPRAWDZAMY, ZAMIAST ZGADYWAĆ.
+                //
+                // Stało tu "sprawdź, czy nie mają pełnej pamięci" - zdanie
+                // wysłane w świat bez żadnego dowodu. W dzienniku z 16 września
+                // okulary NIE przysłały ramki "mało pamięci" (0x0E) ani razu, a
+                // człowiek dostał 44 sekundy czekania i polecenie sprawdzenia
+                // czegoś, co prawdopodobnie było w porządku.
+                //
+                // Liczbę plików umiemy pobrać ([mediaCountNow]) i to jest
+                // JEDYNY twardy fakt, jaki mamy w tym miejscu. Gdy przyjdzie,
+                // podajemy ją; gdy nie przyjdzie, mówimy właśnie to - bo
+                // milczenie na liczniku znaczy co innego niż milczenie na samej
+                // migawce i prowadzi do innej naprawy.
+                val liczniki = runCatching { mediaCountNow() }.getOrNull()
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                    "migawka milczy - sprawdzam liczniki plików",
+                    mapOf(
+                        "zdjęcia" to liczniki?.images,
+                        "filmy" to liczniki?.videos,
+                        "nagrania" to liczniki?.records
+                    )
+                )
+                if (liczniki == null) {
+                    "Okulary nie potwierdziły zdjęcia i nie podają nawet liczby " +
+                        "plików. Rozłącz je i połącz ponownie."
+                } else {
+                    val sztuk = liczniki.images + liczniki.videos + liczniki.records
+                    "Okulary nie potwierdziły zrobienia zdjęcia, choć odpowiadają " +
+                        "na inne komendy. W ich pamięci jest $sztuk plików - jeśli " +
+                        "to dużo, zwolnij miejsce. Sprawdź też, czy akurat nie " +
+                        "nagrywają wideo."
+                }
             }
         } else {
             "Okulary zrobiły zdjęcie, ale nie przysłały go po BLE. Podejdź " +
@@ -3038,6 +3148,34 @@ class VictorManager private constructor(context: Context) {
         // zdjęciu. Po nieudanej próbie odpuszczamy na [WIFI_RETRY_AFTER_MS] i
         // oddajemy miniaturę od razu. Okno jest krótkie: gdy Wi-Fi wróci (inne
         // miejsce, restart okularów), aplikacja sama spróbuje znowu.
+        // WYŁĄCZONE RADIO WI-FI TO NIE JEST AWARIA DO PRZECZEKANIA.
+        //
+        // Bez włączonego Wi-Fi ani Wi-Fi Direct, ani strumień nie mają prawa
+        // wstać - a próba i tak zabierała kilkanaście sekund, po których
+        // człowiek dostawał miniaturę i komunikat o czymś zupełnie innym.
+        // W dzienniku z 16 września widać obie strony: "Wi-Fi jest wyłączone -
+        // włącz je" i, czterdzieści cztery sekundy później, rada, żeby sprawdzić
+        // pamięć okularów.
+        //
+        // To jedyna z przyczyn braku ostrego zdjęcia, którą człowiek naprawia w
+        // pięć sekund - więc ma ją usłyszeć od razu, a nie po najdłuższej
+        // możliwej drodze.
+        if (!wifiTransfer.isWifiEnabled()) {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "pomijam ostre zdjęcie - Wi-Fi wyłączone"
+            )
+            // Świadomie NIE ustawiamy tu lastPhotoFailure: zdjęcie JEST, tylko
+            // gorsze. To pole czytają miejsca obsługujące BRAK zdjęcia, a pole
+            // o nazwie "failure" trzymające nie-awarię to dokładnie ta pułapka
+            // nazewnicza, która kosztowała już jedną złą diagnozę.
+            //
+            // Człowiek dowie się o Wi-Fi tam, gdzie to ma znaczenie: gdy model
+            // powie, że na tym obrazie nie widzi dość (patrz AIOrchestrator,
+            // gałąź `wantsPhoto` przy miniaturze).
+            return thumbnail
+        }
+
         val sinceWifiFailure = System.currentTimeMillis() - wifiDirectFailedAtMs
         if (wifiDirectFailedAtMs > 0L && sinceWifiFailure < WIFI_RETRY_AFTER_MS) {
             Log.i(tag, "Wi-Fi Direct zawiódł ${sinceWifiFailure / 1000} s temu - zostaję przy miniaturze")
@@ -4041,6 +4179,9 @@ class VictorManager private constructor(context: Context) {
          * właśnie wstaje.
          */
         private const val CLASSIC_AUDIO_CHECK_MS = 6_000L
+
+        /** Jak często pytać, czy kanał multimediów już stoi - patrz [ensureClassicAudio]. */
+        private const val CLASSIC_AUDIO_POLL_MS = 250L
 
         /**
          * Ile czekamy na odpowiedź o nazwę klasycznego Bluetootha, zanim

@@ -507,7 +507,7 @@ class GlassesWifiTransfer(context: Context) {
      * Wi-Fi Direct NIE włącza go samo, a od Androida 10 aplikacja nie może go
      * włączyć za użytkownika - zostaje poproszenie go wprost.
      */
-    private fun isWifiEnabled(): Boolean =
+    fun isWifiEnabled(): Boolean =
         runCatching { wifiManager?.isWifiEnabled == true }.getOrDefault(false)
 
     /**
