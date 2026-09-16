@@ -97,4 +97,76 @@ class ProductLookupTest {
         assertTrue(url.startsWith("https://"))
         assertTrue("zapytanie nie może wymagać klucza", !url.contains("key="))
     }
+
+    @Test
+    fun `makro na 100 g w kolejnosci, ktora ludzie licza`() {
+        val json = """
+            {"status":1,"product":{"product_name":"Płatki owsiane","nutriments":{
+              "energy-kcal_100g":379,"proteins_100g":13.5,
+              "carbohydrates_100g":60,"fat_100g":7,"fiber_100g":10,"salt_100g":0.02
+            }}}
+        """.trimIndent()
+        assertEquals(
+            "Płatki owsiane. 100 g: 379 kcal, 13,5 g białka, 60 g węglowodanów, 7 g tłuszczu.",
+            ProductLookup.describe(json)
+        )
+    }
+
+    @Test
+    fun `kilodzule przeliczane na kalorie`() {
+        // Baza podaje jedno albo drugie, zależnie od tego, co było na
+        // opakowaniu. "1585 kilodżuli" nikomu w Polsce nic nie mówi.
+        val json = """{"status":1,"product":{"product_name":"X","nutriments":{"energy_100g":1585}}}"""
+        val out = ProductLookup.describe(json)!!
+        assertTrue(out, out.contains("379 kcal"))
+    }
+
+    @Test
+    fun `kilokalorie maja pierwszenstwo przed dzulami`() {
+        val json = """
+            {"status":1,"product":{"product_name":"X","nutriments":{
+              "energy-kcal_100g":400,"energy_100g":1585}}}
+        """.trimIndent()
+        assertTrue(ProductLookup.describe(json)!!.contains("400 kcal"))
+    }
+
+    @Test
+    fun `bez zbednego zera po przecinku`() {
+        val json = """{"status":1,"product":{"product_name":"X","nutriments":{"proteins_100g":13.0}}}"""
+        val out = ProductLookup.describe(json)!!
+        assertTrue(out, out.contains("13 g białka"))
+        assertTrue("nie chcemy 13,0: $out", !out.contains("13,0"))
+    }
+
+    @Test
+    fun `liczba jako napis tez sie liczy`() {
+        // Baza jest społecznościowa i pola bywają tekstem zamiast liczbą.
+        val json = """{"status":1,"product":{"product_name":"X","nutriments":{"energy-kcal_100g":"250"}}}"""
+        assertTrue(ProductLookup.describe(json)!!.contains("250 kcal"))
+    }
+
+    @Test
+    fun `produkt bez tabeli odzywczej nie dostaje pustego zdania`() {
+        val json = """{"status":1,"product":{"product_name":"Woda","nutriments":{}}}"""
+        assertEquals("Woda.", ProductLookup.describe(json))
+        assertEquals("Woda.", ProductLookup.describe("""{"status":1,"product":{"product_name":"Woda"}}"""))
+    }
+
+    @Test
+    fun `makro nie wypiera alergenow`() {
+        // Alergen jest ważniejszy niż kalorie i musi zostać, gdy dochodzi makro.
+        val json = """
+            {"status":1,"product":{"product_name":"Ciastka","allergens_tags":["en:gluten"],
+             "nutriments":{"energy-kcal_100g":450}}}
+        """.trimIndent()
+        val out = ProductLookup.describe(json)!!
+        assertTrue(out, out.contains("Zawiera gluten"))
+        assertTrue(out, out.contains("450 kcal"))
+    }
+
+    @Test
+    fun `zapytanie prosi o tabele odzywcza`() {
+        // Bez tego pola serwis jej nie odda - i dokładnie tak było na początku.
+        assertTrue(ProductLookup.urlFor("123").contains("nutriments"))
+    }
 }

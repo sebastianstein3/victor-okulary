@@ -2,6 +2,7 @@ package pl.victor.app.vision
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import kotlin.math.roundToInt
 
 /**
  * Kod kreskowy -> co to za produkt, po polsku.
@@ -30,7 +31,8 @@ object ProductLookup {
     /** Adres zapytania dla danego kodu. */
     fun urlFor(barcode: String): String =
         "https://world.openfoodfacts.org/api/v2/product/$barcode.json" +
-            "?fields=product_name,product_name_pl,brands,quantity,allergens_tags,ingredients_text_pl"
+            "?fields=product_name,product_name_pl,brands,quantity,allergens_tags," +
+            "ingredients_text_pl,nutriments"
 
     /**
      * Zdanie do wypowiedzenia albo `null`, gdy produktu nie ma w bazie.
@@ -63,8 +65,56 @@ object ProductLookup {
             product.stringOrNull("quantity")?.let { append(", ").append(it) }
             allergensOf(product)?.let { append(". Zawiera ").append(it) }
             append('.')
+            nutritionOf(product)?.let { append(' ').append(it) }
         }
     }
+
+    /**
+     * Wartości odżywcze na 100 g albo `null`, gdy baza ich nie ma.
+     *
+     * ## Czemu akurat te cztery
+     * Kalorie, białko, węglowodany, tłuszcz - to jest zestaw, którego ludzie
+     * naprawdę pilnują. Pełna tabela ma kilkanaście pozycji i przeczytana na
+     * głos staje się wyliczanką, z której nikt nic nie zapamięta.
+     *
+     * Reszta nie przepada: te liczby idą do modelu jako kontekst, więc na
+     * pytanie "ile ma błonnika" odpowie z tej samej odpowiedzi serwisu - o ile
+     * ją ma. Chodzi o to, co leci na głos BEZ pytania.
+     *
+     * ## Kilokalorie, a nie kilodżule
+     * Baza podaje jedno albo drugie, zależnie od tego, co było na opakowaniu.
+     * Przeliczamy kJ na kcal, bo w Polsce mówi się kaloriami - a "1585
+     * kilodżuli" nikomu nic nie mówi.
+     */
+    private fun nutritionOf(product: JsonObject): String? {
+        val n = product.getAsJsonObject("nutriments") ?: return null
+        val kcal = n.numberOrNull("energy-kcal_100g")
+            ?: n.numberOrNull("energy_100g")?.let { it / KJ_PER_KCAL }
+        val parts = buildList {
+            kcal?.let { add("${it.roundToInt()} kcal") }
+            n.numberOrNull("proteins_100g")?.let { add("${format(it)} g białka") }
+            n.numberOrNull("carbohydrates_100g")?.let { add("${format(it)} g węglowodanów") }
+            n.numberOrNull("fat_100g")?.let { add("${format(it)} g tłuszczu") }
+        }
+        return if (parts.isEmpty()) null else "100 g: " + parts.joinToString(", ") + "."
+    }
+
+    /** Bez zbędnego zera po przecinku: "13 g", nie "13,0 g". */
+    private fun format(value: Double): String =
+        if (value == value.roundToInt().toDouble()) {
+            value.roundToInt().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", value).replace('.', ',')
+        }
+
+    private fun JsonObject.numberOrNull(key: String): Double? {
+        val element = get(key) ?: return null
+        if (element.isJsonNull) return null
+        return runCatching { element.asDouble }.getOrNull()
+            ?: runCatching { element.asString.replace(',', '.').toDouble() }.getOrNull()
+    }
+
+    private const val KJ_PER_KCAL = 4.184
 
     /**
      * Alergeny po polsku albo `null`, gdy serwis żadnych nie podaje.
