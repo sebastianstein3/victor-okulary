@@ -17,18 +17,32 @@ import kotlinx.coroutines.launch
  * Mapuje eventy z ButtonEvent na konkretne akcje użytkownika:
  * - 1x kliknięcie  → QUICK_QUESTION (słuchaj, o co pytam)
  * - 2x kliknięcie  → LOOK_AND_DESCRIBE (zrób zdjęcie i powiedz, co widzisz)
- * - Przytrzymanie  → READ_TEXT (przeczytaj tekst, na który patrzę)
- * - 3x kliknięcie  → NEW_CONVERSATION (nowa rozmowa, reset historii)
+ * - 3x kliknięcie  → READ_TEXT (przeczytaj tekst, na który patrzę)
+ * - 4x kliknięcie  → NEW_CONVERSATION (nowa rozmowa, reset historii)
  *
  * ## Dlaczego akurat tak
- * Gest ma być tym łatwiejszy, im częściej się go używa. Przytrzymanie jest
- * najłatwiejsze do trafienia bez patrzenia, potrójne kliknięcie - najtrudniejsze.
+ * Gest ma być tym łatwiejszy, im częściej się go używa. Czytanie tekstu jest
+ * funkcją, dla której nosi się te okulary, gdy nie widzi się dobrze etykiety,
+ * ulotki albo tabliczki - więc siedzi możliwie nisko. Reset jest najrzadszy i
+ * odwracalny głosem ("nowy temat"), więc zszedł najniżej.
  *
- * Wcześniej przytrzymanie kasowało rozmowę (rzadkie i odwracalne przez "nowy
- * temat" głosem), a potrójne kliknięcie skanowało kod QR (nisza). Teraz
- * przytrzymanie czyta tekst - to jest funkcja, dla której nosi się te okulary,
- * gdy nie widzi się dobrze etykiety, ulotki albo tabliczki - a reset zeszedł do
- * najtrudniejszego gestu, bo najrzadziej jest potrzebny.
+ * ## CZYTANIE WISIAŁO NA GEŚCIE, KTÓREGO TEN SPRZĘT NIE WYSYŁA
+ * Do 16 września READ_TEXT było pod PRZYTRZYMANIEM - gestem najłatwiejszym do
+ * trafienia bez patrzenia, więc z zamiaru słusznym. Tyle że okulary nie
+ * zgłaszają przytrzymania W OGÓLE (patrz niżej: jedyne, co przychodzi, to
+ * `ShortClick`), więc najważniejsza funkcja dostała jedyny gest NIEOSIĄGALNY.
+ *
+ * Zgłoszone dwa razy: "tłumaczenie po wciśnięciu przycisku nie działa,
+ * kompletnie nic nie mówi" i "w trybie czytania niczego nie czyta". Obie razy
+ * szukałem przyczyny w obrazie i w promptach - a akcja nie startowała wcale.
+ * W dzienniku z 16 września jest szesnaście wciśnięć przycisku i WSZYSTKIE to
+ * `numer=1`, ani jednego przytrzymania.
+ *
+ * Gałąź `LongPress` zostaje, bo nic nie kosztuje i inny egzemplarz może ją
+ * wysyłać - ale nie wolno na niej niczego opierać.
+ *
+ * Skanowanie QR zostało wcześniej zdjęte z potrójnego kliknięcia (nisza) i
+ * dalej jest pod komendą głosową oraz w spisie komend.
  *
  * Skanowanie QR nie znika: zostaje pod komendą głosową i w spisie komend.
  *
@@ -70,7 +84,7 @@ class ButtonActionDetector {
             ButtonEvent.TripleClick -> {
                 flushJob?.cancel()
                 clickCount = 3
-                tryEmitAction(ButtonAction.NEW_CONVERSATION)
+                tryEmitAction(ButtonAction.READ_TEXT)
                 reset()
             }
             ButtonEvent.LongPress -> {
@@ -116,7 +130,8 @@ class ButtonActionDetector {
         when {
             clickCount == 1 -> tryEmitAction(ButtonAction.QUICK_QUESTION)
             clickCount == 2 -> tryEmitAction(ButtonAction.LOOK_AND_DESCRIBE)
-            clickCount >= 3 -> tryEmitAction(ButtonAction.NEW_CONVERSATION)
+            clickCount == 3 -> tryEmitAction(ButtonAction.READ_TEXT)
+            clickCount >= 4 -> tryEmitAction(ButtonAction.NEW_CONVERSATION)
         }
         reset()
     }

@@ -6,6 +6,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -45,10 +46,47 @@ class ButtonActionDetectorTest {
     }
 
     @Test
-    fun `trzy klikniecia zaczynaja nowa rozmowe`() {
-        // Reset zszedł do najtrudniejszego gestu, bo jest najrzadziej
-        // potrzebny - i tak da się go zrobić głosem ("nowy temat").
-        assertEquals(ButtonAction.NEW_CONVERSATION, actionFor(3))
+    fun `trzy klikniecia czytaja tekst`() {
+        // Czytanie siedzi najniżej, jak się da NA TYM SPRZĘCIE - patrz test
+        // "kazda akcja da sie wywolac samymi klikami" niżej.
+        assertEquals(ButtonAction.READ_TEXT, actionFor(3))
+    }
+
+    @Test
+    fun `cztery klikniecia zaczynaja nowa rozmowe`() {
+        // Reset zszedł najniżej, bo jest najrzadziej potrzebny - i tak da się
+        // go zrobić głosem ("nowy temat").
+        assertEquals(ButtonAction.NEW_CONVERSATION, actionFor(4))
+    }
+
+    @Test
+    fun `kazda akcja da sie wywolac samymi klikami`() {
+        // TEN TEST JEST TU PO COŚ KONKRETNEGO.
+        //
+        // Okulary zgłaszają przez BLE wyłącznie ShortClick - ani
+        // przytrzymania, ani puszczenia, ani czasu trzymania (ramka 0x03 niesie
+        // sam numer przycisku). Akcja podpięta pod inne zdarzenie jest więc
+        // MARTWA, choć kod wygląda poprawnie i ma zielony test.
+        //
+        // Tak właśnie zginęło czytanie tekstu: wisiało pod LongPress i nie
+        // odpaliło się ani razu. Zgłoszone dwa razy ("tłumaczenie nie działa,
+        // kompletnie nic nie mówi", "w trybie czytania niczego nie czyta"),
+        // a w dzienniku z terenu jest szesnaście wciśnięć i wszystkie to
+        // pojedyncze kliknięcia.
+        // SCAN_QR świadomie NIE ma gestu - zszedł do komend głosowych i do
+        // spisu komend, bo jest niszowy. Reszta musi być osiągalna klikami.
+        val wymagane = listOf(
+            ButtonAction.QUICK_QUESTION,
+            ButtonAction.LOOK_AND_DESCRIBE,
+            ButtonAction.READ_TEXT,
+            ButtonAction.NEW_CONVERSATION
+        )
+        val osiagalne = (1..6).map { actionFor(it) }.toSet()
+        val brakujace = wymagane - osiagalne
+        assertTrue(
+            "tych akcji nie da się wywołać żadną liczbą kliknięć: $brakujace",
+            brakujace.isEmpty()
+        )
     }
 
     @Test
@@ -61,10 +99,10 @@ class ButtonActionDetectorTest {
     }
 
     @Test
-    fun `przytrzymanie czyta tekst`() = runBlocking {
-        // Przytrzymanie jest najłatwiejsze do trafienia bez patrzenia, więc
-        // dostaje funkcję, dla której nosi się te okulary, gdy nie widzi się
-        // dobrze etykiety czy tabliczki.
+    fun `przytrzymanie tez czyta tekst, gdyby sprzet je przysylal`() = runBlocking {
+        // Gałąź zostaje, bo nic nie kosztuje, a inny egzemplarz może ją
+        // wysyłać. Ale NIE WOLNO na niej niczego opierać - na tym sprzęcie
+        // nie przychodzi ani razu.
         val detector = ButtonActionDetector()
         val awaited = async { detector.action.first() }
         delay(50)
@@ -73,11 +111,11 @@ class ButtonActionDetectorTest {
     }
 
     @Test
-    fun `gotowe zdarzenie potrojnego klikniecia tez resetuje rozmowe`() = runBlocking {
+    fun `gotowe zdarzenie potrojnego klikniecia tez czyta tekst`() = runBlocking {
         val detector = ButtonActionDetector()
         val awaited = async { detector.action.first() }
         delay(50)
         detector.processEvent(ButtonEvent.TripleClick)
-        assertEquals(ButtonAction.NEW_CONVERSATION, awaited.await())
+        assertEquals(ButtonAction.READ_TEXT, awaited.await())
     }
 }
