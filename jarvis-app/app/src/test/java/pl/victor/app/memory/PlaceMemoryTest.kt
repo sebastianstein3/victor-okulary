@@ -144,3 +144,65 @@ class PlaceMemoryPhrasesTest {
         assertNull(PlaceMemory.recallRequest("gdzie leży Bodrum"))
     }
 }
+
+
+/** Napis ze zdjęcia - to on ratuje sytuację tam, gdzie GPS nie działa. */
+class PlaceSignTest {
+
+    private val here = PlaceMemory.Here(52.2317, 21.0060)
+
+    @Test
+    fun `oznaczenie miejsca dochodzi do odpowiedzi`() {
+        val place = PlaceMemory.Place(
+            "Samochód", 52.2317 + 0.0009, 21.0060, 0L, signText = "POZIOM -2, SEKTOR B"
+        )
+        val out = PlaceMemory.describe(place, here, 20 * 60_000L)
+        assertEquals(
+            "Samochód: 100 metrów na północ. Zapisane 20 minut temu. " +
+                "Na zdjęciu widniało: POZIOM -2, SEKTOR B.",
+            out
+        )
+    }
+
+    @Test
+    fun `bez napisu zdanie zostaje takie jak bylo`() {
+        val place = PlaceMemory.Place("Samochód", 52.2317 + 0.0009, 21.0060, 0L)
+        assertEquals(
+            "Samochód: 100 metrów na północ. Zapisane 20 minut temu.",
+            PlaceMemory.describe(place, here, 20 * 60_000L)
+        )
+    }
+
+    @Test
+    fun `krotkie oznaczenia zostaja, regulamin odpada`() {
+        val raw = """
+            POZIOM -2
+            SEKTOR B
+            Parking płatny od poniedziałku do piątku w godzinach 8-18
+            RZĄD 14
+        """.trimIndent()
+        assertEquals("POZIOM -2, SEKTOR B, RZĄD 14", PlaceMemory.tidySign(raw))
+    }
+
+    @Test
+    fun `zwykly tekst bez cyfr i wersalikow nie jest oznaczeniem`() {
+        assertNull(PlaceMemory.tidySign("wjazd\nwyjazd\nkasa"))
+    }
+
+    @Test
+    fun `powtorzenia znikaja`() {
+        assertEquals("P3", PlaceMemory.tidySign("P3\nP3\nP3"))
+    }
+
+    @Test
+    fun `bierzemy najwyzej trzy oznaczenia`() {
+        val raw = (1..10).joinToString("\n") { "SEKTOR $it" }
+        assertEquals("SEKTOR 1, SEKTOR 2, SEKTOR 3", PlaceMemory.tidySign(raw))
+    }
+
+    @Test
+    fun `pusty odczyt to brak napisu, nie pusty napis`() {
+        assertNull(PlaceMemory.tidySign(null))
+        assertNull(PlaceMemory.tidySign("   "))
+    }
+}

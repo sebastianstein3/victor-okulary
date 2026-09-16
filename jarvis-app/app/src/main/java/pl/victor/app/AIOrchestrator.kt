@@ -299,15 +299,61 @@ class AIOrchestrator(
                 _state.value = OrchestratorState.Completed(message)
                 return@launch
             }
-            settings.savePlace(name, position.first, position.second, System.currentTimeMillis())
+            // ZDJĘCIE MIEJSCA - pomysł z terenu i lepszy, niż wygląda.
+            //
+            // W garażu podziemnym GPS nie widzi nieba, więc współrzędne są tam
+            // warte tyle co nic - a to jest DOKŁADNIE to miejsce, w którym
+            // ludzie gubią samochód. Napis "POZIOM -2, SEKTOR B" rozwiązuje
+            // sprawę natychmiast.
+            //
+            // Litery rozpoznaje telefon (ML Kit), więc nie kosztuje to ani
+            // jednego tokenu. Zdjęcie idzie przy okazji do galerii telefonu,
+            // żeby dało się na nie po prostu spojrzeć.
+            //
+            // NIE PYTAMY O ZGODĘ przed zrobieniem zdjęcia z rozmysłu: cała ta
+            // funkcja ma kosztować jedno zdanie w chwili odchodzenia, a
+            // dopytywanie zamieniłoby ją w rozmowę. Gdy okularów nie ma,
+            // zapisujemy same współrzędne i nic się nie psuje.
+            val sign = capturePlaceSign(name)
+
+            settings.savePlace(
+                name, position.first, position.second, System.currentTimeMillis(), sign
+            )
             diag.event(
                 DiagFormat.Phase.SESJA, "miejsce zapamiętane",
-                mapOf("nazwa" to name)
+                mapOf("nazwa" to name, "napis" to (sign ?: "-"))
             )
-            val message = "Zapamiętane."
+            val message = if (sign != null) {
+                "Zapamiętane, ze zdjęciem. Widzę napis: $sign."
+            } else {
+                "Zapamiętane."
+            }
             audio.speak(message, language = settings.getResponseLanguage())
             _state.value = OrchestratorState.Completed(message)
         }
+    }
+
+    /**
+     * Robi zdjęcie miejsca i wyciąga z niego oznaczenie - albo `null`.
+     *
+     * Wszystko tu jest "najlepiej jak się da": brak okularów, nieudane zdjęcie
+     * i brak tekstu na zdjęciu dają ten sam wynik co brak funkcji, czyli sam
+     * zapis współrzędnych. Zapamiętanie miejsca nie może się nie udać z powodu
+     * dodatku do niego.
+     */
+    private suspend fun capturePlaceSign(name: String): String? {
+        if (glassesManager.connectionState.value != ConnectionState.READY) return null
+        val photo = runCatching {
+            glassesManager.liveFrame(detail = true) ?: glassesManager.capturePhoto()
+        }.getOrNull() ?: return null
+
+        runCatching {
+            pl.victor.app.memory.PlacePhoto.saveToGallery(context, photo, name)
+        }.onFailure { Log.w(TAG, "Nie udało się zapisać zdjęcia miejsca", it) }
+
+        val ocr = runCatching { ocrReader.readBytes(photo) }.getOrNull() ?: return null
+        if (!ocr.isSuccess) return null
+        return pl.victor.app.memory.PlaceMemory.tidySign(ocr.fullText)
     }
 
     /** Mówi, gdzie stoi zapamiętane miejsce względem bieżącej pozycji. */

@@ -36,7 +36,20 @@ object PlaceMemory {
         val name: String,
         val latitude: Double,
         val longitude: Double,
-        val savedAtMs: Long
+        val savedAtMs: Long,
+        /**
+         * Napis odczytany ze zdjęcia zrobionego w chwili zapisu - numer
+         * poziomu, sektor, numer miejsca.
+         *
+         * ## Czemu to jest ważniejsze niż same współrzędne
+         * Bo w garażu podziemnym GPS nie widzi nieba i współrzędne są tam
+         * warte tyle co nic - a to jest DOKŁADNIE to miejsce, w którym ludzie
+         * gubią samochód. Napis "POZIOM -2, SEKTOR B" rozwiązuje sprawę
+         * natychmiast i nie wymaga żadnego pomiaru.
+         *
+         * Litery rozpoznaje telefon, więc to nie kosztuje ani jednego tokenu.
+         */
+        val signText: String? = null
     )
 
     /** Punkt, w którym stoi użytkownik. */
@@ -95,8 +108,42 @@ object PlaceMemory {
             meters < KILOMETER_M -> "${roundMeters(meters)} metrów na $direction"
             else -> "${roundKilometers(meters)} km na $direction"
         }
-        return "${place.name}: $distance. Zapisane ${ago(nowMs - place.savedAtMs)}."
+        return buildString {
+            append(place.name).append(": ").append(distance)
+            append(". Zapisane ").append(ago(nowMs - place.savedAtMs)).append('.')
+            // Napis idzie NA KOŃCU, ale to on bywa całą odpowiedzią - przy
+            // kilkunastometrowym błędzie GPS w garażu "sektor B" znaczy
+            // więcej niż kierunek.
+            place.signText?.takeIf { it.isNotBlank() }?.let {
+                append(" Na zdjęciu widniało: ").append(it.trim()).append('.')
+            }
+        }
     }
+
+    /**
+     * Napis ze zdjęcia sprowadzony do tego, co przyda się przy szukaniu.
+     *
+     * Na zdjęciu parkingu widać zwykle więcej niż oznaczenie miejsca: reklamy,
+     * regulamin, godziny otwarcia. Czytanie tego wszystkiego przy powrocie
+     * byłoby wyliczanką - a szuka się krótkich oznaczeń.
+     *
+     * Bierzemy więc wiersze KRÓTKIE i zawierające cyfrę albo pojedynczą dużą
+     * literę - tak wyglądają "P3", "POZIOM -2", "SEKTOR B", "RZĄD 14". Zdanie
+     * regulaminu odpada na długości.
+     */
+    fun tidySign(raw: String?, maxLines: Int = MAX_SIGN_LINES): String? {
+        if (raw.isNullOrBlank()) return null
+        val useful = raw.lines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && it.length <= MAX_SIGN_LINE }
+            .filter { line -> line.any { it.isDigit() } || line.any { it.isUpperCase() } }
+            .distinct()
+            .take(maxLines)
+        return if (useful.isEmpty()) null else useful.joinToString(", ")
+    }
+
+    private const val MAX_SIGN_LINE = 24
+    private const val MAX_SIGN_LINES = 3
 
     /** "20 minut temu", "3 godziny temu", "wczoraj". */
     fun ago(elapsedMs: Long): String {

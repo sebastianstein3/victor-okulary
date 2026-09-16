@@ -592,9 +592,20 @@ class SettingsRepository private constructor(private val context: Context) {
     // kształcie danych parser mieści się w jednym wierszu.
 
     /** Zapisuje miejsce pod nazwą; nadpisuje poprzednie o tej samej nazwie. */
-    fun savePlace(name: String, latitude: Double, longitude: Double, atMs: Long) {
+    fun savePlace(
+        name: String,
+        latitude: Double,
+        longitude: Double,
+        atMs: Long,
+        signText: String? = null
+    ) {
         prefs.edit()
             .putString(placeKey(name), "$latitude;$longitude;$atMs")
+            // Napis pod OSOBNYM kluczem, nie w tym samym napisie: tekst z
+            // tablicy może zawierać średnik, a wtedy rozdzielanie po nim
+            // rozjechałoby współrzędne. Tani sposób na uniknięcie własnego
+            // formatu z ucieczkami.
+            .putString(signKey(name), signText)
             .apply()
     }
 
@@ -606,10 +617,17 @@ class SettingsRepository private constructor(private val context: Context) {
         val lat = parts[0].toDoubleOrNull() ?: return null
         val lon = parts[1].toDoubleOrNull() ?: return null
         val at = parts[2].toLongOrNull() ?: return null
-        return pl.victor.app.memory.PlaceMemory.Place(name, lat, lon, at)
+        return pl.victor.app.memory.PlaceMemory.Place(
+            name = name,
+            latitude = lat,
+            longitude = lon,
+            savedAtMs = at,
+            signText = prefs.getString(signKey(name), null)
+        )
     }
 
     private fun placeKey(name: String) = "$KEY_PLACE_PREFIX${name.lowercase()}"
+    private fun signKey(name: String) = "$KEY_PLACE_PREFIX${name.lowercase()}_sign"
 
     fun getNotes(): List<pl.victor.app.notes.Notes.Note> {
         val raw = prefs.getString(KEY_NOTES, "").orEmpty()
