@@ -554,3 +554,47 @@
 18:48:34.612  +29641 ms  MOWA         koniec wypowiedzi  ms=14850
 18:48:34.661  +29689 ms  SESJA        --- KONIEC TURY f445: odpowiedziano ---
 18:48:34.671          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:48:35.458          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:48:38.073          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,3
+18:50:39.077          ms  PRZYCISK     wciśnięto  numer=1
+18:50:39.220          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+18:50:39.902          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=20 ms=673
+18:50:40.010      +0 ms  SESJA        --- TURA 52ca ---  źródło=OKULARY
+18:50:40.012      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+18:50:40.800    +790 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,1
+18:50:43.169   +3160 ms  NASŁUCH      koniec  ms=3159 odłożone=jest napisane mikrofon=mowa wykryta szczytDb=10.0 próbek=7 gotowyPoMs=656
+18:50:43.328   +3318 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+18:50:44.323   +4313 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.9735 pakietów=199 rozkodowanych=199 odrzuconych=0 przesunięcie=6 ramka=-1
+18:50:44.329   +4319 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+18:50:44.346   +4337 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3973 jestMs=1580 tło=3 szczyt=8729 ile razy=2647.1
+18:50:44.350   +4340 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jest napisane
+18:50:44.352   +4342 ms  SESJA        pytanie  tekst=jest napisane wymuszonyObraz=false
+18:50:44.368   +4358 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:50:44.405   +4395 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:50:46.515   +6505 ms  KONTEKST     zebrany  ms=2098 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:50:46.558   +6548 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=7186
+18:50:47.624   +7614 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,3
+18:50:48.440   +8431 ms  MODEL        koniec odpowiedzi (71 znaków, 5965 tokenów)  ms=1885
+18:50:49.470   +9461 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,1
+18:50:51.928  +11919 ms  SESJA        pytanie  tekst=jest napisane wymuszonyObraz=true
+18:50:51.944  +11934 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+18:50:52.067  +12057 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:50:52.070  +12060 ms  BLE          Podgląd na żywo: podnoszę
+18:50:52.201  +12191 ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=true
+18:50:53.307  +13297 ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+18:50:53.309  +13299 ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Wi-Fi jest wyłączone - włącz je, żeby telefon mógł połączyć się z okularami.
+18:50:53.311  +13301 ms  ZDJĘCIE      strumień dla liter nie wstał  ms=1242
+18:50:53.314  +13304 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 47 48 0B 1F sztuk=9 pierwsza=false
+18:50:53.315  +13305 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+18:50:55.371  +15362 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,13,3
+18:50:58.327  +18317 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=false ms=5007
+18:50:58.335  +18326 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+18:51:03.354  +23345 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5008
+18:51:03.361  +23352 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+18:51:08.371  +28362 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+18:51:08.378  +28369 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+18:51:24.403  +44394 ms  ZDJĘCIE      próba 2: miniatura  notify=false
+18:51:24.417  +44407 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 źródło=migawka pełnaRozdzielczość=false powódBłędu=Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo.
+18:51:24.426  +44416 ms  SESJA        --- KONIEC TURY 52ca: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie potwierdziły zrobienia zdjęcia. Sprawdź, czy nie mają pełnej pamięci i czy nie nagrywają w tej chwili wideo. ---
+18:51:24.463          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:51:24.596          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
