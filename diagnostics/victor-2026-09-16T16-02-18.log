@@ -154,3 +154,46 @@
 18:36:06.243  +33743 ms  MOWA         koniec wypowiedzi  ms=17887
 18:36:06.318  +33818 ms  SESJA        --- KONIEC TURY b479: odpowiedziano ---
 18:36:06.330          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:36:06.935          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:36:22.466      +1 ms  SESJA        --- TURA 5e21 ---  źródło=VOICE
+18:36:22.468      +2 ms  SESJA        pytanie  tekst=stary wymuszonyObraz=false
+18:36:22.475      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:36:22.488     +22 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+18:36:22.488     +22 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+18:36:24.191   +1726 ms  KONTEKST     zebrany  ms=1681 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:36:24.226   +1760 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=5855
+18:36:25.055   +2589 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=831
+18:36:25.158   +2692 ms  MODEL        zużycie tokenów  wejście=4892 odpowiedź=35 razem=4927 limit=1200 koniec=STOP
+18:36:25.165   +2699 ms  MODEL        koniec odpowiedzi (108 znaków, 4927 tokenów)  ms=941
+18:36:28.511   +6046 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+18:36:32.389   +9924 ms  MOWA         koniec wypowiedzi  ms=7219
+18:36:32.433   +9967 ms  SESJA        --- KONIEC TURY 5e21: odpowiedziano ---
+18:36:32.445          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:36:32.522          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:36:36.567      +0 ms  SESJA        --- TURA e31f ---  źródło=VOICE
+18:36:36.568      +1 ms  SESJA        pytanie  tekst=kawior wymuszonyObraz=false
+18:36:36.576      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:36:36.587     +21 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+18:36:38.107   +1540 ms  KONTEKST     zebrany  ms=1505 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:36:38.135   +1568 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=5998
+18:36:38.857   +2290 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=724
+18:36:39.058   +2491 ms  MODEL        zużycie tokenów  wejście=4948 odpowiedź=35 razem=4983 limit=1200 koniec=STOP
+18:36:39.077   +2511 ms  MODEL        koniec odpowiedzi (142 znaków, 4983 tokenów)  ms=944
+18:36:48.690  +12123 ms  MOWA         koniec wypowiedzi  ms=9602
+18:36:48.765  +12199 ms  SESJA        --- KONIEC TURY e31f: odpowiedziano ---
+18:36:48.783          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:36:49.310          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:36:54.832      +1 ms  SESJA        --- TURA b121 ---  źródło=VOICE
+18:36:54.833      +2 ms  SESJA        pytanie  tekst=puszki wymuszonyObraz=false
+18:36:54.840      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:36:54.855     +24 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+18:36:54.855     +24 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+18:36:57.062   +2231 ms  KONTEKST     zebrany  ms=2187 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:36:57.098   +2267 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=6175
+18:36:57.938   +3107 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=842
+18:36:58.032   +3201 ms  MODEL        zużycie tokenów  wejście=5004 odpowiedź=40 razem=5044 limit=1200 koniec=STOP
+18:36:58.053   +3222 ms  MODEL        koniec odpowiedzi (153 znaków, 5044 tokenów)  ms=958
+18:37:00.880   +6049 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+18:37:08.333  +13503 ms  MOWA         koniec wypowiedzi  ms=10273
+18:37:08.394  +13564 ms  SESJA        --- KONIEC TURY b121: odpowiedziano ---
+18:37:08.413          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
