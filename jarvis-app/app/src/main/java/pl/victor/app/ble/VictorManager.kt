@@ -767,6 +767,20 @@ class VictorManager private constructor(context: Context) {
                     }
                 }
             }
+            is NotifyEvent.VolumeSettings -> {
+                // Do dziennika, bo to jedyna droga, żeby ustalić znaczenie tych
+                // liczb: w terenie widać, która z nich rusza się przy którym
+                // geście na zausznikach. Zachowania jeszcze nie zmieniamy -
+                // najpierw pomiar, potem decyzja.
+                Log.d(tag, "Notify: ustawienia głośności ${event.values}")
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                        "ustawienia głośności z okularów",
+                        mapOf("wartości" to event.values.joinToString(","))
+                    )
+                }
+            }
             is NotifyEvent.Unknown -> {
                 Log.d(tag, "Notify: nieobsługiwany typ 0x${event.type.toString(16)}")
                 // Do dziennika, nie tylko do logcatu - ale NIE za każdym razem.
@@ -1595,6 +1609,8 @@ class VictorManager private constructor(context: Context) {
         is NotifyEvent.Unbound -> "Okulary odpięły aplikację"
         is NotifyEvent.IdentificationStopped -> "Przerwano rozpoznawanie obrazu"
         is NotifyEvent.VolumeChanged -> "Głośność: ${event.level}"
+        is NotifyEvent.VolumeSettings ->
+            "Ustawienia głośności: ${event.values.joinToString(",")}"
         is NotifyEvent.CameraAngle -> "Kąt kamery: ${event.angle}"
         is NotifyEvent.AiSessionRequested ->
             if (event.realtimeText) "Okulary: tekst na żywo" else "Okulary: rozmowa z AI"

@@ -260,6 +260,31 @@ object GlassesProtocol {
     const val SINGLE_VALUE_PAYLOAD = 2
 
     /**
+     * Pozycje wartości w DŁUGIEJ ramce 0x12 - ustawienia głośności.
+     *
+     * ## Skąd dokładnie te indeksy
+     * Z aplikacji producenta, `MainActivity`, gałąź `case 18` tablicy skoków po
+     * `loadData[6]`. Sklada ona napis z bajtów 8, 9, 10, 12, 13, 14, 16, 17, 18
+     * i 19, i zapisuje go pod `setVolumeControl`. Pozycje 7, 11 i 15 są
+     * POMIJANE - to znaczniki grup (w naszych ramkach mają wartości 1, 2, 3).
+     *
+     * ## Czemu dotąd była nieznana
+     * Bo braliśmy ją za zdarzenie jednowartościowe i czytaliśmy bajt DŁUGOŚCI
+     * jako poziom głośności - dziennik zapełniał się wpisami "Głośność: 1".
+     * Zostawiliśmy ją wtedy świadomie jako nieznaną, do czasu ustalenia, czym
+     * jest. Ustalone.
+     *
+     * ## Czego wciąż NIE wiemy
+     * Co dokładnie znaczy każda z dziesięciu liczb. W dzienniku z 15 września
+     * dziewięć z nich stoi w miejscu (0, 16, 10, 0, 15, 0, 0, 16, 10), a
+     * zmienia się WYŁĄCZNIE ostatnia - przyjmowała 1, 2 i 3. Producent nie
+     * nazywa ich w kodzie, więc zgadywanie nazw byłoby wymyślaniem. Oddajemy
+     * je surowo i zapisujemy do dziennika; jeden przejazd po zausznikach w
+     * terenie rozstrzygnie, co się z czym rusza.
+     */
+    val VOLUME_SETTINGS_INDICES = listOf(8, 9, 10, 12, 13, 14, 16, 17, 18, 19)
+
+    /**
      * Bajt trybu w ramce "zdjęcie gotowe" (0x02).
      *
      * Producent czyta tu wartość i tylko przy `2` dokleja do zdjęcia polecenie
@@ -788,6 +813,10 @@ object GlassesProtocol {
             NOTIFY_VOLUME_CHANGED ->
                 if (payloadLength(loadData) == SINGLE_VALUE_PAYLOAD && loadData.size > 7) {
                     NotifyEvent.VolumeChanged(level = loadData[7].toIntUnsigned())
+                } else if (loadData.size > VOLUME_SETTINGS_INDICES.last()) {
+                    NotifyEvent.VolumeSettings(
+                        values = VOLUME_SETTINGS_INDICES.map { loadData[it].toIntUnsigned() }
+                    )
                 } else {
                     NotifyEvent.Unknown(type)
                 }
@@ -871,6 +900,13 @@ sealed class NotifyEvent {
 
     /** Zmieniono głośność na zausznikach. */
     data class VolumeChanged(val level: Int) : NotifyEvent()
+
+    /**
+     * Długa ramka 0x12 - ustawienia głośności w postaci dziesięciu liczb.
+     *
+     * Surowo, bez nazywania pól: patrz [GlassesProtocol.VOLUME_SETTINGS_INDICES].
+     */
+    data class VolumeSettings(val values: List<Int>) : NotifyEvent()
 
     /** Zgłoszony kąt kamery. */
     data class CameraAngle(val angle: Int) : NotifyEvent()

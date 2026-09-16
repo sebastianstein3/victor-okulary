@@ -406,16 +406,25 @@ class GlassesProtocolTest {
     }
 
     @Test
-    fun `dluga ramka 0x12 nie jest zmiana glosnosci`() {
+    fun `dluga ramka 0x12 nie jest POJEDYNCZA zmiana glosnosci`() {
         // Ze sprzętu przychodzi co sekundę czternastobajtowa ramka o tym samym
         // pierwszym bajcie. Braliśmy ją za głośność i czytaliśmy bajt DŁUGOŚCI
         // jako poziom - dziennik zapełniał się setkami wpisów "Głośność: 1".
+        //
+        // ZMIANA ŚWIADOMA: ten test wymagał wcześniej `Unknown`, bo nie
+        // wiedzieliśmy, czym ta ramka jest. Teraz wiemy - aplikacja producenta
+        // czyta z niej dziesięć liczb (MainActivity, case 18) - więc żądanie
+        // "nieznana" byłoby utrwalaniem niewiedzy. Warunek, którego ten test
+        // naprawdę pilnował, zostaje: długa ramka NIE jest pojedynczym
+        // poziomem głośności.
         val long = ByteArray(20).also {
             it[GlassesProtocol.NOTIFY_LENGTH_INDEX] = 0x0E
             it[GlassesProtocol.NOTIFY_TYPE_INDEX] = 0x12
             it[7] = 0x01
         }
-        assertTrue(GlassesProtocol.decodeNotify(long) is NotifyEvent.Unknown)
+        val decoded = GlassesProtocol.decodeNotify(long)
+        assertTrue(decoded !is NotifyEvent.VolumeChanged)
+        assertTrue(decoded is NotifyEvent.VolumeSettings)
 
         val short = ByteArray(8).also {
             it[GlassesProtocol.NOTIFY_LENGTH_INDEX] = 0x02
