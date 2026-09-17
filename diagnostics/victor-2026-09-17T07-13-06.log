@@ -161,3 +161,8 @@
 07:36:40.116          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
 07:36:41.858          ms  BLE          POŁĄCZONO  noweŁącze=false
 07:36:44.806          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+07:37:06.231          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+07:37:08.112          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+07:37:08.115          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+07:37:08.140          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1908
+07:37:09.269          ms  ZDJĘCIE      próba 0: miniatura  bajtów=8619 jpeg=true kompletny=true
