@@ -879,11 +879,13 @@ class AIOrchestrator(
 
         // Nasłuchuj akcji przycisku fizycznego
         scope.launch {
+            // Bez `?.let` i bez konsumowania: SharedFlow oddaje każde wciśnięcie
+            // osobno. Wcześniej stał tu StateFlow, w którym kolejne TAKIE SAMO
+            // kliknięcie przepadało, jeśli kolektor nie zdążył wyzerować
+            // poprzedniego - i to zabijało szybkie serie, czyli podwójne i
+            // potrójne kliknięcie.
             glassesManager.buttonEvent.collect { event ->
-                event?.let {
-                    buttonDetector.processEvent(it)
-                    glassesManager.consumeButtonEvent()
-                }
+                buttonDetector.processEvent(event)
             }
         }
 

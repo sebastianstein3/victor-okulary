@@ -128,8 +128,33 @@ class VictorManager private constructor(context: Context) {
     private val _discoveredDevices = MutableStateFlow<List<DiscoveredDevice>>(emptyList())
     val discoveredDevices: StateFlow<List<DiscoveredDevice>> = _discoveredDevices.asStateFlow()
 
-    private val _buttonEvent = MutableStateFlow<ButtonEvent?>(null)
-    val buttonEvent: StateFlow<ButtonEvent?> = _buttonEvent.asStateFlow()
+    /**
+     * Wciśnięcia przycisku. STRUMIEŃ ZDARZEŃ, nie stan - i to jest istota rzeczy.
+     *
+     * ## Czemu nie StateFlow, którym to było
+     * Bo StateFlow POMIJA ustawienie tej samej wartości, a [ButtonEvent.ShortClick]
+     * jest obiektem: drugie kliknięcie ustawia dokładnie ten sam egzemplarz co
+     * pierwsze. Dopóki kolektor nie zdążył go odebrać i wyzerować, kolejne
+     * kliknięcie PRZEPADAŁO - bez śladu, także w dzienniku.
+     *
+     * Pojedyncze kliknięcia dzielone sekundami działały więc zawsze (18 na 18 w
+     * dziennikach z terenu), a ginęły dokładnie SZYBKIE SERIE, czyli cały sens
+     * podwójnego i potrójnego kliknięcia. Zgłoszone jako "3 kliknięcia nie
+     * działają, nic się nie dzieje": w dzienniku z 17 września jest po JEDNYM
+     * wciśnięciu na próbę.
+     *
+     * Wniosek ogólniejszy: zdarzenie chwilowe nie jest stanem. Odbiornik tych
+     * zdarzeń ([ButtonActionDetector]) od początku używał do swojego wyjścia
+     * SharedFlow z buforem - wejście miało StateFlow i to była cała różnica.
+     *
+     * `extraBufferCapacity`, żeby `tryEmit` z wątku BLE nigdy nie odbił się od
+     * pełnego bufora przy serii kliknięć.
+     */
+    private val _buttonEvent = MutableSharedFlow<ButtonEvent>(
+        replay = 0,
+        extraBufferCapacity = BUTTON_EVENT_BUFFER
+    )
+    val buttonEvent: SharedFlow<ButtonEvent> = _buttonEvent.asSharedFlow()
 
     private val _batteryLevel = MutableStateFlow<Int?>(null)
     val batteryLevel: StateFlow<Int?> = _batteryLevel.asStateFlow()
@@ -718,7 +743,7 @@ class VictorManager private constructor(context: Context) {
                     // Od tej chwili dźwięk z okularów należy do pytania, choćby
                     // nasłuch ruszył dopiero za sekundę - patrz [lastTriggerAtMs].
                     lastTriggerAtMs = System.currentTimeMillis()
-                    _buttonEvent.value = ButtonEvent.ShortClick
+                    _buttonEvent.tryEmit(ButtonEvent.ShortClick)
                 } else {
                     // Świadomie NIE zgadujemy, co robi. Numer ląduje w
                     // dzienniku diagnostycznym - to jedyny sposób, żeby
@@ -1718,8 +1743,17 @@ class VictorManager private constructor(context: Context) {
     }
 
     /** Kasuje ostatnie zdarzenie przycisku po jego obsłużeniu. */
+    /**
+     * Zostaje jako no-op dla zgodności wołających.
+     *
+     * Przy StateFlow było to KONIECZNE: bez wyzerowania kolejne takie samo
+     * kliknięcie nie miało jak się przebić. SharedFlow oddaje każde zdarzenie
+     * osobno, więc nie ma czego konsumować - a zerowanie było właśnie tym, na
+     * co szybkie serie się wyścigowały.
+     */
+    @Deprecated("SharedFlow nie wymaga konsumowania - wołanie nic nie robi")
     fun consumeButtonEvent() {
-        _buttonEvent.value = null
+        // celowo pusto
     }
 
     // === Tryb symulacji ===
@@ -1775,7 +1809,6 @@ class VictorManager private constructor(context: Context) {
         _connectionState.value = ConnectionState.DISCONNECTED
         _glassesIp.value = null
         _discoveredDevices.value = emptyList()
-        _buttonEvent.value = null
         _batteryLevel.value = null
         _isCharging.value = false
         _lastNotifyFrame.value = null
@@ -4182,6 +4215,14 @@ class VictorManager private constructor(context: Context) {
 
         /** Jak często pytać, czy kanał multimediów już stoi - patrz [ensureClassicAudio]. */
         private const val CLASSIC_AUDIO_POLL_MS = 250L
+
+        /**
+         * Ile wciśnięć zmieści się w buforze, zanim kolektor je odbierze.
+         *
+         * Osiem, bo najdłuższy gest to cztery kliknięcia, a bufor ma znieść
+         * także serię wciśniętą szybciej, niż ktokolwiek zamierzał.
+         */
+        private const val BUTTON_EVENT_BUFFER = 8
 
         /**
          * Ile czekamy na odpowiedź o nazwę klasycznego Bluetootha, zanim
