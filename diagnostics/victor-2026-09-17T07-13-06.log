@@ -154,3 +154,10 @@
 07:36:08.906  +13749 ms  BLE          ROZŁĄCZONO  świadome=false
 07:36:24.168  +29013 ms  MOWA         koniec wypowiedzi  ms=17109
 07:36:24.204  +29046 ms  SESJA        --- KONIEC TURY 9085: odpowiedziano ---
+07:36:39.797          ms  BLE          POŁĄCZONO  noweŁącze=true
+07:36:39.799          ms  BLE          powitanie okularów - start
+07:36:39.810          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+07:36:40.077          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+07:36:40.116          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+07:36:41.858          ms  BLE          POŁĄCZONO  noweŁącze=false
+07:36:44.806          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
