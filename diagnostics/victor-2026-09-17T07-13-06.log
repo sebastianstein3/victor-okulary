@@ -95,3 +95,19 @@
 07:30:11.355  +15933 ms  MOWA         koniec wypowiedzi  ms=13362
 07:30:11.376  +15954 ms  SESJA        --- KONIEC TURY c7e0: odpowiedziano ---
 07:30:11.379          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+07:30:11.452          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+07:31:15.099      +0 ms  SESJA        --- TURA 1375 ---  źródło=TEXT_INPUT
+07:31:15.103      +4 ms  SESJA        pytanie  tekst=Podsumowanie na start dnia  wymuszonyObraz=false
+07:31:15.108      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+07:31:15.146     +48 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+07:31:15.227    +128 ms  KONTEKST     zebrany  ms=76 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+07:31:15.232    +133 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=189
+07:31:15.849    +750 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,5,1
+07:31:18.415   +3316 ms  BLE          ustawienia głośności z okularów  wartości=0,16,11,0,15,15,0,16,5,1
+07:31:18.815   +3716 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,5,1
+07:31:20.173   +5074 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,5,1
+07:31:20.573   +5474 ms  BLE          ustawienia głośności z okularów  wartości=0,16,7,0,15,15,0,16,5,1
+07:31:21.340   +6241 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,15,0,16,5,1
+07:31:22.371   +7272 ms  BLE          ustawienia głośności z okularów  wartości=0,16,5,0,15,15,0,16,5,1
+07:31:26.221  +11122 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+07:31:26.357  +11259 ms  SESJA        --- KONIEC TURY 1375: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
