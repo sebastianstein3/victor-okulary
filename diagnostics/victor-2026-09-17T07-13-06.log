@@ -1,0 +1,53 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: deepseek
+# transkrypcja w chmurze: false
+# mikrofon okularów: false
+# źródło zdjęcia: full (dzielnik 2)
+07:13:06.188          ms  SESJA        start sesji
+07:21:21.018          ms  BLE          POŁĄCZONO  noweŁącze=true
+07:21:21.026          ms  BLE          powitanie okularów - start
+07:21:21.042          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+07:21:21.325          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 74 01 01 00 00 00 06 00 01 01 sztuk=1 pierwsza=true
+07:21:21.328          ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+07:21:21.355          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+07:21:23.092          ms  BLE          POŁĄCZONO  noweŁącze=false
+07:21:26.041          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+07:21:48.495          ms  PRZYCISK     wciśnięto  numer=1
+07:21:48.713          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+07:21:49.302          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=588
+07:21:49.415      +0 ms  SESJA        --- TURA 81cd ---  źródło=OKULARY
+07:21:49.417      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+07:21:49.998    +584 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+07:21:53.170   +3755 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+07:21:53.746   +4331 ms  NASŁUCH      koniec  ms=4331 odłożone=co jest napisane mikrofon=mowa wykryta szczytDb=6.5199995 próbek=10 gotowyPoMs=388
+07:21:53.965   +4550 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+07:21:54.183   +4768 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+07:21:54.539   +5124 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.0535 pakietów=253 rozkodowanych=253 odrzuconych=0 przesunięcie=6 ramka=-1
+07:21:54.542   +5127 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+07:21:54.574   +5159 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5053 jestMs=1580 tło=1 szczyt=1087 ile razy=948.0
+07:21:54.576   +5161 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co jest napisane
+07:21:54.577   +5162 ms  SESJA        pytanie  tekst=co jest napisane wymuszonyObraz=false
+07:21:54.590   +5175 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=false zNagrania=false
+07:21:54.643   +5228 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+07:21:55.258   +5843 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+07:21:56.703   +7288 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+07:21:56.706   +7291 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+07:21:56.748   +7333 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1487
+07:21:58.098   +8683 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,3
+07:21:59.264   +9849 ms  ZDJĘCIE      próba 0: miniatura  bajtów=31014 jpeg=true kompletny=true
+07:21:59.270   +9855 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+07:22:00.435  +11020 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+07:22:00.438  +11023 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 46 8E 0B 17 sztuk=1 pierwsza=true
+07:22:19.720  +30305 ms  BLE          Hotspot okularów: gotowe  ms=20450
+07:22:20.824  +31409 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=178049 źródło=migawka pełnaRozdzielczość=true
+07:22:22.258  +32843 ms  KONTEKST     zebrany  ms=797 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+07:22:22.272  +32857 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=1 znakówPromptu=700
+07:22:25.723  +36308 ms  MODEL        koniec odpowiedzi (245 znaków, 3894 tokenów)  ms=3452
+07:22:25.726  +36311 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=245
+07:22:28.973  +39558 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,10,1
+07:22:44.490  +55075 ms  MOWA         koniec wypowiedzi  ms=18747
+07:22:44.533  +55118 ms  SESJA        --- KONIEC TURY 81cd: odpowiedziano ---
+07:22:44.538          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
