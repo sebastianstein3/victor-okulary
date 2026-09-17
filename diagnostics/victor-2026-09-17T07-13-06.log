@@ -178,3 +178,66 @@
 07:38:36.702          ms  ZDJĘCIE      próba 0: miniatura  bajtów=9339 jpeg=true kompletny=true
 07:38:39.873          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 4F 0B 15 sztuk=10 pierwsza=false
 07:39:09.919          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+10:10:01.876          ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=alert proaktywny limitMs=6000
+10:10:07.937          ms  AUDIO        tryb multimediów nie wstał w limicie  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): brak / Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu.
+10:10:20.469          ms  MOWA         alert wypowiedziany, ale NIE przez okulary  rodzaj=GOOD_VISIBILITY okularyPołączone=true kanałMultimediów=false
+13:06:17.554          ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=alert proaktywny limitMs=6000
+13:06:23.631          ms  AUDIO        tryb multimediów nie wstał w limicie  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): brak / Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu.
+13:06:33.959          ms  MOWA         alert wypowiedziany, ale NIE przez okulary  rodzaj=LIGHT_RAIN okularyPołączone=true kanałMultimediów=false
+13:43:33.573          ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=alert proaktywny limitMs=6000
+13:43:39.635          ms  AUDIO        tryb multimediów nie wstał w limicie  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): brak / Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu.
+13:43:48.327          ms  MOWA         alert wypowiedziany, ale NIE przez okulary  rodzaj=LIGHT_RAIN okularyPołączone=true kanałMultimediów=false
+16:00:14.524          ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=alert proaktywny limitMs=6000
+16:00:20.581          ms  AUDIO        tryb multimediów nie wstał w limicie  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): brak / Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu.
+16:00:30.910          ms  MOWA         alert wypowiedziany, ale NIE przez okulary  rodzaj=LIGHT_RAIN okularyPołączone=true kanałMultimediów=false
+16:00:30.949          ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=alert proaktywny limitMs=6000
+16:00:37.030          ms  AUDIO        tryb multimediów nie wstał w limicie  poMs=6000 jakTelefonWidziOkulary=Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): brak / Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu.
+16:00:41.976          ms  MOWA         alert wypowiedziany, ale NIE przez okulary  rodzaj=GOOD_VISIBILITY okularyPołączone=true kanałMultimediów=false
+16:21:17.034          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4005
+16:21:21.038          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4003
+16:21:25.043          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4002
+16:21:29.047          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4002
+16:21:33.051          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4002
+16:21:33.054          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+16:21:38.057          ms  BLE          Hotspot okularów: odpowiedź na komendę
+16:21:38.070          ms  BŁĄD         Hotspot okularów: nie dołączyłem  sieć=W610T_6A7234AD04C5 ms=5016 powód=Wi-Fi jest wyłączone - włącz je, żeby telefon mógł połączyć się z okularami.
+16:21:38.072          ms  BLE          Wi-Fi Direct: podnoszę łącze
+16:21:41.078          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+16:21:44.082          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+16:21:47.085          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+16:21:47.087          ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=9015 powód=Wi-Fi jest wyłączone. Okulary rozdają pliki własną siecią Wi-Fi - włącz Wi-Fi w telefonie i spróbuj ponownie. Nie musisz się do niczego logować.
+16:22:01.530          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4002
+16:22:05.534          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4001
+16:22:09.536          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4001
+16:22:13.541          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4003
+16:22:17.545          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4002
+16:22:17.548          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+16:22:22.552          ms  BLE          Hotspot okularów: odpowiedź na komendę
+16:23:02.576          ms  BŁĄD         Hotspot okularów: nie dołączyłem  sieć=W610T_6A7234AD04C5 ms=45029 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+16:23:02.577          ms  BLE          Wi-Fi Direct: podnoszę łącze
+16:23:12.726          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=DIRECT-3A-HP DeskJet 2600 series szukam=cyan, glass, lens, prism dołączono=false
+16:23:32.247          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=DIRECT-3A-HP DeskJet 2600 series szukam=cyan, glass, lens, prism dołączono=false
+16:23:35.584          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=DIRECT-3A-HP DeskJet 2600 series szukam=cyan, glass, lens, prism dołączono=false
+16:23:35.586          ms  BŁĄD         Wi-Fi Direct: nie dołączyłem do sieci okularów  prób=3 ms=33009 powód=W pobliżu nie ma sieci okularów. Widzę tylko: DIRECT-3A-HP DeskJet 2600 series. Upewnij się, że okulary są włączone i blisko telefonu.
+16:23:51.440          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4001
+16:23:55.446          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4003
+16:23:59.452          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4003
+16:24:03.458          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4005
+16:24:07.461          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4002
+16:24:07.463          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+16:24:12.466          ms  BLE          Hotspot okularów: odpowiedź na komendę
+16:24:52.478          ms  BŁĄD         Hotspot okularów: nie dołączyłem  sieć=W610T_6A7234AD04C5 ms=45015 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+16:24:52.480          ms  BLE          Wi-Fi Direct: podnoszę łącze
+16:25:15.492          ms  BLE          Wi-Fi Direct: widoczne urządzenia  nazwy=brak szukam=cyan, glass, lens, prism dołączono=false
+16:26:17.424      +0 ms  SESJA        --- TURA addb ---  źródło=TEXT_INPUT
+16:26:17.425      +1 ms  SESJA        pytanie  tekst=sprawdz jak dojadę na ulicę polną 140 wymuszonyObraz=false
+16:26:17.440     +16 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:26:17.473     +49 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:26:20.884   +3460 ms  KONTEKST     zebrany  ms=3405 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:26:20.899   +3475 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=5556
+16:26:22.468   +5044 ms  MODEL        koniec odpowiedzi (181 znaków, 5143 tokenów)  ms=1570
+16:26:22.475   +5051 ms  AKCJA        model zlecił akcje  akcje=APP_TASK znakówOdpowiedzi=106
+16:26:30.554  +13130 ms  MOWA         koniec wypowiedzi  ms=8078
+16:26:30.632  +13208 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=TRANSIT_PLAN proba=3/3 aplikacja=com.citynav.jakdojade.pl.android pakietZgadnięty=com.citynav.jakdojade.pl.android
+16:26:30.665  +13241 ms  SESJA        --- KONIEC TURY addb: odpowiedziano ---
+16:26:30.698          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
