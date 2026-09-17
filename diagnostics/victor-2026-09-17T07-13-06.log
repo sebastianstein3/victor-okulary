@@ -241,3 +241,17 @@
 16:26:30.632  +13208 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=TRANSIT_PLAN proba=3/3 aplikacja=com.citynav.jakdojade.pl.android pakietZgadnięty=com.citynav.jakdojade.pl.android
 16:26:30.665  +13241 ms  SESJA        --- KONIEC TURY addb: odpowiedziano ---
 16:26:30.698          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:26:33.466          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:34:39.742          ms  MOWA         alert wypowiedziany  rodzaj=LIGHT_RAIN okularyPołączone=true kanałMultimediów=true
+16:34:44.423          ms  MOWA         alert wypowiedziany  rodzaj=GOOD_VISIBILITY okularyPołączone=true kanałMultimediów=true
+16:42:39.711      +1 ms  SESJA        --- TURA 3dba ---  źródło=TEXT_INPUT
+16:42:39.716      +5 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+16:42:39.800     +89 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:42:39.806     +95 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:42:41.754   +2043 ms  KONTEKST     zebrany  ms=1939 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:42:41.800   +2089 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=10754
+16:42:45.593   +5883 ms  MODEL        koniec odpowiedzi (495 znaków, 8056 tokenów)  ms=3797
+16:42:45.607   +5897 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=495
+16:43:16.394  +36684 ms  MOWA         koniec wypowiedzi  ms=30779
+16:43:16.445  +36735 ms  SESJA        --- KONIEC TURY 3dba: odpowiedziano ---
+16:43:16.471          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
