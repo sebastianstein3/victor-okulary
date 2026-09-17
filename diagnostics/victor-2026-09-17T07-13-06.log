@@ -111,3 +111,46 @@
 07:31:22.371   +7272 ms  BLE          ustawienia głośności z okularów  wartości=0,16,5,0,15,15,0,16,5,1
 07:31:26.221  +11122 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
 07:31:26.357  +11259 ms  SESJA        --- KONIEC TURY 1375: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+07:31:29.672          ms  BLE          ustawienia głośności z okularów  wartości=0,16,5,0,15,15,0,16,5,3
+07:31:52.264      +0 ms  SESJA        --- TURA b8c8 ---  źródło=TEXT_INPUT
+07:31:52.265      +1 ms  SESJA        pytanie  tekst=Sprawdz kalendarz, pogodę i maile  wymuszonyObraz=false
+07:31:52.276     +12 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+07:31:52.314     +50 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+07:31:55.074   +2810 ms  KONTEKST     zebrany  ms=2756 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+07:31:55.087   +2823 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=6201
+07:31:57.883   +5619 ms  MODEL        koniec odpowiedzi (346 znaków, 6042 tokenów)  ms=2797
+07:31:57.885   +5621 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=346
+07:31:59.007   +6743 ms  BLE          ustawienia głośności z okularów  wartości=0,16,5,0,15,15,0,16,5,1
+07:32:02.915  +10651 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,15,0,16,5,1
+07:32:03.458  +11194 ms  BLE          ustawienia głośności z okularów  wartości=0,16,7,0,15,15,0,16,5,1
+07:32:04.672  +12408 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,15,0,16,5,1
+07:32:07.555  +15291 ms  BLE          ustawienia głośności z okularów  wartości=0,16,7,0,15,15,0,16,5,1
+07:32:07.871  +15607 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,5,1
+07:32:20.146  +27882 ms  MOWA         koniec wypowiedzi  ms=22261
+07:32:20.168  +27904 ms  SESJA        --- KONIEC TURY b8c8: odpowiedziano ---
+07:32:20.171          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+07:32:21.052          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+07:32:23.579          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,5,3
+07:34:26.068          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,5,1
+07:34:29.032          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,5,3
+07:35:48.213          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+07:35:48.261          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+07:35:55.156          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=17843 jpeg=true kompletny=true
+07:35:55.159      +1 ms  SESJA        --- TURA 9085 ---  źródło=BUTTON
+07:35:55.160      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+07:35:55.164      +6 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+07:35:55.188     +30 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+07:35:55.197     +39 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+07:35:56.343   +1185 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 47 4D 0B 13 sztuk=18 pierwsza=false
+07:35:56.342   +1185 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+07:36:00.496   +5339 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,6,3
+07:36:02.924   +7766 ms  BLE          Hotspot okularów: gotowe  ms=7727
+07:36:03.002   +7844 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=7805
+07:36:03.016   +7858 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=17843 źródło=migawka pełnaRozdzielczość=false
+07:36:04.814   +9656 ms  KONTEKST     zebrany  ms=1525 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=true limitCzasu=false
+07:36:04.830   +9672 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=1 znakówPromptu=7448
+07:36:07.053  +11895 ms  MODEL        koniec odpowiedzi (210 znaków, 6489 tokenów)  ms=2224
+07:36:07.056  +11898 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=210
+07:36:08.906  +13749 ms  BLE          ROZŁĄCZONO  świadome=false
+07:36:24.168  +29013 ms  MOWA         koniec wypowiedzi  ms=17109
+07:36:24.204  +29046 ms  SESJA        --- KONIEC TURY 9085: odpowiedziano ---
