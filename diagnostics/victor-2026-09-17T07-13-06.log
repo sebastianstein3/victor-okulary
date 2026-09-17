@@ -166,3 +166,13 @@
 07:37:08.115          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
 07:37:08.140          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1908
 07:37:09.269          ms  ZDJĘCIE      próba 0: miniatura  bajtów=8619 jpeg=true kompletny=true
+07:37:12.390          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 4E 0B 16 sztuk=5 pierwsza=false
+07:37:42.455          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+07:38:18.541          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+07:38:31.669          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,1
+07:38:33.165          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+07:38:35.093          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+07:38:35.095          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+07:38:35.112          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1943
+07:38:36.223          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+07:38:36.702          ms  ZDJĘCIE      próba 0: miniatura  bajtów=9339 jpeg=true kompletny=true
