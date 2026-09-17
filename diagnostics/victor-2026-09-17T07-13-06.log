@@ -255,3 +255,65 @@
 16:43:16.394  +36684 ms  MOWA         koniec wypowiedzi  ms=30779
 16:43:16.445  +36735 ms  SESJA        --- KONIEC TURY 3dba: odpowiedziano ---
 16:43:16.471          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:17:49.878          ms  BLE          POŁĄCZONO  noweŁącze=true
+17:17:49.892          ms  BLE          powitanie okularów - start
+17:17:49.903          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+17:17:52.398          ms  BLE          POŁĄCZONO  noweŁącze=false
+17:17:53.061          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+17:17:54.903          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+17:17:55.000          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:17:55.012          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:17:55.014          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:17:55.390          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:17:56.081          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=125
+17:17:59.083          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=150
+17:18:02.083          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=150
+17:18:29.406          ms  PRZYCISK     wciśnięto  numer=1
+17:18:29.634          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=61
+17:18:30.238          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=602
+17:18:30.390      +0 ms  SESJA        --- TURA d6bd ---  źródło=OKULARY
+17:18:30.392      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+17:18:31.160    +770 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,16,1
+17:18:34.195   +3805 ms  NASŁUCH      koniec  ms=3805 odłożone=co to za kod kreskowy mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=567
+17:18:34.326   +3936 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,16,3
+17:18:34.327   +3937 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+17:18:34.640   +4250 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,16,1
+17:18:34.697   +4307 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.5935 pakietów=230 rozkodowanych=230 odrzuconych=0 przesunięcie=6 ramka=-1
+17:18:34.700   +4310 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+17:18:34.703   +4313 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4593 jestMs=1920 tło=5 szczyt=8941 ile razy=1597.7
+17:18:34.705   +4315 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co to za kod kreskowy
+17:18:34.706   +4316 ms  SESJA        pytanie  tekst=co to za kod kreskowy wymuszonyObraz=false
+17:18:34.717   +4327 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:18:34.727   +4338 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+17:18:34.730   +4341 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+17:18:36.019   +5630 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:18:36.020   +5631 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:18:36.048   +5658 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1317
+17:18:37.267   +6878 ms  ZDJĘCIE      próba 0: miniatura  bajtów=11737 jpeg=true kompletny=true
+17:18:37.272   +6882 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+17:18:38.195   +7805 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,16,3
+17:18:38.458   +8068 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+17:18:38.503   +8113 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 46 8E 0B 17 sztuk=11 pierwsza=false
+17:18:48.553  +18164 ms  BLE          Hotspot okularów: gotowe  ms=11281
+17:18:50.634  +20244 ms  KONTEKST     zebrany  ms=1488 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:18:50.646  +20256 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=4937
+17:18:51.809  +21419 ms  MODEL        koniec odpowiedzi (55 znaków, 4866 tokenów)  ms=1163
+17:18:51.834  +21444 ms  AKCJA        model zlecił akcje  akcje=TAKE_PHOTO znakówOdpowiedzi=27
+17:18:54.125  +23736 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,16,1
+17:18:55.783  +25393 ms  SESJA        pytanie  tekst=co to za kod kreskowy wymuszonyObraz=true
+17:18:55.795  +25406 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+17:18:55.910  +25520 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+17:18:55.917  +25527 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+17:18:59.311  +28921 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,16,3
+17:19:00.929  +30540 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=false ms=5006
+17:19:00.937  +30548 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+17:19:05.951  +35561 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5005
+17:19:05.960  +35571 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+17:19:10.972  +40582 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+17:19:10.974  +40584 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+17:19:20.587  +50197 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 74 01 01 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+17:19:26.997  +56607 ms  ZDJĘCIE      próba 2: miniatura  notify=false
+17:19:27.155  +56765 ms  ZDJĘCIE      migawka milczy - sprawdzam liczniki plików  zdjęcia=1 filmy=0 nagrania=6
+17:19:27.166  +56776 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 źródło=migawka pełnaRozdzielczość=false powódBłędu=Okulary nie potwierdziły zrobienia zdjęcia, choć odpowiadają na inne komendy. W ich pamięci jest 7 plików - jeśli to dużo, zwolnij miejsce. Sprawdź też, czy akurat nie nagrywają wideo.
+17:19:27.173  +56783 ms  SESJA        --- KONIEC TURY d6bd: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie potwierdziły zrobienia zdjęcia, choć odpowiadają na inne komendy. W ich pamięci jest 7 plików - jeśli to dużo, zwolnij miejsce. Sprawdź też, czy akurat nie nagrywają wideo. ---
+17:19:27.196          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
