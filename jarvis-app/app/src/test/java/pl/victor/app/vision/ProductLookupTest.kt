@@ -169,4 +169,19 @@ class ProductLookupTest {
         // Bez tego pola serwis jej nie odda - i dokładnie tak było na początku.
         assertTrue(ProductLookup.urlFor("123").contains("nutriments"))
     }
+
+    @Test
+    fun `znak szacowanej ilosci nie idzie na glos`() {
+        // WARTOŚĆ Z PRAWDZIWEJ ODPOWIEDZI SERWISU, nie wymyślona: dla kodu
+        // 3017620422003 (Nutella) Open Food Facts oddaje quantity = "400 g e".
+        // To "e" jest znakiem szacowania wg dyrektywy 76/211/EWG - na etykiecie
+        // jedna litera, w syntezatorze "czterysta gramów e".
+        assertEquals("400 g", ProductLookup.tidyQuantity("400 g e"))
+        assertEquals("400 g", ProductLookup.tidyQuantity("400 g e."))
+        // Jednostki zostają nietknięte.
+        assertEquals("500 ml", ProductLookup.tidyQuantity("500 ml"))
+        assertEquals("1 kg", ProductLookup.tidyQuantity("1 kg"))
+        // "e" w środku nie jest znakiem szacowania.
+        assertEquals("2 e 5 g", ProductLookup.tidyQuantity("2 e 5 g"))
+    }
 }

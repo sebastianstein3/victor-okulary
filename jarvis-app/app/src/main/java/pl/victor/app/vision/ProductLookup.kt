@@ -35,6 +35,20 @@ object ProductLookup {
             "ingredients_text_pl,nutriments"
 
     /**
+     * Sprząta gramaturę z opakowania, zanim pójdzie na głos.
+     *
+     * Producenci dopisują do ilości znak szacowania - małe "e" wg dyrektywy
+     * 76/211/EWG. Na etykiecie to jedna litera, w syntezatorze "czterysta
+     * gramów e", co brzmi jak przejęzyczenie. Sprawdzone na prawdziwej
+     * odpowiedzi Open Food Facts dla kodu 3017620422003: quantity = "400 g e".
+     *
+     * Ucinamy TYLKO samotne "e" na końcu. "500 ml" zostaje, "1 kg" zostaje, a
+     * "Ice tea" nie jest gramaturą i tu nie trafia.
+     */
+    fun tidyQuantity(raw: String): String =
+        raw.trim().replace(Regex("""\s+e\.?$""", RegexOption.IGNORE_CASE), "").trim()
+
+    /**
      * Zdanie do wypowiedzenia albo `null`, gdy produktu nie ma w bazie.
      *
      * Nazwę bierzemy polską, gdy jest - to jest cały sens przy obcym produkcie.
@@ -62,7 +76,7 @@ object ProductLookup {
                     append(", ").append(first)
                 }
             }
-            product.stringOrNull("quantity")?.let { append(", ").append(it) }
+            product.stringOrNull("quantity")?.let { append(", ").append(tidyQuantity(it)) }
             allergensOf(product)?.let { append(". Zawiera ").append(it) }
             append('.')
             nutritionOf(product)?.let { append(' ').append(it) }

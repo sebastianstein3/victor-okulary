@@ -282,9 +282,12 @@ class SmartActionDetector {
 
     /** Nazwy pojazdów do WYCIĘCIA z tekstu przed dopasowaniem trasy. */
     private val TRANSIT_REGEX = Regex(
-        """\b(autobusem|autobusu|tramwajem|tramwaju|metrem|metra|""" +
+        // Bez \b na KOŃCU: granica słowa wymaga po jednej stronie znaku z \w,
+        // a "miejską" kończy się na "ą", której tam nie ma. Przez to "jedź
+        // komunikacją miejską do dworca" nie łapało się wcale.
+        """(?<![a-ząćęłńóśźż])(autobusem|autobusu|tramwajem|tramwaju|metrem|metra|""" +
             """poci[aą]giem|poci[aą]gu|kolejk[aą]|komunikacj[aą]|""" +
-            """transportem\s+publicznym|miejsk[aą])\b""",
+            """transportem\s+publicznym|miejsk[aą])(?![a-ząćęłńóśźż])""",
         RegexOption.IGNORE_CASE
     )
 
@@ -605,12 +608,23 @@ class SmartActionDetector {
 
         // === OTWÓRZ APKĘ ===
         // "otwórz Spotify" / "uruchom Gmail" / "włącz Spotify"
+        // \S, NIE \w - I OSOBNO ZAPAMIĘTANY CZASOWNIK.
+        //
+        // `\w` to w Javie [a-zA-Z_0-9] BEZ polskich liter, więc "otwórz Żappkę"
+        // nie łapało się wcale. Ta sama pułapka zjadła już "taksówkę",
+        // "dotrę" i "miejską".
+        //
+        // Czasownik zapamiętujemy, bo rozstrzyga on o zapasie niżej: "otwórz" i
+        // "uruchom" znaczą JEDNOZNACZNIE aplikację, a "włącz" nie - "włącz
+        // latarkę" to polecenie systemowe i nie wolno z niego zrobić próby
+        // otwarcia aplikacji o nazwie "latarkę".
         val openAppRegex = Regex(
-            """(?:otworz|otwórz|uruchom|w[lł][aą]cz)\s+(\w+)""",
+            """(?:(otworz|otwórz|uruchom)|w[lł][aą]cz)\s+(\S+)""",
             RegexOption.IGNORE_CASE
         )
         openAppRegex.find(lower)?.let { match ->
-            val appName = match.groupValues[1].trim().lowercase()
+            val jednoznacznyCzasownik = match.groupValues[1].isNotBlank()
+            val appName = match.groupValues[2].trim().trimEnd(',', '.', '!', '?').lowercase()
             val appMap = mapOf(
                 "spotify" to "com.spotify.music",
                 "youtube" to "com.google.android.youtube",
@@ -623,22 +637,43 @@ class SmartActionDetector {
                 "instagram" to "com.instagram.android",
                 "facebook" to "com.facebook.katana",
                 "netflix" to "com.netflix.mediaclient",
-                "uber" to "com.uber",
+                // com.ubercab, nie com.uber. Ta sama zgadnięta nazwa siedziała
+                // w drugiej kopii listy (ActionExecutor) i tam poprawiłem ją
+                // dzień wcześniej - tutaj została.
+                "uber" to "com.ubercab",
                 "amazon" to "com.amazon.mShop.android.shopping",
                 "kalendarz" to "com.google.android.calendar",
                 "calendar" to "com.google.android.calendar",
                 "notatki" to "com.google.android.keep",
                 "keep" to "com.google.android.keep"
             )
-            appMap[appName]?.let { pkg ->
-                actions.add(Action.OpenApp(packageName = pkg, appName = appName))
+            val pkg = appMap[appName]
+            when {
+                pkg != null ->
+                    actions.add(Action.OpenApp(packageName = pkg, appName = appName))
+                // NIEZNANA NAZWA TO NIE POWÓD, ŻEBY NIC NIE ZROBIĆ.
+                //
+                // Lista wyżej ma szesnaście pozycji i wszystko spoza niej dawało
+                // PUSTKĘ - "otwórz Jakdojade" nie kończyło się niczym. Tymczasem
+                // wykonawca umie znaleźć aplikację PO NAZWIE z pulpitu
+                // (ActionExecutor.resolvePackage), więc wystarczy mu ją podać.
+                //
+                // Tylko po "otwórz"/"uruchom": po "włącz" nazwa bywa czymś
+                // zupełnie innym ("włącz latarkę", "włącz muzykę").
+                jednoznacznyCzasownik && appName.length >= MIN_APP_NAME &&
+                    actions.none { it is Action.OpenApp } ->
+                    actions.add(Action.OpenApp(packageName = "", appName = appName))
+                else -> Unit
             }
         }
 
         // === TŁUMACZENIE ===
         // "przetłumacz X na angielski"
         val translateRegex = Regex(
-            """(?:przet[lł]umacz|translate|przetlumacz)\s+["']?(.+?)["']?\s+na\s+(\w+)""",
+            // \S zamiast \w także tutaj: "na japoński" oddawało "japo", bo
+            // wzorzec urywał się na "ń". Tłumacz dostawał wtedy język, którego
+            // nie ma.
+            """(?:przet[lł]umacz|translate|przetlumacz)\s+["']?(.+?)["']?\s+na\s+(\S+)""",
             RegexOption.IGNORE_CASE
         )
         translateRegex.find(lower)?.let { match ->
@@ -1024,7 +1059,11 @@ class SmartActionDetector {
          * Z ogonkami i bez, bo rozpoznawanie mowy zwraca jedno i drugie.
          */
         private val NEAREST_REGEX = Regex(
-            """^(?:najbli[żz]sz\w*)\s+""",
+            // \S*, nie \w*: "najbliższą" kończy się na "ą", więc \w* stawało
+            // przed nią i cały wzorzec nie dopasowywał się do końca. Skutek:
+            // "nawiguj do najbliższą biedronkę" szło do map jako cel
+            // "najbliższą biedronkę".
+            """^(?:najbli[żz]sz\S*)\s+""",
             RegexOption.IGNORE_CASE
         )
 
@@ -1078,6 +1117,15 @@ class SmartActionDetector {
 
         /** Nazwa akcji bez `type=`, np. `[[ACTION: take_photo]]`. */
         private val FIRST_TOKEN_REGEX = Regex("""^\s*([A-Za-z][\w-]*)""")
+
+        /**
+         * Poniżej tylu znaków nie próbujemy szukać aplikacji po nazwie.
+         *
+         * Chroni przed "otwórz to" i "uruchom je" - zaimek nie jest nazwą, a
+         * szukanie go po pulpicie trafiłoby w pierwszą aplikację, która ma te
+         * dwie litery w nazwie.
+         */
+        private const val MIN_APP_NAME = 3
 
         /**
          * Cokolwiek, co przetrwało parsowanie, a wygląda jak znacznik.
