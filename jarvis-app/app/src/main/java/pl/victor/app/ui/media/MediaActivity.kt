@@ -983,6 +983,20 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
         if (!_sessionOpen.value) return
         manager.endTransferSession()
         _sessionOpen.value = false
+        // I POCZEKAJ NA POWRÓT INTERNETU.
+        //
+        // Sieć okularów internetu nie ma, a zwolnienie jej nie przywraca
+        // łączności natychmiast - Android musi przepiąć ruch z powrotem. Kto
+        // wyszedł z galerii i od razu o coś zapytał, trafiał w tę dziurę:
+        // asystent meldował brak sieci i schodził na model lokalny.
+        //
+        // Zgłoszone jako "po pobraniu zdjęć do galerii okulary nie reagują już
+        // na nic". Reagowały - to aplikacja nie miała czym zapytać.
+        //
+        // W tle, bo zamykanie ekranu nie ma na co czekać.
+        viewModelScope.launch {
+            runCatching { manager.awaitInternetAfterGlassesNetwork() }
+        }
     }
 
     private companion object {

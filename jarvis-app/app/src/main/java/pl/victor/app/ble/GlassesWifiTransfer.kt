@@ -507,6 +507,51 @@ class GlassesWifiTransfer(context: Context) {
      * Wi-Fi Direct NIE włącza go samo, a od Androida 10 aplikacja nie może go
      * włączyć za użytkownika - zostaje poproszenie go wprost.
      */
+    /**
+     * Czy telefon ma znowu SPRAWDZONE wyjście na internet.
+     *
+     * Sieć okularów internetu nie ma. Po odejściu od niej Android musi wrócić na
+     * komórkową albo domowe Wi-Fi, a to nie dzieje się natychmiast - i w tej
+     * dziurze DNS nie działa.
+     */
+    fun hasValidatedInternet(): Boolean = runCatching {
+        val cm = connectivityManager ?: return false
+        val net = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(net) ?: return false
+        caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }.getOrDefault(false)
+
+    /**
+     * Czeka, aż telefon odzyska internet po odejściu od sieci okularów.
+     *
+     * ## Czemu to jest konieczne
+     * Sesja transferu JEST zamykana (patrz `finally` w downloadLatest), ale
+     * zwolnienie sieci nie przywraca łączności natychmiast - Android musi
+     * przepiąć ruch z powrotem. W dzienniku z 18 września widać dokładnie tę
+     * dziurę:
+     *
+     *     21:02:22  przechwycone  bajtów=161207 pełnaRozdzielczość=true
+     *     21:02:23  gemini   -> Unable to resolve host
+     *     21:02:23  deepseek -> Unable to resolve host
+     *     21:02:23  local    -> 20 s i porażka
+     *
+     * Sekunda po zwolnieniu sieci to za mało. Skutek jest dla użytkownika
+     * dotkliwy i mylący: zdjęcie WYSZŁO, ostre, a asystent mówi, że przechodzi
+     * na model lokalny, bo nie ma internetu.
+     *
+     * @return `true`, gdy internet wrócił w limicie
+     */
+    suspend fun awaitInternet(timeoutMs: Long = INTERNET_RETURN_TIMEOUT_MS): Boolean {
+        if (hasValidatedInternet()) return true
+        val doKiedy = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < doKiedy) {
+            kotlinx.coroutines.delay(INTERNET_POLL_MS)
+            if (hasValidatedInternet()) return true
+        }
+        return false
+    }
+
     fun isWifiEnabled(): Boolean =
         runCatching { wifiManager?.isWifiEnabled == true }.getOrDefault(false)
 
@@ -692,6 +737,17 @@ class GlassesWifiTransfer(context: Context) {
     }
 
     companion object {
+
+        /**
+         * Ile czekamy na powrót internetu po odejściu od sieci okularów.
+         *
+         * Osiem sekund: w dzienniku przepięcie nie zdążyło w jedną, a czekanie
+         * dłużej niż kilka sekund i tak jest gorsze od powiedzenia wprost, że
+         * sieci nie ma.
+         */
+        private const val INTERNET_RETURN_TIMEOUT_MS = 8_000L
+
+        private const val INTERNET_POLL_MS = 250L
         private const val TAG = "GlassesWifiTransfer"
 
         private const val DISCOVERY_TIMEOUT_MS = 20_000L

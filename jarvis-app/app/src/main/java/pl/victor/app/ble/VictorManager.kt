@@ -4201,6 +4201,28 @@ class VictorManager private constructor(context: Context) {
      * tamta przypina proces. Ścieżka hotspotu nie ma czego przywracać - ona
      * procesu nie przypina.
      */
+    /**
+     * Czeka na powrót internetu po odejściu od sieci okularów.
+     *
+     * Publiczne, bo galeria zamyka sesję własną drogą ([endTransferSession]) i
+     * też musi odczekać - inaczej pierwsze pytanie po wyjściu z niej trafia w
+     * dziurę bez DNS.
+     */
+    suspend fun awaitInternetAfterGlassesNetwork(): Boolean {
+        if (simulator != null) return true
+        val start = System.currentTimeMillis()
+        val wrocil = wifiTransfer.awaitInternet()
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                if (wrocil) "internet wrócił po sieci okularów"
+                else "internet NIE wrócił po sieci okularów",
+                mapOf("ms" to (System.currentTimeMillis() - start))
+            )
+        }
+        return wrocil
+    }
+
     fun endTransferSession() {
         stopSessionHeartbeat()
         if (simulator == null) wifiTransfer.stop()
@@ -4249,6 +4271,28 @@ class VictorManager private constructor(context: Context) {
         } finally {
             // Zwolnij sieć - inaczej cały ruch aplikacji zostaje na grupie okularów.
             endTransferSession()
+            // I POCZEKAJ, AŻ INTERNET WRÓCI.
+            //
+            // Zwolnienie sieci nie przywraca łączności natychmiast: Android musi
+            // przepiąć ruch z powrotem na komórkową albo domowe Wi-Fi. W tej
+            // dziurze DNS nie działa, a wołający idzie prosto do modelu.
+            //
+            // Dziennik z 18 września pokazuje to co do sekundy:
+            //
+            //     21:02:22  przechwycone  bajtów=161207 pełnaRozdzielczość=true
+            //     21:02:23  gemini   -> Unable to resolve host
+            //     21:02:23  deepseek -> Unable to resolve host
+            //     21:02:23  local    -> 20 s i porażka
+            //
+            // Zdjęcie WYSZŁO, ostre - a asystent powiedział, że przechodzi na
+            // model lokalny, bo nie ma internetu. Dla użytkownika wygląda to
+            // jak awaria aparatu, a jest awarią sieci, i to przez nas.
+            //
+            // PROSTUJĘ przy okazji własne zdanie sprzed dwóch dni: pisałem, że
+            // `bindProcess = false` sprawia, iż sesja z okularami NIE odcina
+            // telefonu od internetu. Pomiar mówi co innego - odcina, tylko na
+            // krócej, niż gdybyśmy przypinali proces na stałe.
+            awaitInternetAfterGlassesNetwork()
         }
     }
 
