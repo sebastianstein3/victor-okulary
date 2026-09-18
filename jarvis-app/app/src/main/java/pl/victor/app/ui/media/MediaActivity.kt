@@ -277,16 +277,28 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     archive.rememberListing(overBle)
                     refreshFromArchive()
                     _status.value = "${overBle.size} plików. Podnoszę Wi-Fi do miniatur..."
-                    // Sesja Wi-Fi idzie z bindProcess = false (patrz
-                    // VictorManager.beginTransferSession), więc NIE odcina
-                    // telefonu od internetu - dawny komunikat obiecujący to jako
-                    // zaletę listy po BLE opisywał stan sprzed tamtej zmiany.
-                    _sessionOpen.value = manager.openMediaSession()
-                    _status.value = if (_sessionOpen.value) {
-                        "${overBle.size} plików na okularach."
-                    } else {
-                        "${overBle.size} plików. Miniatur i podglądu nie będzie: " +
-                            (manager.lastTransferFailure ?: "Wi-Fi z okularami nie wstało.")
+                    // WI-FI PODNOSIMY OBOK, NIE W POPRZEK.
+                    //
+                    // Podnoszenie w tej samej procedurze trzymałoby ekran w
+                    // stanie zajętym do skutku, a w dzienniku z 17 września
+                    // hotspot okularów nie wstał DWA RAZY po 45 sekund
+                    // ("Okulary nie wystawiły sieci"). Lista jest już na
+                    // ekranie i da się z niej korzystać - czekanie na łącze nie
+                    // ma prawa jej blokować.
+                    //
+                    // Sesja idzie z bindProcess = false (patrz
+                    // VictorManager.openMediaSession), więc NIE odcina telefonu
+                    // od internetu - dawny komunikat obiecujący to jako zaletę
+                    // listy po BLE opisywał stan sprzed tamtej zmiany.
+                    viewModelScope.launch {
+                        val wstalo = runCatching { manager.openMediaSession() }.getOrDefault(false)
+                        _sessionOpen.value = wstalo
+                        _status.value = if (wstalo) {
+                            "${overBle.size} plików na okularach."
+                        } else {
+                            "${overBle.size} plików. Miniatur i podglądu nie będzie: " +
+                                (manager.lastTransferFailure ?: "Wi-Fi z okularami nie wstało.")
+                        }
                     }
                     return@launch
                 }

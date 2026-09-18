@@ -99,7 +99,21 @@ object AppLinks {
                 uri = "jakdojade://route?destination=$q",
                 describe = "Otwieram Jakdojade z celem „$destination”."
             ),
-            launchOnly(Target.JAKDOJADE, "Otwieram Jakdojade - cel wpisz sam.")
+            // POMIAR Z TERENU: to jest droga, która faktycznie wchodzi.
+            //
+            // Dziennik z 17 września: "zadanie=TRANSIT_PLAN proba=3/3", czyli
+            // oba adresy wyżej odpadły i zadziałało zwykłe otwarcie. Komunikat
+            // musi więc mówić wprost, że celu NIE wpisaliśmy - inaczej człowiek
+            // patrzy na ekran startowy, wierząc, że trasa się liczy.
+            //
+            // Samo pytanie "jak dojadę" nie idzie już tędy: bez nazwania
+            // Jakdojade z nazwy trafia do Map z travelmode=transit, które cel
+            // przyjmują (patrz SmartActionDetector.TRANSIT_QUESTION_REGEX).
+            launchOnly(
+                Target.JAKDOJADE,
+                "Otwieram Jakdojade. Celu nie wpiszę za Ciebie - ta aplikacja " +
+                    "nie przyjmuje go z zewnątrz."
+            )
         )
     }
 

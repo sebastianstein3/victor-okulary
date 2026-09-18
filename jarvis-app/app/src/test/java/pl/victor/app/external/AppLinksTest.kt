@@ -1,6 +1,7 @@
 package pl.victor.app.external
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import pl.victor.app.external.AppLinks.isPlainLaunch
@@ -51,8 +52,18 @@ class AppLinksTest {
         val deep = plan.first().describe
         val plain = plan.last().describe
         assertTrue("adres głęboki ma nieść cel: $deep", deep.contains("dworzec"))
-        assertTrue("otwarcie aplikacji ma mówić, że cel wpisuje człowiek: $plain",
-            plain.contains("sam"))
+        // Sprawdzamy INTENCJĘ, nie jedno słowo. Poprzednia wersja wymagała
+        // dosłownego "sam" i wywróciła się, gdy komunikat powiedział to samo
+        // dokładniej ("celu nie wpiszę za Ciebie"). Test pilnujący sformułowania
+        // zamiast znaczenia każe poprawiać siebie przy każdym lepszym zdaniu.
+        assertTrue(
+            "otwarcie aplikacji ma mówić, że celu NIE wpisujemy: $plain",
+            listOf("sam", "nie wpiszę", "wpisz").any { plain.contains(it, ignoreCase = true) }
+        )
+        assertFalse(
+            "otwarcie aplikacji nie może brzmieć jak wykonane zadanie: $plain",
+            plain.contains("z celem")
+        )
     }
 
     @Test

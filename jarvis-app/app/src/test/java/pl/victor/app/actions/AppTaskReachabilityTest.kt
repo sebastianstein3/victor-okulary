@@ -78,8 +78,40 @@ class AppTaskReachabilityTest {
     }
 
     @Test
+    fun `pytanie o dojazd idzie do Map, bo tam cel wchodzi`() {
+        // POMIAR, NIE PREFERENCJA. Dziennik z 17 września:
+        //     Zadanie w cudzej aplikacji: udane  zadanie=TRANSIT_PLAN proba=3/3
+        // Trzecia próba z trzech to zwykłe otwarcie - Jakdojade nie przyjmuje
+        // celu z zewnątrz. Mapy z travelmode=transit przyjmują, więc pytanie o
+        // dojazd ma iść tam.
+        listOf(
+            "jak dojadę na uniwersytet",
+            "jak dotrę na polną 140 w toruniu",
+            "jak dostanę się do dworca"
+        ).forEach { zdanie ->
+            val trasa = detector.detect(zdanie).filterIsInstance<Action.Navigate>().singleOrNull()
+            assertTrue("„$zdanie” miało dać trasę komunikacją: ${detector.detect(zdanie)}", trasa != null)
+            assertTrue("„$zdanie” ma iść KOMUNIKACJĄ, nie autem", trasa!!.byTransit)
+        }
+    }
+
+    @Test
+    fun `nazwanie Jakdojade z nazwy dalej otwiera Jakdojade`() {
+        // Kto prosi o konkretną aplikację, ma ją dostać - nawet jeśli celu nie
+        // przyjmie. Komunikat mówi wtedy wprost, że trzeba go wpisać.
+        val akcje = detector.detect("sprawdź w jakdojade jak dotrę na polną 140")
+        val zadanie = akcje.filterIsInstance<Action.AppTask>().singleOrNull()
+        assertTrue("wymienienie Jakdojade z nazwy ma je otwierać: $akcje", zadanie != null)
+        assertEquals(AppTaskKind.TRANSIT_PLAN, zadanie!!.kind)
+    }
+
+    @Test
     fun `cel po na, nie tylko po do`() {
         // 18:41:39 telefonUsłyszał=sprawdź w jakdojade jak dotrę na polną 140 w toruniu
+        //
+        // Dwie pułapki polskich liter w jednym zdaniu: cel stoi po "na", a nie
+        // po "do", a granica słowa `\b` opiera się na [a-zA-Z_0-9], więc po
+        // "dotrę" nie zachodzi wcale.
         val akcje = detector.detect("sprawdź w jakdojade jak dotrę na polną 140 w toruniu")
         val zadanie = akcje.filterIsInstance<Action.AppTask>().singleOrNull()
         assertTrue("zdanie z terenu nie zostało rozpoznane: $akcje", zadanie != null)

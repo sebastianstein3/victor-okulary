@@ -241,8 +241,21 @@ class SmartActionDetector {
     // przechodziło obok. Po polsku mówi się do celu i na cel wymiennie
     // ("na dworzec", "na Polną", "do apteki"), więc jedno z nich to połowa
     // zdań, jakie ktoś naprawdę powie.
-    private val JAKDOJADE_REGEX = Regex(
-        """(?:jak\s?doja[dz]\S*|jakdojade)\b.*?\b(?:do|na)\s+["']?(.+?)["']?$""",
+    /** Czy człowiek wymienił Jakdojade Z NAZWY - wtedy i tylko wtedy tam idziemy. */
+    private val JAKDOJADE_APP_REGEX = Regex("""\bjak\s?dojade\b|\bjakdojad\S*""", RegexOption.IGNORE_CASE)
+
+    // Czasowniki dojazdu, nie tylko "dojadę". Z terenu przyszło "jak DOTRĘ na
+    // polną 140" i nie łapało się nic, bo wzorzec znał wyłącznie rdzeń "dojad".
+    // Cel bywa po "do" i po "na" wymiennie ("na dworzec", "do apteki"), a samo
+    // "dotrę" zaczyna się od liter "do" BEZ spacji - stąd \b i wymóg odstępu.
+    private val TRANSIT_QUESTION_REGEX = Regex(
+        """(?:jak\s+(?:doja[dz]\S*|dotr[eę]\S*|dosta[nć]\S*|dojecha\S*)|jakdojad\S*)""" +
+            // ODSTĘP, NIE \b. Granica słowa opiera się na \w, czyli
+            // [a-zA-Z_0-9] BEZ polskich liter - po "dotrę" nie zachodzi wcale,
+            // więc wzorzec z \b nie łapał "jak dotrę na polną 140". To ta sama
+            // pułapka, która wcześniej zjadła "taksówkę" i "jak dotrę", tylko
+            // w innym miejscu składni.
+            """.*?(?:^|\s)(?:do|na)\s+["']?(.+?)["']?$""",
         RegexOption.IGNORE_CASE
     )
 
@@ -318,10 +331,32 @@ class SmartActionDetector {
         // Wzorce są WĄSKIE z rozmysłu: każdy wymaga słowa, które jednoznacznie
         // nazywa czynność albo aplikację. "Co to za piosenka" nie może porwać
         // zwykłego pytania, a "zamów" bez celu nie ma czego zamawiać.
-        JAKDOJADE_REGEX.find(lower)?.let { m ->
+        // PYTANIE O DOJAZD ROZSTRZYGA POMIAR, NIE PREFERENCJA.
+        //
+        // Z dziennika z 17 września, po naprawieniu osiągalności:
+        //
+        //     Zadanie w cudzej aplikacji: udane  zadanie=TRANSIT_PLAN proba=3/3
+        //
+        // Trzecia próba z trzech to ZWYKŁE OTWARCIE - oba adresy z celem
+        // odpadły. Jakdojade daje się więc otworzyć, ale nie daje się poprosić
+        // o trasę, a publicznego opisu jego adresów nie ma. Zgłoszone: "włącza
+        // jakdojade, ale samo niczego nie ustawia".
+        //
+        // Mapy Google z `travelmode=transit` przyjmują cel i oddają linie,
+        // przesiadki i godziny - czyli odpowiedź na pytanie. Dlatego pytanie o
+        // dojazd idzie TAM, a Jakdojade zostaje dla tych, którzy proszą o nie
+        // z nazwy.
+        val nazwalJakdojade = JAKDOJADE_APP_REGEX.containsMatchIn(lower)
+        TRANSIT_QUESTION_REGEX.find(lower)?.let { m ->
             val dest = cleanDestination(m.groupValues[1])
-            if (dest.isNotBlank()) {
-                actions.add(Action.AppTask(AppTaskKind.TRANSIT_PLAN, dest))
+            if (dest.isNotBlank() && actions.none { it is Action.Navigate }) {
+                if (nazwalJakdojade) {
+                    actions.add(Action.AppTask(AppTaskKind.TRANSIT_PLAN, dest))
+                } else {
+                    actions.add(
+                        Action.Navigate(destination = dest, byCar = false, byTransit = true)
+                    )
+                }
             }
         }
         if (SONG_REGEX.containsMatchIn(lower)) {
