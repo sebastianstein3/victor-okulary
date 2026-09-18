@@ -885,14 +885,14 @@ class AIOrchestrator(
             // poprzedniego - i to zabijało szybkie serie, czyli podwójne i
             // potrójne kliknięcie.
             glassesManager.buttonEvent.collect { event ->
-                buttonDetector.processEvent(event)
+                bezpiecznie("wciśnięcie przycisku") { buttonDetector.processEvent(event) }
             }
         }
 
         // Nasłuchuj zdetektowane akcje
         scope.launch {
             buttonDetector.action.collect { action ->
-                handleButtonAction(action)
+                bezpiecznie("akcja przycisku $action") { handleButtonAction(action) }
             }
         }
 
@@ -902,15 +902,17 @@ class AIOrchestrator(
         // ale zdarzenie nie miało odbiorcy - czyli "wake word nie działał".
         scope.launch {
             glassesManager.aiSessionRequest.collect { realtimeText ->
-                startGlassesConversation(realtimeText)
+                bezpiecznie("rozmowa z okularów") { startGlassesConversation(realtimeText) }
             }
         }
 
         // Dotknięcie zauszników w trakcie mówienia = "cicho".
         scope.launch {
             glassesManager.speechInterrupted.collect {
-                Log.i(TAG, "Okulary: użytkownik przerwał wypowiedź")
-                cancelCurrentTurn("dotknięcie zauszników")
+                bezpiecznie("przerwanie wypowiedzi") {
+                    Log.i(TAG, "Okulary: użytkownik przerwał wypowiedź")
+                    cancelCurrentTurn("dotknięcie zauszników")
+                }
             }
         }
 
@@ -920,7 +922,46 @@ class AIOrchestrator(
         // zdjęcia, o które sami poprosiliśmy.
         scope.launch {
             glassesManager.glassesPhotoTaken.collect { aiVision ->
-                handleGlassesPhoto(aiVision)
+                bezpiecznie("zdjęcie z przycisku okularów") { handleGlassesPhoto(aiVision) }
+            }
+        }
+    }
+
+    /**
+     * Wykonuje obsługę zdarzenia tak, żeby jej błąd nie zabił STRUMIENIA.
+     *
+     * ## Czemu to jest konieczne, a nie ostrożnościowe
+     * Kolektory zdarzeń żyją w `scope.launch { ... collect { ... } }`. Scope ma
+     * [kotlinx.coroutines.SupervisorJob] i własny CoroutineExceptionHandler, co
+     * znaczy, że wyjątek w obsłudze JEDNEGO zdarzenia nie wywraca aplikacji -
+     * ale kończy tę korutynę na dobre. Strumień przestaje być zbierany i żadne
+     * kolejne zdarzenie już nie dochodzi, aż do restartu aplikacji.
+     *
+     * Przy przycisku wygląda to dokładnie tak, jak zgłoszono: okulary grają
+     * swój dźwięk (robią to same, lokalnie), a aplikacja nie robi NIC - przy
+     * jednym kliknięciu, przy dwóch i przy trzech tak samo. Jedna usterka
+     * sprzed kilkunastu minut kasuje wszystkie gesty naraz, po cichu.
+     *
+     * Teraz błąd kosztuje JEDNO zdarzenie i zostaje zapisany w dzienniku -
+     * wcześniej szedł tylko do logcata, którego przy okularach na głowie nikt
+     * nie czyta.
+     *
+     * CancellationException przepuszczamy dalej: anulowanie nie jest awarią i
+     * połknięcie go łamie zamykanie korutyn.
+     */
+    private suspend fun bezpiecznie(co: String, blok: suspend () -> Unit) {
+        try {
+            blok()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Log.e(TAG, "Błąd w obsłudze: $co", e)
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.BŁĄD,
+                    "błąd w obsłudze zdarzenia - strumień zostaje czynny",
+                    mapOf("co" to co, "błąd" to (e.message ?: e::class.simpleName))
+                )
             }
         }
     }
@@ -2177,6 +2218,20 @@ class AIOrchestrator(
 
     private fun handleButtonAction(action: ButtonAction) {
         Log.i(TAG, "Button action: $action")
+        // DO DZIENNIKA, NIE TYLKO DO LOGCATA.
+        //
+        // Dziennik zapisywał wciśnięcie ramki ("PRZYCISK wciśnięto"), ale NIE
+        // to, czy aplikacja cokolwiek z nim zrobiła. Przy zgłoszeniu "okulary
+        // grają dźwięk, a nasłuch się nie zaczyna" te dwie rzeczy trzeba
+        // rozróżnić: ramka doszła i akcja nie ruszyła, czy ramka nie doszła
+        // wcale. Bez tego wpisu wyglądają identycznie.
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.PRZYCISK,
+                "akcja z przycisku",
+                mapOf("akcja" to action::class.simpleName)
+            )
+        }
         when (action) {
             // Pojedyncze kliknięcie = "chcę o coś zapytać", więc SŁUCHAMY, a nie
             // od razu robimy zdjęcie. Ma to dodatkowe, bardzo praktyczne
