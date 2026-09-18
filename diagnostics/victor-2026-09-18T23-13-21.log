@@ -1,0 +1,48 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: deepseek
+# transkrypcja w chmurze: false
+# mikrofon okularów przy starcie: false
+# źródło zdjęcia: full (dzielnik 3)
+23:13:21.772          ms  SESJA        start sesji
+23:13:48.249          ms  NASŁUCH      usłyszane, ale nie do mnie - brak frazy poza rozmową  usłyszane=będzie panda
+23:14:14.601          ms  BLE          POŁĄCZONO  noweŁącze=true
+23:14:14.603          ms  BLE          powitanie okularów - start
+23:14:14.616          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=false kanałZapisu=true
+23:14:14.873          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=true
+23:14:14.875          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+23:14:14.876          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+23:14:14.877          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+23:14:14.878          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+23:14:14.879          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=false zgłaszają=false
+23:14:16.682          ms  BLE          POŁĄCZONO  noweŁącze=false
+23:14:19.617          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+23:18:09.327          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:18:10.134          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=false zgłaszają=false
+23:18:10.761          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:18:50.818          ms  PRZYCISK     wciśnięto  numer=1
+23:18:51.077          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+23:18:51.329          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION
+23:18:51.714          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=634
+23:18:51.857          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=12 mikrofonOkularów=true
+23:18:51.860      +0 ms  SESJA        --- TURA 4a74 ---  źródło=OKULARY
+23:18:51.861      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+23:18:52.528    +668 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,2
+23:18:57.133   +5273 ms  NASŁUCH      koniec  ms=5273 telefonUsłyszał=lubisz mnie okularów mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=379
+23:18:57.351   +5492 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.3535 pakietów=68 rozkodowanych=68 odrzuconych=0 przesunięcie=6 ramka=-1
+23:18:58.385   +6525 ms  TRANSKRYPCJA z nagrania okularów  ms=1030
+23:18:58.388   +6528 ms  SESJA        pytanie  tekst=lubisz mnie okularów wymuszonyObraz=false
+23:18:58.412   +6552 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:18:58.492   +6633 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:18:58.493   +6633 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:18:59.071   +7211 ms  KONTEKST     zebrany  ms=117 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:18:59.079   +7219 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=903
+23:19:01.472   +9612 ms  MODEL        koniec odpowiedzi (171 znaków, 2909 tokenów)  ms=2393
+23:19:01.479   +9619 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=171
+23:19:04.518  +12659 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+23:19:12.664  +20804 ms  MOWA         koniec wypowiedzi  ms=11182
+23:19:12.741  +20882 ms  AUDIO        zwinięte łącze audio tury  ms=0
+23:19:12.747  +20887 ms  SESJA        --- KONIEC TURY 4a74: odpowiedziano ---
+23:19:12.759          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
