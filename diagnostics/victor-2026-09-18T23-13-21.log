@@ -46,3 +46,57 @@
 23:19:12.741  +20882 ms  AUDIO        zwinięte łącze audio tury  ms=0
 23:19:12.747  +20887 ms  SESJA        --- KONIEC TURY 4a74: odpowiedziano ---
 23:19:12.759          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:19:12.869          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:19:20.762      +0 ms  SESJA        --- TURA ffca ---  źródło=VOICE
+23:19:20.764      +2 ms  SESJA        pytanie  tekst=highlands highlands wymuszonyObraz=false
+23:19:20.771      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:19:20.783     +22 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:19:20.876    +114 ms  KONTEKST     zebrany  ms=69 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:19:20.885    +123 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=714
+23:19:23.983   +3221 ms  MODEL        koniec odpowiedzi (216 znaków, 3039 tokenów)  ms=3099
+23:19:23.987   +3225 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=216
+23:19:35.160  +14398 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+23:19:35.339  +14577 ms  AUDIO        zwinięte łącze audio tury  ms=0
+23:19:35.340  +14578 ms  SESJA        --- KONIEC TURY ffca: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+23:19:42.998          ms  NASŁUCH      sama fraza wybudzenia - otwieram nasłuch zamiast pytać model  usłyszane=hey lens
+23:19:43.003          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=0 mikrofonOkularów=true
+23:19:43.159      +1 ms  SESJA        --- TURA 9693 ---  źródło=TELEFON
+23:19:43.161      +3 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true ustawienieMikOkularów=true
+23:19:51.229   +8070 ms  NASŁUCH      koniec  ms=8070 telefonUsłyszał=helens mikrofon=mowa wykryta szczytDb=10.0 próbek=4 gotowyPoMs=233
+23:19:51.231   +8072 ms  NASŁUCH      nagranie z okularów  jest=false
+23:19:51.232   +8073 ms  SESJA        pytanie  tekst=helens wymuszonyObraz=false
+23:19:51.237   +8078 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:19:51.455   +8296 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:19:51.455   +8296 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+23:19:51.553   +8394 ms  KONTEKST     zebrany  ms=92 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:19:51.565   +8407 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=965
+23:19:54.099  +10941 ms  MODEL        koniec odpowiedzi (244 znaków, 3029 tokenów)  ms=2534
+23:19:54.110  +10951 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=244
+23:19:55.857  +12698 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+23:19:56.000  +12841 ms  AUDIO        zwinięte łącze audio tury  ms=0
+23:19:56.002  +12843 ms  SESJA        --- KONIEC TURY 9693: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+23:19:57.464          ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+23:20:02.031          ms  NASŁUCH      usłyszane, ale nie do mnie - brak frazy poza rozmową  usłyszane=highlands
+23:20:10.438          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+23:20:12.506          ms  PRZYCISK     wciśnięto  numer=1
+23:20:12.683          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+23:20:13.026          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION
+23:20:13.063          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=379
+23:20:13.150          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=9 mikrofonOkularów=true
+23:20:13.152      +0 ms  SESJA        --- TURA 222a ---  źródło=OKULARY
+23:20:13.153      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+23:20:13.629    +477 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,2
+23:20:20.108   +6956 ms  NASŁUCH      koniec  ms=6956 telefonUsłyszał=z okularów mikrofon=mowa wykryta szczytDb=10.0 próbek=7 gotowyPoMs=1821
+23:20:20.289   +7137 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.7535 pakietów=38 rozkodowanych=38 odrzuconych=0 przesunięcie=6 ramka=-1
+23:20:21.175   +8023 ms  TRANSKRYPCJA z nagrania okularów  ms=884 droga=Nasłuch telefonu
+23:20:21.176   +8024 ms  SESJA        pytanie  tekst=z okularów wymuszonyObraz=false
+23:20:21.181   +8029 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:20:21.189   +8037 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+23:20:21.258   +8106 ms  KONTEKST     zebrany  ms=65 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:20:21.265   +8113 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=1586
+23:20:25.432  +12280 ms  MODEL        koniec odpowiedzi (218 znaków, 3258 tokenów)  ms=4168
+23:20:25.435  +12284 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=218
+23:20:39.668  +26516 ms  MOWA         koniec wypowiedzi  ms=14231
+23:20:39.689  +26537 ms  AUDIO        zwinięte łącze audio tury  ms=1
+23:20:39.692  +26540 ms  SESJA        --- KONIEC TURY 222a: odpowiedziano ---
+23:20:39.696          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
