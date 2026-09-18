@@ -111,7 +111,14 @@ class VictorApplication : Application() {
                     "aplikacja: ${appVersionLabel()}",
                     "dostawca AI: ${settings.getActiveProvider()}",
                     "transkrypcja w chmurze: ${settings.isCloudTranscriptionEnabled()}",
-                    "mikrofon okularów: ${settings.isGlassesMicEnabled()}",
+                    // "przy starcie" nie jest ozdobnikiem. Nagłówek powstaje RAZ,
+                    // w onCreate procesu, a te ustawienia zmieniają się potem -
+                    // część z nich przestawia sama aplikacja w trakcie tury.
+                    // Czytany jak stan bieżący, wyprowadził na manowce: dziennik
+                    // mówił "mikrofon okularów: false", gdy w Ustawieniach stało
+                    // "włączony". Stan BIEŻĄCY każdej tury jest w zdarzeniu
+                    // NASŁUCH/start, a każde samoczynne przełączenie - w AUDIO.
+                    "mikrofon okularów przy starcie: ${settings.isGlassesMicEnabled()}",
                     "źródło zdjęcia: ${settings.getPhotoSource()} (dzielnik ${settings.getPhotoDivisor()})"
                 )
             )

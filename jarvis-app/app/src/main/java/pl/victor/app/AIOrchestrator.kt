@@ -1615,7 +1615,13 @@ class AIOrchestrator(
                         // pokazywało `mikrofonBT=false` NAWET wtedy, gdy łącze
                         // SCO stało i mikrofon zestawu był używany. Dwa razy w
                         // ciągu jednego wieczoru wyprowadziło mnie to na manowce.
-                        "mikrofonBT" to audio.isRoutedToBluetooth()
+                        "mikrofonBT" to audio.isRoutedToBluetooth(),
+                        // Stan USTAWIENIA w tej turze. Nagłówek dziennika podaje
+                        // tylko wartość z chwili startu procesu, a tę wartość
+                        // przestawia w trakcie pracy i człowiek, i sama
+                        // aplikacja - czytanie nagłówka jako stanu bieżącego
+                        // raz już doprowadziło do błędnej diagnozy.
+                        "ustawienieMikOkularów" to wantsGlassesMic
                     )
                 )
                 // Gdy łącze SCO nie stoi, "mikrofon telefonu" to naprawdę
@@ -1986,6 +1992,18 @@ class AIOrchestrator(
         settings.setGlassesMicEnabled(false)
         audio.setGlassesMicEnabled(false)
         Log.w(TAG, "Trzy ciche tury przez SCO - przechodzę na mikrofon telefonu")
+        // Bez tego wpisu przełączenie było NIEWIDOCZNE w dzienniku: ustawienie
+        // zmieniało się trwale, komunikat padał raz głosem i znikał, a kolejne
+        // sesje pokazywały już tylko skutek. Człowiek pamiętał, że włączał
+        // mikrofon okularów, dziennik twierdził, że jest wyłączony - i nic nie
+        // łączyło jednego z drugim.
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.AUDIO,
+                "sam wyłączam mikrofon okularów po $SILENT_SCO_LIMIT cichych turach",
+                mapOf("odwracalne" to "Ustawienia > Pytania mikrofonem okularów")
+            )
+        }
         // Samo mówienie należy do wołającego: komunikat musi pójść DOPIERO po
         // rozebraniu łącza SCO, inaczej nie da się go usłyszeć.
         return "Mikrofon okularów nie zbiera dźwięku, więc przełączam się na " +

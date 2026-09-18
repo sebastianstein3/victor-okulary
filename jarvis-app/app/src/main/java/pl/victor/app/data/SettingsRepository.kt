@@ -944,11 +944,26 @@ class SettingsRepository private constructor(private val context: Context) {
      *
      * Aplikacja wyłącza to sama po kilku takich turach z rzędu - patrz
      * [pl.victor.app.AIOrchestrator].
+     *
+     * ## Czemu to jest strumień, a nie samo `getBoolean`
+     * Wartość zmienia nie tylko człowiek w Ustawieniach - zmienia ją także sama
+     * aplikacja, w środku tury, po trzech cichych nasłuchach. Ekran Ustawień
+     * odczytany raz przy wejściu pokazywał więc stan SPRZED tego przełączenia i
+     * nie miał jak się dowiedzieć, że coś się stało. Zgłoszone dokładnie tak:
+     * "w aplikacji mikrofon był włączony" - przy dzienniku, który mówił coś
+     * przeciwnego. Przełącznik ma pokazywać prawdę, także wtedy, gdy to nie
+     * człowiek ją zmienił.
      */
-    fun isGlassesMicEnabled(): Boolean = prefs.getBoolean(KEY_GLASSES_MIC, true)
+    private val _glassesMicEnabledFlow = MutableStateFlow(
+        prefs.getBoolean(KEY_GLASSES_MIC, true)
+    )
+    val glassesMicEnabledFlow: StateFlow<Boolean> = _glassesMicEnabledFlow.asStateFlow()
+
+    fun isGlassesMicEnabled(): Boolean = _glassesMicEnabledFlow.value
 
     fun setGlassesMicEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_GLASSES_MIC, enabled).apply()
+        _glassesMicEnabledFlow.value = enabled
     }
 
     /**

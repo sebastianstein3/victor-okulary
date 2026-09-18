@@ -1466,13 +1466,22 @@ private fun SpeechSection() {
 
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("🎧 Fraza przez mikrofon okularów", fontWeight = FontWeight.Medium)
+                    // Nazwa musi rozróżniać ten przełącznik od "Pytania mikrofonem
+                    // okularów" na ekranie Komendy głosowej. Oba zawierały wyraz
+                    // "mikrofon okularów" i dotyczyły dwóch różnych ustawień - w
+                    // rozmowie o dzienniku pomyliły się natychmiast.
+                    Text(
+                        "🎧 Sama FRAZA wybudzenia mikrofonem okularów",
+                        fontWeight = FontWeight.Medium
+                    )
                     Text(
                         "Wyłączone: fraza łapana mikrofonem telefonu. Włączenie trzyma " +
                             "okulary w trybie ROZMOWY przez cały czas - Android pokazuje " +
                             "je wtedy jako urządzenie do połączeń, nie do multimediów, i " +
                             "nie posłuchasz przez nie muzyki. Wybudzanie samymi okularami " +
-                            "działa niezależnie od tego przełącznika.",
+                            "działa niezależnie od tego przełącznika. Pytania po " +
+                            "wybudzeniu to OSOBNE ustawienie - \"Pytania mikrofonem " +
+                            "okularów\" w sekcji Komenda głosowa.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2912,7 +2921,11 @@ private fun WakeWordSection(
     val glassesConnection by glasses.connectionState.collectAsState()
 
     val app = remember { pl.victor.app.VictorApplication.get() }
-    var glassesMicEnabled by remember { mutableStateOf(app.settings.isGlassesMicEnabled()) }
+    // collectAsState, NIE remember{mutableStateOf()}: tę wartość przestawia
+    // także sama aplikacja (trzy ciche tury przez SCO), więc odczyt raz przy
+    // wejściu na ekran pokazywał stan sprzed przełączenia. Zgłoszone jako
+    // "w aplikacji mikrofon był włączony" - podczas gdy w rzeczywistości nie był.
+    val glassesMicEnabled by app.settings.glassesMicEnabledFlow.collectAsState()
     // Do otwarcia systemowych ustawień Bluetooth - patrz karta niżej.
     val context = LocalContext.current
 
@@ -3000,7 +3013,6 @@ private fun WakeWordSection(
                     Switch(
                         checked = glassesMicEnabled,
                         onCheckedChange = {
-                            glassesMicEnabled = it
                             app.settings.setGlassesMicEnabled(it)
                             app.audio.setGlassesMicEnabled(it)
                         }
