@@ -1586,6 +1586,31 @@ class AIOrchestrator(
                 }
             }
             val overSco = held && audio.isRoutedToBluetooth()
+            // PROŚBA O MIKROFON OKULARÓW, KTÓREJ NIE DAŁO SIĘ SPEŁNIĆ, BYŁA
+            // DOTĄD NIEWIDOCZNA.
+            //
+            // Zejście na mikrofon telefonu jest sensownym zachowaniem awaryjnym -
+            // gorzej słychać, ale w ogóle słychać. Złe było to, że nie zostawiało
+            // ŻADNEGO śladu: ani w dzienniku, ani dla człowieka. Z zewnątrz
+            // wyglądało to jak zignorowane ustawienie i dokładnie tak zostało
+            // zgłoszone.
+            if (wantsGlassesMic && !overSco) {
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.AUDIO,
+                        "proszono o mikrofon okularów, ale profil rozmowy nie wstał",
+                        mapOf(
+                            // Te dwa pola rozdzielają dwie różne naprawy: brak
+                            // mikrofonu w zestawie to sprzęt, a obecny mikrofon
+                            // przy nieudanym zestawieniu to profil zajęty albo
+                            // okulary stojące w tej chwili jako multimedia.
+                            "mikrofonWZestawie" to audio.hasConversationMic(),
+                            "profil" to audio.audioProfileSummary(),
+                            "strumieńBLE" to micStreamLive
+                        )
+                    )
+                }
+            }
             try {
                 conversationalMode.onAiStartedSpeaking()
                 _state.value = OrchestratorState.Listening
@@ -1643,12 +1668,36 @@ class AIOrchestrator(
                     // nie była cisza użytkownika, tylko cisza cudzego mikrofonu.
                     capture = if (overSco) null else glassesCapture,
                     trustPhoneMicrophone = overSco || !fromGlasses,
-                    // Skoro łącze SCO i tak stoi, rozpoznawanie ma słuchać
-                    // MIKROFONU OKULARÓW, a nie telefonu w kieszeni. Dotąd było
-                    // tu samo `!micStreamLive`: strumień BLE żył, więc
-                    // rozpoznawanie brało mikrofon telefonu - płaciliśmy za SCO
-                    // i nie korzystaliśmy z niego. Najgorsze z obu stron.
-                    useBluetoothMic = overSco || !micStreamLive
+                    // USTAWIENIE CZŁOWIEKA MUSI BYĆ W TYM WYRAŻENIU - I NIE BYŁO.
+                    //
+                    // Stało tu `overSco || !micStreamLive`. Ani jednego odwołania
+                    // do `wantsGlassesMic`. Przy turze z okularów strumień BLE
+                    // żyje prawie zawsze, więc `micStreamLive` jest prawdą; jeśli
+                    // do tego łącze rozmowy nie wstało, całość dawała FAŁSZ -
+                    // czyli jawny zakaz sięgania po mikrofon okularów, wydany
+                    // komuś, kto właśnie o ten mikrofon poprosił.
+                    //
+                    // Zgłoszone wprost: "wybrałem Pytania mikrofonem okularów, a
+                    // wciąż włącza się mikrofon w telefonie". Ustawienie było
+                    // czytane wyłącznie po to, żeby zdecydować, czy PRÓBOWAĆ
+                    // zestawić SCO (wyżej). Co zrobić, gdy próba się nie uda,
+                    // nie zależało od niego w ogóle.
+                    //
+                    // A nie udaje się realnie: `startModern` szuka urządzenia
+                    // typu TYPE_BLUETOOTH_SCO na liście do rozmowy. Gdy okulary
+                    // stoją w tej chwili jako urządzenie MULTIMEDIALNE (A2DP),
+                    // takiego wpisu nie ma i acquire() oddaje false.
+                    //
+                    // Teraz prośba o mikrofon okularów znaczy: spróbuj jeszcze
+                    // raz, z poziomu samego rozpoznawania. Druga próba jest
+                    // tania (na API 31+ to synchroniczne pytanie o listę
+                    // urządzeń, bez czekania) i bywa skuteczna, bo lista potrafi
+                    // się uzupełnić dopiero po wybudzeniu okularów.
+                    useBluetoothMic = pl.victor.app.audio.MicChoice.useBluetoothMic(
+                        wantsGlassesMic = wantsGlassesMic,
+                        overSco = overSco,
+                        bleStreamLive = micStreamLive
+                    )
                 )
                 // MIKROFON MA POWIEDZIEĆ, CZY COKOLWIEK PRZYNIÓSŁ.
                 //
@@ -1735,20 +1784,44 @@ class AIOrchestrator(
                 // gdy telefon nic nie usłyszał (kieszeń, kurtka, zablokowany
                 // ekran), odłożonego tekstu nie ma i wtedy próbujemy jak dotąd.
                 val phoneFallback = setAsidePhoneTranscript
+                // KIEDY TEKST Z TELEFONU NIE JEST GODNY ZAUFANIA
+                //
+                // Powyższy rachunek - "nie przepisuj nagrania, skoro telefon coś
+                // usłyszał" - opiera się na założeniu, że oba mikrofony słyszały
+                // TO SAMO, więc szybszy wygrywa. Założenie przestaje być prawdziwe
+                // dokładnie wtedy, gdy człowiek poprosił o mikrofon okularów, a
+                // łącze rozmowy nie wstało: pytanie zbierał wtedy telefon z
+                // kieszeni, czyli urządzenie, którego świadomie NIE wybrał, i to
+                // z odległości, na jaką nie był liczony.
+                //
+                // W tym jednym przypadku nagranie z okularów idzie do przepisania
+                // mimo tekstu z telefonu. To nie może nic popsuć: `bestHeard`
+                // niżej bierze `glassesHeard ?: heard`, więc cisza z okularów
+                // oddaje pole tekstowi z telefonu, tak jak dotąd. Płacimy
+                // wyłącznie czasem transkrypcji i wyłącznie w turze, która i tak
+                // była już przegrana.
+                val phoneMicNotTrusted = pl.victor.app.audio.MicChoice.phoneMicNotTrusted(
+                    fromGlasses = fromGlasses,
+                    wantsGlassesMic = wantsGlassesMic,
+                    overSco = overSco
+                )
                 val glassesHeard = when {
                     captured?.hasAudio != true -> null
-                    phoneFallback != null -> null
+                    phoneFallback != null && !phoneMicNotTrusted -> null
                     else -> captured.pcm?.let { transcribeGlassesAudio(it, languageTagFor(language)) }
                 }
                 if (captured?.hasAudio == true) {
                     diag.event(
                         DiagFormat.Phase.TRANSKRYPCJA,
-                        if (phoneFallback != null) {
+                        if (phoneFallback != null && !phoneMicNotTrusted) {
                             "nagrania z okularów NIE przepisuję - mam tekst z telefonu"
+                        } else if (phoneMicNotTrusted && phoneFallback != null) {
+                            "przepisuję nagranie z okularów MIMO tekstu z telefonu - " +
+                                "proszono o mikrofon okularów, a zbierał telefon"
                         } else {
                             "z nagrania okularów"
                         },
-                        if (phoneFallback != null) {
+                        if (phoneFallback != null && !phoneMicNotTrusted) {
                             // Dwa pytania o stan, zero rozpoznawania. Bez nich
                             // „ta droga milczy" i „tej drogi nie ma" wyglądają
                             // z dziennika identycznie, a to dwie różne naprawy:
