@@ -1,0 +1,47 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów: false
+# źródło zdjęcia: full (dzielnik 2)
+20:58:53.673          ms  SESJA        start sesji
+20:59:29.863          ms  BLE          ROZŁĄCZONO  świadome=false
+20:59:37.919          ms  BLE          ROZŁĄCZONO  świadome=false
+20:59:42.854          ms  BLE          POŁĄCZONO  noweŁącze=true
+20:59:42.859          ms  BLE          powitanie okularów - start
+20:59:42.878          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=false kanałZapisu=true
+20:59:43.158          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 74 01 01 00 00 00 06 00 01 01 sztuk=1 pierwsza=true
+20:59:43.160          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+20:59:43.162          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+20:59:43.164          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+20:59:43.165          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+20:59:43.166          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=false zgłaszają=false
+20:59:44.952          ms  BLE          POŁĄCZONO  noweŁącze=false
+20:59:47.877          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+21:00:56.166          ms  PRZYCISK     wciśnięto  numer=1
+21:00:56.358          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:00:56.690          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION
+21:00:57.058          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=698
+21:00:57.185      +0 ms  SESJA        --- TURA 45da ---  źródło=OKULARY
+21:00:57.187      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:01:01.447   +4262 ms  NASŁUCH      koniec  ms=4262 odłożone=daj mi przepis na proste ciasto na pizzę mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=346
+21:01:01.685   +4500 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+21:01:02.201   +5016 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.0735 pakietów=254 rozkodowanych=254 odrzuconych=0 przesunięcie=6 ramka=-1
+21:01:02.206   +5021 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:01:02.237   +5052 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5073 jestMs=2800 tło=1 szczyt=3068 ile razy=2122.9
+21:01:02.239   +5054 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=daj mi przepis na proste ciasto na pizzę
+21:01:02.240   +5055 ms  SESJA        pytanie  tekst=daj mi przepis na proste ciasto na pizzę wymuszonyObraz=false
+21:01:02.258   +5073 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:01:02.310   +5125 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+21:01:02.310   +5125 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:01:02.765   +5580 ms  KONTEKST     zebrany  ms=126 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+21:01:02.779   +5594 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=480
+21:01:03.774   +6590 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=996
+21:01:03.973   +6788 ms  MODEL        zużycie tokenów  wejście=2459 odpowiedź=80 razem=2539 limit=1200 koniec=STOP
+21:01:03.982   +6797 ms  MODEL        koniec odpowiedzi (261 znaków, 2539 tokenów)  ms=1204
+21:01:03.985   +6800 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=261
+21:01:08.314  +11129 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 0 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+21:01:21.159  +23975 ms  MOWA         koniec wypowiedzi  ms=17167
+21:01:21.205  +24021 ms  SESJA        --- KONIEC TURY 45da: odpowiedziano ---
