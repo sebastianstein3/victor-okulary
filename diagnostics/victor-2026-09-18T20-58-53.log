@@ -541,3 +541,4 @@
 21:25:27.104          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1939
 21:25:28.103          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
 21:25:30.678          ms  ZDJĘCIE      próba 0: miniatura  bajtów=18186 jpeg=true kompletny=true
+21:25:37.097          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C6 98 0B 21 sztuk=4 pierwsza=false
