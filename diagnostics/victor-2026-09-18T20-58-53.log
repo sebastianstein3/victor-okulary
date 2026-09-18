@@ -70,3 +70,59 @@
 21:02:44.569  +52508 ms  MODEL        model lokalny: NIE UDAŁO SIĘ załadować  ms=20498 błąd=StandaloneCoroutine was cancelled
 21:02:44.574  +52512 ms  MODEL        dostawca zawiódł  dostawca=local poMs=20775 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=StandaloneCoroutine was cancelled
 21:02:44.577  +52515 ms  SESJA        --- KONIEC TURY 8122: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+21:02:53.443          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 06 9B 0B 24 sztuk=20 pierwsza=false
+21:02:53.534          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+21:02:56.078          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+21:02:56.100          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+21:03:02.871          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=18942 jpeg=true kompletny=true
+21:03:02.873      +0 ms  SESJA        --- TURA f82a ---  źródło=BUTTON
+21:03:02.874      +1 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+21:03:02.878      +5 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+21:03:02.920     +47 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:03:03.216    +343 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+21:03:04.525   +1652 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+21:03:14.544  +11671 ms  BLE          Hotspot okularów: gotowe  ms=11329
+21:03:14.645  +11773 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=11430
+21:03:14.685  +11812 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=18942 źródło=migawka pełnaRozdzielczość=false
+21:03:15.236  +12363 ms  KONTEKST     zebrany  ms=310 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+21:03:15.246  +12373 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash próba=1 zdjęć=1 znakówPromptu=1727
+21:03:15.271  +12398 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash poMs=25 powód=Nie mam połączenia z siecią, więc nie zapytam modelu. komunikat=Streaming error: Unable to resolve host "generativelanguage.googleapis.com": No address associated with hostname
+21:03:15.273  +12400 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=1 znakówPromptu=1727
+21:03:15.302  +12429 ms  MODEL        dostawca zawiódł  dostawca=deepseek model=deepseek-flash poMs=57 powód=Nie mam połączenia z siecią, więc nie zapytam modelu. komunikat=Network error: Unable to resolve host "api.deepseek.com": No address associated with hostname
+21:03:15.305  +12432 ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=1 znakówPromptu=1727
+21:03:15.322  +12449 ms  MODEL        model lokalny: generuję  znakówPromptu=3088
+21:03:16.684  +13811 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:03:22.130  +19257 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:03:32.117  +29245 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+21:04:00.335  +57463 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+21:04:00.347  +57474 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+21:04:07.855  +64982 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=18778 jpeg=true kompletny=true
+21:04:07.859  +64986 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+21:04:07.875  +65002 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+21:04:07.915  +65043 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:04:08.308  +65435 ms  BLE          Podgląd na żywo: podnoszę
+21:04:08.480  +65608 ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=true
+21:04:09.700  +66827 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 86 99 0B 22 sztuk=15 pierwsza=false
+21:04:09.711  +66838 ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+21:04:44.969 +102096 ms  MODEL        model lokalny: PIERWSZY TOKEN  ms=89646
+21:04:49.756 +106883 ms  BŁĄD         Podgląd na żywo: nie dołączyłem do sieci  sieć=W610T_6A7234AD04C5 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+21:04:49.758 +106885 ms  ZDJĘCIE      strumień dla liter nie wstał  ms=41452 powód=Okulary nie wystawiły sieci "W610T_6A7234AD04C5" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+21:04:49.775 +106902 ms  ZDJĘCIE      pomijam Wi-Fi Direct - ostatnia próba zawiodła  sekundTemu=95
+21:04:49.847 +106974 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=18778 źródło=migawka pełnaRozdzielczość=false
+21:04:49.923 +107050 ms  MODEL        model lokalny: koniec generowania  ms=94601 byłPierwszyToken=true
+21:04:49.927 +107054 ms  MODEL        dostawca zawiódł  dostawca=local poMs=94682 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=StandaloneCoroutine was cancelled
+21:04:49.935 +107062 ms  SESJA        --- KONIEC TURY f82a: BEZ ODPOWIEDZI (stan Thinking, powód: żądanie użytkownika) ---
+21:04:50.282          ms  KONTEKST     zebrany  ms=284 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+21:04:50.291          ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=1 znakówPromptu=1727
+21:04:50.311          ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=21 powód=Nie mam połączenia z siecią, więc nie zapytam modelu. komunikat=Streaming error: Unable to resolve host "generativelanguage.googleapis.com": No address associated with hostname
+21:04:50.314          ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=1 znakówPromptu=1727
+21:04:50.335          ms  MODEL        dostawca zawiódł  dostawca=deepseek model=deepseek-flash poMs=45 powód=Nie mam połączenia z siecią, więc nie zapytam modelu. komunikat=Network error: Unable to resolve host "api.deepseek.com": No address associated with hostname
+21:04:50.338          ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=1 znakówPromptu=1727
+21:04:50.357          ms  MODEL        model lokalny: generuję  znakówPromptu=3088
+21:04:52.206          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:04:57.561          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:06:15.210          ms  MODEL        model lokalny: PIERWSZY TOKEN  ms=84853
+21:06:18.613          ms  BLE          ROZŁĄCZONO  świadome=false
+21:06:21.967          ms  MODEL        model lokalny: koniec generowania  ms=91609 byłPierwszyToken=true
+21:06:21.971          ms  MODEL        dostawca nie odpowiedział w czasie  dostawca=local ms=45000 znakówOdpowiedzi=0
+21:06:21.991          ms  MODEL        dostawca zawiódł  dostawca=local poMs=91701 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Dostawca local nie odpowiedział w 45 s
