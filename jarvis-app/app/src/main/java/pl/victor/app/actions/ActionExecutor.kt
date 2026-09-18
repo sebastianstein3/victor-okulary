@@ -614,27 +614,7 @@ class ActionExecutor(private val context: Context) {
      */
     fun getInstalledApps(): List<AppInfo> {
         val pm = context.packageManager
-        val popularPackages = listOf(
-            "com.spotify.music" to "Spotify",
-            "com.google.android.youtube" to "YouTube",
-            "com.google.android.apps.maps" to "Google Maps",
-            "com.google.android.apps.photos" to "Google Photos",
-            "com.google.android.gm" to "Gmail",
-            "com.whatsapp" to "WhatsApp",
-            "com.facebook.katana" to "Facebook",
-            "com.instagram.android" to "Instagram",
-            "com.twitter.android" to "Twitter",
-            "org.telegram.messenger" to "Telegram",
-            "com.slack" to "Slack",
-            "com.netflix.mediaclient" to "Netflix",
-            "com.amazon.mShop.android.shopping" to "Amazon",
-            "com.ubercab" to "Uber",
-            "ee.mtakso.client" to "Bolt",
-            "com.citynav.jakdojade.pl.android" to "Jakdojade",
-            "com.shazam.android" to "Shazam",
-            "pl.neptis.yanosik.mobi.android" to "Yanosik",
-            "pl.victor.app" to "V.I.C.T.O.R. (ta apka)"
-        )
+        val popularPackages = KnownApps.displayList
 
         return popularPackages.mapNotNull { (pkg, name) ->
             try {

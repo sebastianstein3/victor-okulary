@@ -123,6 +123,21 @@
              setPackage rzuca wyjątkiem MIMO ŻE aplikacja jest zainstalowana.
              Lista prób wtedy przelatuje do końca i funkcja cicho nie działa. -->
         <package android:name="com.citynav.jakdojade.pl.android" />
+        <!-- Reszta aplikacji z KnownApps. Bez wpisu Android UDAJE, że ich nie
+             ma: getLaunchIntentForPackage oddaje null, a getPackageInfo rzuca
+             wyjątkiem - więc "otwórz Netflixa" kończyło się słowami "nie jest
+             zainstalowana", a ekran ustawień stawiał krzyżyk przy obecnej
+             aplikacji. Ta sama usterka co przy Jakdojade, tylko na dziewięciu
+             pozycjach naraz. Pilnuje tego KnownAppsManifestTest. -->
+        <package android:name="com.google.android.apps.photos" />
+        <package android:name="com.facebook.katana" />
+        <package android:name="com.instagram.android" />
+        <package android:name="com.twitter.android" />
+        <package android:name="com.slack" />
+        <package android:name="com.netflix.mediaclient" />
+        <package android:name="com.amazon.mShop.android.shopping" />
+        <package android:name="com.google.android.calendar" />
+        <package android:name="com.google.android.keep" />
         <package android:name="com.shazam.android" />
         <package android:name="com.ubercab" />
         <package android:name="ee.mtakso.client" />

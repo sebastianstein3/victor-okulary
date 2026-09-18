@@ -72,11 +72,11 @@ object AppLinks {
      * gdy zgadłem źle albo gdy pakiet się zmienił.
      */
     enum class Target(val packageName: String, val label: String) {
-        JAKDOJADE("com.citynav.jakdojade.pl.android", "Jakdojade"),
-        SHAZAM("com.shazam.android", "Shazam"),
-        UBER("com.ubercab", "Uber"),
-        BOLT("ee.mtakso.client", "Bolt"),
-        YANOSIK("pl.neptis.yanosik.mobi.android", "Yanosik")
+        JAKDOJADE(pl.victor.app.actions.KnownApps.JAKDOJADE, "Jakdojade"),
+        SHAZAM(pl.victor.app.actions.KnownApps.SHAZAM, "Shazam"),
+        UBER(pl.victor.app.actions.KnownApps.UBER, "Uber"),
+        BOLT(pl.victor.app.actions.KnownApps.BOLT, "Bolt"),
+        YANOSIK(pl.victor.app.actions.KnownApps.YANOSIK, "Yanosik")
     }
 
     /**

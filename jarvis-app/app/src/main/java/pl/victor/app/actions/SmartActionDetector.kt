@@ -625,28 +625,7 @@ class SmartActionDetector {
         openAppRegex.find(lower)?.let { match ->
             val jednoznacznyCzasownik = match.groupValues[1].isNotBlank()
             val appName = match.groupValues[2].trim().trimEnd(',', '.', '!', '?').lowercase()
-            val appMap = mapOf(
-                "spotify" to "com.spotify.music",
-                "youtube" to "com.google.android.youtube",
-                "mapy" to "com.google.android.apps.maps",
-                "google maps" to "com.google.android.apps.maps",
-                "gmail" to "com.google.android.gm",
-                "mail" to "com.google.android.gm",
-                "whatsapp" to "com.whatsapp",
-                "telegram" to "org.telegram.messenger",
-                "instagram" to "com.instagram.android",
-                "facebook" to "com.facebook.katana",
-                "netflix" to "com.netflix.mediaclient",
-                // com.ubercab, nie com.uber. Ta sama zgadnięta nazwa siedziała
-                // w drugiej kopii listy (ActionExecutor) i tam poprawiłem ją
-                // dzień wcześniej - tutaj została.
-                "uber" to "com.ubercab",
-                "amazon" to "com.amazon.mShop.android.shopping",
-                "kalendarz" to "com.google.android.calendar",
-                "calendar" to "com.google.android.calendar",
-                "notatki" to "com.google.android.keep",
-                "keep" to "com.google.android.keep"
-            )
+            val appMap = KnownApps.bySpokenName
             val pkg = appMap[appName]
             when {
                 pkg != null ->
