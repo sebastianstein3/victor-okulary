@@ -1415,15 +1415,26 @@ class VictorManager private constructor(context: Context) {
      * Pakiet z mikrofonu okularów, którego nikt nie zamawiał.
      *
      * Powstało, żeby rozstrzygnąć zgłoszenie „wywołuję głosowo, okulary
-     * reagują, a aplikacja nic nie robi" - i rozstrzygnęło, choć inaczej, niż
-     * zakładałem. Wybudzenie głosem PRZYCHODZI, tyle że ramką przycisku (patrz
-     * `NotifyEvent.ButtonPressed` w [handleNotify]), więc te pakiety nie są
-     * śladem zgubionego wybudzenia. To zwykły szum: okulary nadają dźwięk także
-     * między turami, po zakończonym nasłuchu.
+     * reagują, a aplikacja nic nie robi".
      *
-     * Wiersz zostaje, bo mierzy coś innego i nadal potrzebnego - ile dźwięku
-     * przechodzi obok, gdy nikt nie słucha. Tym samym licznikiem karmi się
-     * bufor pierwszej sekundy pytania (patrz [MicBacklog]).
+     * ## PROSTUJĘ TO, CO TU WCZEŚNIEJ STAŁO
+     * Pisałem, że wybudzenie głosem przychodzi ramką przycisku, więc te pakiety
+     * to zwykły szum. Dla tego egzemplarza to NIEPRAWDA. Dziennik z 17 września
+     * pokazuje o 17:17:55 trzykrotne potwierdzenie frazy wybudzenia, potem
+     * sześć sekund i ponad 425 pakietów dźwięku - i ŻADNEJ tury. Tura rusza
+     * dopiero o 17:18:29, od palca.
+     *
+     * Nie wiem, czy zmienił się firmware, czy tamta obserwacja z 12 września
+     * wzięła wciśnięcie palcem za wybudzenie. Wiem, że dzisiejszy pomiar mówi
+     * co innego - i że długa seria pakietów przy bezczynności jest jedynym
+     * sygnałem, jaki w takiej chwili dostajemy.
+     *
+     * Rozstrzyga o tym [MicWakeDetector], a droga przez przycisk zostaje obok:
+     * na egzemplarzach, gdzie ramka przychodzi, dalej działa.
+     *
+     * Wiersz mierzy przy okazji, ile dźwięku przechodzi obok, gdy nikt nie
+     * słucha. Tym samym licznikiem karmi się bufor pierwszej sekundy pytania
+     * (patrz [MicBacklog]).
      *
      * Wpis jest rzadki z rozmysłem - pakiety idą kilkadziesiąt razy na sekundę,
      * a dziennik ma zostać czytelny.
@@ -1432,6 +1443,7 @@ class VictorManager private constructor(context: Context) {
         val orphan = synchronized(micStreamListeners) { micStreamListeners.isEmpty() }
         if (!orphan) return
         strayMicPackets++
+        rozwazWybudzenieZDzwieku()
         val now = System.currentTimeMillis()
         if (now - lastStrayMicLogAtMs < STRAY_MIC_LOG_INTERVAL_MS) return
         lastStrayMicLogAtMs = now
@@ -1445,6 +1457,59 @@ class VictorManager private constructor(context: Context) {
             )
         }
     }
+
+    /**
+     * DŁUGI strumień dźwięku przy bezczynności znaczy, że okulary się obudziły.
+     *
+     * ## Czemu to jest wybudzenie, a nie szum
+     * Bo rozstrzyga o tym pomiar, nie przypuszczenie. W dwóch dziennikach z
+     * terenu okna trzysekundowe rozłożyły się tak:
+     *
+     *     1-20 pakietów   - 44 razy (szum między turami, po zakończonym nasłuchu)
+     *     61 pakietów     - 1 raz
+     *     125, 150, 150   - 3 razy, jedna seria, tuż po "hej lens"
+     *
+     * Między dwudziestoma a stu dwudziestoma pięcioma nie ma NICZEGO. To nie
+     * jest ten sam zjawisko w dwóch natężeniach, tylko dwie różne rzeczy.
+     *
+     * W dzienniku z 17 września widać całość: o 17:17:55 okulary trzykrotnie
+     * potwierdzają frazę wybudzenia, przez sześć sekund nadają ponad 425
+     * pakietów - i NIE DZIEJE SIĘ NIC. Tura rusza dopiero o 17:18:29, od palca.
+     *
+     * ## Prostuję wcześniejszy wniosek z tego samego miejsca
+     * KDoc [noteStrayMicPacket] mówi, że wybudzenie głosem przychodzi ramką
+     * przycisku, więc te pakiety to zwykły szum. Dla tego egzemplarza to już
+     * NIEPRAWDA: ramka nie przychodzi, a dźwięk owszem. Nie wiem, czy zmienił
+     * się firmware, czy tamta obserwacja z 12 września wzięła wciśnięcie palcem
+     * za wybudzenie - wiem tylko, że dzisiejszy pomiar mówi co innego.
+     *
+     * Dlatego droga przez przycisk ZOSTAJE (na egzemplarzach, gdzie działa), a
+     * ta jest drugą, niezależną.
+     *
+     * ## Zabezpieczenia
+     * Próg jest z zapasem ponad dwukrotnym wobec najgłośniejszego szumu, a
+     * karencja pilnuje, żeby jedna fraza nie odpaliła trzech tur - w dzienniku
+     * ta seria zajęła trzy kolejne okna.
+     */
+    private fun rozwazWybudzenieZDzwieku() {
+        if (!micWakeDetector.onStrayPacket(System.currentTimeMillis())) return
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                "wybudzenie z DŹWIĘKU - okulary nadają, choć nic nie zamawialiśmy",
+                mapOf(
+                    "pakietów" to MicWakeDetector.WAKE_PACKETS,
+                    "wOknieMs" to MicWakeDetector.WAKE_WINDOW_MS
+                )
+            )
+        }
+        // Ta sama droga co przycisk: dźwięk sprzed startu nasłuchu należy już do
+        // pytania (patrz [lastTriggerAtMs] i MicBacklog).
+        lastTriggerAtMs = System.currentTimeMillis()
+        _buttonEvent.tryEmit(ButtonEvent.ShortClick)
+    }
+
+    private val micWakeDetector = MicWakeDetector()
 
     /** Wołane wyłącznie pod blokadą [micStreamListeners]. */
     private fun unsubscribeMicStream() {
@@ -4204,6 +4269,7 @@ class VictorManager private constructor(context: Context) {
 
         /** Jak rzadko zapisywać pakiety przychodzące poza turą. */
         private const val STRAY_MIC_LOG_INTERVAL_MS = 3_000L
+
 
         /** Jak rzadko podsumowywać nieznane ramki notify tego samego typu. */
         private const val UNKNOWN_NOTIFY_INTERVAL_MS = 60_000L
