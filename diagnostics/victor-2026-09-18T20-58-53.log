@@ -45,3 +45,28 @@
 21:01:08.314  +11129 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 0 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
 21:01:21.159  +23975 ms  MOWA         koniec wypowiedzi  ms=17167
 21:01:21.205  +24021 ms  SESJA        --- KONIEC TURY 45da: odpowiedziano ---
+21:01:43.135          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+21:01:43.141          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+21:01:52.054          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=17572 jpeg=true kompletny=true
+21:01:52.062      +1 ms  SESJA        --- TURA 8122 ---  źródło=BUTTON
+21:01:52.066      +4 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+21:01:52.074     +12 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+21:01:52.087     +25 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:01:52.124     +63 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+21:01:53.435   +1373 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 4E 0B 16 sztuk=1 pierwsza=true
+21:01:53.434   +1372 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+21:02:21.899  +29837 ms  BLE          Hotspot okularów: gotowe  ms=29776
+21:02:22.623  +30562 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=161207 źródło=migawka pełnaRozdzielczość=true
+21:02:23.790  +31728 ms  KONTEKST     zebrany  ms=520 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+21:02:23.800  +31738 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=1778
+21:02:23.882  +31820 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.1-flash-lite poMs=83 powód=Nie mam połączenia z siecią, więc nie zapytam modelu. komunikat=Streaming error: Unable to resolve host "generativelanguage.googleapis.com": No address associated with hostname
+21:02:23.885  +31823 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=1 znakówPromptu=1778
+21:02:23.983  +31921 ms  MODEL        dostawca zawiódł  dostawca=deepseek model=deepseek-flash poMs=184 powód=Nie mam połączenia z siecią, więc nie zapytam modelu. komunikat=Network error: Unable to resolve host "api.deepseek.com": No address associated with hostname
+21:02:23.988  +31926 ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=1 znakówPromptu=1778
+21:02:24.070  +32008 ms  MODEL        model lokalny: ładuję plik  okno=2048
+21:02:25.854  +33792 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:02:31.158  +39098 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:02:32.727  +40665 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+21:02:44.569  +52508 ms  MODEL        model lokalny: NIE UDAŁO SIĘ załadować  ms=20498 błąd=StandaloneCoroutine was cancelled
+21:02:44.574  +52512 ms  MODEL        dostawca zawiódł  dostawca=local poMs=20775 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=StandaloneCoroutine was cancelled
+21:02:44.577  +52515 ms  SESJA        --- KONIEC TURY 8122: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
