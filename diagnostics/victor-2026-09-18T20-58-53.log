@@ -194,3 +194,164 @@
 21:08:07.062          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=414
 21:08:07.096      +0 ms  SESJA        --- TURA 10d1 ---  źródło=OKULARY
 21:08:07.098      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:08:10.593   +3498 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:08:11.225   +4129 ms  NASŁUCH      koniec  ms=4129 odłożone=daj mi przepis na naleśniki mikrofon=mowa wykryta szczytDb=9.16 próbek=9 gotowyPoMs=364
+21:08:11.357   +4261 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:08:11.629   +4533 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:08:12.308   +5212 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.6535 pakietów=233 rozkodowanych=233 odrzuconych=0 przesunięcie=6 ramka=-1
+21:08:12.315   +5219 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:08:12.327   +5231 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4653 jestMs=1940 tło=2 szczyt=2310 ile razy=826.7
+21:08:12.328   +5232 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=daj mi przepis na naleśniki
+21:08:12.329   +5233 ms  SESJA        pytanie  tekst=daj mi przepis na naleśniki wymuszonyObraz=false
+21:08:12.336   +5240 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:08:12.357   +5261 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:08:13.880   +6784 ms  KONTEKST     zebrany  ms=1516 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:08:13.905   +6809 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=6814
+21:08:14.253   +7157 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=347 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+21:08:14.260   +7164 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=6814
+21:08:15.718   +8622 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:08:16.276   +9181 ms  MODEL        koniec odpowiedzi (220 znaków, 5852 tokenów)  ms=2371
+21:08:16.288   +9192 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=220
+21:08:17.210  +10114 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:08:23.391  +16295 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+21:08:23.407  +16312 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+21:08:30.553  +23457 ms  MOWA         koniec wypowiedzi  ms=14259
+21:08:30.583  +23487 ms  SESJA        --- KONIEC TURY 10d1: odpowiedziano ---
+21:08:30.715          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=19714 jpeg=true kompletny=true
+21:08:30.720      +1 ms  SESJA        --- TURA 4bc7 ---  źródło=BUTTON
+21:08:30.722      +3 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+21:08:30.732     +14 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+21:08:31.096    +377 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:08:31.101    +383 ms  BLE          Podgląd na żywo: podnoszę
+21:08:31.320    +602 ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=false
+21:08:32.332   +1613 ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+21:08:32.405   +1686 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 47 47 0B 0B sztuk=14 pierwsza=false
+21:08:33.992   +3274 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:08:39.855   +9136 ms  MODEL        model lokalny: PIERWSZY TOKEN  ms=92274
+21:08:43.411  +12693 ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+21:08:43.416  +12697 ms  BLE          Podgląd: pełna odpowiedź serwera  treść=RTSP/1.0 200 OK / CSeq: 1 / Content-Type: application/sdp / Cache-Control: no-cache / Server: Hisilicon RTSP Streaming Media Server/1.0.0 / Content-Length: 345 /  / v=0 / o=- 1 1 IN IP4 127.0.0.1 / s=Test / a=type:broadcast / t=0 0 / c=IN IP4 0.0.0.0 / m=video 0 RTP/AVP 96 / a=rtpmap:96 H264/90000 / a=decode_buf=300 / a=control:track0 / m=audio 0 RTP/AVP 97 / a=rtpmap:97 mpeg4-generic/8000/1 / a=fmtp:97 profile-level-id=1; mode=AAC-hbr; config=1588; sizeLength=13; indexlength=3; indexdeltalength=3 / a=control:track1 / 
+21:08:43.419  +12700 ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=12318
+21:08:43.794  +13076 ms  BLE          Klatki: dekoder uruchomiony  maxBok=800
+21:08:43.844  +13125 ms  BLE          Podgląd: opis sesji przeczytany  ścieżek=2 kodeki=[H264, MPEG4-GENERIC]
+21:08:43.924  +13205 ms  BLE          Podgląd: strumień ruszył  sesja=82838485868788898A8B8C8D8E8F90 typŁadunku=96
+21:08:44.138  +13419 ms  BLE          Podgląd: obraz płynie  pakietów=1 jednostek=2 odrzuconych=0 parametryObrazu=true
+21:08:46.027  +15311 ms  BLE          Klatki: PIERWSZA KLATKA WYJĘTA  zeStrumienia=1600x1200 oddana=800x600 bajtów=52276 krok=2
+21:08:46.184  +15465 ms  ZDJĘCIE      litery ze strumienia zamiast miniatury  bajtów=134688 ms=15083
+21:08:46.194  +15475 ms  BLE          Klatki: dekoder zatrzymany  wyjętych=3 pominiętych=0
+21:08:46.278  +15559 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=134688 źródło=strumień pełnaRozdzielczość=true
+21:08:50.595  +19876 ms  KONTEKST     zebrany  ms=3317 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=true limitCzasu=false
+21:08:50.630  +19911 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=1 znakówPromptu=7765
+21:08:51.886  +21167 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=1255 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+21:08:51.899  +21180 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=1 znakówPromptu=7765
+21:08:55.249  +24530 ms  MODEL        dostawca zawiódł  dostawca=deepseek model=deepseek-flash poMs=4619 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Network error: Software caused connection abort
+21:08:55.260  +24542 ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=1 znakówPromptu=7765
+21:08:55.283  +24564 ms  MODEL        model lokalny: generuję  znakówPromptu=7926
+21:08:55.300  +24581 ms  MODEL        model lokalny: koniec generowania  ms=18 byłPierwszyToken=false
+21:08:55.304  +24585 ms  MODEL        koniec odpowiedzi (0 znaków, 0 tokenów)  ms=4675
+21:08:55.306  +24587 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=0
+21:08:59.133  +28414 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:09:04.799  +34082 ms  MOWA         koniec wypowiedzi  ms=9489
+21:09:04.884  +34165 ms  SESJA        --- KONIEC TURY 4bc7: odpowiedziano ---
+21:09:08.227          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:09:38.285          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+21:09:38.312          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+21:09:45.894          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=18791 jpeg=true kompletny=true
+21:09:45.899      +0 ms  SESJA        --- TURA 1960 ---  źródło=BUTTON
+21:09:45.903      +4 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+21:09:45.915     +16 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+21:09:45.946     +47 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:09:46.550    +652 ms  BLE          Podgląd na żywo: podnoszę
+21:09:46.627    +728 ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=false
+21:09:47.834   +1935 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 07 58 0B 20 sztuk=6 pierwsza=false
+21:09:47.844   +1945 ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+21:09:56.170  +10271 ms  MODEL        model lokalny: koniec generowania  ms=168590 byłPierwszyToken=true
+21:09:56.178  +10279 ms  MODEL        dostawca zawiódł  dostawca=local poMs=168660 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=StandaloneCoroutine was cancelled
+21:09:56.181  +10282 ms  SESJA        --- KONIEC TURY 1960: BEZ ODPOWIEDZI (stan Capturing) ---
+21:09:59.188          ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+21:09:59.192          ms  BLE          Podgląd: pełna odpowiedź serwera  treść=RTSP/1.0 200 OK / CSeq: 1 / Content-Type: application/sdp / Cache-Control: no-cache / Server: Hisilicon RTSP Streaming Media Server/1.0.0 / Content-Length: 345 /  / v=0 / o=- 1 1 IN IP4 127.0.0.1 / s=Test / a=type:broadcast / t=0 0 / c=IN IP4 0.0.0.0 / m=video 0 RTP/AVP 96 / a=rtpmap:96 H264/90000 / a=decode_buf=300 / a=control:track0 / m=audio 0 RTP/AVP 97 / a=rtpmap:97 mpeg4-generic/8000/1 / a=fmtp:97 profile-level-id=1; mode=AAC-hbr; config=1588; sizeLength=13; indexlength=3; indexdeltalength=3 / a=control:track1 / 
+21:09:59.193          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=12643
+21:09:59.567          ms  BLE          Klatki: dekoder uruchomiony  maxBok=800
+21:09:59.589          ms  BLE          Podgląd: opis sesji przeczytany  ścieżek=2 kodeki=[H264, MPEG4-GENERIC]
+21:09:59.624          ms  BLE          Podgląd: strumień ruszył  sesja=82838485868788898A8B8C8D8E8F90 typŁadunku=96
+21:09:59.717          ms  BLE          Podgląd: obraz płynie  pakietów=1 jednostek=2 odrzuconych=0 parametryObrazu=true
+21:10:00.566          ms  BLE          Klatki: PIERWSZA KLATKA WYJĘTA  zeStrumienia=1600x1200 oddana=800x600 bajtów=61438 krok=2
+21:10:00.645          ms  ZDJĘCIE      litery ze strumienia zamiast miniatury  bajtów=168718 ms=14095
+21:10:00.647          ms  BLE          Klatki: dekoder zatrzymany  wyjętych=3 pominiętych=0
+21:10:00.691          ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=168718 źródło=strumień pełnaRozdzielczość=true
+21:10:02.533          ms  KONTEKST     zebrany  ms=1549 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=true limitCzasu=false
+21:10:02.545          ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=1 znakówPromptu=8268
+21:10:06.565          ms  MODEL        dostawca zawiódł  dostawca=deepseek model=deepseek-flash poMs=4021 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Network error: Software caused connection abort
+21:10:06.568          ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=2 zdjęć=1 znakówPromptu=8268
+21:10:07.495          ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=4950 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+21:10:07.498          ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=1 znakówPromptu=8268
+21:10:07.535          ms  MODEL        model lokalny: generuję  znakówPromptu=8429
+21:10:07.845          ms  MODEL        model lokalny: koniec generowania  ms=311 byłPierwszyToken=false
+21:10:07.847          ms  MODEL        koniec odpowiedzi (0 znaków, 0 tokenów)  ms=5303
+21:10:07.850          ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=0
+21:10:09.468          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:10:14.714          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+21:10:14.723          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+21:10:15.170          ms  MOWA         koniec wypowiedzi  ms=7319
+21:10:18.606          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:10:22.366          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=16832 jpeg=true kompletny=true
+21:10:22.369      +0 ms  SESJA        --- TURA 56c1 ---  źródło=BUTTON
+21:10:22.371      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+21:10:22.377      +8 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+21:10:22.578    +209 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:10:22.587    +218 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+21:10:23.774   +1405 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+21:10:33.834  +11466 ms  BLE          Hotspot okularów: gotowe  ms=11247
+21:10:33.909  +11540 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=11322
+21:10:33.926  +11557 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=16832 źródło=migawka pełnaRozdzielczość=false
+21:10:35.601  +13232 ms  KONTEKST     zebrany  ms=1461 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=true limitCzasu=false
+21:10:35.613  +13244 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=1 znakówPromptu=8292
+21:10:37.519  +15150 ms  MODEL        koniec odpowiedzi (163 znaków, 6562 tokenów)  ms=1907
+21:10:37.523  +15154 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=163
+21:10:40.154  +17785 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:10:50.128  +27760 ms  MOWA         koniec wypowiedzi  ms=12604
+21:10:50.170  +27801 ms  SESJA        --- KONIEC TURY 56c1: odpowiedziano ---
+21:10:50.808          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 87 5A 0B 26 sztuk=15 pierwsza=false
+21:10:53.573          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:11:03.817          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+21:12:08.608          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:12:21.494          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:13:34.582          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 74 01 01 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+21:14:35.972          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 46 61 01 02 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+21:14:40.049          ms  PRZYCISK     wciśnięto  numer=1
+21:14:40.283          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:14:40.579          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION
+21:14:40.886          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=598
+21:14:41.114      +1 ms  SESJA        --- TURA 4bd8 ---  źródło=OKULARY
+21:14:41.115      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:14:42.048    +935 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:14:45.185   +4072 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:14:47.009   +5896 ms  NASŁUCH      koniec  ms=5895 odłożone=lance mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=793
+21:14:47.024   +5911 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:14:47.432   +6319 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:14:47.835   +6722 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.7135 pakietów=336 rozkodowanych=336 odrzuconych=0 przesunięcie=6 ramka=-1
+21:14:47.840   +6727 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:14:47.845   +6732 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6713 jestMs=1180 tło=1 szczyt=2768 ile razy=2351.8
+21:14:47.847   +6734 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=lance
+21:14:47.848   +6735 ms  SESJA        pytanie  tekst=lance wymuszonyObraz=false
+21:14:47.854   +6741 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:14:47.867   +6754 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:14:49.761   +8648 ms  KONTEKST     zebrany  ms=1884 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:14:49.787   +8674 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=7386
+21:14:51.402  +10289 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:14:51.822  +10709 ms  MODEL        koniec odpowiedzi (155 znaków, 6067 tokenów)  ms=2036
+21:14:51.826  +10713 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=155
+21:14:53.711  +12598 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:15:02.892  +21779 ms  MOWA         koniec wypowiedzi  ms=11064
+21:15:02.942  +21829 ms  SESJA        --- KONIEC TURY 4bd8: odpowiedziano ---
