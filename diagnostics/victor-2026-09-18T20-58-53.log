@@ -355,3 +355,70 @@
 21:14:53.711  +12598 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
 21:15:02.892  +21779 ms  MOWA         koniec wypowiedzi  ms=11064
 21:15:02.942  +21829 ms  SESJA        --- KONIEC TURY 4bd8: odpowiedziano ---
+21:15:05.434          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+21:15:05.439          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+21:15:06.436          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:15:11.820          ms  PRZYCISK     wciśnięto  numer=1
+21:15:12.330          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION
+21:15:12.512      +0 ms  SESJA        --- TURA f3aa ---  źródło=OKULARY
+21:15:12.516      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:15:13.118    +606 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:15:13.350    +838 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=19778 jpeg=true kompletny=true
+21:15:13.356    +844 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=BUTTON stan=Listening
+21:15:16.292   +3780 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:15:21.490   +8979 ms  NASŁUCH      koniec  ms=8977 mikrofon=mowa wykryta szczytDb=10.0 próbek=16 gotowyPoMs=437
+21:15:21.622   +9110 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+21:15:22.224   +9713 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:15:24.933  +12421 ms  NASŁUCH      nagranie z okularów  jest=true sekund=8.1535 pakietów=408 rozkodowanych=407 odrzuconych=1 przesunięcie=6 ramka=-1
+21:15:26.214  +13702 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:15:26.853  +14341 ms  TRANSKRYPCJA z nagrania okularów  ms=1917 droga=Nasłuch telefonu
+21:15:26.880  +14368 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=8153 jestMs=8153 tło=0 szczyt=90 ile razy=934.0
+21:15:26.912  +14400 ms  SESJA        --- KONIEC TURY f3aa: błąd ---
+21:15:27.682          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:15:41.534          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:16:15.349          ms  PRZYCISK     wciśnięto  numer=1
+21:16:15.549          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:16:15.858          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION
+21:16:16.029          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=21 ms=473
+21:16:16.110      +0 ms  SESJA        --- TURA 97be ---  źródło=OKULARY
+21:16:16.112      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:16:16.576    +466 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:16:19.638   +3528 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:16:20.032   +3923 ms  NASŁUCH      koniec  ms=3922 odłożone=co to za piosenka mikrofon=mowa wykryta szczytDb=7.84 próbek=12 gotowyPoMs=339
+21:16:20.052   +3942 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=21
+21:16:20.474   +4364 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:16:21.509   +5399 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.5735 pakietów=229 rozkodowanych=229 odrzuconych=0 przesunięcie=6 ramka=-1
+21:16:21.524   +5415 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:16:21.545   +5435 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4573 jestMs=1500 tło=21 szczyt=5128 ile razy=235.9
+21:16:21.552   +5442 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co to za piosenka
+21:16:21.555   +5446 ms  SESJA        pytanie  tekst=co to za piosenka wymuszonyObraz=false
+21:16:21.738   +5628 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=RECOGNIZE_SONG proba=1/3 aplikacja=com.shazam.android pakietZgadnięty=com.shazam.android adres=com.shazam.android.intent.actions.START_TAGGING
+21:16:23.254   +7145 ms  SESJA        --- KONIEC TURY 97be: odpowiedziano ---
+21:16:26.733          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:17:23.080          ms  PRZYCISK     wciśnięto  numer=1
+21:17:23.251          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:17:23.655          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION
+21:17:23.924          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=24 ms=660
+21:17:24.116      +0 ms  SESJA        --- TURA 2d17 ---  źródło=OKULARY
+21:17:24.118      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false
+21:17:24.742    +626 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:17:27.835   +3720 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:17:29.178   +5062 ms  NASŁUCH      koniec  ms=5061 odłożone=jak dojadę na polną 140 ba w toruniu mikrofon=mowa wykryta szczytDb=9.5199995 próbek=12 gotowyPoMs=442
+21:17:29.187   +5071 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=24
+21:17:29.604   +5488 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:17:31.255   +7140 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.9535 pakietów=298 rozkodowanych=298 odrzuconych=0 przesunięcie=6 ramka=-1
+21:17:31.278   +7162 ms  TRANSKRYPCJA nagrania z okularów NIE przepisuję - mam tekst z telefonu  rozpoznawanieNaUrządzeniu=true voskGotowy=false chmura=false
+21:17:31.302   +7186 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5953 jestMs=4060 tło=27 szczyt=2974 ile razy=108.8
+21:17:31.310   +7194 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jak dojadę na polną 140 ba w toruniu
+21:17:31.313   +7197 ms  SESJA        pytanie  tekst=jak dojadę na polną 140 ba w toruniu wymuszonyObraz=false
+21:17:31.332   +7216 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:17:31.352   +7236 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:17:33.250   +9134 ms  KONTEKST     zebrany  ms=1883 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:17:33.286   +9170 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=7574
+21:17:33.607   +9491 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:17:34.519  +10403 ms  MODEL        koniec odpowiedzi (140 znaków, 6125 tokenów)  ms=1235
+21:17:34.551  +10436 ms  AKCJA        model zlecił akcje  akcje=APP_TASK znakówOdpowiedzi=65
+21:17:36.204  +12088 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:17:39.864  +15748 ms  MOWA         koniec wypowiedzi  ms=5306
+21:17:39.976  +15861 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=TRANSIT_PLAN proba=3/3 aplikacja=com.citynav.jakdojade.pl.android pakietZgadnięty=com.citynav.jakdojade.pl.android
+21:17:40.015  +15899 ms  SESJA        --- KONIEC TURY 2d17: odpowiedziano ---
