@@ -396,3 +396,16 @@
 17:20:53.702  +36528 ms  MOWA         koniec wypowiedzi  ms=17551
 17:20:53.759  +36585 ms  SESJA        --- KONIEC TURY 763c: odpowiedziano ---
 17:20:53.775          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:20:54.733          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:20:57.171          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,16,3
+16:53:37.939      +3 ms  SESJA        --- TURA a59e ---  źródło=TEXT_INPUT
+16:53:37.954     +16 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+16:53:38.266    +329 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:53:38.545    +608 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:53:40.719   +2781 ms  KONTEKST     zebrany  ms=2056 pamięć=true kalendarz=true poczta=false pogoda=false lokalizacja=false limitCzasu=false
+16:53:40.771   +2833 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=6550
+16:53:46.579   +8641 ms  MODEL        koniec odpowiedzi (607 znaków, 6574 tokenów)  ms=5809
+16:53:46.593   +8655 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=607
+16:53:47.026   +9088 ms  MOWA         koniec wypowiedzi  ms=422
+16:53:47.205   +9267 ms  SESJA        --- KONIEC TURY a59e: odpowiedziano ---
+16:53:47.246          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
