@@ -247,6 +247,9 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
      * pojawiłyby się na końcu, zamiast po kolei od góry.
      */
     private val thumbnailQueue = ArrayDeque<MediaItem>()
+
+    /** Czy powód nieudanych miniatur już padł - patrz [startThumbnailWorker]. */
+    private var thumbnailReasonShown = false
     private var thumbnailWorkerRunning = false
 
     fun load() {
@@ -255,13 +258,36 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
             _busy.value = true
             try {
                 _status.value = "Pytam okulary o listę plików..."
+                // LISTA PO BLUETOOTH ZOSTAJE, BO JEST SZYBKA - ALE NIE KOŃCZY SPRAWY.
+                //
+                // Dotąd udana lista po BLE kończyła całą procedurę: sesja Wi-Fi
+                // nie wstawała WCALE. A każda miniatura woła downloadFile(),
+                // które bez adresu okularów rzuca wyjątkiem - połykanym przez
+                // runCatching w robotniku miniatur. Siatka zostawała pusta i nic
+                // nie tłumaczyło dlaczego.
+                //
+                // Zgłoszone jako "galeria próbuje pobierać przez Bluetooth i
+                // nigdy się nie udaje". Faktycznie było odwrotnie: próbowała
+                // przez Wi-Fi, którego nikt nie podniósł.
+                //
+                // Dlatego lista idzie na ekran NATYCHMIAST (to jest zysk z BLE),
+                // a Wi-Fi wstaje zaraz po niej, w tej samej procedurze.
                 val overBle = manager.findAlbumOverBle()
                 if (overBle.isNotEmpty()) {
                     archive.rememberListing(overBle)
                     refreshFromArchive()
-                    _sessionOpen.value = false
-                    _status.value = "Lista pobrana przez Bluetooth - internet w telefonie działa " +
-                        "normalnie. Podgląd pliku może wymagać Wi-Fi."
+                    _status.value = "${overBle.size} plików. Podnoszę Wi-Fi do miniatur..."
+                    // Sesja Wi-Fi idzie z bindProcess = false (patrz
+                    // VictorManager.beginTransferSession), więc NIE odcina
+                    // telefonu od internetu - dawny komunikat obiecujący to jako
+                    // zaletę listy po BLE opisywał stan sprzed tamtej zmiany.
+                    _sessionOpen.value = manager.openMediaSession()
+                    _status.value = if (_sessionOpen.value) {
+                        "${overBle.size} plików na okularach."
+                    } else {
+                        "${overBle.size} plików. Miniatur i podglądu nie będzie: " +
+                            (manager.lastTransferFailure ?: "Wi-Fi z okularami nie wstało.")
+                    }
                     return@launch
                 }
                 _status.value = "Bluetooth nie podał listy - podnoszę połączenie Wi-Fi z okularami..."
@@ -344,6 +370,21 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
                         // pętli przewijania zajęłoby łącze na okrągło, a plik
                         // i tak da się otworzyć dotknięciem.
                         Log.w(TAG, "Nie udało się zrobić miniatury: ${item.name}")
+                        // JEDEN POWÓD NA CAŁĄ SIATKĘ, ZAMIAST CISZY.
+                        //
+                        // Bez Wi-Fi z okularami KAŻDA miniatura pada tak samo, a
+                        // runCatching wyżej połyka wyjątek. Człowiek widział
+                        // pustą siatkę bez słowa wyjaśnienia i brał to za awarię
+                        // pobierania przez Bluetooth.
+                        //
+                        // Mówimy to RAZ na wejście do galerii: jedna linijka
+                        // powodu jest pomocą, ta sama linijka przy każdym
+                        // kafelku byłaby migotaniem.
+                        if (!_sessionOpen.value && !thumbnailReasonShown) {
+                            thumbnailReasonShown = true
+                            _status.value = "Miniatur nie pobiorę bez Wi-Fi z okularami. " +
+                                (manager.lastTransferFailure ?: "Spróbuj odświeżyć listę.")
+                        }
                     }
                 }
             } finally {

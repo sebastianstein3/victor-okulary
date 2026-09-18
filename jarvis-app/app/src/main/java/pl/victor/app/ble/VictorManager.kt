@@ -3573,8 +3573,15 @@ class VictorManager private constructor(context: Context) {
      *
      * Publiczny odpowiednik [awaitGlassesIp] dla ekranów, które przeglądają
      * pliki dłużej niż jedno pobranie (galeria). Sesję zamyka
-     * [endTransferSession] - i trzeba to zrobić, bo dopóki trwa, cały ruch
-     * telefonu idzie przez grupę Wi-Fi okularów.
+     * [endTransferSession] i trzeba to zrobić, bo trzyma ona radio Wi-Fi przy
+     * okularach.
+     *
+     * NIE odcina przy tym telefonu od internetu: sesja idzie z
+     * `bindProcess = false`, a pobieranie plików samo wskazuje sieć okularów.
+     * Stało tu zdanie odwrotne - że "cały ruch telefonu idzie przez grupę
+     * Wi-Fi okularów" - i opisywało stan sprzed tamtej zmiany. Galeria omijała
+     * przez nie sesję Wi-Fi, żeby "nie odcinać internetu", i przez to nie
+     * pobierała ani jednej miniatury.
      */
     suspend fun openMediaSession(): Boolean = awaitGlassesIp()
 

@@ -154,6 +154,33 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
             val scoIn = inputs.firstOrNull { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO }
 
             buildString {
+                // TRYB AUDIO TELEFONU - BEZ NIEGO NIE DA SIĘ ROZSTRZYGNĄĆ, KTO
+                // PRZESTAWIŁ OKULARY NA "TYLKO POŁĄCZENIA".
+                //
+                // `am.mode` jest globalny. MODE_IN_COMMUNICATION znaczy, że
+                // system rozdziela dźwięk jak podczas rozmowy - i wtedy zestaw
+                // pokazuje się jako urządzenie do połączeń, nie do multimediów.
+                // Zgłoszone: "okulary przełączają się na Bluetooth na same
+                // połączenia czasem".
+                //
+                // Czy zostawiamy go tak MY, czy robi to system albo inna
+                // aplikacja, z kodu nie wynika. Ten wpis w dzienniku to
+                // rozstrzygnie: jeśli tryb rozmowy stoi, gdy nie trzymamy
+                // łącza (przypiętych=0), to zostało po czymś, co nie
+                // posprzątało.
+                append("Tryb audio telefonu: ")
+                append(
+                    when (am.mode) {
+                        AudioManager.MODE_NORMAL -> "zwykły"
+                        AudioManager.MODE_IN_COMMUNICATION -> "ROZMOWA (VoIP)"
+                        AudioManager.MODE_IN_CALL -> "ROZMOWA (telefoniczna)"
+                        AudioManager.MODE_RINGTONE -> "dzwonek"
+                        else -> "inny (${am.mode})"
+                    }
+                )
+                append(", trzymanych łączy: ")
+                append(holdCount)
+                append('\n')
                 append("Odtwarzanie (A2DP): ")
                 append(a2dp?.productName?.toString() ?: "brak")
                 append('\n')
@@ -416,10 +443,45 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
         restoreMode(am)
     }
 
+    /**
+     * Wraca do trybu sprzed zajęcia łącza - ale NIGDY do trybu rozmowy.
+     *
+     * ## Pułapka, którą to zamyka
+     * [previousMode] bierze się z `am.mode` tuż PRZED przestawieniem na
+     * MODE_IN_COMMUNICATION. Jeżeli telefon już w nim był - bo poprzednie
+     * sprzątanie padło, bo proces został ubity w trakcie, bo przywrócenie
+     * wyleciało wyjątkiem połkniętym przez `runCatching` - to zapamiętujemy
+     * TRYB ROZMOWY jako "poprzedni" i przywracamy go z powrotem. Telefon
+     * zostaje wtedy w trybie rozmowy na stałe, a zestaw Bluetooth pokazuje się
+     * jako urządzenie "do połączeń", nie "do multimediów".
+     *
+     * Dokładnie tak brzmi zgłoszenie: "okulary przełączają się na Bluetooth na
+     * same połączenia czasem". Słowo "czasem" pasuje do tego kształtu - trzeba
+     * jednego nieudanego sprzątania, żeby stan zatrzasnął się do restartu.
+     *
+     * Nie umiem stąd rozstrzygnąć, czy to JEDYNA przyczyna tamtego objawu - ale
+     * jest to droga, którą da się przejść i którą aplikacja odpowiada za sama.
+     *
+     * MODE_IN_CALL (prawdziwa rozmowa telefoniczna) zostawiamy bez zmian: tam
+     * trybem rządzi system i to nie my go ustawiliśmy.
+     */
     private fun restoreMode(am: AudioManager) {
-        val mode = previousMode ?: AudioManager.MODE_NORMAL
+        val zapamietany = previousMode
         previousMode = null
-        runCatching { am.mode = mode }
+        val docelowy = if (zapamietany == null || zapamietany == AudioManager.MODE_IN_COMMUNICATION) {
+            AudioManager.MODE_NORMAL
+        } else {
+            zapamietany
+        }
+        if (zapamietany == AudioManager.MODE_IN_COMMUNICATION) {
+            Log.w(
+                tag,
+                "Tryb sprzed zajęcia łącza był JUŻ trybem rozmowy - wracam na " +
+                    "MODE_NORMAL zamiast go utrwalać"
+            )
+        }
+        runCatching { am.mode = docelowy }
+            .onFailure { Log.w(tag, "Nie udało się przywrócić trybu audio", it) }
     }
 
     private fun hasBluetoothPermission(): Boolean {
