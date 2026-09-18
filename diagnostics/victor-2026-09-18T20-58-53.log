@@ -517,3 +517,27 @@
 21:22:39.931  +58272 ms  ZDJĘCIE      migawka milczy - sprawdzam liczniki plików  zdjęcia=2 filmy=0 nagrania=6
 21:22:39.936  +58278 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 źródło=migawka pełnaRozdzielczość=false powódBłędu=Okulary nie potwierdziły zrobienia zdjęcia, choć odpowiadają na inne komendy. W ich pamięci jest 8 plików - jeśli to dużo, zwolnij miejsce. Sprawdź też, czy akurat nie nagrywają wideo.
 21:22:39.948  +58289 ms  SESJA        --- KONIEC TURY 889a: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie potwierdziły zrobienia zdjęcia, choć odpowiadają na inne komendy. W ich pamięci jest 8 plików - jeśli to dużo, zwolnij miejsce. Sprawdź też, czy akurat nie nagrywają wideo. ---
+21:22:41.553          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:22:58.703          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:23:00.853          ms  BLE          Zwolnienie pamięci: liczniki PRZED  zdjęć=2 wideo=0 nagrań=6
+21:23:03.963          ms  BLE          Zwolnienie pamięci: liczniki PO  zdjęć=2 wideo=0 nagrań=6
+21:23:09.223          ms  BLE          Zwolnienie pamięci: liczniki PRZED  zdjęć=2 wideo=0 nagrań=6
+21:23:12.328          ms  BLE          Zwolnienie pamięci: liczniki PO  zdjęć=2 wideo=0 nagrań=6
+21:23:17.409          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4006
+21:23:21.420          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4009
+21:23:25.426          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4003
+21:23:29.434          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4007
+21:23:33.437          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4000
+21:23:33.439          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+21:23:34.830          ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+21:23:34.847          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 46 8B 0B 1B sztuk=14 pierwsza=false
+21:23:45.170          ms  BLE          Hotspot okularów: gotowe  ms=11731
+21:24:34.865          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 46 9A 0B 27 sztuk=20 pierwsza=false
+21:24:42.068          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=false
+21:25:23.814          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,1
+21:25:25.162          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:25:27.064          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:25:27.066          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:25:27.104          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1939
+21:25:28.103          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+21:25:30.678          ms  ZDJĘCIE      próba 0: miniatura  bajtów=18186 jpeg=true kompletny=true
