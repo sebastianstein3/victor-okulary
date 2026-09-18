@@ -1912,6 +1912,7 @@ class VictorManager private constructor(context: Context) {
         _discoveredDevices.value = emptyList()
         _connectionState.value = ConnectionState.SCANNING
         scanning = true
+        dopiszSparowane()
 
         simulator?.let { sim ->
             scope.launch {
@@ -1984,6 +1985,43 @@ class VictorManager private constructor(context: Context) {
      * Dodaje lub aktualizuje urządzenie na liście wyników skanu.
      * `rssi == null` zachowuje poprzednio znaną siłę sygnału.
      */
+    /**
+     * Dokłada do listy okulary SPAROWANE w systemie, choćby nie rozgłaszały.
+     *
+     * ## Czemu sam skan nie wystarcza
+     * Bo urządzenie BLE, które jest już połączone z telefonem, zwykle PRZESTAJE
+     * rozgłaszać - nie ma po co, skoro ma z kim rozmawiać. Skan go wtedy nie
+     * widzi, a ekran parowania świeci pustką albo cudzymi urządzeniami.
+     *
+     * Z zewnątrz wygląda to dokładnie tak, jak zgłoszono: "okulary nie chcą się
+     * połączyć z aplikacją, choć z Bluetooth są połączone". Bluetooth pokazuje
+     * je, bo zna je z parowania; nasz ekran ich nie pokazywał, bo pytał
+     * wyłącznie eteru.
+     *
+     * Bierzemy tylko urządzenia Z NAZWĄ i tylko te, które wyglądają na okulary -
+     * lista sparowanych zawiera też klawiatury, głośniki i samochód.
+     */
+    @SuppressLint("MissingPermission")
+    private fun dopiszSparowane() {
+        val manager = appContext.getSystemService(Context.BLUETOOTH_SERVICE)
+            as? android.bluetooth.BluetoothManager ?: return
+        val bonded = runCatching { manager.adapter?.bondedDevices }
+            .onFailure { Log.w(tag, "Nie mam dostępu do sparowanych urządzeń", it) }
+            .getOrNull() ?: return
+        val znany = runCatching { settings.getLastGlassesAddress() }.getOrNull()
+        bonded.forEach { device ->
+            val name = runCatching { device.name }.getOrNull()
+            if (name.isNullOrBlank()) return@forEach
+            val toOkulary = GlassesProtocol.looksLikeGlassesName(name) ||
+                device.address.equals(znany, ignoreCase = true)
+            if (!toOkulary) return@forEach
+            Log.i(tag, "Dokładam sparowane urządzenie: $name")
+            // rssi = 0: nie mamy pomiaru siły sygnału dla czegoś, czego nie
+            // słyszymy w eterze. Sortowanie i tak stawia znane na górze.
+            upsertDevice(device.address, name, null)
+        }
+    }
+
     private fun upsertDevice(address: String, name: String?, rssi: Int?) {
         val knownAddress = runCatching { settings.getLastGlassesAddress() }.getOrNull()
         _discoveredDevices.update { current ->
@@ -1999,10 +2037,35 @@ class VictorManager private constructor(context: Context) {
             } else {
                 current.map { if (it.address.equals(address, ignoreCase = true)) updated else it }
             }
-            // Znane urządzenie na górę, reszta po sile sygnału. Lista skanu
-            // potrafi mieć kilkanaście pozycji i bez tego te właściwe okulary
-            // lądują gdzieś w środku, między telewizorem a cudzymi słuchawkami.
-            merged.sortedWith(compareByDescending<DiscoveredDevice> { it.known }.thenByDescending { it.rssi })
+            // URZĄDZENIA BEZ NAZWY NIE TRAFIAJĄ NA LISTĘ.
+            //
+            // Ekran pokazuje `name ?: address`, więc anonimowy nadajnik wychodzi
+            // jako ciąg szesnastkowy - i tak właśnie brzmi zgłoszenie: "bardzo
+            // dużo dziwnych urządzeń, których nazwy to losowe cyfry i litery".
+            // W bloku mieszkalnym takich rozgłoszeń są dziesiątki: opaski,
+            // czujniki, telewizory, cudze słuchawki w trybie parowania.
+            //
+            // To NIE jest samo sprzątanie ekranu. Anonimowe urządzenie nie ma
+            // prawa być tymi okularami: do podniesienia ich sieci Wi-Fi bierzemy
+            // NAZWĘ BLE (patrz [glassesBleName] i GlassesProtocol.glassesApSsid),
+            // a bez niej transfer kończy się na "Nie znam nazwy sieci okularów".
+            // Pozycja bez nazwy jest więc z góry nieklikalna - pokazywanie jej
+            // to obiecywanie czegoś, co nie zadziała.
+            //
+            // Nazwa bywa przy tym w DRUGIM rozgłoszeniu (onLeScan oddaje null,
+            // onParsedData już nazwę), a scalanie wyżej to uwzględnia: urządzenie
+            // wejdzie na listę, gdy tylko się przedstawi.
+            //
+            // Znane urządzenie zostaje zawsze - z nim już się łączyliśmy.
+            merged
+                .filter { !it.name.isNullOrBlank() || it.known }
+                // Znane urządzenie na górę, reszta po sile sygnału. Lista skanu
+                // potrafi mieć kilkanaście pozycji i bez tego te właściwe okulary
+                // lądują gdzieś w środku, między telewizorem a cudzymi słuchawkami.
+                .sortedWith(
+                    compareByDescending<DiscoveredDevice> { it.known }
+                        .thenByDescending { it.rssi }
+                )
         }
     }
 

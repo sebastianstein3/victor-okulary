@@ -443,6 +443,37 @@ object GlassesProtocol {
      * @param bleName nazwa urządzenia BLE, taka jak w skanie
      * @param bleAddress adres MAC urządzenia BLE (z dwukropkami lub bez)
      */
+    /**
+     * Czy nazwa BLE wygląda na te okulary.
+     *
+     * ## Po co, skoro sparowanych urządzeń jest kilka
+     * Bo wśród nich jest samochód, klawiatura i głośnik w kuchni. Lista
+     * parowania w naszej aplikacji ma pokazywać okulary, a nie wszystko, co
+     * użytkownik kiedykolwiek sparował z telefonem.
+     *
+     * ## Wzorzec wzięty ze sprzętu, nie z katalogu
+     * Nasz egzemplarz przedstawia się jako "W610T_04C5" - człon modelu,
+     * podkreślnik i cztery znaki szesnastkowe z końca adresu. Ten sam kształt
+     * wykorzystuje [glassesApSsid] przy budowaniu nazwy sieci.
+     *
+     * Do tego garść słów, po których poznaje się okulary innych wersji. Lista
+     * jest CELOWO szeroka: przeoczenie własnych okularów kosztuje niemożność
+     * połączenia, a nadmiarowa pozycja - jeden wiersz na ekranie.
+     */
+    fun looksLikeGlassesName(name: String): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return false
+        if (GLASSES_NAME_SHAPE.matches(trimmed)) return true
+        val lower = trimmed.lowercase()
+        return GLASSES_NAME_WORDS.any { lower.contains(it) }
+    }
+
+    /** Kształt ze sprzętu: "W610T_04C5" - model, podkreślnik, cztery znaki hex. */
+    private val GLASSES_NAME_SHAPE = Regex("""^[A-Za-z0-9]{2,20}_[0-9A-Fa-f]{4}$""")
+
+    private val GLASSES_NAME_WORDS =
+        listOf("lens", "glass", "okular", "prism", "cyan", "w610")
+
     fun glassesApSsid(bleName: String, bleAddress: String): String {
         val mac = bleAddress.replace(":", "")
         if (!bleName.contains("_")) return bleName + "_" + mac
