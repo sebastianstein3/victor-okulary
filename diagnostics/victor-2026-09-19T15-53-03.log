@@ -1,0 +1,49 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów przy starcie: true
+# źródło zdjęcia: full (dzielnik 3)
+15:53:03.150          ms  SESJA        start sesji
+15:54:26.461          ms  BLE          ROZŁĄCZONO  świadome=false
+15:54:37.024          ms  BLE          POŁĄCZONO  noweŁącze=true
+15:54:37.030          ms  BLE          powitanie okularów - start
+15:54:37.047          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+15:54:37.288          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=true
+15:54:37.290          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,10,3
+15:54:37.334          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+15:54:39.092          ms  BLE          POŁĄCZONO  noweŁącze=false
+15:54:42.048          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+15:56:18.242          ms  PRZYCISK     wciśnięto  numer=1
+15:56:18.422          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+15:56:18.764          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+15:56:19.268          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=842
+15:56:19.533          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=26 mikrofonOkularów=true
+15:56:19.542      +1 ms  SESJA        --- TURA 1e41 ---  źródło=OKULARY
+15:56:19.544      +3 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+15:56:20.308    +767 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,2
+15:56:30.495  +10954 ms  NASŁUCH      koniec  ms=10954 mikrofon=mowa wykryta szczytDb=9.04 próbek=2 gotowyPoMs=689
+15:56:30.999  +11458 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.7335 pakietów=87 rozkodowanych=87 odrzuconych=0 przesunięcie=6 ramka=-1
+15:56:31.980  +12439 ms  TRANSKRYPCJA z nagrania okularów  ms=976
+15:56:32.034  +12493 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=1733 jestMs=1733 tło=0 szczyt=1187 ile razy=21247.8
+15:56:32.044  +12503 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=166460 B wymuszonyObraz=false
+15:56:32.048  +12507 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+15:56:32.104  +12563 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+15:56:32.104  +12563 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+15:56:35.626  +16085 ms  KONTEKST     zebrany  ms=2889 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+15:56:35.674  +16133 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=6965
+15:56:37.510  +17969 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=1839 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+15:56:37.514  +17973 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=6965
+15:56:38.119  +18579 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+15:56:40.369  +20829 ms  MODEL        koniec odpowiedzi (114 znaków, 5985 tokenów)  ms=4699
+15:56:40.377  +20836 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=114
+15:56:48.536  +28995 ms  MOWA         koniec wypowiedzi  ms=8139
+15:56:48.586  +29046 ms  AUDIO        zwinięte łącze audio tury  ms=0
+15:56:48.593  +29052 ms  SESJA        --- KONIEC TURY 1e41: odpowiedziano ---
+15:56:48.609          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
