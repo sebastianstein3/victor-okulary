@@ -396,3 +396,63 @@
 16:07:24.650  +31903 ms  MOWA         koniec wypowiedzi  ms=11259
 16:07:24.710  +31963 ms  SESJA        --- KONIEC TURY 7f77: odpowiedziano ---
 16:07:24.727          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:07:25.155          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:07:27.769          ms  PRZYCISK     wciśnięto  numer=1
+16:07:27.991          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+16:07:28.084          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+16:07:28.279          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+16:07:28.604          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=610
+16:07:28.719          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=26 mikrofonOkularów=true
+16:07:28.724      +0 ms  SESJA        --- TURA 62ef ---  źródło=OKULARY
+16:07:28.726      +3 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+16:07:29.437    +713 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,2
+16:07:38.358   +9634 ms  NASŁUCH      koniec  ms=9633 mikrofon=mowa wykryta szczytDb=3.04 próbek=20 gotowyPoMs=456
+16:07:38.718   +9994 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.2335 pakietów=62 rozkodowanych=62 odrzuconych=0 przesunięcie=6 ramka=-1
+16:07:39.579  +10856 ms  TRANSKRYPCJA z nagrania okularów  ms=857 droga=Bez transkrypcji - nagranie do modelu
+16:07:39.587  +10864 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=1233 jestMs=1233 tło=22 szczyt=246 ile razy=10.9
+16:07:39.602  +10878 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=118460 B wymuszonyObraz=false
+16:07:39.606  +10882 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+16:07:39.628  +10904 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:07:40.011  +11287 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+16:07:41.334  +12610 ms  KONTEKST     zebrany  ms=1693 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:07:41.391  +12668 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=11739
+16:07:46.508  +17784 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5124
+16:07:46.519  +17795 ms  MODEL        zużycie tokenów  wejście=6748 odpowiedź=40 myślenie=788 razem=7576 limit=1200 koniec=STOP
+16:07:46.553  +17829 ms  MODEL        koniec odpowiedzi (128 znaków, 7576 tokenów)  ms=5169
+16:07:46.560  +17836 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=128
+16:07:47.667  +18943 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,1
+16:07:55.094  +26371 ms  MOWA         koniec wypowiedzi  ms=8530
+16:07:55.118  +26394 ms  SESJA        --- KONIEC TURY 62ef: odpowiedziano ---
+16:07:55.134          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:07:55.258          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:07:58.688          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+16:08:10.178          ms  BLE          Podgląd na żywo: podnoszę
+16:08:10.290          ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=true
+16:08:11.505          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+16:08:11.538          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 86 88 0B 1E sztuk=16 pierwsza=false
+16:08:21.682          ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+16:08:21.683          ms  BLE          Podgląd: pełna odpowiedź serwera  treść=RTSP/1.0 200 OK / CSeq: 1 / Content-Type: application/sdp / Cache-Control: no-cache / Server: Hisilicon RTSP Streaming Media Server/1.0.0 / Content-Length: 345 /  / v=0 / o=- 1 1 IN IP4 127.0.0.1 / s=Test / a=type:broadcast / t=0 0 / c=IN IP4 0.0.0.0 / m=video 0 RTP/AVP 96 / a=rtpmap:96 H264/90000 / a=decode_buf=300 / a=control:track0 / m=audio 0 RTP/AVP 97 / a=rtpmap:97 mpeg4-generic/8000/1 / a=fmtp:97 profile-level-id=1; mode=AAC-hbr; config=1588; sizeLength=13; indexlength=3; indexdeltalength=3 / a=control:track1 / 
+16:08:21.685          ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=11507
+16:08:21.943          ms  BLE          Podgląd: dekoder uruchomiony  format=video/avc
+16:08:21.966          ms  BLE          Podgląd: opis sesji przeczytany  ścieżek=2 kodeki=[H264, MPEG4-GENERIC]
+16:08:21.980          ms  BLE          Podgląd: strumień ruszył  sesja=82838485868788898A8B8C8D8E8F90 typŁadunku=96
+16:08:22.126          ms  BLE          Podgląd: obraz płynie  pakietów=1 jednostek=2 odrzuconych=0 parametryObrazu=true
+16:08:22.567          ms  BLE          Podgląd: rozdzielczość ze strumienia  szerokość=1600 wysokość=1200
+16:08:22.578          ms  BLE          Podgląd: PIERWSZA KLATKA NA EKRANIE  wkarmionych=16
+16:08:27.327          ms  BLE          Podgląd: obraz płynie  pakietów=300 jednostek=164 odrzuconych=0 parametryObrazu=true
+16:08:32.057          ms  BLE          Podgląd: obraz płynie  pakietów=600 jednostek=315 odrzuconych=0 parametryObrazu=true
+16:08:36.885          ms  BLE          Podgląd: obraz płynie  pakietów=900 jednostek=465 odrzuconych=0 parametryObrazu=true
+16:08:41.695          ms  BLE          Podgląd: obraz płynie  pakietów=1200 jednostek=616 odrzuconych=0 parametryObrazu=true
+16:08:46.667          ms  BLE          Podgląd: obraz płynie  pakietów=1500 jednostek=773 odrzuconych=0 parametryObrazu=true
+16:08:50.702          ms  BLE          Podgląd: dekoder zatrzymany  wkarmionych=898 wyświetlonych=712
+16:08:51.104          ms  BLE          Podgląd na żywo: podnoszę
+16:08:52.353          ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+16:09:13.135          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,1
+16:09:14.446          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+16:09:17.534          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+16:09:19.449          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=false ms=5001
+16:09:19.450          ms  ZDJĘCIE      próba 1: droga producenta  jakość=2 proszono=2
+16:09:24.458          ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5005
+16:09:24.462          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+16:09:40.481          ms  ZDJĘCIE      próba 2: miniatura  notify=false
+16:09:40.561          ms  ZDJĘCIE      migawka milczy - sprawdzam liczniki plików  zdjęcia=0 filmy=0 nagrania=6
