@@ -211,3 +211,54 @@
 16:01:08.942  +66204 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 74 01 01 00 00 00 06 00 01 01 sztuk=2 pierwsza=false
 16:01:10.741  +68003 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
 16:01:10.993  +68255 ms  SESJA        --- KONIEC TURY fbbb: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+16:01:14.195          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+16:01:31.180          ms  PRZYCISK     wciśnięto  numer=1
+16:01:31.471          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+16:01:31.696          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+16:01:32.033          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=14 ms=559
+16:01:32.155          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=23 mikrofonOkularów=true
+16:01:32.157      +0 ms  SESJA        --- TURA 9ca2 ---  źródło=OKULARY
+16:01:32.158      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+16:01:32.978    +822 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,2
+16:01:37.560   +5403 ms  NASŁUCH      koniec  ms=5401 telefonUsłyszał=przetłumacz ten tekst na polski mikrofon=mowa wykryta szczytDb=10.0 próbek=5 gotowyPoMs=900
+16:01:38.007   +5850 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.3735 pakietów=69 rozkodowanych=69 odrzuconych=0 przesunięcie=6 ramka=-1
+16:01:39.127   +6971 ms  TRANSKRYPCJA z nagrania okularów  ms=1113 droga=Nasłuch telefonu
+16:01:39.135   +6978 ms  SESJA        pytanie  tekst=przetłumacz ten tekst na polski wymuszonyObraz=false
+16:01:39.180   +7023 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:01:39.242   +7086 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:01:39.767   +7611 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+16:01:41.843   +9687 ms  KONTEKST     zebrany  ms=2164 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:01:41.862   +9705 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=7532
+16:01:47.715  +15558 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5854
+16:01:47.866  +15709 ms  MODEL        zużycie tokenów - ODPOWIEDŹ UCIĘTA NA LIMICIE  wejście=5335 odpowiedź=44 myślenie=1152 razem=6531 limit=1200 koniec=MAX_TOKENS
+16:01:47.868  +15712 ms  MODEL        koniec odpowiedzi (130 znaków, 6531 tokenów)  ms=6007
+16:01:47.881  +15724 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=130
+16:01:49.645  +17488 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,1
+16:01:59.149  +26992 ms  MOWA         koniec wypowiedzi  ms=11264
+16:01:59.179  +27022 ms  SESJA        --- KONIEC TURY 9ca2: odpowiedziano ---
+16:01:59.189          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:02:00.122          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:02:02.656          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+16:02:12.233          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+16:02:12.244          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+16:02:19.412          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=28473 jpeg=true kompletny=true
+16:02:19.423      +1 ms  SESJA        --- TURA 17ff ---  źródło=BUTTON
+16:02:19.429      +6 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+16:02:19.442     +19 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+16:02:19.572    +149 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:02:19.583    +161 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+16:02:20.771   +1348 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+16:02:20.773   +1351 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 07 49 0B 1C sztuk=15 pierwsza=false
+16:02:30.852  +11429 ms  BLE          Hotspot okularów: gotowe  ms=11269
+16:02:31.311  +11888 ms  BLE          internet wrócił po sieci okularów  ms=2
+16:02:31.376  +11953 ms  ZDJĘCIE      zmniejszam oryginał przed wysłaniem  dzielnik=3 bajtówPrzed=632816 bajtówPo=130270
+16:02:31.384  +11961 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=130270 źródło=migawka pełnaRozdzielczość=true
+16:02:33.629  +14207 ms  KONTEKST     zebrany  ms=1764 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:02:33.653  +14230 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=8359
+16:02:44.810  +25387 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=11156
+16:02:44.973  +25551 ms  MODEL        zużycie tokenów - ODPOWIEDŹ UCIĘTA NA LIMICIE  wejście=6699 odpowiedź=47 myślenie=1149 razem=7895 limit=1200 koniec=MAX_TOKENS
+16:02:44.981  +25558 ms  MODEL        koniec odpowiedzi (128 znaków, 7895 tokenów)  ms=11328
+16:02:44.985  +25562 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=128
+16:02:47.126  +27703 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,1
+16:02:49.506  +30083 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+16:02:49.678  +30255 ms  SESJA        --- KONIEC TURY 17ff: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
