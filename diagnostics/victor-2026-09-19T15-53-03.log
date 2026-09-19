@@ -352,3 +352,47 @@
 16:06:09.960          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=8 mikrofonOkularów=true
 16:06:09.961      +0 ms  SESJA        --- TURA e2de ---  źródło=OKULARY
 16:06:09.962      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+16:06:10.410    +449 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,2
+16:06:14.028   +4068 ms  NASŁUCH      koniec  ms=4067 telefonUsłyszał=co to za piosenka mikrofon=mowa wykryta szczytDb=10.0 próbek=6 gotowyPoMs=337
+16:06:14.227   +4266 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.6735 pakietów=34 rozkodowanych=34 odrzuconych=0 przesunięcie=6 ramka=-1
+16:06:14.926   +4966 ms  TRANSKRYPCJA z nagrania okularów  ms=698 droga=Bez transkrypcji - nagranie do modelu
+16:06:14.929   +4968 ms  SESJA        pytanie  tekst=co to za piosenka wymuszonyObraz=false
+16:06:15.049   +5088 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=RECOGNIZE_SONG proba=1/3 aplikacja=com.shazam.android pakietZgadnięty=com.shazam.android adres=com.shazam.android.intent.actions.START_TAGGING
+16:06:21.202  +11241 ms  SESJA        --- KONIEC TURY e2de: odpowiedziano ---
+16:06:21.215          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:06:21.393          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:06:23.383          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+16:06:51.718          ms  PRZYCISK     wciśnięto  numer=1
+16:06:51.957          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=12
+16:06:52.277          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+16:06:52.584          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=19 ms=624
+16:06:52.733          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=31 mikrofonOkularów=true
+16:06:52.748      +1 ms  SESJA        --- TURA 7f77 ---  źródło=OKULARY
+16:06:52.750      +3 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+16:06:53.583    +836 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,2
+16:06:56.772   +4026 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,1,0,16,10,2
+16:06:57.260   +4514 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,2,0,16,10,2
+16:06:57.549   +4802 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,3,0,16,10,2
+16:06:58.035   +5288 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,4,0,16,10,2
+16:06:58.454   +5707 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,5,0,16,10,2
+16:06:58.803   +6056 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,6,0,16,10,2
+16:06:59.232   +6486 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,7,0,16,10,2
+16:06:59.569   +6824 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,2
+16:07:03.132  +10386 ms  NASŁUCH      koniec  ms=10385 mikrofon=mowa wykryta szczytDb=6.04 próbek=16 gotowyPoMs=895
+16:07:03.686  +10939 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.4535 pakietów=73 rozkodowanych=73 odrzuconych=0 przesunięcie=6 ramka=-1
+16:07:04.529  +11782 ms  TRANSKRYPCJA z nagrania okularów  ms=838 droga=Nasłuch telefonu
+16:07:04.538  +11791 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=1453 jestMs=1453 tło=35 szczyt=270 ile razy=7.6
+16:07:04.550  +11803 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=139580 B wymuszonyObraz=false
+16:07:04.554  +11807 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+16:07:04.577  +11830 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:07:05.132  +12385 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+16:07:07.695  +14949 ms  KONTEKST     zebrany  ms=3101 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:07:07.745  +14998 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=11021
+16:07:13.236  +20489 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5494
+16:07:13.303  +20556 ms  MODEL        zużycie tokenów  wejście=6524 odpowiedź=41 myślenie=881 razem=7446 limit=1200 koniec=STOP
+16:07:13.375  +20629 ms  MODEL        koniec odpowiedzi (125 znaków, 7446 tokenów)  ms=5633
+16:07:13.385  +20639 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=125
+16:07:17.036  +24290 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,1
+16:07:24.650  +31903 ms  MOWA         koniec wypowiedzi  ms=11259
+16:07:24.710  +31963 ms  SESJA        --- KONIEC TURY 7f77: odpowiedziano ---
+16:07:24.727          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
