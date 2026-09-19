@@ -459,3 +459,20 @@
 16:12:13.555          ms  BLE          ROZŁĄCZONO  świadome=false
 16:12:19.656          ms  BLE          ROZŁĄCZONO  świadome=false
 16:15:11.241          ms  BLE          ROZŁĄCZONO  świadome=false
+16:15:19.296          ms  BLE          ROZŁĄCZONO  świadome=false
+16:17:19.026          ms  BLE          ROZŁĄCZONO  świadome=false
+16:19:03.988          ms  BLE          ROZŁĄCZONO  świadome=false
+16:20:13.676          ms  BLE          ROZŁĄCZONO  świadome=false
+16:38:04.164      +1 ms  SESJA        --- TURA 41fc ---  źródło=TEXT_INPUT
+16:38:04.168      +6 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+16:38:04.198     +35 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:38:04.250     +87 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+16:38:05.879   +1717 ms  KONTEKST     zebrany  ms=1617 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:38:05.914   +1751 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=11275
+16:38:08.134   +3971 ms  BLE          ROZŁĄCZONO  świadome=false
+16:38:12.175   +8012 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6262
+16:38:12.221   +8058 ms  MODEL        zużycie tokenów - ODPOWIEDŹ UCIĘTA NA LIMICIE  wejście=7105 odpowiedź=43 myślenie=1153 razem=8301 limit=1200 koniec=MAX_TOKENS
+16:38:12.230   +8068 ms  MODEL        koniec odpowiedzi (155 znaków, 8301 tokenów)  ms=6317
+16:38:12.236   +8073 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=155
+16:38:23.491  +19329 ms  MOWA         koniec wypowiedzi  ms=11250
+16:38:23.564  +19401 ms  SESJA        --- KONIEC TURY 41fc: odpowiedziano ---
