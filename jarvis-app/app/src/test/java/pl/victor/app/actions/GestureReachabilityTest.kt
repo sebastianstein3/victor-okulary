@@ -116,23 +116,44 @@ class GestureReachabilityTest {
         val zGlosu = listOf(
             "przetłumacz to",
             "rozejrzyj się",
-            "opisz otoczenie"
+            "opisz otoczenie",
+            "zeskanuj kod"
         ).mapNotNull { detector.detectGesture(it) }.toSet()
 
         val bezDrogi = gesty.filter { it !in zGlosu }
         // QUICK_QUESTION nie potrzebuje komendy: sama komenda JEST już mówieniem.
         // NEW_CONVERSATION obsługuje MetaCommands ("nowy temat"), wcześniej niż
-        // warstwa 0. SCAN_QR ma własną komendę w spisie komend.
+        // warstwa 0 - sprawdza to osobny test niżej.
+        //
+        // SCAN_QR stało tu wcześniej z uzasadnieniem "ma własną komendę w spisie
+        // komend". To była NIEPRAWDA - w całym pakiecie actions nie było słowa
+        // "zeskanuj". Wymówka w teście jest gorsza niż brak testu, bo wygląda
+        // jak sprawdzenie. Teraz SCAN_QR ma komendę naprawdę i jest wyżej.
         val udokumentowane = setOf(
             ButtonAction.QUICK_QUESTION,
-            ButtonAction.NEW_CONVERSATION,
-            ButtonAction.SCAN_QR
+            ButtonAction.NEW_CONVERSATION
         )
         assertEquals(
             "gest bez drogi głosowej i bez udokumentowanego powodu",
             emptyList<ButtonAction>(),
             bezDrogi.filter { it !in udokumentowane }
         )
+    }
+
+    @Test
+    fun `skan kodu da sie poprosic glosem`() {
+        for (zdanie in listOf(
+            "zeskanuj kod",
+            "zeskanuj ten kod kreskowy",
+            "co to za produkt",
+            "sprawdź ten produkt"
+        )) {
+            assertEquals(
+                "\"$zdanie\" ma uruchamiać skan kodu",
+                ButtonAction.SCAN_QR,
+                detector.detectGesture(zdanie)
+            )
+        }
     }
 
     @Test

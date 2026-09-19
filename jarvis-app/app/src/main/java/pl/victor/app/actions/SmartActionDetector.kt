@@ -137,6 +137,25 @@ class SmartActionDetector {
             return ButtonAction.LOOK_AND_DESCRIBE
         }
 
+        // SKAN KODU - bo nazwałem to w teście "ma własną komendę", a nie miało.
+        //
+        // Skanowanie samo w sobie działa: każde zrobione zdjęcie przechodzi
+        // przez ML Kit, a znaleziony kod kreskowy idzie do Open Food Facts. Nie
+        // było tylko sposobu, żeby o to POPROSIĆ - a bez prośby trzeba najpierw
+        // trafić na powód do zrobienia zdjęcia. Zgłoszone jako "przy skanowaniu
+        // kodu mówi, że robi zdjęcie, a nie robi".
+        if (lower.matches(
+                Regex(
+                    """^(zeskanuj(\s+(ten\s+)?(kod|kod\s+kreskowy|kod\s+qr|produkt))?|""" +
+                        """(ze)?skanuj\s+(ten\s+)?(kod|produkt)|""" +
+                        """co\s+to\s+za\s+(kod|produkt)|""" +
+                        """sprawd[zź]\s+(ten\s+)?produkt)$"""
+                )
+            )
+        ) {
+            return ButtonAction.SCAN_QR
+        }
+
         // NEW_CONVERSATION celowo NIE ma tu wzorca: "nowy temat" obsługuje już
         // [pl.victor.app.conversation.MetaCommands.clearsContext], i to WCZEŚNIEJ
         // niż warstwa 0. Drugi wzorzec na to samo byłby martwym kodem.

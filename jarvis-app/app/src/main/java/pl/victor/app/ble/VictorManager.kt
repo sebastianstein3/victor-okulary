@@ -3372,10 +3372,35 @@ class VictorManager private constructor(context: Context) {
                 "Oryginał ${full.size} B -> ${prepared.size} B (dzielnik $divisor, " +
                     "miniatura miała ${thumbnail.size} B)"
             )
+            // DO DZIENNIKA, BO ZAPYTANO WPROST, CZY TO USTAWIENIE DZIAŁA.
+            //
+            // Działa, ale tylko TĘDY - na ścieżce ostrego zdjęcia. Gdy oryginał
+            // nie dochodzi (a to jest zgłoszone: "ostre zdjęcie nie przechodzi"),
+            // do modelu idzie miniatura BEZ zmniejszania i dzielnik nie robi nic.
+            // Z samych ustawień nie da się tego odróżnić od "nie działa".
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "zmniejszam oryginał przed wysłaniem",
+                mapOf(
+                    "dzielnik" to divisor,
+                    "bajtówPrzed" to full.size,
+                    "bajtówPo" to prepared.size
+                )
+            )
             lastPhotoWasFullResolution = true
             return prepared
         }
         Log.w(tag, "Zostaję przy miniaturze - oryginał nie doszedł albo nie jest lepszy")
+        // Bez tego wpisu "dzielnik nie zadziałał" i "oryginał nie doszedł"
+        // wyglądają w dzienniku identycznie, a to dwie różne naprawy.
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+            "zostaję przy miniaturze - dzielnik NIE ma tu zastosowania",
+            mapOf(
+                "oryginałDoszedł" to (full != null),
+                "bajtówMiniatury" to thumbnail.size
+            )
+        )
         return thumbnail
     }
 

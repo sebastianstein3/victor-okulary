@@ -121,19 +121,34 @@ object AppLinks {
      * "Co to za piosenka" w Shazamie.
      *
      * Pierwsza próba to jawna akcja rozpoznawania, druga własny schemat
-     * aplikacji, trzecia zwykłe otwarcie. Żadnej z pierwszych dwóch nie mam
-     * jak sprawdzić bez telefonu z Shazamem.
+     * aplikacji, trzecia zwykłe otwarcie.
+     *
+     * ## Czemu żadna z tych wypowiedzi nie mówi już "Shazam słucha"
+     * Bo tego NIE WIEMY. Wiemy tylko tyle, że system przyjął Intent - a to
+     * znaczy, że aplikacja się otworzyła, nie że zaczęła nagrywać. Komentarz
+     * w tym miejscu sam się do tego przyznawał ("żadnej z pierwszych dwóch nie
+     * mam jak sprawdzić"), a wypowiedź obok twierdziła coś przeciwnego.
+     *
+     * Zgłoszone dokładnie tak: "dostałem tylko informację »shazam słucha«".
+     * Zdanie, które zapewnia o czymś niesprawdzonym, jest gorsze niż zdanie
+     * ostrożne: człowiek stoi i czeka, aż piosenka się skończy, zamiast dotknąć
+     * przycisku.
+     *
+     * To ta sama usterka co "melduje sukces na martwym kanale" przy alercie
+     * pogodowym i "mówi, że otwiera Jakdojade" przy trasie - trzeci nawrót.
      */
     fun shazam(): List<Attempt> = listOf(
         Attempt(
             action = "com.shazam.android.intent.actions.START_TAGGING",
             packageName = Target.SHAZAM.packageName,
             label = Target.SHAZAM.label,
-            describe = "Shazam słucha."
+            describe = "Włączam rozpoznawanie w Shazamie. Jeśli sam nie zacznie " +
+                "słuchać, dotknij dużego przycisku."
         ),
         Attempt(
             uri = "shazam://autoshazam",
-            describe = "Shazam słucha."
+            describe = "Włączam rozpoznawanie w Shazamie. Jeśli sam nie zacznie " +
+                "słuchać, dotknij dużego przycisku."
         ),
         launchOnly(Target.SHAZAM, "Otwieram Shazama - dotknij przycisku, żeby słuchał.")
     )
@@ -149,7 +164,13 @@ object AppLinks {
             ),
             Attempt(
                 uri = "bolt://action/setPickup?destination=$q",
-                describe = "Otwieram Bolta z celem „$destination”."
+                // Ostrożniej niż przy Uberze, i to jest różnica z pomiaru, nie z
+                // ostrożności: Uber swój adres DOKUMENTUJE, Bolt nie. Schemat
+                // Bolta jest odgadnięty, więc aplikacja może się otworzyć bez
+                // celu - a wtedy zapewnienie "z celem" wysyła człowieka w drogę
+                // przekonanego, że kurs jest zamówiony.
+                describe = "Otwieram Bolta z celem „$destination” - sprawdź, " +
+                    "czy się wpisał."
             ),
             launchOnly(Target.UBER, "Otwieram Ubera - cel wpisz sam."),
             launchOnly(Target.BOLT, "Otwieram Bolta - cel wpisz sam.")
