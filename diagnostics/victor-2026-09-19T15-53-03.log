@@ -456,3 +456,6 @@
 16:09:24.462          ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
 16:09:40.481          ms  ZDJĘCIE      próba 2: miniatura  notify=false
 16:09:40.561          ms  ZDJĘCIE      migawka milczy - sprawdzam liczniki plików  zdjęcia=0 filmy=0 nagrania=6
+16:12:13.555          ms  BLE          ROZŁĄCZONO  świadome=false
+16:12:19.656          ms  BLE          ROZŁĄCZONO  świadome=false
+16:15:11.241          ms  BLE          ROZŁĄCZONO  świadome=false
