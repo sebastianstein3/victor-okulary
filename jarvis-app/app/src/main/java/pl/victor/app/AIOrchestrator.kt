@@ -1586,6 +1586,13 @@ class AIOrchestrator(
                 }
             }
             val overSco = held && audio.isRoutedToBluetooth()
+            // Liczone RAZ i tutaj, bo czyta je zarówno wpis o końcu nasłuchu,
+            // jak i wpis o transkrypcji - a te dwa dzieli pół ekranu kodu.
+            val phoneMicNotTrusted = pl.victor.app.audio.MicChoice.phoneMicNotTrusted(
+                fromGlasses = fromGlasses,
+                wantsGlassesMic = wantsGlassesMic,
+                overSco = overSco
+            )
             // PROŚBA O MIKROFON OKULARÓW, KTÓREJ NIE DAŁO SIĘ SPEŁNIĆ, BYŁA
             // DOTĄD NIEWIDOCZNA.
             //
@@ -1688,13 +1695,12 @@ class AIOrchestrator(
                     // stoją w tej chwili jako urządzenie MULTIMEDIALNE (A2DP),
                     // takiego wpisu nie ma i acquire() oddaje false.
                     //
-                    // Teraz prośba o mikrofon okularów znaczy: spróbuj jeszcze
-                    // raz, z poziomu samego rozpoznawania. Druga próba jest
-                    // tania (na API 31+ to synchroniczne pytanie o listę
-                    // urządzeń, bez czekania) i bywa skuteczna, bo lista potrafi
-                    // się uzupełnić dopiero po wybudzeniu okularów.
+                    // Prośby człowieka NIE MA w tym wyrażeniu i tak ma zostać -
+                    // decyduje ona piętro wyżej, o tym, czy w ogóle podjąć próbę
+                    // (patrz `held`), a `overSco` to już WYNIK tamtej próby.
+                    // Dopisanie jej tutaj kazało brać profil rozmowy drugi raz,
+                    // przy każdym rozpoznaniu - patrz [MicChoice.useBluetoothMic].
                     useBluetoothMic = pl.victor.app.audio.MicChoice.useBluetoothMic(
-                        wantsGlassesMic = wantsGlassesMic,
                         overSco = overSco,
                         bleStreamLive = micStreamLive
                     )
@@ -1713,6 +1719,10 @@ class AIOrchestrator(
                         "ms" to (System.currentTimeMillis() - listenStartedAtMs),
                         "telefonUsłyszał" to heard?.take(80),
                         "odłożone" to setAsidePhoneTranscript?.take(80),
+                        // Którym mikrofonem NAPRAWDĘ zebrano pytanie. To jedyne
+                        // miejsce, w którym widać różnicę między "wybrał telefon"
+                        // a "wybrał okulary, ale dostał telefon".
+                        "zebrałTelefonZamiastOkularów" to phoneMicNotTrusted,
                         "mikrofon" to mic?.verdict(),
                         "szczytDb" to mic?.peakDb,
                         "próbek" to mic?.samples,
@@ -1784,44 +1794,33 @@ class AIOrchestrator(
                 // gdy telefon nic nie usłyszał (kieszeń, kurtka, zablokowany
                 // ekran), odłożonego tekstu nie ma i wtedy próbujemy jak dotąd.
                 val phoneFallback = setAsidePhoneTranscript
-                // KIEDY TEKST Z TELEFONU NIE JEST GODNY ZAUFANIA
+                // ODWOŁUJĘ WŁASNĄ POPRZEDNIĄ ZMIANĘ.
                 //
-                // Powyższy rachunek - "nie przepisuj nagrania, skoro telefon coś
-                // usłyszał" - opiera się na założeniu, że oba mikrofony słyszały
-                // TO SAMO, więc szybszy wygrywa. Założenie przestaje być prawdziwe
-                // dokładnie wtedy, gdy człowiek poprosił o mikrofon okularów, a
-                // łącze rozmowy nie wstało: pytanie zbierał wtedy telefon z
-                // kieszeni, czyli urządzenie, którego świadomie NIE wybrał, i to
-                // z odległości, na jaką nie był liczony.
+                // Kazałem tu przepisywać nagranie z okularów MIMO gotowego tekstu
+                // z telefonu, gdy proszono o mikrofon okularów, a profil rozmowy
+                // nie wstał. Rozumowanie było poprawne, rachunek nie: pomiar z
+                // pięciu dzienników mówi, że ta droga nie oddała tekstu ANI RAZU
+                // w około czterdziestu turach, kosztując od 1,1 do 5,9 sekundy.
                 //
-                // W tym jednym przypadku nagranie z okularów idzie do przepisania
-                // mimo tekstu z telefonu. To nie może nic popsuć: `bestHeard`
-                // niżej bierze `glassesHeard ?: heard`, więc cisza z okularów
-                // oddaje pole tekstowi z telefonu, tak jak dotąd. Płacimy
-                // wyłącznie czasem transkrypcji i wyłącznie w turze, która i tak
-                // była już przegrana.
-                val phoneMicNotTrusted = pl.victor.app.audio.MicChoice.phoneMicNotTrusted(
-                    fromGlasses = fromGlasses,
-                    wantsGlassesMic = wantsGlassesMic,
-                    overSco = overSco
-                )
+                // Dokładanie pewnego kosztu za niepewny zysk w turze, która i tak
+                // jest wolna, dało dokładnie to, co zgłoszono: "wszystko działa
+                // wolno". Flaga zostaje - ale tylko po to, żeby dziennik mówił,
+                // którym mikrofonem naprawdę zebrano pytanie; liczy ją wyżej,
+                // zaraz po ustaleniu `overSco`.
                 val glassesHeard = when {
                     captured?.hasAudio != true -> null
-                    phoneFallback != null && !phoneMicNotTrusted -> null
+                    phoneFallback != null -> null
                     else -> captured.pcm?.let { transcribeGlassesAudio(it, languageTagFor(language)) }
                 }
                 if (captured?.hasAudio == true) {
                     diag.event(
                         DiagFormat.Phase.TRANSKRYPCJA,
-                        if (phoneFallback != null && !phoneMicNotTrusted) {
+                        if (phoneFallback != null) {
                             "nagrania z okularów NIE przepisuję - mam tekst z telefonu"
-                        } else if (phoneMicNotTrusted && phoneFallback != null) {
-                            "przepisuję nagranie z okularów MIMO tekstu z telefonu - " +
-                                "proszono o mikrofon okularów, a zbierał telefon"
                         } else {
                             "z nagrania okularów"
                         },
-                        if (phoneFallback != null && !phoneMicNotTrusted) {
+                        if (phoneFallback != null) {
                             // Dwa pytania o stan, zero rozpoznawania. Bez nich
                             // „ta droga milczy" i „tej drogi nie ma" wyglądają
                             // z dziennika identycznie, a to dwie różne naprawy:

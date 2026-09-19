@@ -5,53 +5,45 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Tabela prawdy wyboru mikrofonu - w tym WIERSZ, KTÓRY BYŁ USTERKĄ.
+ * Tabela prawdy wyboru mikrofonu - i zapis MOJEJ WŁASNEJ REGRESJI.
  *
- * Zgłoszone: "Wybrałem Pytania mikrofonem okularów, ale wciąż podczas mówienia
- * włącza się mikrofon w telefonie". Wiersz `okulary + strumień BLE żyje + SCO
- * nie wstało` oddawał `false`, czyli zakaz sięgania po mikrofon okularów - bo
- * wyrażenie nie patrzyło na wybór człowieka w ogóle.
+ * ## Co się stało
+ * Uznałem, że wyrażenie `overSco || !bleStreamLive` pomija wybór człowieka, bo
+ * nie ma w nim `wantsGlassesMic`. To było błędne odczytanie kodu: ustawienie
+ * decyduje PIĘTRO WYŻEJ o tym, czy w ogóle podjąć próbę zestawienia profilu
+ * rozmowy, a `overSco` to już WYNIK tej próby.
+ *
+ * Dopisałem `wantsGlassesMic ||`. Ustawienie stoi domyślnie na `true`, więc
+ * wynik stał się prawdą w praktycznie każdej turze, a SpeechToText zaczął brać
+ * profil rozmowy DRUGI RAZ, przy każdym rozpoznaniu - dokładnie to, przed czym
+ * ostrzega komentarz nad tamtym wywołaniem.
+ *
+ * Zgłoszone natychmiast: "teraz prawie nic nie działa, wszystko działa wolno".
+ *
+ * Morał, który ten plik ma utrwalić: pierwsza wersja tego testu sprawdzała, że
+ * `wantsGlassesMic` ZMIENIA wynik - i przechodziła. Test może z równym
+ * powodzeniem zabetonować usterkę, jeśli pilnuje cudzej decyzji zamiast
+ * skutku. Dlatego teraz stoi tu koszt, a nie kształt wyrażenia.
  */
 class MicChoiceTest {
 
     @Test
-    fun `prosba o mikrofon okularow przezywa nieudane zestawienie SCO`() {
-        // DOKŁADNIE ten wiersz był zgłoszoną usterką: człowiek wybrał mikrofon
-        // okularów, strumień BLE żyje (tura z okularów), profil rozmowy nie
-        // wstał - i dotąd wychodziło z tego "słuchaj telefonem".
-        assertTrue(
-            "prośba o mikrofon okularów nie może przepadać przez nieudane SCO",
-            MicChoice.useBluetoothMic(
-                wantsGlassesMic = true,
-                overSco = false,
-                bleStreamLive = true
-            )
-        )
-    }
-
-    @Test
-    fun `bez prosby i przy zywym strumieniu BLE nie zajmujemy profilu rozmowy`() {
-        // Druga strona tej samej monety: kto mikrofonu okularów NIE chce, ten ma
-        // nie płacić kilku sekund negocjacji SCO ani nie tracić A2DP.
+    fun `nieudane zestawienie SCO NIE powoduje drugiej proby`() {
+        // TO JEST WIERSZ, KTÓRY ZEPSUŁEM. Zwracał `true`, przez co rozpoznawanie
+        // brało profil rozmowy po raz drugi - po próbie, która właśnie zawiodła
+        // z tego samego powodu. Koszt: do czterech sekund przed każdym
+        // rozpoznaniem i zawieszone A2DP. Zysk: żaden.
         assertFalse(
-            "bez prośby o mikrofon okularów profil rozmowy jest zbędny",
-            MicChoice.useBluetoothMic(
-                wantsGlassesMic = false,
-                overSco = false,
-                bleStreamLive = true
-            )
+            "po nieudanym zestawieniu nie wolno próbować drugi raz w tej turze",
+            MicChoice.useBluetoothMic(overSco = false, bleStreamLive = true)
         )
     }
 
     @Test
-    fun `stojace lacze wykorzystujemy nawet bez prosby`() {
+    fun `stojace lacze wykorzystujemy`() {
         assertTrue(
             "skoro SCO i tak stoi, rozpoznawanie ma z niego korzystać",
-            MicChoice.useBluetoothMic(
-                wantsGlassesMic = false,
-                overSco = true,
-                bleStreamLive = true
-            )
+            MicChoice.useBluetoothMic(overSco = true, bleStreamLive = true)
         )
     }
 
@@ -59,11 +51,7 @@ class MicChoiceTest {
     fun `bez strumienia BLE zostaje tylko profil rozmowy`() {
         assertTrue(
             "gdy nie ma strumienia BLE, nie ma innej drogi do dźwięku",
-            MicChoice.useBluetoothMic(
-                wantsGlassesMic = false,
-                overSco = false,
-                bleStreamLive = false
-            )
+            MicChoice.useBluetoothMic(overSco = false, bleStreamLive = false)
         )
     }
 
@@ -104,16 +92,16 @@ class MicChoiceTest {
     }
 
     @Test
-    fun `wybor czlowieka wystepuje w decyzji`() {
-        // Strażnik przeciw powrotowi usterki w innej postaci: gdyby ktoś
-        // uprościł wyrażenie z powrotem do `overSco || !bleStreamLive`, wszystkie
-        // pozostałe wiersze tabeli dalej by przechodziły poza jednym - ale ten
-        // jeden łatwo "poprawić". Ten test mówi wprost, co jest tu istotne.
-        val bezProsby = MicChoice.useBluetoothMic(false, overSco = false, bleStreamLive = true)
-        val zProsba = MicChoice.useBluetoothMic(true, overSco = false, bleStreamLive = true)
+    fun `decyzja zalezy TYLKO od stanu sprzetu`() {
+        // Strażnik przeciw powrotowi MOJEJ regresji. Ta funkcja nie przyjmuje
+        // już wyboru człowieka i nie ma go przyjąć: prośba decyduje piętro
+        // wyżej, o tym, czy podjąć próbę, a tutaj liczy się wyłącznie jej
+        // wynik. Sygnatura z trzecim argumentem to znak, że ktoś idzie tą samą
+        // drogą co ja - i ten test przestanie się wtedy kompilować.
+        val wynik = MicChoice::class.java.methods.first { it.name == "useBluetoothMic" }
         assertTrue(
-            "sam wybór człowieka musi zmieniać wynik przy identycznym stanie sprzętu",
-            bezProsby != zProsba
+            "useBluetoothMic ma brać dwa argumenty o stanie sprzętu, nie trzy",
+            wynik.parameterCount == 2
         )
     }
 }
