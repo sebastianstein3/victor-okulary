@@ -44,7 +44,17 @@ import kotlinx.coroutines.launch
  * Skanowanie QR zostało wcześniej zdjęte z potrójnego kliknięcia (nisza) i
  * dalej jest pod komendą głosową oraz w spisie komend.
  *
- * Skanowanie QR nie znika: zostaje pod komendą głosową i w spisie komend.
+ * ## PROSTUJĘ WŁASNE ZDANIE: SPRZĘT NIE SKLEJA SZYBKICH SERII
+ * Napisałem wcześniej, że gesty wieloklikowe są nieosiągalne, bo okulary
+ * łączą szybkie wciśnięcia na poziomie firmware'u. To jest nieprawda i obala
+ * to jedna obserwacja z terenu: DWA kliknięcia działają - robi się zdjęcie i
+ * trafia do modelu. Gdyby sprzęt sklejał serie, nie działałyby również dwa.
+ *
+ * Martwe są trzy i cztery, a przyczyny z samego kodu nie umiem wskazać. Dwie
+ * możliwości rozdziela [lastGapsMs]; do czasu pomiaru żadna funkcja nie ma
+ * prawa wisieć wyłącznie na tych gestach. Dlatego "przeczytaj i przetłumacz"
+ * ma od teraz komendę głosową - patrz
+ * [pl.victor.app.actions.SmartActionDetector.detectGesture].
  *
  * Detekcja: okno czasowe 500ms między kliknięciami.
  *
@@ -62,6 +72,38 @@ class ButtonActionDetector {
     private var lastClickTime: Long = 0
     private var clickCount: Int = 0
     private val CLICK_WINDOW_MS = 500L
+
+    /**
+     * Odstępy między kliknięciami ZAMKNIĘTEJ serii, w milisekundach.
+     *
+     * ## Po co to jest
+     * Zgłoszono, że jedno i dwa kliknięcia działają, a trzy i cztery nie. To
+     * wyklucza moją wcześniejszą hipotezę ("sprzęt skleja szybkie serie") -
+     * gdyby sklejał, nie działałyby też dwa. Zostają dwie możliwości i nie
+     * umiem dziś rozstrzygnąć między nimi z samego kodu:
+     *
+     *  1. Trzecie kliknięcie pada PÓŹNIEJ niż [CLICK_WINDOW_MS] po drugim. Okno
+     *     zamyka się wtedy na dwóch, leci zdjęcie, a trzecie zaczyna nową serię
+     *     - z zewnątrz wygląda to jak "trzy kliknięcia robią zdjęcie".
+     *  2. Firmware okularów sam obsługuje podwójne kliknięcie (stąd słyszalna
+     *     migawka) i przez czas pracy aparatu nie zgłasza kolejnych wciśnięć.
+     *     Wtedy trzecie kliknięcie nie dociera do nas w ogóle.
+     *
+     * Różnica jest zasadnicza: pierwsze naprawia się liczbą, drugiego nie da
+     * się naprawić wcale i trzeba przenieść funkcję na głos. Te odstępy
+     * rozstrzygają to jednym spojrzeniem w dziennik - jeśli w serii "3 kliknięć"
+     * widać dwa odstępy, gubi je okno; jeśli widać jeden, gubi je firmware.
+     */
+    @Volatile
+    var lastGapsMs: List<Long> = emptyList()
+        private set
+
+    /** Ile kliknięć zamknęło ostatnią serię - patrz [lastGapsMs]. */
+    @Volatile
+    var lastClickCount: Int = 0
+        private set
+
+    private val gaps = mutableListOf<Long>()
 
     private val _action = MutableSharedFlow<ButtonAction>(replay = 0, extraBufferCapacity = 1)
     val action: SharedFlow<ButtonAction> = _action.asSharedFlow()
@@ -109,8 +151,10 @@ class ButtonActionDetector {
         if (now - lastClickTime > CLICK_WINDOW_MS) {
             // Nowa sekwencja kliknięć
             clickCount = 1
+            gaps.clear()
         } else {
             clickCount++
+            gaps.add(now - lastClickTime)
         }
 
         lastClickTime = now
@@ -127,6 +171,10 @@ class ButtonActionDetector {
      * Woła się sama po [CLICK_WINDOW_MS] od ostatniego kliknięcia.
      */
     fun flushPendingClick() {
+        // Zapisane PRZED reset() - inaczej orkiestrator odczytałby wyzerowane
+        // pola, bo akcja dociera do niego już po zamknięciu serii.
+        lastClickCount = clickCount
+        lastGapsMs = gaps.toList()
         when {
             clickCount == 1 -> tryEmitAction(ButtonAction.QUICK_QUESTION)
             clickCount == 2 -> tryEmitAction(ButtonAction.LOOK_AND_DESCRIBE)
@@ -143,32 +191,7 @@ class ButtonActionDetector {
     private fun reset() {
         clickCount = 0
         lastClickTime = 0
+        gaps.clear()
         flushJob = null
     }
-}
-
-/**
- * Akcje użytkownika wykryte przez analizę przycisku.
- */
-sealed class ButtonAction {
-    object QUICK_QUESTION : ButtonAction()
-    object LOOK_AND_DESCRIBE : ButtonAction()
-
-    /**
-     * Zdjęcie, odczytanie napisu i PRZETŁUMACZENIE go na język odpowiedzi.
-     *
-     * Nazywało się to READ_TEXT i było mylące aż do szkody: obok istnieje
-     * [pl.victor.app.actions.Action.ReadText], które robi coś INNEGO - włącza
-     * ciągły tryb czytania dla osoby niewidomej, kawałek po kawałku na
-     * żądanie. Ta akcja jest jednorazowa i tłumaczy: powstała z prośby
-     * "żeby po przytrzymaniu od razu czytał po polsku to, co widzi - taki
-     * szybki tłumacz", do nazw produktów w sklepie i tabliczek.
-     *
-     * Dwie nazwy różniące się wielkością liter, dla dwóch różnych funkcji,
-     * kosztowały już jedną złą diagnozę.
-     */
-    object READ_AND_TRANSLATE : ButtonAction()
-
-    object SCAN_QR : ButtonAction()
-    object NEW_CONVERSATION : ButtonAction()
 }

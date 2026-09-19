@@ -170,6 +170,10 @@ private fun formatTime(timestampMs: Long): String =
 private val GESTURES = listOf(
     "1× klik" to "zapytaj głosem",
     "2× klik" to "zdjęcie i opis widoku",
-    "3× klik" to "przeczytaj i przetłumacz napis",
-    "4× klik" to "nowa rozmowa"
+    // Przy trzech i czterech kliknięciach podajemy komendę głosową, bo z terenu
+    // zgłoszono, że same gesty nie dochodzą ("3 i 4 kliknięcia nie działają"),
+    // a jedno i dwa działają. Uczenie gestu, który bywa gubiony, bez podania
+    // drogi pewnej, zostawia człowieka z funkcją, której nie umie uruchomić.
+    "3× klik lub „przetłumacz to”" to "przeczytaj i przetłumacz napis",
+    "4× klik lub „nowy temat”" to "nowa rozmowa"
 )

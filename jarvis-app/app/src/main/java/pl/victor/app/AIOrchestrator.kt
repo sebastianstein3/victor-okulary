@@ -2320,7 +2320,20 @@ class AIOrchestrator(
             diag.event(
                 DiagFormat.Phase.PRZYCISK,
                 "akcja z przycisku",
-                mapOf("akcja" to action::class.simpleName)
+                mapOf(
+                    "akcja" to action::class.simpleName,
+                    // Liczba kliknięć i odstępy MIĘDZY nimi - patrz
+                    // [ButtonActionDetector.lastGapsMs]. Zgłoszono, że jedno i
+                    // dwa kliknięcia działają, a trzy i cztery nie; te dwa pola
+                    // rozdzielają dwie możliwe przyczyny, których z kodu nie da
+                    // się rozróżnić. Przy serii "3 kliknięć" dwa odstępy znaczą,
+                    // że gubi je nasze okno zliczania (do naprawienia liczbą),
+                    // a jeden - że firmware nie zgłosił trzeciego wciśnięcia
+                    // (nie do naprawienia, funkcja musi iść na głos).
+                    "kliknięć" to buttonDetector.lastClickCount,
+                    "odstępyMs" to buttonDetector.lastGapsMs
+                        .takeIf { it.isNotEmpty() }?.joinToString("/")
+                )
             )
         }
         when (action) {
@@ -2715,6 +2728,32 @@ class AIOrchestrator(
                 actionDetector.detectNavigation(textQuestion)?.let { route ->
                     Log.i(TAG, "Warstwa 0: trasa do ${route.destination}")
                     handleActions(listOf(route), textQuestion)
+                    return
+                }
+            }
+
+            // GESTY PRZYCISKU WYPOWIEDZIANE GŁOSEM.
+            //
+            // Trzy i cztery kliknięcia zgłoszono jako martwe, a dwa działają -
+            // więc gest przestał być drogą, na której można cokolwiek opierać.
+            // Najdotkliwsze było to, że ReadTextPrompt miał w całej aplikacji
+            // DOKŁADNIE JEDNEGO wywołującego: akcję trzech kliknięć. Tłumaczenie
+            // napisów, o które poproszono wprost, nie dawało się uruchomić
+            // NICZYM.
+            //
+            // Idzie to przez handleButtonAction, czyli tę samą gałąź co przycisk.
+            // Osobna kopia logiki zaczęłaby się rozjeżdżać - a "dwie kopie jednej
+            // rzeczy" to w tym projekcie najczęstsza przyczyna usterek.
+            if (textIsQuestion) {
+                actionDetector.detectGesture(textQuestion)?.let { gest ->
+                    Log.i(TAG, "Warstwa 0: gest głosem -> $gest")
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.AKCJA, "gest wywołany głosem",
+                            mapOf("gest" to gest::class.simpleName)
+                        )
+                    }
+                    handleButtonAction(gest)
                     return
                 }
             }

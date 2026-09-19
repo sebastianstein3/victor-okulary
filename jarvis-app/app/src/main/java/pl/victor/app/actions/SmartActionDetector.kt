@@ -2,6 +2,7 @@ package pl.victor.app.actions
 
 import android.util.Log
 import java.util.Calendar
+import pl.victor.app.ble.ButtonAction
 
 /**
  * Rozpoznawanie akcji w tym, co powiedział użytkownik - i w tym, co odpowiedziało AI.
@@ -68,6 +69,78 @@ class SmartActionDetector {
         // "co to jest fotosynteza" kazałoby robić zdjęcie.
         val words = lower.split(Regex("""\s+""")).size
         return words <= DEICTIC_MAX_WORDS && DEICTIC_PHRASES.any { lower.contains(it) }
+    }
+
+    /**
+     * Gesty przycisku wypowiedziane GŁOSEM.
+     *
+     * ## Dlaczego to musi istnieć
+     * Gesty wieloklikowe okazały się zawodne na tym sprzęcie: pojedyncze i
+     * podwójne kliknięcie działa, potrójne i poczwórne zgłoszono jako martwe
+     * ("3 i 4 kliknięcia nie działają"). Nie mam dziś pomiaru, który by
+     * rozstrzygnął, czy gubi je firmware okularów, czy okno zliczania - ale
+     * mam coś gorszego niż brak pomiaru: [pl.victor.app.vision.ReadTextPrompt]
+     * miał w całej aplikacji DOKŁADNIE JEDNEGO wywołującego, akcję trzech
+     * kliknięć. Skoro ten gest nie dochodzi, tłumaczenie napisów - funkcja, o
+     * którą poproszono wprost ("tłumaczenie byłoby spoko pod przyciskiem") -
+     * było nieosiągalne ŻADNĄ drogą.
+     *
+     * Głos nie zależy od firmware'u przycisku, więc jest drogą pewniejszą.
+     *
+     * ## Czemu to oddaje [ButtonAction], a nie [Action]
+     * Żeby komenda głosowa i gest robiły DOSŁOWNIE to samo. Orkiestrator woła
+     * tym `handleButtonAction`, czyli tę samą gałąź co przycisk. Gdyby to była
+     * osobna akcja, dwa wykonania tej samej funkcji zaczęłyby się rozjeżdżać -
+     * a to jest w tym projekcie najczęstsza usterka: funkcja podpięta pod
+     * wyzwalacz, który nie istnieje, albo dwie kopie jednej rzeczy.
+     *
+     * Wzorce obejmują CAŁE zdanie: "przetłumacz to" ma tłumaczyć napis przed
+     * oczami, ale "przetłumacz to na angielski i wyślij Ani" jest prośbą o coś
+     * innego i ma iść do modelu.
+     *
+     * Bez `\b` i bez `\w` - patrz [detectCritical]: ani jedno, ani drugie nie
+     * obejmuje polskich liter.
+     */
+    fun detectGesture(text: String): ButtonAction? {
+        val lower = text.lowercase().trim().trimEnd('.', '!', '?')
+
+        // PRZECZYTAJ I PRZETŁUMACZ - jedyny gest bez żadnej innej drogi.
+        //
+        // "przeczytaj to" samo w sobie NIE wchodzi: to zwrot od ciągłego trybu
+        // czytania ([Action.ReadText]), a te dwie funkcje już raz się pomyliły
+        // i kosztowało to złą diagnozę. Tutaj trzeba poprosić o tłumaczenie.
+        if (lower.matches(
+                Regex(
+                    """^(przet[lł]umacz(\s+(to|ten\s+napis|t[eę]\s+tabliczk[eę]))?|""" +
+                        """przeczytaj\s+i\s+przet[lł]umacz(\s+\S+)?|""" +
+                        """co\s+tu\s+(jest\s+)?napisane\s+po\s+polsku|""" +
+                        """przet[lł]umacz\s+napis(\s+\S+)?)$"""
+                )
+            )
+        ) {
+            return ButtonAction.READ_AND_TRANSLATE
+        }
+
+        // ZDJĘCIE I OPIS - odpowiednik dwóch kliknięć.
+        //
+        // Zwroty typu "co widzisz" łapie już [needsVision] i idą przez model z
+        // obrazem. Tu chodzi o prośbę WPROST o ten gest, bez wnioskowania:
+        // aparat rusza zawsze, niezależnie od tego, co uzna model.
+        if (lower.matches(
+                Regex(
+                    """^(rozejrzyj\s+si[eę]|""" +
+                        """(zr[oó]b\s+zdj[eę]cie\s+i\s+)?opisz\s+(otoczenie|co\s+widzisz)|""" +
+                        """opisz\s+co\s+jest\s+(przede\s+mn[aą]|doko[lł]a|wok[oó][lł]))$"""
+                )
+            )
+        ) {
+            return ButtonAction.LOOK_AND_DESCRIBE
+        }
+
+        // NEW_CONVERSATION celowo NIE ma tu wzorca: "nowy temat" obsługuje już
+        // [pl.victor.app.conversation.MetaCommands.clearsContext], i to WCZEŚNIEJ
+        // niż warstwa 0. Drugi wzorzec na to samo byłby martwym kodem.
+        return null
     }
 
     fun detectCritical(text: String): List<Action> {
