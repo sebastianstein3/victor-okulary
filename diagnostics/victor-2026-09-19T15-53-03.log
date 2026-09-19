@@ -118,3 +118,96 @@
 15:59:05.108  +25436 ms  MOWA         koniec wypowiedzi  ms=6574
 15:59:05.144  +25472 ms  SESJA        --- KONIEC TURY b21e: odpowiedziano ---
 15:59:05.160          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+15:59:05.254          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+15:59:08.624          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+15:59:35.827          ms  PRZYCISK     wciśnięto  numer=1
+15:59:36.047          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+15:59:36.336          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+15:59:36.425          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=375
+15:59:36.497          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=15 mikrofonOkularów=true
+15:59:36.500      +0 ms  SESJA        --- TURA b0f4 ---  źródło=OKULARY
+15:59:36.501      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+15:59:37.280    +781 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,2
+15:59:41.878   +5379 ms  NASŁUCH      koniec  ms=5378 telefonUsłyszał=tekst na język polski mikrofon=mowa wykryta szczytDb=9.88 próbek=6 gotowyPoMs=2147
+15:59:42.096   +5596 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.0535 pakietów=53 rozkodowanych=53 odrzuconych=0 przesunięcie=6 ramka=-1
+15:59:43.039   +6539 ms  TRANSKRYPCJA z nagrania okularów  ms=940 droga=Bez transkrypcji - nagranie do modelu
+15:59:43.043   +6543 ms  SESJA        pytanie  tekst=tekst na język polski wymuszonyObraz=false
+15:59:43.083   +6583 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+15:59:43.100   +6600 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+15:59:43.508   +7008 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+15:59:45.024   +8524 ms  KONTEKST     zebrany  ms=1576 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+15:59:45.093   +8593 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=7251
+15:59:45.479   +8979 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=387 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+15:59:45.491   +8991 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=7251
+15:59:49.007  +12508 ms  MODEL        koniec odpowiedzi (169 znaków, 6213 tokenów)  ms=3917
+15:59:49.020  +12520 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=169
+15:59:50.543  +14044 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,1
+16:00:00.505  +24005 ms  MOWA         koniec wypowiedzi  ms=11474
+16:00:00.538  +24038 ms  SESJA        --- KONIEC TURY b0f4: odpowiedziano ---
+16:00:00.552          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:00:01.466          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+16:00:02.116          ms  PRZYCISK     wciśnięto  numer=1
+16:00:02.356          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+16:00:02.624          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+16:00:02.670          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=311
+16:00:02.736          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=20 mikrofonOkularów=true
+16:00:02.738      +0 ms  SESJA        --- TURA fbbb ---  źródło=OKULARY
+16:00:02.739      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+16:00:03.171    +433 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,2
+16:00:09.120   +6383 ms  NASŁUCH      koniec  ms=6382 telefonUsłyszał=zdjęcie i przetłumacz tekst na nim na polski mikrofon=mowa wykryta szczytDb=10.0 próbek=11 gotowyPoMs=375
+16:00:09.280   +6542 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.6335 pakietów=32 rozkodowanych=32 odrzuconych=0 przesunięcie=6 ramka=-1
+16:00:09.972   +7234 ms  TRANSKRYPCJA z nagrania okularów  ms=689 droga=Nasłuch telefonu
+16:00:09.977   +7239 ms  SESJA        pytanie  tekst=zdjęcie i przetłumacz tekst na nim na polski wymuszonyObraz=false
+16:00:09.987   +7250 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:00:10.001   +7263 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:00:10.372   +7634 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+16:00:11.764   +9027 ms  KONTEKST     zebrany  ms=1757 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:00:11.802   +9064 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=7781
+16:00:12.135   +9398 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=335 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+16:00:12.151   +9413 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=7781
+16:00:14.383  +11645 ms  MODEL        koniec odpowiedzi (84 znaków, 6192 tokenów)  ms=2584
+16:00:14.389  +11651 ms  AKCJA        model zlecił akcje  akcje=TAKE_PHOTO znakówOdpowiedzi=55
+16:00:15.237  +12500 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,1
+16:00:18.549  +15811 ms  SESJA        pytanie  tekst=zdjęcie i przetłumacz tekst na nim na polski wymuszonyObraz=true
+16:00:18.561  +15824 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+16:00:18.634  +15896 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+16:00:18.642  +15904 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+16:00:20.182  +17445 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+16:00:20.191  +17454 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+16:00:20.198  +17461 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1550
+16:00:22.005  +19267 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+16:00:25.642  +22905 ms  ZDJĘCIE      próba 0: miniatura  bajtów=34026 jpeg=true kompletny=true
+16:00:25.673  +22936 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+16:00:26.935  +24197 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+16:00:26.937  +24199 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 4A 0B 19 sztuk=1 pierwsza=true
+16:00:37.230  +34493 ms  BLE          Hotspot okularów: gotowe  ms=11558
+16:00:37.873  +35135 ms  BLE          internet wrócił po sieci okularów  ms=7
+16:00:37.976  +35238 ms  ZDJĘCIE      zmniejszam oryginał przed wysłaniem  dzielnik=3 bajtówPrzed=638260 bajtówPo=131610
+16:00:37.981  +35243 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=131610 źródło=migawka pełnaRozdzielczość=true
+16:00:40.478  +37740 ms  KONTEKST     zebrany  ms=1743 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:00:40.488  +37750 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=1 znakówPromptu=7884
+16:00:40.927  +38189 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=439 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+16:00:40.930  +38192 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=1 znakówPromptu=7884
+16:00:44.123  +41385 ms  MODEL        dostawca zawiódł  dostawca=deepseek model=deepseek-flash poMs=3635 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Network error: Software caused connection abort
+16:00:44.130  +41393 ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=1 znakówPromptu=7884
+16:00:44.185  +41447 ms  MODEL        model lokalny: ładuję plik  okno=2048
+16:00:45.902  +43164 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,1
+16:00:51.517  +48784 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,3
+16:01:02.689  +59952 ms  MODEL        model lokalny: plik załadowany  ms=18503
+16:01:02.698  +59960 ms  MODEL        model lokalny: generuję  znakówPromptu=8045
+16:01:02.885  +60147 ms  MODEL        model lokalny: koniec generowania  ms=187 byłPierwszyToken=false
+16:01:02.888  +60150 ms  MODEL        koniec odpowiedzi (0 znaków, 0 tokenów)  ms=22400
+16:01:02.925  +60187 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=0
+16:01:05.679  +62941 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,0,0,16,10,1
+16:01:08.942  +66204 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 74 01 01 00 00 00 06 00 01 01 sztuk=2 pierwsza=false
+16:01:10.741  +68003 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+16:01:10.993  +68255 ms  SESJA        --- KONIEC TURY fbbb: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
