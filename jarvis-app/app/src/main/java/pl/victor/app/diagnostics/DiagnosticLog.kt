@@ -172,8 +172,16 @@ class DiagnosticLog(context: Context) {
     }
 
     /** Skrót na najczęstszy przypadek: zdarzenie z jednym polem czasu. */
-    fun took(phase: DiagFormat.Phase, message: String, startedAtMs: Long) {
-        event(phase, message, mapOf("ms" to System.currentTimeMillis() - startedAtMs))
+    fun took(
+        phase: DiagFormat.Phase,
+        message: String,
+        startedAtMs: Long,
+        // Czas SAM W SOBIE rzadko wystarcza. Przy "koniec odpowiedzi" trzeba
+        // jeszcze wiedzieć, KTÓRY dostawca ją dał i jak się zaczynała - bez tego
+        // sensowne zdanie i bełkot wyglądają w dzienniku identycznie.
+        fields: Map<String, Any?> = emptyMap()
+    ) {
+        event(phase, message, mapOf("ms" to System.currentTimeMillis() - startedAtMs) + fields)
     }
 
     /**

@@ -34,6 +34,7 @@ import pl.victor.app.conversation.OverheardSpeech
 import pl.victor.app.conversation.WakePhrase
 import pl.victor.app.ble.ButtonAction
 import pl.victor.app.ble.ButtonActionDetector
+import pl.victor.app.ble.ConnectionAnnouncer
 import pl.victor.app.ble.ConnectionState
 import pl.victor.app.ble.GlassesProtocol
 import pl.victor.app.ble.VictorManager
@@ -912,6 +913,63 @@ class AIOrchestrator(
                 bezpiecznie("przerwanie wypowiedzi") {
                     Log.i(TAG, "Okulary: użytkownik przerwał wypowiedź")
                     cancelCurrentTurn("dotknięcie zauszników")
+                }
+            }
+        }
+
+        // === ROZŁĄCZENIE MA BYĆ SŁYSZALNE ===
+        //
+        // VictorManager radzi sobie z zerwanym łączem sam: wznawia je w
+        // nieskończoność, gęsto przez pierwszą minutę, potem coraz rzadziej.
+        // Czego nie robił NIKT, to powiedzenie o tym człowiekowi - `connectionState`
+        // był tu tylko ODCZYTYWANY w kilku miejscach, nigdy zbierany.
+        //
+        // Zgłoszone trzy razy, zawsze tak samo: "okulary przestały reagować na
+        // hej lens i na kliknięcie (...) okazało się, że w ustawieniach Bluetooth
+        // się rozłączyły". Objaw brzmi "aplikacja jest zepsuta", a dowiedzieć się
+        // prawdy można wyłącznie wchodząc w ustawienia systemowe. Człowiek w
+        // okularach na głowie naciska martwy przycisk i nie ma żadnego powodu,
+        // żeby podejrzewać Bluetooth.
+        //
+        // Komunikat idzie GŁOŚNIKIEM TELEFONU i nie da się tego zmienić: okularów
+        // właśnie nie ma, więc A2DP nie istnieje. To jedyna droga, która w tej
+        // chwili działa.
+        scope.launch {
+            glassesManager.connectionState.collect { stan ->
+                bezpiecznie("zmiana stanu połączenia") {
+                    if (stan == ConnectionState.READY) {
+                        utrataJob?.cancel()
+                        utrataJob = null
+                        if (announcer.czyOgłosićPowrót()) {
+                            diag.event(DiagFormat.Phase.BLE, "okulary wróciły - mówię o tym")
+                            audio.speak(
+                                "Okulary znów połączone.",
+                                language = settings.getResponseLanguage()
+                            )
+                        }
+                    } else if (utrataJob == null) {
+                        // KARENCJA, a nie natychmiast. Łącze potrafi mrugnąć na
+                        // sekundę i wrócić samo - a komunikat o czymś, co już się
+                        // naprawiło, jest gorszy niż cisza, bo uczy ignorowania
+                        // komunikatów.
+                        utrataJob = scope.launch {
+                            delay(UTRATA_KARENCJA_MS)
+                            if (glassesManager.connectionState.value != ConnectionState.READY &&
+                                announcer.czyOgłosićUtratę()
+                            ) {
+                                diag.event(
+                                    DiagFormat.Phase.BLE,
+                                    "okulary rozłączone dłużej niż karencja - mówię o tym",
+                                    mapOf("karencjaMs" to UTRATA_KARENCJA_MS)
+                                )
+                                audio.speak(
+                                    "Okulary się rozłączyły. Próbuję połączyć ponownie.",
+                                    language = settings.getResponseLanguage()
+                                )
+                            }
+                            utrataJob = null
+                        }
+                    }
                 }
             }
         }
@@ -2262,6 +2320,12 @@ class AIOrchestrator(
     @Volatile
     private var setAsidePhoneTranscript: String? = null
 
+    /** Pamięć o tym, co już powiedziano o łączu - patrz [ConnectionAnnouncer]. */
+    private val announcer = ConnectionAnnouncer()
+
+    /** Odliczanie karencji przed ogłoszeniem utraty łącza. */
+    private var utrataJob: kotlinx.coroutines.Job? = null
+
     /**
      * Co powiedzieć po nasłuchu, który nic nie usłyszał.
      *
@@ -3558,7 +3622,27 @@ class AIOrchestrator(
                                     DiagFormat.Phase.MODEL,
                                     "koniec odpowiedzi (${accumulatedText.length} znaków, " +
                                         "${chunk.tokensUsed} tokenów)",
-                                    modelStartedAt
+                                    modelStartedAt,
+                                    // KTO to powiedział i CO powiedział.
+                                    //
+                                    // Zgłoszone: "dawał odpowiedzi np. do połowy,
+                                    // a potem mówił jakieś alfa signal and the
+                                    // title". Z dotychczasowego wpisu dało się
+                                    // odczytać wyłącznie DŁUGOŚĆ odpowiedzi, więc
+                                    // bełkot i sensowne zdanie wyglądały
+                                    // identycznie - a to są dwie zupełnie różne
+                                    // awarie i dwie różne naprawy.
+                                    //
+                                    // Podejrzenie pada na model lokalny (mały,
+                                    // offline, potrafi produkować właśnie takie
+                                    // angielskie ciągi), ale bez nazwy dostawcy
+                                    // przy TEJ odpowiedzi to jest zgadywanie.
+                                    // Początek tekstu rozstrzyga jedno i drugie.
+                                    mapOf(
+                                        "dostawca" to attemptProviderId,
+                                        "początek" to accumulatedText.toString()
+                                            .trim().take(80)
+                                    )
                                 )
                                 // Wymuś wypowiedzenie ostatniego fragmentu
                                 // Reszta bufora idzie na głos BEZ znacznika akcji -
@@ -5207,6 +5291,17 @@ class AIOrchestrator(
          * przy najdłuższej udanej odpowiedzi trwającej 20 s.
          */
         private const val MODEL_ATTEMPT_TIMEOUT_MS = 45_000L
+
+        /**
+         * Ile czekamy, zanim ogłosimy utratę okularów.
+         *
+         * Osiem sekund to nie jest liczba z sufitu: pierwsze próby wznowienia
+         * idą co sześć sekund ([pl.victor.app.ble.ReconnectBackoff.FAST_DELAY_MS]),
+         * więc karencja mieści JEDNĄ pełną próbę z zapasem. Zerwanie, które
+         * naprawia się samo za pierwszym podejściem, nie wygeneruje żadnego
+         * komunikatu - a dokładnie takie zdarza się najczęściej.
+         */
+        private const val UTRATA_KARENCJA_MS = 8_000L
 
         /**
          * Do tylu słów wypowiedź jest ODPOWIEDZIĄ na pytanie o potwierdzenie.
