@@ -72,3 +72,59 @@
 19:26:53.648  +36056 ms  AUDIO        zwinięte łącze audio tury  ms=2
 19:26:53.657  +36065 ms  SESJA        --- KONIEC TURY ade8: odpowiedziano ---
 19:26:53.674          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:26:54.546          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:27:11.816          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+19:27:14.258          ms  PRZYCISK     wciśnięto  numer=1
+19:27:14.438          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=24
+19:27:14.776          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+19:27:14.872          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=19 ms=425
+19:27:14.973          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=14 mikrofonOkularów=true
+19:27:14.979      +1 ms  SESJA        --- TURA 3b98 ---  źródło=OKULARY
+19:27:14.982      +4 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+19:27:15.463    +485 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,2
+19:27:19.621   +4642 ms  NASŁUCH      koniec  ms=4642 telefonUsłyszał=to będzie pogoda w toruniu zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=4.84 próbek=7 gotowyPoMs=515
+19:27:19.860   +4882 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.8535 pakietów=43 rozkodowanych=43 odrzuconych=0 przesunięcie=6 ramka=-1
+19:27:21.221   +6242 ms  TRANSKRYPCJA z nagrania okularów  ms=1357 droga=Nasłuch telefonu
+19:27:21.224   +6246 ms  SESJA        pytanie  tekst=to będzie pogoda w toruniu wymuszonyObraz=false
+19:27:21.247   +6268 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:27:21.258   +6279 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:27:21.258   +6279 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:27:21.955   +6976 ms  KONTEKST     zebrany  ms=690 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+19:27:21.986   +7007 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=2515
+19:27:27.268  +12290 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+19:27:28.112  +13134 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6127
+19:27:28.136  +13157 ms  MODEL        zużycie tokenów - ODPOWIEDŹ UCIĘTA NA LIMICIE  wejście=3266 odpowiedź=42 myślenie=1153 razem=4461 limit=1200 koniec=MAX_TOKENS
+19:27:28.151  +13172 ms  MODEL        koniec odpowiedzi (116 znaków, 4461 tokenów)  ms=6166
+19:27:28.161  +13182 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=107
+19:27:37.852  +22873 ms  MOWA         koniec wypowiedzi  ms=9689
+19:27:37.898  +22920 ms  AUDIO        zwinięte łącze audio tury  ms=1
+19:27:37.906  +22927 ms  SESJA        --- KONIEC TURY 3b98: odpowiedziano ---
+19:27:37.924          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:27:38.115          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:29:04.371          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+19:29:33.620          ms  PRZYCISK     wciśnięto  numer=1
+19:29:33.756          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+19:29:34.135          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+19:29:34.244          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=20 ms=479
+19:29:34.399          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=23 mikrofonOkularów=true
+19:29:34.406      +1 ms  SESJA        --- TURA 226a ---  źródło=OKULARY
+19:29:34.409      +4 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+19:29:34.969    +564 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,2
+19:29:39.028   +4624 ms  NASŁUCH      koniec  ms=4623 telefonUsłyszał=jutro będzie pogoda w toruniu zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=7 gotowyPoMs=325
+19:29:39.314   +4909 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.0335 pakietów=52 rozkodowanych=52 odrzuconych=0 przesunięcie=6 ramka=-1
+19:29:40.159   +5755 ms  TRANSKRYPCJA z nagrania okularów  ms=841 droga=Nasłuch telefonu
+19:29:40.163   +5759 ms  SESJA        pytanie  tekst=jutro będzie pogoda w toruniu wymuszonyObraz=false
+19:29:40.183   +5778 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:29:40.200   +5795 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:29:40.200   +5795 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:29:40.760   +6355 ms  KONTEKST     zebrany  ms=551 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+19:29:40.780   +6375 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=2839
+19:29:46.214  +11810 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+19:29:47.273  +12869 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=6495
+19:29:47.319  +12914 ms  MODEL        zużycie tokenów  wejście=3392 odpowiedź=79 myślenie=657 razem=4128 limit=1200 koniec=STOP
+19:29:47.358  +12953 ms  MODEL        koniec odpowiedzi (262 znaków, 4128 tokenów)  ms=6580
+19:29:47.361  +12956 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=262
+19:30:03.600  +29195 ms  MOWA         koniec wypowiedzi  ms=16236
+19:30:03.653  +29249 ms  AUDIO        zwinięte łącze audio tury  ms=1
+19:30:03.663  +29258 ms  SESJA        --- KONIEC TURY 226a: odpowiedziano ---
+19:30:03.681          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
