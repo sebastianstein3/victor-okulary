@@ -155,3 +155,58 @@
 19:32:58.404  +29509 ms  MOWA         koniec wypowiedzi  ms=10815
 19:32:58.436  +29541 ms  SESJA        --- KONIEC TURY 77a3: odpowiedziano ---
 19:32:58.443          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:32:59.488          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:33:01.977          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+19:33:03.671          ms  PRZYCISK     wciśnięto  numer=1
+19:33:03.865          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+19:33:04.187          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+19:33:04.296          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=21 ms=418
+19:33:04.382          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=14 mikrofonOkularów=true
+19:33:04.389      +0 ms  SESJA        --- TURA 4c0c ---  źródło=OKULARY
+19:33:04.392      +3 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+19:33:04.798    +409 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,2
+19:33:14.937  +10548 ms  NASŁUCH      koniec  ms=10547 zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=6.5199995 próbek=9 gotowyPoMs=1036
+19:33:15.327  +10938 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.8535 pakietów=43 rozkodowanych=43 odrzuconych=0 przesunięcie=6 ramka=-1
+19:33:16.110  +11721 ms  TRANSKRYPCJA z nagrania okularów  ms=779 droga=Nasłuch telefonu
+19:33:16.147  +11758 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=853 jestMs=853 tło=0 szczyt=4 ile razy=42.3
+19:33:16.156  +11767 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=81980 B wymuszonyObraz=false
+19:33:16.161  +11772 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+19:33:16.179  +11791 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+19:33:16.587  +12198 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+19:33:17.786  +13397 ms  KONTEKST     zebrany  ms=1589 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:33:17.828  +13441 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=8400
+19:33:23.232  +18844 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5407
+19:33:23.246  +18857 ms  MODEL        zużycie tokenów  wejście=5511 odpowiedź=44 myślenie=984 razem=6539 limit=1200 koniec=STOP
+19:33:23.284  +18896 ms  MODEL        koniec odpowiedzi (136 znaków, 6539 tokenów)  ms=5459
+19:33:23.293  +18904 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=136
+19:33:24.517  +20129 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,1
+19:33:32.683  +28295 ms  MOWA         koniec wypowiedzi  ms=9385
+19:33:32.712  +28323 ms  SESJA        --- KONIEC TURY 4c0c: odpowiedziano ---
+19:33:32.720          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+19:33:33.590          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:33:36.157          ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+19:34:11.025          ms  PRZYCISK     wciśnięto  numer=1
+19:34:11.256          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=21
+19:34:11.533          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+19:34:11.633          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=372
+19:34:11.721          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=20 mikrofonOkularów=true
+19:34:11.723      +0 ms  SESJA        --- TURA 0afa ---  źródło=OKULARY
+19:34:11.724      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+19:34:12.583    +860 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,2
+19:34:17.670   +5948 ms  NASŁUCH      koniec  ms=5941 telefonUsłyszał=mojego maila zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=3 gotowyPoMs=846
+19:34:18.009   +6286 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.1335 pakietów=57 rozkodowanych=57 odrzuconych=0 przesunięcie=6 ramka=-1
+19:34:19.457   +7734 ms  TRANSKRYPCJA z nagrania okularów  ms=1444 droga=Bez transkrypcji - nagranie do modelu
+19:34:19.461   +7739 ms  SESJA        pytanie  tekst=mojego maila wymuszonyObraz=false
+19:34:19.478   +7755 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+19:34:19.501   +7778 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+19:34:19.988   +8265 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,3
+19:34:21.388   +9666 ms  KONTEKST     zebrany  ms=1843 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+19:34:21.436   +9713 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=7779
+19:34:27.246  +15523 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5815
+19:34:27.294  +15571 ms  MODEL        zużycie tokenów - ODPOWIEDŹ UCIĘTA NA LIMICIE  wejście=5292 odpowiedź=48 myślenie=1148 razem=6488 limit=1200 koniec=MAX_TOKENS
+19:34:27.538  +15815 ms  MODEL        koniec odpowiedzi (160 znaków, 6488 tokenów)  ms=6107
+19:34:27.540  +15817 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=154
+19:34:30.185  +18462 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,1
+19:34:40.259  +28536 ms  MOWA         koniec wypowiedzi  ms=12718
+19:34:40.316  +28593 ms  SESJA        --- KONIEC TURY 0afa: odpowiedziano ---
+19:34:40.324          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
