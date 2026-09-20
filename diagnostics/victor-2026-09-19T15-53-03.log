@@ -665,3 +665,18 @@
 16:17:59.958   +7528 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=144
 16:17:59.966   +7536 ms  MOWA         koniec wypowiedzi  ms=0
 16:18:00.006   +7576 ms  SESJA        --- KONIEC TURY 42dc: odpowiedziano ---
+16:18:06.214          ms  BLE          ROZŁĄCZONO  świadome=false
+16:36:28.200          ms  BLE          ROZŁĄCZONO  świadome=false
+16:43:53.188          ms  BLE          ROZŁĄCZONO  świadome=false
+16:45:26.873          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=LIGHT_RAIN
+16:45:42.630          ms  BLE          ROZŁĄCZONO  świadome=false
+16:53:16.224          ms  BLE          ROZŁĄCZONO  świadome=false
+17:20:19.188          ms  BLE          ROZŁĄCZONO  świadome=false
+17:31:42.174          ms  BLE          ROZŁĄCZONO  świadome=false
+17:46:40.158          ms  BLE          ROZŁĄCZONO  świadome=false
+17:46:48.289          ms  BLE          ROZŁĄCZONO  świadome=false
+17:48:03.162          ms  BLE          ROZŁĄCZONO  świadome=false
+17:54:47.191          ms  BLE          ROZŁĄCZONO  świadome=false
+17:58:48.167          ms  BLE          ROZŁĄCZONO  świadome=false
+18:00:46.911          ms  BLE          ROZŁĄCZONO  świadome=false
+18:19:44.717          ms  BLE          ROZŁĄCZONO  świadome=false
