@@ -664,6 +664,15 @@ object GlassesProtocol {
             WORK_EXPERIMENTAL_07 -> "[EKSPERYMENT] Nieznana komenda 0x07"
             WORK_EXPERIMENTAL_0D -> "[EKSPERYMENT] Nieznana komenda 0x0D"
             WORK_RESTART_DEVICE -> "Restart urządzenia"
+            // Te trzy brakowały, a WYSYŁAMY je. W dzienniku ramek z 19 września
+            // stoi trzy razy "Nieznana komenda: 02 01 15 01" - to jest
+            // WORK_LIVE_PREVIEW_STOP, czyli nasza własna komenda, której sami
+            // nie umieliśmy nazwać. Dziennik, który nie potrafi nazwać tego, co
+            // sam wysłał, zmusza do siedzenia z tabelą stałych przy każdym
+            // czytaniu. Strażnikiem jest GlassesCommandNamesTest.
+            WORK_LIVE_PREVIEW -> "Start podglądu na żywo"
+            WORK_LIVE_PREVIEW_STOP -> "Stop podglądu na żywo"
+            WORK_RELEASE_STORAGE -> "Zwolnij pamięć okularów"
             else -> "Nieznana komenda: ${formatFrame(command)}"
         }
     }

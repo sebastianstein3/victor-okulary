@@ -1586,6 +1586,24 @@ class AIOrchestrator(
                 }
             }
             val overSco = held && audio.isRoutedToBluetooth()
+            // KOMENDA "KONIEC NASŁUCHU AI" SZŁA DWA RAZY NA TURĘ.
+            //
+            // Widać to wprost w dzienniku ramek z 19 września: odpowiedzi na nią
+            // przychodzą parami, 16:07:03,287 i 16:07:04,678, potem 16:07:38,477
+            // i 16:07:39,783. Odstęp circa 1,4 s to dokładnie czas między
+            // końcem nasłuchu a wyjściem z bloku `finally` - czyli dwa różne
+            // miejsca w tej samej turze, oba wykonane.
+            //
+            // Kosztuje to więcej niż dwa wiersze w logu. Vendor SDK ma JEDEN
+            // slot na odpowiedź (patrz [pl.victor.app.ble.VictorManager.send]),
+            // więc druga wysyłka eksmituje callback pierwszej - i to na kanale,
+            // którym idą też zdjęcia.
+            //
+            // Obu wywołań nie da się po prostu skasować: to pierwsze ma wyłączyć
+            // mikrofon NATYCHMIAST po nasłuchu (inaczej okulary nadają przez
+            // całą transkrypcję), a to w `finally` jest jedynym, które zadziała
+            // po ANULOWANEJ turze. Pilnuje ich więc ten znacznik.
+            var nasluchZatrzymany = false
             // Liczone RAZ i tutaj, bo czyta je zarówno wpis o końcu nasłuchu,
             // jak i wpis o transkrypcji - a te dwa dzieli pół ekranu kodu.
             val phoneMicNotTrusted = pl.victor.app.audio.MicChoice.phoneMicNotTrusted(
@@ -1736,7 +1754,10 @@ class AIOrchestrator(
                 // jeszcze długo". Komenda idzie DOKŁADNIE tutaj, tak jak u
                 // producenta: w chwili, gdy nasłuch po naszej stronie się
                 // skończył, przed transkrypcją i przed pytaniem modelu.
-                if (fromGlasses) glassesManager.stopGlassesListening()
+                if (fromGlasses) {
+                    glassesManager.stopGlassesListening()
+                    nasluchZatrzymany = true
+                }
 
                 // NAGRANIE Z OKULARÓW MA PIERWSZEŃSTWO PRZED NASŁUCHEM TELEFONU.
                 //
@@ -2027,8 +2048,9 @@ class AIOrchestrator(
                 // gałąź ciszy wyżej zdążyła już wziąć wynik przez stop().
                 glassesCapture?.detach()
                 // Również po anulowanej turze - inaczej "cicho" uciszało
-                // syntezator, a okulary nasłuchiwały dalej.
-                if (fromGlasses) glassesManager.stopGlassesListening()
+                // syntezator, a okulary nasłuchiwały dalej. Ale TYLKO wtedy, gdy
+                // ścieżka normalna tego nie zrobiła: patrz znacznik wyżej.
+                if (fromGlasses && !nasluchZatrzymany) glassesManager.stopGlassesListening()
                 if (held) audio.endConversationRouting()
                 // Nazwa jest tu istotna: bez niej ten blok zwalniał blokadę TURY,
                 // która startuje z tego samego miejsca i żyje dłużej niż nasłuch.
