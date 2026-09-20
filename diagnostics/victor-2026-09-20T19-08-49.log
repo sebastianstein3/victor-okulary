@@ -1,0 +1,45 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów przy starcie: true
+# źródło zdjęcia: full (dzielnik 3)
+19:08:49.171          ms  SESJA        start sesji
+19:22:37.660          ms  BLE          ROZŁĄCZONO  świadome=false
+19:22:43.259          ms  BLE          POŁĄCZONO  noweŁącze=true
+19:22:43.264          ms  BLE          powitanie okularów - start
+19:22:43.275          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+19:22:43.543          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 B8 01 00 00 00 00 06 00 01 01 sztuk=1 pierwsza=true
+19:22:43.584          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+19:22:45.340          ms  BLE          POŁĄCZONO  noweŁącze=false
+19:22:48.278          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+19:24:54.566          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+19:24:54.602          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+19:25:00.196          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=15310 jpeg=true kompletny=true
+19:25:00.198      +0 ms  SESJA        --- TURA 8a93 ---  źródło=BUTTON
+19:25:00.199      +1 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+19:25:00.203      +5 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+19:25:00.257     +59 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+19:25:00.266     +68 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+19:25:00.545    +347 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_6A7234AD04C5
+19:25:00.881    +683 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,8,0,16,10,2
+19:25:01.698   +1500 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+19:25:01.718   +1520 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C7 4A 0B 19 sztuk=1 pierwsza=true
+19:25:06.260   +6062 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_04C5 / Mikrofon okularów jest dostępny dla rozmowy.
+19:25:11.554  +11356 ms  BLE          Hotspot okularów: gotowe  ms=11009
+19:25:11.668  +11470 ms  BLE          internet wrócił po sieci okularów  ms=2
+19:25:11.673  +11475 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=11127
+19:25:11.674  +11476 ms  ZDJĘCIE      zostaję przy miniaturze - dzielnik NIE ma tu zastosowania  oryginałDoszedł=false bajtówMiniatury=15310
+19:25:11.695  +11498 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=15310 źródło=migawka pełnaRozdzielczość=false
+19:25:12.916  +12718 ms  KONTEKST     zebrany  ms=551 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+19:25:12.925  +12727 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=1612
+19:25:24.372  +24174 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=11448
+19:25:24.376  +24178 ms  MODEL        zużycie tokenów - ODPOWIEDŹ UCIĘTA NA LIMICIE  wejście=3934 odpowiedź=44 myślenie=1152 razem=5130 limit=1200 koniec=MAX_TOKENS
+19:25:24.405  +24207 ms  MODEL        koniec odpowiedzi (107 znaków, 5130 tokenów)  ms=11481
+19:25:24.410  +24212 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=107
+19:25:33.057  +32860 ms  MOWA         koniec wypowiedzi  ms=8645
+19:25:33.123  +32925 ms  AUDIO        zwinięte łącze audio tury  ms=0
+19:25:33.127  +32929 ms  SESJA        --- KONIEC TURY 8a93: odpowiedziano ---
+19:25:33.132          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
