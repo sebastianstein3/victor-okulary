@@ -94,6 +94,38 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # PAMIĘĆ PODRĘCZNA GRADLE'A - NAJDROŻSZY BRAK W TYM PLIKU.
+      #
+      # Do tej pory KAŻDY build pobierał wszystkie zależności i kompilował od
+      # zera. `actions/cache` stało w tym workflow wyłącznie przy obrazie
+      # emulatora; zadanie budujące APK - to, które rusza przy każdym pchnięciu -
+      # nie miało go wcale.
+      #
+      # Zmierzone na biegach 125 i 126: samo `assembleDebug` to 8,7 i 10,5
+      # minuty. Przy 2000 darmowych minutach miesięcznie i teście dymnym po
+      # 13 minut wychodzi około 85 pchnięć na miesiąc. Budżet skończył się
+      # 19 września, czyli w dwie trzecie miesiąca - dokładnie tak, jak z tej
+      # arytmetyki wynika.
+      #
+      # Klucz obejmuje pliki budujące: zmiana zależności ma unieważnić pamięć,
+      # zwykła zmiana kodu - nie. `restore-keys` daje częściowe trafienie, gdy
+      # zależności się ruszyły: lepiej dobrać kilka nowych artefaktów niż
+      # pobierać wszystkie.
+      #
+      # To NIE zmniejsza tego, co CI sprawdza - kompiluje się dokładnie to samo.
+      - name: Pamięć podręczna Gradle'a
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          # Ten projekt nie ma katalogu wersji (libs.versions.toml), więc klucz
+          # stoi na plikach budujących i wrapperze - to wszystko, co tu decyduje
+          # o zestawie zależności.
+          key: gradle-${{ hashFiles('jarvis-app/**/*.gradle*', 'jarvis-app/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-
+
       # Runnery ubuntu-latest mają Android SDK preinstalowany,
       # a ANDROID_HOME jest ustawione - local.properties nie jest potrzebne.
       - name: Show environment
@@ -366,6 +398,19 @@ jobs:
           sudo apt-get clean
           echo "--- po sprzątaniu ---"
           df -h /
+
+      # Tu z tego samego powodu co w zadaniu budującym: `connectedDebugAndroidTest`
+      # też kompiluje projekt, więc bez pamięci podręcznej płacimy drugi raz za
+      # to samo pobieranie zależności w tym samym biegu.
+      - name: Pamięć podręczna Gradle'a
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('jarvis-app/**/*.gradle*', 'jarvis-app/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-
 
       - name: Cache obrazu AVD
         uses: actions/cache@v4
