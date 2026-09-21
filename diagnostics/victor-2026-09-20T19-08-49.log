@@ -788,3 +788,43 @@
 17:19:36.817  +29158 ms  MOWA         koniec wypowiedzi  ms=8566
 17:19:36.859  +29200 ms  SESJA        --- KONIEC TURY cab2: odpowiedziano ---
 17:19:36.872          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:19:37.782          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:19:38.783          ms  PRZYCISK     wciśnięto  numer=1
+17:19:38.997          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+17:19:39.293          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:19:39.363          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=362
+17:19:39.440          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=13 mikrofonOkularów=true
+17:19:39.442      +0 ms  SESJA        --- TURA b3f2 ---  źródło=OKULARY
+17:19:39.443      +1 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+17:19:39.899    +458 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,2
+17:19:43.994   +4553 ms  NASŁUCH      koniec  ms=4552 telefonUsłyszał=co widzisz zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=4 gotowyPoMs=290
+17:19:44.279   +4838 ms  NASŁUCH      nagranie z okularów  jest=true sekund=0.7135 pakietów=36 rozkodowanych=36 odrzuconych=0 przesunięcie=6 ramka=-1
+17:19:45.132   +5691 ms  TRANSKRYPCJA z nagrania okularów  ms=851 droga=Bez transkrypcji - nagranie do modelu
+17:19:45.136   +5694 ms  SESJA        pytanie  tekst=co widzisz wymuszonyObraz=false
+17:19:45.152   +5710 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=false zNagrania=false
+17:19:45.180   +5738 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+17:19:45.188   +5746 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+17:19:45.672   +6230 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+17:19:46.746   +7305 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:19:46.755   +7314 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:19:46.806   +7364 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1610
+17:19:51.291  +11850 ms  ZDJĘCIE      próba 0: miniatura  bajtów=23437 jpeg=true kompletny=true
+17:19:51.318  +11877 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=23437 źródło=migawka pełnaRozdzielczość=false
+17:19:53.102  +13660 ms  KONTEKST     zebrany  ms=1760 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:19:53.132  +13690 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=8251
+17:20:00.916  +21474 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=7787
+17:20:00.959  +21517 ms  MODEL        zużycie tokenów - ODPOWIEDŹ UCIĘTA NA LIMICIE  wejście=6602 odpowiedź=44 myślenie=1152 razem=7798 limit=1200 koniec=MAX_TOKENS
+17:20:00.978  +21537 ms  MODEL        koniec odpowiedzi (145 znaków, 7798 tokenów)  ms=7849
+17:20:00.986  +21544 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=145
+17:20:01.858  +22416 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,1
+17:20:08.945  +29504 ms  MOWA         koniec wypowiedzi  ms=7957
+17:20:08.992  +29550 ms  SESJA        --- KONIEC TURY b3f2: odpowiedziano ---
+17:20:09.004          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:20:09.910          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:20:12.350          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+17:20:25.441          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,1
+17:20:26.492          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+17:20:27.783          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:20:27.785          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:20:27.796          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1302
+17:20:29.450          ms  ZDJĘCIE      próba 0: miniatura  bajtów=11805 jpeg=true kompletny=true
