@@ -79,3 +79,54 @@
 21:11:21.527   +6254 ms  AUDIO        zwinięte łącze audio tury  ms=0
 21:11:21.529   +6256 ms  SESJA        --- KONIEC TURY 4d97: odpowiedziano ---
 21:11:21.555          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:11:21.654          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:11:23.549          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:11:23.634          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:11:29.988          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:12:00.391      +0 ms  SESJA        --- TURA ab7e ---  źródło=TEXT_INPUT
+21:12:00.393      +2 ms  SESJA        pytanie  tekst=Przeczytaj mi to wymuszonyObraz=false
+21:12:00.400      +9 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=false zNagrania=false
+21:12:00.415     +24 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:12:00.417     +26 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:12:00.433     +42 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+21:12:00.759    +368 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:12:02.300   +1909 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:12:02.303   +1912 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:12:02.305   +1915 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1869
+21:12:06.424   +6034 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:12:11.095  +10704 ms  ZDJĘCIE      próba 0: miniatura  bajtów=25844 jpeg=true kompletny=true
+21:12:11.116  +10725 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=25844 źródło=migawka pełnaRozdzielczość=false
+21:12:12.136  +11745 ms  KONTEKST     zebrany  ms=649 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=true limitCzasu=false
+21:12:12.145  +11754 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=1 znakówPromptu=2475
+21:12:12.406  +12015 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=261 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+21:12:12.409  +12018 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=1 znakówPromptu=2475
+21:12:16.593  +16202 ms  MODEL        koniec odpowiedzi (242 znaków, 4045 tokenów)  ms=4448 dostawca=deepseek początek=Niestety nie jestem w stanie tego odczytać - ekran jest rozmyty i widzę tylko ci
+21:12:16.597  +16206 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=242
+21:12:21.084  +20693 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+21:12:21.228  +20837 ms  AUDIO        zwinięte łącze audio tury  ms=0
+21:12:21.230  +20839 ms  SESJA        --- KONIEC TURY ab7e: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+21:12:29.617          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:12:39.849      +0 ms  SESJA        --- TURA 59e6 ---  źródło=TEXT_INPUT
+21:12:39.850      +2 ms  SESJA        pytanie  tekst=Briefing wymuszonyObraz=false
+21:12:42.327   +2478 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+21:12:42.350   +2501 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:12:42.360   +2511 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:12:42.361   +2512 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:12:43.066   +3217 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:12:43.632   +3783 ms  KONTEKST     zebrany  ms=1264 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:12:43.640   +3791 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=11045
+21:12:43.899   +4050 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=259 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+21:12:43.902   +4053 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=11045
+21:12:48.365   +8516 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:12:48.533   +8684 ms  MODEL        koniec odpowiedzi (580 znaków, 8697 tokenów)  ms=4893 dostawca=deepseek początek=W kalendarzu na najbliższe dni nie widzę żadnych zaplanowanych wydarzeń. We wtor
+21:12:48.535   +8686 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=580
+21:13:16.224  +36375 ms  MOWA         koniec wypowiedzi  ms=27688
+21:13:16.243  +36394 ms  AUDIO        zwinięte łącze audio tury  ms=0
+21:13:16.246  +36397 ms  SESJA        --- KONIEC TURY 59e6: odpowiedziano ---
+21:13:16.248          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
