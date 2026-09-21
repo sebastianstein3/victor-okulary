@@ -52,6 +52,30 @@ object ProviderFailure {
     }
 
     /**
+     * Czy to odmowa z powodu SAMEJ NAZWY MODELU.
+     *
+     * ## Po co osobne pytanie, skoro [describe] już to rozpoznaje
+     * Bo tamto układa zdanie dla człowieka, a to podejmuje decyzję: model,
+     * którego dostawca nie zna, nie zacznie istnieć w tej samej sesji. Dalsze
+     * pytanie go co turę to czysty koszt.
+     *
+     * Z dziennika użytkownika: od 21:11 KAŻDA tura zaczynała się od
+     * `gemini-2.5-flash-lite` i kończyła kodem 404, po czym szła na kolejnego
+     * dostawcę. Dwadzieścia kilka razy pod rząd, za każdym razem ta sama
+     * odpowiedź serwera - i za każdym razem opóźnienie doliczone do czasu
+     * odpowiedzi, o który użytkownik się skarżył.
+     *
+     * Kolejność sprawdzeń jest ta sama co w [describe]: BRAK ŚRODKÓW i LIMIT
+     * mają pierwszeństwo, bo niosą czasem ten sam kod 404 co nieznany model,
+     * a uznanie pustego konta za "zły model" wysłałoby człowieka nie tam.
+     */
+    fun isMissingModel(message: String?): Boolean {
+        val text = (message ?: "").lowercase()
+        if (NO_FUNDS.any { it in text } || RATE_LIMITED.any { it in text }) return false
+        return UNKNOWN_MODEL.any { it in text }
+    }
+
+    /**
      * Czy ponawianie tego zapytania NIE MA SENSU, dopóki człowiek czegoś nie zmieni.
      *
      * ## Po co to rozróżnienie

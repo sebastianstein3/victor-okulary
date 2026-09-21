@@ -1406,6 +1406,13 @@ class AIOrchestrator(
 
     // ==================== Tłumaczenie ze słuchu ====================
 
+    /**
+     * Modele, które w tej sesji odpowiedziały "nie ma takiego modelu".
+     *
+     * Patrz [pl.victor.app.ai.DeadModels] - powód i koszt są tam opisane.
+     */
+    private val deadModels = pl.victor.app.ai.DeadModels()
+
     private val earSession = pl.victor.app.translation.EarTranslationSession()
     private var earJob: kotlinx.coroutines.Job? = null
     private val _earTranslation = kotlinx.coroutines.flow.MutableStateFlow(false)
@@ -4012,6 +4019,39 @@ class AIOrchestrator(
                                 "komunikat" to (e.message ?: e.javaClass.simpleName).take(160)
                             )
                         )
+                        // NIEISTNIEJĄCY MODEL ZAPAMIĘTUJEMY NA CAŁĄ SESJĘ.
+                        //
+                        // Nazwa modelu, której dostawca nie zna, nie zacznie
+                        // istnieć za minutę. Bez tego każda tura zaczynała się
+                        // od tej samej odmowy - w dzienniku użytkownika
+                        // dwadzieścia kilka razy pod rząd, za każdym razem z
+                        // opóźnieniem doliczonym do odpowiedzi.
+                        if (pl.victor.app.ai.ProviderFailure.isMissingModel(e.message)) {
+                            val martwyModel = settings.getSelectedModel(attemptProviderId)
+                            val pierwszyRaz = deadModels.zapamiętaj(attemptProviderId, martwyModel)
+                            diag.event(
+                                DiagFormat.Phase.MODEL, "model nie istnieje - odstawiam go na tę sesję",
+                                mapOf(
+                                    "dostawca" to attemptProviderId,
+                                    "model" to martwyModel,
+                                    "pierwszyRaz" to pierwszyRaz
+                                )
+                            )
+                            // POWIEDZIEĆ RAZ, A NIE MILCZEĆ I NIE POWTARZAĆ.
+                            //
+                            // Podmiana dostawcy udaje się po cichu, więc bez
+                            // tego zdania człowiek nie ma skąd wiedzieć, że w
+                            // ustawieniach siedzi martwa nazwa - a to naprawa
+                            // na dziesięć sekund. Powtarzanie co turę byłoby
+                            // za to nie do zniesienia, stąd `pierwszyRaz`.
+                            if (pierwszyRaz && firstChunk) {
+                                audio.speak(
+                                    "Model $martwyModel nie istnieje u tego dostawcy. " +
+                                        "Zmień go w Ustawieniach - na razie pytam kolejnego.",
+                                    language = settings.getResponseLanguage()
+                                )
+                            }
+                        }
                         // Bezpieczne do ponowienia tylko, gdy nic jeszcze nie zostało
                         // powiedziane - inaczej user usłyszałby dwa zaczątki odpowiedzi.
                         val canRetryWithNext = firstChunk && attemptIndex < candidates.lastIndex
@@ -5203,7 +5243,14 @@ class AIOrchestrator(
         val others = AIProviderFactory.supportedProviders()
             .map { it.id }
             .filter { it != primary && settings.hasApiKey(it) }
-        return listOf(primary) + others
+        // DOSTAWCA Z MARTWYM MODELEM IDZIE NA KONIEC, NIE ZNIKA.
+        //
+        // Znikanie byłoby groźne: gdyby wszystkie okazały się martwe, kolejka
+        // zrobiłaby się pusta i tura padałaby na indeksie zamiast na modelu.
+        // Przesunięcie kosztuje tyle samo, a zachowuje ostatnią deskę ratunku.
+        return deadModels.przestaw(listOf(primary) + others) {
+            settings.getSelectedModel(it)
+        }
     }
 
     /**
