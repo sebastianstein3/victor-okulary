@@ -4008,6 +4008,67 @@ private fun DiagnosticsLogSection() {
         ) {
             Text("Wyślij dziennik teraz")
         }
+
+        Spacer(Modifier.height(8.dp))
+        // DRUGA DROGA, BEZ ŻADNEGO KONTA.
+        //
+        // Przycisk wyżej wymaga TOKENU GITHUBA. Dla osoby testującej, która
+        // dostaje okulary na tydzień, to bariera nie do przejścia - nie założy
+        // konta na GitHubie, żeby zgłosić, że asystent jej nie słyszy. Skutek
+        // był dokładnie taki, jak można się spodziewać: dzienniki nie
+        // docierały, a diagnoza stawała w miejscu przy każdym zgłoszeniu.
+        //
+        // Tu idzie systemowe udostępnianie: WhatsApp, poczta, cokolwiek jest na
+        // telefonie. Plik wychodzi przez FileProvider (katalog `diagnostics/`),
+        // więc nie potrzeba uprawnienia do pamięci.
+        OutlinedButton(
+            onClick = {
+                scope.launch {
+                    val app = context.applicationContext as pl.victor.app.VictorApplication
+                    val file = app.diag.currentFile()
+                    if (file == null || !file.isFile || file.length() == 0L) {
+                        status = "Dziennik jest jeszcze pusty."
+                        return@launch
+                    }
+                    val wynik = runCatching {
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file
+                        )
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                            putExtra(
+                                android.content.Intent.EXTRA_SUBJECT,
+                                "V.I.C.T.O.R. - dziennik ${file.name}"
+                            )
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(
+                            android.content.Intent.createChooser(intent, "Wyślij dziennik")
+                        )
+                    }
+                    status = wynik.fold(
+                        onSuccess = { null },
+                        // Powód na ekranie, nie w logcacie: osoba testująca nie
+                        // ma jak go odczytać, a bez niego "nic się nie stało"
+                        // wygląda jak kolejna usterka aplikacji.
+                        onFailure = { "Nie udało się otworzyć wysyłania: ${it.message}" }
+                    )
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Udostępnij dziennik (bez tokenu)")
+        }
+        Text(
+            "Wyśle plik przez WhatsAppa, pocztę albo cokolwiek innego - " +
+                "nie trzeba konta na GitHubie.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
         status?.let {
             Spacer(Modifier.height(6.dp))
             Text(it, style = MaterialTheme.typography.bodySmall)

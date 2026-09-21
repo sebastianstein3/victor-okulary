@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FileProvider udostępnia WYŁĄCZNIE dwa katalogi, nie całą przestrzeń apki:
+<!-- FileProvider udostępnia WYŁĄCZNIE trzy katalogi, nie całą przestrzeń apki:
      - livestream_lab/ - eksport logów Live Stream Lab (Opcje programistyczne),
      - glasses_media/  - kopie robocze plików z okularów, otwierane systemowym
        odtwarzaczem. Cache, nie files: to materiał do obejrzenia, a nie do
-       trzymania. Do galerii telefonu plik trafia osobno, przez MediaStore. -->
+       trzymania. Do galerii telefonu plik trafia osobno, przez MediaStore,
+     - diagnostics/    - dziennik diagnostyczny do wysłania byle czym. Dotąd
+       jedyną drogą na zewnątrz była wysyłka wymagająca TOKENU GITHUBA, czego
+       osoba testująca nie założy - i dlatego dzienniki nie docierały. -->
 <paths>
     <files-path name="livestream_lab" path="livestream_lab/" />
     <cache-path name="glasses_media" path="glasses_media/" />
+    <files-path name="diagnostics" path="diagnostics/" />
 </paths>
