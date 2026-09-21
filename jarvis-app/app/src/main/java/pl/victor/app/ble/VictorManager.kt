@@ -761,8 +761,31 @@ class VictorManager private constructor(context: Context) {
                 _glassesIp.value = event.ip
             }
             is NotifyEvent.P2pError -> {
-                // Kod 255 okulary zgłaszają rutynowo - nie panikujemy.
+                // Kod 255 okulary zgłaszają rutynowo - nie panikujemy i NIE
+                // ruszamy bezpiecznika Wi-Fi Direct. Wyłączenie go przy każdym
+                // rutynowym zgłoszeniu zepchnęłoby transfer na wolniejszy
+                // hotspot także wtedy, gdy P2P działa.
+                //
+                // Ale do DZIENNIKA to trafić musi. W dzienniku ramek z
+                // 21 września te błędy padają dokładnie w oknach transferu
+                // (17:17:54 i 17:18:25), a transfer był wtedy wolny - i z
+                // dziennika diagnostycznego nie dało się tego zobaczyć, bo
+                // wpis szedł wyłącznie do logcata.
                 Log.w(tag, "Notify: błąd P2P (kod=${event.code})")
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                        "okulary zgłaszają błąd P2P",
+                        mapOf("kod" to event.code)
+                    )
+                }
+            }
+            is NotifyEvent.TransferMeter -> {
+                // Cicho z rozmysłu: to puls co trzy sekundy, więc w dzienniku
+                // diagnostycznym zrobiłby dwadzieścia wierszy na minutę
+                // transferu i zasłonił wszystko inne. Wartość widać w dzienniku
+                // RAMEK, gdzie jest na swoim miejscu.
+                Log.d(tag, "Notify: miernik transferu = ${event.value}")
             }
             is NotifyEvent.OtaProgress -> {
                 Log.d(tag, "Notify: OTA ${event.download}/${event.soc}/${event.nor}")
@@ -1786,6 +1809,7 @@ class VictorManager private constructor(context: Context) {
             "Bateria ${event.level}%" + if (event.charging) " (ładowanie)" else ""
         is NotifyEvent.GlassesIp -> "IP okularów: ${event.ip}"
         is NotifyEvent.P2pError -> "Błąd P2P, kod ${event.code}"
+        is NotifyEvent.TransferMeter -> "Miernik transferu: ${event.value}"
         is NotifyEvent.OtaProgress ->
             "OTA: pobrano ${event.download}%, SoC ${event.soc}%, NOR ${event.nor}%"
         is NotifyEvent.LowMemory -> "Mało pamięci na okularach"

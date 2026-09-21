@@ -192,6 +192,33 @@ object GlassesProtocol {
     const val NOTIFY_P2P_ERROR = 0x09
 
     /**
+     * Miernik nadawany CO TRZY SEKUNDY w trakcie sesji transferu plików.
+     *
+     * ## Co o nim wiadomo z pomiaru, a czego nie wiem
+     * Z dziennika ramek z 21 września, dwa okna po kilkanaście ramek:
+     *
+     *  - odstęp 2,9-3,1 s, czyli stały puls co trzy sekundy;
+     *  - drugie okno zaczyna się CO DO MILISEKUNDY razem z odpowiedzią na
+     *    "Tryb transferu plików (hotspot)" (17:20:33.072);
+     *  - poza oknami transferu ramka nie pada w ogóle - między nimi jest
+     *    128 sekund ciszy, mimo wciśnięć przycisku i dwóch zdjęć;
+     *  - wartości 33-45 i NIEMONOTONICZNE (35, 45, 36, 37, 38...), więc to na
+     *    pewno nie jest postęp ani procent.
+     *
+     * Wartość wędrująca w tę i z powrotem, przywiązana do sesji transferu, z
+     * zakresu, który pasuje do siły sygnału w dBm bez znaku - ale tego NIE
+     * POTWIERDZIŁEM i nie nazywam tego siłą sygnału w kodzie.
+     *
+     * Wcześniej zgadywałem temperaturę. Odwołuję: 35 -> 45 -> 36 w sześć sekund
+     * to za szybko na bezwładność cieplną, a temperatura nie zaczynałaby się
+     * dokładnie z trybem transferu i nie kończyła razem z nim.
+     *
+     * Do czasu potwierdzenia wpis niesie surową wartość. Dwadzieścia wierszy
+     * "Nieobsługiwany typ" czyta się jak usterka; wiersz z liczbą jest daną.
+     */
+    const val NOTIFY_TRANSFER_METER = 0x0B
+
+    /**
      * Użytkownik przerwał wypowiedź (dotknięcie zauszników w trakcie mówienia).
      * Aplikacja producenta robi tu `stopRealTimeTTS` + `setUserInterruptsAudio`,
      * czyli traktuje to jako "zamilcz", a nie jako pauzę odtwarzacza.
@@ -825,6 +852,10 @@ object GlassesProtocol {
                 code = if (loadData.size > 7) loadData[7].toIntUnsigned() else -1
             )
 
+            NOTIFY_TRANSFER_METER -> NotifyEvent.TransferMeter(
+                value = if (loadData.size > 7) loadData[7].toIntUnsigned() else -1
+            )
+
             NOTIFY_OTA_PROGRESS ->
                 if (loadData.size > 9) {
                     NotifyEvent.OtaProgress(
@@ -925,6 +956,9 @@ sealed class NotifyEvent {
 
     /** Błąd Wi-Fi Direct; kod 255 bywa zgłaszany rutynowo. */
     data class P2pError(val code: Int) : NotifyEvent()
+
+    /** Puls co trzy sekundy w trakcie transferu - patrz [GlassesProtocol.NOTIFY_TRANSFER_METER]. */
+    data class TransferMeter(val value: Int) : NotifyEvent()
 
     data class OtaProgress(val download: Int, val soc: Int, val nor: Int) : NotifyEvent()
 
