@@ -130,3 +130,51 @@
 21:13:16.243  +36394 ms  AUDIO        zwinięte łącze audio tury  ms=0
 21:13:16.246  +36397 ms  SESJA        --- KONIEC TURY 59e6: odpowiedziano ---
 21:13:16.248          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:13:17.090          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:13:24.649          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:13:27.857          ms  BLE          album po BLE: lista plików  typPliku=0 plików=0 ms=4007
+21:13:31.863          ms  BLE          album po BLE: lista plików  typPliku=1 plików=0 ms=4004
+21:13:35.869          ms  BLE          album po BLE: lista plików  typPliku=2 plików=0 ms=4004
+21:13:39.875          ms  BLE          album po BLE: lista plików  typPliku=3 plików=0 ms=4003
+21:13:43.881          ms  BLE          album po BLE: lista plików  typPliku=4 plików=0 ms=4003
+21:13:43.884          ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_85CE0E24A6BA
+21:13:45.258          ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+21:13:55.401          ms  BLE          Hotspot okularów: gotowe  ms=11517
+21:14:24.192          ms  BLE          Zwolnienie pamięci: liczniki PRZED  zdjęć=1 wideo=0 nagrań=0
+21:14:24.276          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 30 01 00 00 00 00 00 00 01 01 sztuk=1 pierwsza=false
+21:14:27.276          ms  BLE          Zwolnienie pamięci: liczniki PO  zdjęć=0 wideo=0 nagrań=0
+21:15:39.672          ms  PRZYCISK     wciśnięto  numer=1
+21:15:39.852          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:15:40.206          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:15:40.529          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=20 ms=671
+21:15:40.820          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:15:40.830      +0 ms  SESJA        --- TURA f070 ---  źródło=OKULARY
+21:15:40.831      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:15:45.149   +4320 ms  NASŁUCH      koniec  ms=4319 odłożone=halo halo kurwa witam zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=10 gotowyPoMs=403
+21:15:45.156   +4327 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+21:15:46.376   +5546 ms  NASŁUCH      nagranie z okularów  jest=true sekund=15.8805 pakietów=265 rozkodowanych=264 odrzuconych=1 przesunięcie=6 ramka=-1
+21:15:51.551  +10721 ms  TRANSKRYPCJA z nagrania okularów  ms=5167
+21:15:51.620  +10790 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=15880 jestMs=4680 tło=11 szczyt=20640 ile razy=1812.9
+21:15:51.622  +10792 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=halo halo kurwa witam
+21:15:51.623  +10793 ms  SESJA        pytanie  tekst=halo halo kurwa witam wymuszonyObraz=false
+21:15:51.631  +10801 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:15:51.642  +10812 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:15:51.660  +10830 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:15:52.179  +11349 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:15:53.466  +12636 ms  KONTEKST     zebrany  ms=1793 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:15:53.496  +12666 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=11172
+21:15:53.880  +13050 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=384 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+21:15:53.885  +13055 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=11172
+21:15:55.826  +14996 ms  MODEL        koniec odpowiedzi (58 znaków, 8219 tokenów)  ms=2331 dostawca=deepseek początek=Słyszę Cię, Sebastian. Jestem gotowy - czego potrzebujesz?
+21:15:55.837  +15007 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=58
+21:15:57.652  +16822 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:16:01.679  +20850 ms  MOWA         koniec wypowiedzi  ms=5837
+21:16:01.717  +20887 ms  AUDIO        zwinięte łącze audio tury  ms=1
+21:16:01.723  +20893 ms  SESJA        --- KONIEC TURY f070: odpowiedziano ---
+21:16:01.728          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
