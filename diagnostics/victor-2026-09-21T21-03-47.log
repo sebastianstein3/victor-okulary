@@ -500,3 +500,44 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:45:19.573  +20754 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
 21:45:19.682  +20863 ms  AUDIO        zwinięte łącze audio tury  ms=0
 21:45:19.684  +20865 ms  SESJA        --- KONIEC TURY 4c7d: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+21:45:28.080          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:45:29.656          ms  PRZYCISK     wciśnięto  numer=1
+21:45:29.922          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:45:30.181          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:45:30.235          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=311
+21:45:30.325          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:45:30.328      +1 ms  SESJA        --- TURA aed7 ---  źródło=OKULARY
+21:45:30.329      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:45:34.885   +4558 ms  NASŁUCH      koniec  ms=4558 odłożone=do you hear me zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=363
+21:45:35.001   +4675 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:45:35.420   +5093 ms  NASŁUCH      nagranie z okularów  jest=true sekund=14.9805 pakietów=250 rozkodowanych=250 odrzuconych=0 przesunięcie=6 ramka=-1
+21:45:36.486   +6160 ms  TRANSKRYPCJA z nagrania okularów  ms=1064 droga=Bez transkrypcji - nagranie do modelu
+21:45:36.491   +6164 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=14980 jestMs=3400 tło=0 szczyt=4882 ile razy=7108.0
+21:45:36.493   +6166 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=do you hear me
+21:45:36.494   +6167 ms  SESJA        pytanie  tekst=do you hear me wymuszonyObraz=false
+21:45:36.507   +6180 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:45:36.519   +6192 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:45:37.294   +6967 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:45:37.862   +7535 ms  KONTEKST     zebrany  ms=1338 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:45:37.870   +7543 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=9037
+21:45:38.122   +7795 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=253 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+21:45:38.125   +7798 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=9037
+21:45:40.667  +10340 ms  MODEL        koniec odpowiedzi (113 znaków, 6569 tokenów)  ms=2798 dostawca=deepseek początek=Tak, słyszę Cię teraz wyraźnie — i tym razem dotarło do mnie normalnym tekstem, 
+21:45:40.671  +10344 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=113
+21:45:46.718  +16391 ms  MOWA         koniec wypowiedzi  ms=6045
+21:45:46.735  +16408 ms  AUDIO        zwinięte łącze audio tury  ms=1
+21:45:46.737  +16410 ms  SESJA        --- KONIEC TURY aed7: odpowiedziano ---
+21:45:46.740          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:45:46.925          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:45:55.166          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:46:20.566          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:46:22.461          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:46:22.464          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:46:22.469          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1901
+21:46:23.924          ms  ZDJĘCIE      próba 0: miniatura  bajtów=13994 jpeg=true kompletny=true
