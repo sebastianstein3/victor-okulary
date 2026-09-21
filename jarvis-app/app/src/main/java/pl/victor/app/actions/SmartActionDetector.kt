@@ -912,8 +912,12 @@ class SmartActionDetector {
         // i wtedy zostaje w tekście, a TTS go po prostu CZYTA na głos. Cokolwiek
         // wygląda jak znacznik, nie ma prawa trafić do użytkownika.
         val withoutStrayTags = STRAY_TAG_REGEX.replace(cleaned, "")
+        // Ogon po znaczniku uciętym na limicie tokenów - patrz
+        // [TRUNCATED_TAG_REGEX]. Musi lecieć PO tamtym filtrze, bo tamten
+        // zdejmuje znaczniki kompletne, a ten wyłącznie resztkę na końcu.
+        val withoutTruncated = TRUNCATED_TAG_REGEX.replace(withoutStrayTags, "")
 
-        return tidySpokenText(withoutStrayTags) to actions
+        return tidySpokenText(withoutTruncated) to actions
     }
 
     /**
@@ -1204,6 +1208,33 @@ class SmartActionDetector {
          */
         private val STRAY_TAG_REGEX = Regex(
             """\[\[[^\[\]]*\]\]|\[\s*ACTION\s*[:=][^\[\]]*\]""",
+            RegexOption.IGNORE_CASE
+        )
+
+        /**
+         * Znacznik UCIĘTY W POŁOWIE, bez nawiasów zamykających.
+         *
+         * ## Zrzut ekranu, który to rozstrzygnął
+         * Na ekranie stało dosłownie:
+         *
+         *     Już szukam połączenia komunikacją miejską na ulicę Polną (...)
+         *     Zaraz wyświetlę Ci trasę dojazdu.
+         *     [[ACTION: type=app_task kind="TRANSIT_
+         *
+         * Odpowiedź urwała się w środku znacznika. [STRAY_TAG_REGEX] wymaga
+         * nawiasów ZAMYKAJĄCYCH, więc takiego ogona nie ruszał - i szedł on
+         * prosto na ekran oraz do syntezatora. Zgłoszone jako "zamiast pokazać
+         * trasę wyświetla się dziwny komunikat".
+         *
+         * Skutek jest podwójny i oba są złe: człowiek słyszy techniczny bełkot,
+         * a akcja i tak się nie wykonuje, bo niedokończonego znacznika nie da
+         * się sparsować. Asystent obiecuje trasę i nie robi nic.
+         *
+         * Wzorzec celuje WYŁĄCZNIE w ogon na końcu tekstu (`$`), więc nie tknie
+         * nawiasu kwadratowego w środku zdania.
+         */
+        private val TRUNCATED_TAG_REGEX = Regex(
+            """\[\[[^\[\]]*$|\[\s*ACTION\b[^\[\]]*$""",
             RegexOption.IGNORE_CASE
         )
 

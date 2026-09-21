@@ -2457,9 +2457,21 @@ class AIOrchestrator(
                 pl.victor.app.vision.ReadTextPrompt.forLanguage(settings.getResponseLanguage()),
                 forceVision = true
             )
+            // POLECENIE MÓWIŁO WYŁĄCZNIE O KODZIE QR - I TO BYŁ MÓJ BŁĄD.
+            //
+            // Wczoraj podpiąłem tu komendy głosowe "zeskanuj kod", "co to za
+            // produkt" i "sprawdź ten produkt", nie ruszając treści polecenia.
+            // Człowiek pytał o KOD KRESKOWY produktu, a model dostawał zadanie
+            // o kodzie QR - i odpowiadał o czymś innym, niż pytano.
+            //
+            // Kod kreskowy ma tu zresztą własną, lepszą drogę: EAN trafia do
+            // Open Food Facts i wraca z nazwą, gramaturą i alergenami, czyli z
+            // czymś, czego model ze zdjęcia nie wyczyta. Polecenie musi
+            // obejmować oba rodzaje kodów, żeby ta droga w ogóle ruszyła.
             ButtonAction.SCAN_QR -> handleUserTrigger(
                 TriggerSource.BUTTON,
-                "Zeskanuj kod QR ze zdjęcia i powiedz krótko, co w nim jest.",
+                "Odczytaj kod ze zdjęcia - kreskowy albo QR - i powiedz krótko, " +
+                    "co to za produkt albo co jest w kodzie zapisane.",
                 // Bez tego szło przez warstwę 0, a tam wykrywanie komend mogło
                 // przechwycić zdanie, zanim w ogóle doszło do aparatu.
                 forceVision = true
@@ -3184,6 +3196,26 @@ class AIOrchestrator(
                     Log.i(TAG, "Wykryto ${scannedCodes.size} kod(ów): ${scannedCodes.map { it.format }}")
                 } else if (asksAboutCode) {
                     Log.w(TAG, "Pytanie o kod, ale żadnego nie odczytano")
+                    // DO DZIENNIKA, NIE TYLKO DO LOGCATA.
+                    //
+                    // Zgłoszone: "poprosiłem o zweryfikowanie kodu kreskowego,
+                    // zrobił chyba 5 zdjęć i nie sprawdził jej w openfood".
+                    // Są trzy różne powody, dla których baza nie zostaje
+                    // odpytana, i z zewnątrz wyglądają identycznie: kodu nie
+                    // odczytano wcale, odczytano kod INNEGO typu niż EAN, albo
+                    // odczytano i produktu nie ma w bazie. Ostatnie dwa miały
+                    // już swój wpis, pierwszy szedł wyłącznie do logcata -
+                    // czyli donikąd, bo nikt go z telefonu nie odczyta.
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.ZDJĘCIE,
+                            "pytanie o kod, ale ŻADNEGO nie odczytano",
+                            mapOf(
+                                "zdjęć" to photos.size,
+                                "pełnaRozdzielczość" to glassesManager.lastPhotoWasFullResolution
+                            )
+                        )
+                    }
                 }
 
                 // 1b-bis. KOD KRESKOWY PRODUKTU -> CO TO JEST.

@@ -507,7 +507,29 @@ class GeminiProvider(
          * Gdyby okazało się za ciasne, powie to [GeminiCandidate.finishReason]
          * wartością "MAX_TOKENS" - nie trzeba będzie zgadywać.
          */
-        private const val MAX_OUTPUT_TOKENS = 1200
+        /**
+         * Sufit na odpowiedź - PODNIESIONY Z 1200, BO TEN LIMIT OBEJMUJE TEŻ
+         * MYŚLENIE.
+         *
+         * Tysiąc dwieście wystarczało, dopóki liczyło się tylko to, co model
+         * wypisuje. Ale `maxOutputTokens` w Gemini obejmuje także tokeny
+         * myślenia (napisane wprost w [GeminiGenerationConfig]), a modele
+         * `flash` myślą z domysłu i ograniczanie myślenia jest u nas domyślnie
+         * WYŁĄCZONE. Gdy myślenie zje tysiąc, na odpowiedź zostaje dwieście - i
+         * urywa się ona w pół słowa.
+         *
+         * Zgłoszone jako "przycina odpowiedzi", a widać to na dwóch zrzutach:
+         * "Oprócz tego dostałeś maila od Sie" i znacznik akcji ucięty na
+         * `kind="TRANSIT_`. Ten drugi kosztował całą funkcję: niedokończonego
+         * znacznika nie da się sparsować, więc asystent obiecał trasę i nie
+         * uruchomił niczego.
+         *
+         * Płacimy za to rachunkiem - i to jest świadomy wybór, bo ucięta
+         * odpowiedź kosztuje tyle samo tokenów co pełna, tylko jest
+         * bezużyteczna. Tańsza droga istnieje i jest w Ustawieniach:
+         * "ogranicz myślenie" oddaje cały ten budżet odpowiedzi.
+         */
+        private const val MAX_OUTPUT_TOKENS = 3000
 
         /** Ile znaków oryginalnej odpowiedzi serwera dokładamy do komunikatu. */
         private const val RAW_ERROR_CHARS = 200
