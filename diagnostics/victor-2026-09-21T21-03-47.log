@@ -541,3 +541,37 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:46:22.464          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
 21:46:22.469          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1901
 21:46:23.924          ms  ZDJĘCIE      próba 0: miniatura  bajtów=13994 jpeg=true kompletny=true
+21:46:57.238          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 07 2D 01 01 00 01 00 00 00 01 01 sztuk=1 pierwsza=false
+21:47:08.239          ms  PRZYCISK     wciśnięto  numer=1
+21:47:08.748          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:47:08.798          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:47:08.800      +0 ms  SESJA        --- TURA 0935 ---  źródło=OKULARY
+21:47:08.801      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:47:13.303   +4503 ms  NASŁUCH      koniec  ms=4503 odłożone=filip to makak jest zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=6.04 próbek=11 gotowyPoMs=369
+21:47:13.316   +4516 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:47:14.006   +5206 ms  NASŁUCH      nagranie z okularów  jest=true sekund=13.6605 pakietów=228 rozkodowanych=228 odrzuconych=0 przesunięcie=6 ramka=-1
+21:47:18.006   +9207 ms  TRANSKRYPCJA z nagrania okularów  ms=3999 droga=Nasłuch telefonu
+21:47:18.011   +9211 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=13660 jestMs=9340 tło=7 szczyt=2506 ile razy=321.7
+21:47:18.014   +9214 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=filip to makak jest
+21:47:18.015   +9215 ms  SESJA        pytanie  tekst=filip to makak jest wymuszonyObraz=false
+21:47:18.020   +9220 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:47:18.037   +9237 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:47:18.039   +9240 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:47:18.551   +9752 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:47:19.527  +10727 ms  KONTEKST     zebrany  ms=1481 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:47:19.536  +10736 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=8484
+21:47:19.777  +10978 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=242 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+21:47:19.781  +10981 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=8484
+21:47:21.945  +13145 ms  MODEL        koniec odpowiedzi (74 znaków, 6375 tokenów)  ms=2410 dostawca=deepseek początek=Ostra teza. Mam to jakoś zapisać, czy tylko dzielisz się opinią o Filipie?
+21:47:21.951  +13151 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=74
+21:47:24.054  +15254 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:47:26.219  +17419 ms  MOWA         koniec wypowiedzi  ms=4266
+21:47:26.239  +17440 ms  AUDIO        zwinięte łącze audio tury  ms=0
+21:47:26.243  +17443 ms  SESJA        --- KONIEC TURY 0935: odpowiedziano ---
+21:47:26.248          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
