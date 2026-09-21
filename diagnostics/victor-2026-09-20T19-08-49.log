@@ -828,3 +828,5 @@
 17:20:27.785          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
 17:20:27.796          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1302
 17:20:29.450          ms  ZDJĘCIE      próba 0: miniatura  bajtów=11805 jpeg=true kompletny=true
+17:20:29.588          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+17:20:33.072          ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 C6 98 0B 21 sztuk=15 pierwsza=false
