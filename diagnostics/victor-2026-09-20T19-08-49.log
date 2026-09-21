@@ -566,3 +566,75 @@
 17:08:43.293  +25424 ms  MOWA         koniec wypowiedzi  ms=11014
 17:08:43.310  +25441 ms  SESJA        --- KONIEC TURY de5e: odpowiedziano ---
 17:08:43.313          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:08:43.890          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:08:46.733          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+17:11:06.400          ms  PRZYCISK     wciśnięto  numer=1
+17:11:06.632          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+17:11:06.947          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:11:07.277          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=643
+17:11:07.575          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=36 mikrofonOkularów=true
+17:11:07.587      +2 ms  SESJA        --- TURA 933a ---  źródło=OKULARY
+17:11:07.588      +3 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+17:11:08.190    +605 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,1
+17:11:12.078   +4493 ms  NASŁUCH      koniec  ms=4492 telefonUsłyszał=kod kreskowy zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=3 gotowyPoMs=685
+17:11:12.417   +4832 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.3735 pakietów=69 rozkodowanych=69 odrzuconych=0 przesunięcie=6 ramka=-1
+17:11:13.262   +5677 ms  TRANSKRYPCJA z nagrania okularów  ms=841 droga=Nasłuch telefonu
+17:11:13.266   +5681 ms  SESJA        pytanie  tekst=kod kreskowy wymuszonyObraz=false
+17:11:13.277   +5692 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:11:13.292   +5707 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+17:11:13.299   +5714 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+17:11:13.683   +6099 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,1
+17:11:14.618   +7034 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:11:14.624   +7040 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:11:14.631   +7046 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1329
+17:11:16.557   +8973 ms  ZDJĘCIE      próba 0: miniatura  bajtów=12877 jpeg=true kompletny=true
+17:11:16.579   +8994 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_85CE0E24A6BA
+17:11:17.764  +10179 ms  BLE          nieobsługiwana ramka notify  typ=0xb ramka=BC 73 02 00 07 49 0B 1C sztuk=14 pierwsza=false
+17:11:17.771  +10186 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+17:11:33.466  +25881 ms  BLE          Hotspot okularów: gotowe  ms=16887
+17:11:33.580  +25995 ms  BLE          internet wrócił po sieci okularów  ms=1
+17:11:33.582  +25997 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=17004
+17:11:33.583  +25998 ms  ZDJĘCIE      zostaję przy miniaturze - dzielnik NIE ma tu zastosowania  oryginałDoszedł=false bajtówMiniatury=12877
+17:11:35.230  +27645 ms  KONTEKST     zebrany  ms=1626 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:11:35.295  +27710 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=5989
+17:11:39.432  +31848 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=4137
+17:11:39.553  +31968 ms  MODEL        zużycie tokenów  wejście=4620 odpowiedź=39 myślenie=711 razem=5370 limit=1200 koniec=STOP
+17:11:39.564  +31979 ms  MODEL        koniec odpowiedzi (115 znaków, 5370 tokenów)  ms=4270
+17:11:39.615  +32030 ms  AKCJA        model zlecił akcje  akcje=TAKE_PHOTO znakówOdpowiedzi=86
+17:11:41.653  +34069 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+17:11:44.739  +37154 ms  SESJA        pytanie  tekst=kod kreskowy wymuszonyObraz=true
+17:11:44.789  +37204 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+17:11:45.131  +37547 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+17:11:45.150  +37565 ms  BLE          Podgląd na żywo: podnoszę
+17:11:46.038  +38453 ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+17:12:03.354  +55770 ms  BŁĄD         Podgląd na żywo: brak adresu okularów
+17:12:03.359  +55774 ms  ZDJĘCIE      strumień dla liter nie wstał  ms=18212 powód=Okulary nie podały swojego adresu.
+17:12:03.365  +55780 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+17:12:03.760  +56175 ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 30 01 00 00 00 00 00 00 01 01 sztuk=1 pierwsza=false
+17:12:08.370  +60785 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=false ms=5001
+17:12:08.377  +60792 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+17:12:13.383  +65798 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5002
+17:12:13.386  +65801 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+17:12:18.395  +70811 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+17:12:18.398  +70814 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+17:12:19.843  +72258 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:12:19.850  +72265 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:12:26.660  +79075 ms  ZDJĘCIE      próba 2: miniatura  notify=true bajtów=27854 jpeg=true kompletny=true
+17:12:26.681  +79096 ms  ZDJĘCIE      pomijam Wi-Fi Direct - ostatnia próba zawiodła  sekundTemu=53
+17:12:26.695  +79110 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=27854 źródło=migawka pełnaRozdzielczość=false
+17:12:26.712  +79127 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+17:12:28.015  +80430 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:12:28.020  +80436 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:12:28.040  +80456 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1327
+17:12:29.856  +82272 ms  ZDJĘCIE      próba 0: miniatura  bajtów=15492 jpeg=true kompletny=true
+17:12:29.871  +82286 ms  ZDJĘCIE      pomijam Wi-Fi Direct - ostatnia próba zawiodła  sekundTemu=56
+17:12:31.958  +84374 ms  KONTEKST     zebrany  ms=2071 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:12:32.012  +84428 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=1 znakówPromptu=5989
+17:12:59.212 +111627 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=27204
+17:12:59.617 +112033 ms  MODEL        zużycie tokenów  wejście=7369 odpowiedź=97 myślenie=2452 razem=9918 limit=1200 koniec=STOP
+17:12:59.619 +112034 ms  MODEL        koniec odpowiedzi (308 znaków, 9918 tokenów)  ms=27611
+17:12:59.621 +112036 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=308
+17:13:01.561 +113976 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,1
+17:13:20.028 +132443 ms  MOWA         koniec wypowiedzi  ms=20406
+17:13:20.055 +132470 ms  SESJA        --- KONIEC TURY 933a: odpowiedziano ---
+17:13:20.058          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
