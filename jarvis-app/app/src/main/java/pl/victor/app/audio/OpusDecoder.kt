@@ -211,12 +211,52 @@ class OpusDecoder(
     companion object {
         private const val TAG = "OpusDecoder"
 
-        /** Opus zawsze pracuje wewnętrznie na 48 kHz. */
-        const val SAMPLE_RATE = 48_000
+        /**
+         * Częstotliwość, na jakiej WYPUSZCZAMY dźwięk z dekodera - 16 kHz, bo
+         * tak robi to aplikacja producenta.
+         *
+         * ## Skąd ta liczba i czemu była inna
+         * Stało tu 48 000 z uzasadnieniem "Opus zawsze pracuje wewnętrznie na
+         * 48 kHz". To prawda o samym kodeku, ale nie o tym, na czym ma stanąć
+         * WYJŚCIE dekodera - a Opus pozwala je wybrać.
+         *
+         * Aplikacja producenta (Prism, `GlassesAzureSpeechRecognizer`) ustawia
+         * dla tego samego strumienia:
+         *
+         *     opusOption.setHasHead(false)
+         *     opusOption.setSampleRate(16000)
+         *     opusOption.setPacketSize(40)
+         *     opusOption.setChannel(1)
+         *
+         * i podaje go dalej jako `AudioStreamFormat.getWaveFormatPCM(16000, 16, 1)`.
+         * Ich rozpoznawanie mowy z tego strumienia DZIAŁA. Nasze nie oddało
+         * tekstu ani razu na około czterdzieści prób, mimo że pakiety
+         * dekodowały się co do sztuki (456 na 456, zero odrzuconych) - czyli
+         * problemem nie było odbieranie, tylko to, co z dekodera wychodziło.
+         *
+         * ## Czego NIE twierdzę
+         * Że to na pewno była JEDYNA przyczyna. Nie mam okularów, żeby to
+         * sprawdzić. Twierdzę tyle: konfiguracja producenta jest znana z
+         * działania, nasza z niedziałania, a różniły się tą liczbą.
+         *
+         * Zmiana jest bezpieczna w obie strony. Gdyby Opus okazał się
+         * obojętny na częstotliwość wyjścia, dostaniemy tę samą mowę, tylko
+         * węziej pasmowo - a przy okazji ZNIKA stratne przepróbkowanie 48 -> 16
+         * przed rozpoznawaniem, bo [pl.victor.app.audio.PcmResampler] oddaje
+         * wejście bez zmian, gdy częstotliwości są równe.
+         */
+        const val SAMPLE_RATE = 16_000
 
         private const val OPUS_HEAD_SIZE = 19
 
-        /** Standardowe pre-skip dla Opusa - 312 próbek przy 48 kHz. */
+        /**
+         * Standardowe pre-skip dla Opusa - 312 próbek.
+         *
+         * ZOSTAJE 312 mimo zejścia wyjścia na 16 kHz: RFC 7845 mówi, że to pole
+         * liczy się ZAWSZE w próbkach 48 kHz, niezależnie od tego, na czym
+         * stawia wyjście dekoder. Przeliczenie go "pod nową częstotliwość"
+         * byłoby błędem.
+         */
         private const val PRE_SKIP = 312
 
         /** Pre-skip przeliczone na nanosekundy: 312 / 48000 s. */

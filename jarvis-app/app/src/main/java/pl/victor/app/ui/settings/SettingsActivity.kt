@@ -2981,10 +2981,10 @@ private fun WakeWordSection(
         }
 
         // === Skąd brać PYTANIE po wybudzeniu ===
-        // Osobna sprawa od wybudzenia: SCO/HFP zawiesza odtwarzanie A2DP, więc
-        // zestaw, który zgłasza profil rozmowy, ale go nie obsługuje, milknie
-        // i jednocześnie nic nie słyszy. Aplikacja wyłącza to sama po trzech
-        // cichych turach - ten przełącznik pozwala wrócić.
+        // Od przejścia na drogę producenta ten przełącznik NIE zestawia już
+        // profilu rozmowy: dźwięk z mikrofonu okularów idzie strumieniem BLE,
+        // rozkodowanym na 16 kHz. SCO zostaje wyłącznie wtedy, gdy strumienia
+        // nie ma - patrz komentarz przy `held` w AIOrchestrator.startVoiceTurn.
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Row(
@@ -2999,13 +2999,14 @@ private fun WakeWordSection(
                         )
                         Text(
                             if (glassesMicEnabled) {
-                                "Pytania zbiera mikrofon okularów (profil rozmowy " +
-                                    "SCO/HFP). Mikrofon przy uchu słyszy lepiej niż " +
-                                    "telefon w kieszeni."
+                                "Pytania zbiera mikrofon okularów - dźwięk idzie " +
+                                    "strumieniem BLE, tak jak w aplikacji producenta. " +
+                                    "Mikrofon przy ustach słyszy lepiej niż telefon " +
+                                    "w kieszeni, a muzyka nie milknie na czas pytania."
                             } else {
                                 "Pytania zbiera mikrofon TELEFONU. Odpowiedzi i tak " +
-                                    "są słyszalne w okularach. Włącz, jeśli mikrofon " +
-                                    "okularów zaczął działać."
+                                    "są słyszalne w okularach. Włącz, jeśli chcesz, " +
+                                    "żeby słuchały okulary."
                             },
                             style = MaterialTheme.typography.bodySmall
                         )

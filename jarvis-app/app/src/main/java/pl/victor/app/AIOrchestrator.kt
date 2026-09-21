@@ -1593,41 +1593,43 @@ class AIOrchestrator(
             // jest zablokowany, AI często nie odpowiada".
             pauseWakeWordMic()
             wakeLock.acquire(LOCK_LISTENING, LISTEN_WAKE_LOCK_MS)
-            // STRUMIEŃ BLE NIE ZASTĘPUJE MIKROFONU OKULARÓW - I TO BYŁ BŁĄD.
+            // MIKROFON OKULARÓW IDZIE STRUMIENIEM BLE, NIE PROFILEM ROZMOWY.
             //
-            // Stało tu: „gdy strumień BLE żyje, dźwięk pytania mamy niezależnie
-            // od SCO", więc profil rozmowy pomijaliśmy, żeby nie płacić do
-            // czterech sekund negocjacji przed nasłuchem. Rozumowanie było
-            // spójne i całkowicie fałszywe w jednym punkcie: strumień BLE NIE
-            // DAJE NAM dźwięku pytania.
+            // ## Prostuję to, co stało tu wcześniej
+            // Napisałem, że "strumień BLE NIE DAJE NAM dźwięku pytania", bo
+            // transkrypcja z niego nie oddała tekstu ani razu na około
+            // czterdzieści prób. Wniosek był taki, że jedyną drogą do mikrofonu
+            // okularów jest SCO - i pod to poszła cała reszta.
             //
-            // Zgłoszone przez użytkownika wprost: „gdy oddalam się od telefonu,
-            // AI mnie nie słyszy - dźwięk z okularów w ogóle nie przechodzi do
-            // telefonu". Dzienniki mówią to samo od ośmiu sesji, tylko nie
-            // umiałem tego przeczytać: transkrypcja nagrania z okularów nie
-            // oddała tekstu ANI RAZU na około czterdzieści prób, a model dostając
-            // to nagranie słyszy „kroki" albo „niewyraźne". Pakiety przychodzą i
-            // dekodują się co do sztuki (456 na 456, zero odrzuconych), ale to,
-            // co z nich wychodzi, nie jest mową.
+            // Wniosek był zły, a przyczyna leżała gdzie indziej: DEKODOWALIŚMY
+            // TEN STRUMIEŃ NA ZŁEJ CZĘSTOTLIWOŚCI. Aplikacja producenta bierze
+            // dokładnie ten sam strumień jako 16 kHz mono, my braliśmy go jako
+            // 48 kHz - patrz [pl.victor.app.audio.OpusDecoder.SAMPLE_RATE].
+            // Pakiety dekodowały się co do sztuki, tylko to, co z nich
+            // wychodziło, nie było mową. Rozumowanie "skoro nie ma mowy, to
+            // droga jest ślepa" było spójne i oparte na własnym błędzie.
             //
-            // Skutek był taki, że pytania zbierał WYŁĄCZNIE mikrofon telefonu -
-            // choć w ustawieniach stoi „Pytania mikrofonem okularów". Dopóki
-            // telefon leżał obok, nikt tego nie zauważył. Po odejściu na dwa
-            // metry asystent głuchnie.
+            // ## Co robi producent
+            // `GlassesAzureSpeechRecognizer` w Prismie nie zestawia SCO ANI RAZU
+            // i nie tyka mikrofonu telefonu. Bierze dźwięk z okularów po BLE,
+            // rozkodowuje na 16 kHz i pcha do rozpoznawania w chmurze. To jest
+            // cała ich droga - i to jest droga, na którą przechodzimy.
             //
-            // Honorujemy więc ustawienie: jeśli człowiek poprosił o mikrofon
-            // okularów, zestawiamy profil rozmowy - to jedyna droga, która
-            // naprawdę do tego mikrofonu prowadzi. Strumień BLE zostaje jako
-            // dodatkowe nagranie i materiał diagnostyczny, ale niczego już nie
-            // zastępuje.
+            // ## Co z tego wynika tutaj
+            // Gdy strumień BLE żyje, profil rozmowy jest NIEPOTRZEBNY - a jest
+            // przy tym szkodliwy: zestawienie SCO zawiesza A2DP (okulary
+            // milkną), kosztuje do czterech sekund negocjacji przed nasłuchem i
+            // każe okularom oddać mikrofon do HFP, przez co PRZESTAJĄ nadawać
+            // ten strumień. Braliśmy więc coś, co samo psuło drogę, którą
+            // właśnie chcemy iść.
             //
-            // Płacimy za to negocjacją przed nasłuchem. To jest świadomy wybór:
-            // kilka sekund rozruchu jest tańsze niż asystent, który nie słyszy
-            // pytania. Czas negocjacji trafia do dziennika - jeśli okaże się
-            // dotkliwy, będzie na czym oprzeć następną decyzję.
+            // Profil rozmowy zostaje wyłącznie na wypadek, gdy strumienia nie ma
+            // (stary egzemplarz, nieudany start) - wtedy to nadal jedyna droga
+            // do mikrofonu innego niż telefon.
             val wantsGlassesMic = settings.isGlassesMicEnabled()
             val routingStartedAtMs = System.currentTimeMillis()
-            var held = if (micStreamLive && !wantsGlassesMic) {
+            var held = if (micStreamLive) {
+                // Strumień BLE niesie mikrofon okularów. SCO by go ZABIŁO.
                 false
             } else {
                 audio.beginConversationRouting()
@@ -1873,33 +1875,40 @@ class AIOrchestrator(
                 // gdy telefon nic nie usłyszał (kieszeń, kurtka, zablokowany
                 // ekran), odłożonego tekstu nie ma i wtedy próbujemy jak dotąd.
                 val phoneFallback = setAsidePhoneTranscript
-                // ODWOŁUJĘ WŁASNĄ POPRZEDNIĄ ZMIANĘ.
+                // NAGRANIE Z OKULARÓW JEST TERAZ ŹRÓDŁEM PIERWSZYM, NIE ZAPASEM.
                 //
-                // Kazałem tu przepisywać nagranie z okularów MIMO gotowego tekstu
-                // z telefonu, gdy proszono o mikrofon okularów, a profil rozmowy
-                // nie wstał. Rozumowanie było poprawne, rachunek nie: pomiar z
-                // pięciu dzienników mówi, że ta droga nie oddała tekstu ANI RAZU
-                // w około czterdziestu turach, kosztując od 1,1 do 5,9 sekundy.
+                // Dotąd tekst z telefonu blokował przepisanie nagrania: skoro
+                // coś już mamy, po co płacić sekundy za drugą drogę. Rachunek
+                // był słuszny, dopóki obie drogi słyszały to samo - ale nie
+                // słyszą. Telefon leży w kieszeni, mikrofon okularów wisi przy
+                // ustach, a po odejściu na dwa metry telefon nie słyszy nic.
                 //
-                // Dokładanie pewnego kosztu za niepewny zysk w turze, która i tak
-                // jest wolna, dało dokładnie to, co zgłoszono: "wszystko działa
-                // wolno". Flaga zostaje - ale tylko po to, żeby dziennik mówił,
-                // którym mikrofonem naprawdę zebrano pytanie; liczy ją wyżej,
-                // zaraz po ustaleniu `overSco`.
+                // Od przejścia na drogę producenta (dekodowanie 16 kHz, bez
+                // SCO) nagranie z okularów jest tym, o co człowiek prosił w
+                // ustawieniach. Tekst z telefonu zostaje jako zapas na wypadek,
+                // gdyby z okularów nic nie wyszło - `bestHeard` niżej bierze
+                // `glassesHeard ?: heard`, więc cisza z okularów sama oddaje mu
+                // pole.
+                //
+                // Płacimy czasem transkrypcji w każdej turze z okularów. To
+                // jest cena funkcji, nie skutek uboczny - i była to świadoma
+                // decyzja, nie moja samowola.
                 val glassesHeard = when {
                     captured?.hasAudio != true -> null
-                    phoneFallback != null -> null
+                    // Kto WYŁĄCZYŁ mikrofon okularów, ten ma dostać stare
+                    // zachowanie: gotowy tekst z telefonu bez dopłaty czasowej.
+                    !wantsGlassesMic && phoneFallback != null -> null
                     else -> captured.pcm?.let { transcribeGlassesAudio(it, languageTagFor(language)) }
                 }
                 if (captured?.hasAudio == true) {
                     diag.event(
                         DiagFormat.Phase.TRANSKRYPCJA,
-                        if (phoneFallback != null) {
+                        if (!wantsGlassesMic && phoneFallback != null) {
                             "nagrania z okularów NIE przepisuję - mam tekst z telefonu"
                         } else {
                             "z nagrania okularów"
                         },
-                        if (phoneFallback != null) {
+                        if (!wantsGlassesMic && phoneFallback != null) {
                             // Dwa pytania o stan, zero rozpoznawania. Bez nich
                             // „ta droga milczy" i „tej drogi nie ma" wyglądają
                             // z dziennika identycznie, a to dwie różne naprawy:
