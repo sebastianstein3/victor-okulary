@@ -426,3 +426,63 @@
 16:43:52.168   +8286 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=164
 16:43:52.172   +8290 ms  MOWA         koniec wypowiedzi  ms=0
 16:43:52.204   +8322 ms  SESJA        --- KONIEC TURY 473f: odpowiedziano ---
+16:44:10.197          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=LIGHT_RAIN
+16:44:10.222          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+16:56:37.066          ms  BLE          ROZŁĄCZONO  świadome=false
+16:56:56.411          ms  BLE          ROZŁĄCZONO  świadome=false
+16:57:04.486          ms  BLE          ROZŁĄCZONO  świadome=false
+16:57:23.765          ms  BLE          ROZŁĄCZONO  świadome=false
+16:57:43.887          ms  BLE          ROZŁĄCZONO  świadome=false
+16:58:13.349          ms  BLE          ROZŁĄCZONO  świadome=false
+16:58:18.812          ms  BLE          ROZŁĄCZONO  świadome=false
+16:58:24.785          ms  BLE          ROZŁĄCZONO  świadome=false
+16:58:30.641          ms  BLE          ROZŁĄCZONO  świadome=false
+16:59:02.799          ms  BLE          ROZŁĄCZONO  świadome=false
+16:59:34.936          ms  BLE          ROZŁĄCZONO  świadome=false
+16:59:47.072          ms  BLE          ROZŁĄCZONO  świadome=false
+17:00:19.245          ms  BLE          ROZŁĄCZONO  świadome=false
+17:00:51.362          ms  BLE          ROZŁĄCZONO  świadome=false
+17:01:23.554          ms  BLE          ROZŁĄCZONO  świadome=false
+17:01:31.629          ms  BLE          ROZŁĄCZONO  świadome=false
+17:02:03.777          ms  BLE          ROZŁĄCZONO  świadome=false
+17:02:27.896          ms  BLE          ROZŁĄCZONO  świadome=false
+17:03:00.090          ms  BLE          ROZŁĄCZONO  świadome=false
+17:03:08.180          ms  BLE          ROZŁĄCZONO  świadome=false
+17:03:40.302          ms  BLE          ROZŁĄCZONO  świadome=false
+17:04:12.397          ms  BLE          ROZŁĄCZONO  świadome=false
+17:04:44.584          ms  BLE          ROZŁĄCZONO  świadome=false
+17:04:56.656          ms  BLE          ROZŁĄCZONO  świadome=false
+17:05:28.803          ms  BLE          ROZŁĄCZONO  świadome=false
+17:06:00.918          ms  BLE          ROZŁĄCZONO  świadome=false
+17:06:13.848          ms  BLE          POŁĄCZONO  noweŁącze=true
+17:06:13.857          ms  BLE          powitanie okularów - start
+17:06:13.865          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+17:06:14.176          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:06:15.953          ms  BLE          POŁĄCZONO  noweŁącze=false
+17:06:16.151          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+17:06:18.864          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+17:06:39.512          ms  PRZYCISK     wciśnięto  numer=1
+17:06:39.749          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+17:06:40.032          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:06:40.281          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=530
+17:06:40.398          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=25 mikrofonOkularów=true
+17:06:40.402      +1 ms  SESJA        --- TURA 6ce8 ---  źródło=OKULARY
+17:06:40.404      +2 ms  NASŁUCH      start  strumieńBLE=true sco=true mikrofonBT=true ustawienieMikOkularów=true
+17:06:41.457   +1055 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,2
+17:06:51.249  +10847 ms  NASŁUCH      koniec  ms=10847 zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=5 gotowyPoMs=1035
+17:06:51.480  +11078 ms  NASŁUCH      nagranie z okularów  jest=true sekund=1.5135 pakietów=76 rozkodowanych=76 odrzuconych=0 przesunięcie=6 ramka=-1
+17:06:52.392  +11990 ms  TRANSKRYPCJA z nagrania okularów  ms=911 droga=Nasłuch telefonu
+17:06:52.402  +12001 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=1513 jestMs=1513 tło=0 szczyt=0 ile razy=11.7
+17:06:52.410  +12008 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=145340 B wymuszonyObraz=false
+17:06:52.414  +12013 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+17:06:52.434  +12032 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+17:06:52.831  +12429 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+17:06:54.006  +13604 ms  KONTEKST     zebrany  ms=1562 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:06:54.019  +13617 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=6299
+17:06:59.060  +18658 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=5042
+17:06:59.293  +18891 ms  MODEL        zużycie tokenów  wejście=4726 odpowiedź=40 myślenie=906 razem=5672 limit=1200 koniec=STOP
+17:06:59.299  +18897 ms  MODEL        koniec odpowiedzi (122 znaków, 5672 tokenów)  ms=5280
+17:06:59.300  +18899 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=122
+17:07:00.924  +20522 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,1
+17:07:01.044  +20642 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+17:07:01.182  +20780 ms  SESJA        --- KONIEC TURY 6ce8: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
