@@ -161,8 +161,17 @@ object CommandCatalog {
         ),
         CommandInfo(
             ActionType.TRANSLATE, CommandGroup.KNOWLEDGE, "Przetłumacz",
-            "Tłumaczy zdanie na wskazany język.",
-            listOf("Jak powiedzieć po angielsku dziękuję?", "Przetłumacz to na niemiecki")
+            "Tłumaczy zdanie na wskazany język. Osobno działa TRYB CIĄGŁY: " +
+                "powiedz „tłumaczenie na żywo”, a wszystko, co słychać w " +
+                "okularach, wraca do ucha przetłumaczone, aż powiesz „koniec " +
+                "tłumaczenia”. Języki ustawiasz w Ustawieniach, sekcja " +
+                "„Tłumaczenie ze słuchu”.",
+            listOf(
+                "Jak powiedzieć po angielsku dziękuję?",
+                "Przetłumacz to na niemiecki",
+                "Tłumaczenie na żywo",
+                "Włącz tłumacza ze słuchu"
+            )
         ),
         CommandInfo(
             ActionType.READ_TEXT, CommandGroup.ACCESSIBILITY, "Czytaj tekst",

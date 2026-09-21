@@ -264,6 +264,40 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putString(KEY_TRANSLATION_TARGET, lang).apply()
     }
 
+    // === Tłumaczenie ze słuchu (tryb ciągły, wzorowany na aplikacji producenta) ===
+
+    /**
+     * Język, KTÓREGO SŁUCHAMY w trybie tłumaczenia ze słuchu.
+     *
+     * Osobny od [getTranslationTarget], mimo że oba dotyczą tłumaczenia -
+     * bo znaczą coś przeciwnego. Tamten mówi, na co przełożyć NAPIS odczytany
+     * z kamery (człowiek widzi obcy tekst, chce go po swojemu). Ten mówi,
+     * jakiego języka spodziewamy się USŁYSZEĆ.
+     *
+     * Wartość idzie prosto do rozpoznawania mowy jako język nasłuchu, więc
+     * pomyłka tutaj nie daje złego tłumaczenia, tylko bełkot - rozpoznawanie
+     * polskiego z angielskiej mowy zwraca polskie słowa o podobnym brzmieniu.
+     */
+    fun getEarTranslationFrom(): String =
+        prefs.getString(KEY_EAR_TRANSLATION_FROM, "en") ?: "en"
+
+    fun setEarTranslationFrom(lang: String) {
+        prefs.edit().putString(KEY_EAR_TRANSLATION_FROM, lang).apply()
+    }
+
+    /**
+     * Język, W KTÓRYM MÓWIMY tłumaczenie do ucha.
+     *
+     * Domyślnie język odpowiedzi - bo tłumaczenie ze słuchu robi się po to,
+     * żeby zrozumieć cudzą mowę we własnym języku.
+     */
+    fun getEarTranslationTo(): String =
+        prefs.getString(KEY_EAR_TRANSLATION_TO, null) ?: getResponseLanguage()
+
+    fun setEarTranslationTo(lang: String) {
+        prefs.edit().putString(KEY_EAR_TRANSLATION_TO, lang).apply()
+    }
+
     // === Konto Google - Calendar + Gmail, jedno logowanie (v1.2, rozszerzone) ===
 
     /** Nazwa klucza zostaje z czasów gdy dotyczyła tylko kalendarza - flaga już nie. */
@@ -1121,6 +1155,8 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_CONVERSATIONAL_MODE = "conversational_mode"
         private const val KEY_LONG_TERM_MEMORY = "long_term_memory"
         private const val KEY_TRANSLATION_TARGET = "translation_target"
+        private const val KEY_EAR_TRANSLATION_FROM = "ear_translation_from"
+        private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
         private const val KEY_GCAL_CONNECTED = "gcal_connected"
         private const val KEY_CAPTURE_MODE = "capture_mode"
         private const val KEY_AUTO_DEGRADE_CAPTURE = "auto_degrade_capture"

@@ -113,6 +113,35 @@ object MetaCommands {
             """(stop|wy[lł][aą]cz|zatrzymaj)\s+(czytani|opis|tryb|nawigacj)"""
     )
 
+    /**
+     * Czy to prośba o WŁĄCZENIE tłumaczenia ze słuchu.
+     *
+     * ## Czemu to jest komenda META, a nie akcja warstwy 0
+     * Bo nie uruchamia niczego przez Intent i nie kończy się jedną
+     * odpowiedzią - przestawia aplikację w tryb, który trwa. Akcje w warstwie 0
+     * mają inny kształt (jedna czynność, jeden wynik) i wciśnięcie tego tam
+     * zmusiłoby do przemycania stanu trybu przez `Action`.
+     *
+     * ## Czemu `matches`, a nie `containsMatchIn`
+     * Tu jest odwrotnie niż przy [stopsAccessibility]: tamto bramkuje stan
+     * trybu, więc wolno mu być szerokim. To nie ma czego bramkować - działa
+     * w zwykłej rozmowie. "Przetłumacz mi to zdanie" ma pójść do modelu jako
+     * pytanie, a nie włączać tryb ciągły, więc wzorzec musi objąć CAŁĄ
+     * wypowiedź.
+     *
+     * Osobno od `przetłumacz` z [pl.victor.app.actions.SmartActionDetector.detectGesture]
+     * (to tłumaczy NAPIS z kamery) - te dwie rzeczy już raz się pomyliły.
+     */
+    fun startsEarTranslation(text: String): Boolean =
+        EAR_TRANSLATION_START_REGEX.matches(text.lowercase().trim().trimEnd('.', '!', '?'))
+
+    private val EAR_TRANSLATION_START_REGEX = Regex(
+        """^(w[lł][aą]cz\s+)?t[lł]umacz(enie|:)?\s*(ze\s+s[lł]uchu|na\s+[zż]ywo|symultaniczn[ey]|""" +
+            """co\s+m[oó]wi[aą]|rozmow[eę])$|""" +
+            """^(w[lł][aą]cz|uruchom)\s+t[lł]umacza(\s+(ze\s+s[lł]uchu|na\s+[zż]ywo))?$|""" +
+            """^t[lł]umacz\s+mi\s+(na\s+bie[zż][aą]co|wszystko|co\s+s[lł]ysz[eę])$"""
+    )
+
     private val RESET_REGEX = Regex(
         """(?:nowy\s+temat|zapomnij\s+(?:co\s+)?(?:m[oó]wili[sś]my|rozmawiali[sś]my)|""" +
             """wyczy[sś][cć]\s+(?:kontekst|rozmow[eę]|histori[eę])|""" +

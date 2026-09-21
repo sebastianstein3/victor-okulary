@@ -108,14 +108,14 @@ class GlassesVoiceCaptureResultTest {
          * Ile bajtów PCM to DOKŁADNIE jedna sekunda - liczone z częstotliwości
          * dekodera, nie wpisane na sztywno.
          *
-         * Stało tu `96_000` z komentarzem "przy 48 kHz mono 16 bit = 1 s". Gdy
-         * [OpusDecoder.SAMPLE_RATE] zeszło na 16 kHz (tyle, ile bierze
-         * aplikacja producenta), te same 96 000 bajtów przestały być sekundą i
-         * oba testy oblały - słusznie, bo pilnowały liczby, a nie sekundy.
+         * Stało tu `96_000` z komentarzem "przy 48 kHz mono 16 bit = 1 s".
+         * Gdy przestawiłem [OpusDecoder.SAMPLE_RATE] na 16 kHz, te same
+         * 96 000 bajtów przestały być sekundą i oba testy oblały - słusznie,
+         * bo pilnowały liczby, a nie sekundy. Częstotliwość wróciła potem na
+         * 48 kHz (pomiar z dziennika, opis przy samej stałej), a te testy
+         * przeszły obie zmiany bez dotykania - i o to w nich chodziło.
          *
-         * Teraz pilnują sekundy. Przy kolejnej zmianie częstotliwości pójdą za
-         * nią same, a gdyby ktoś zepsuł samo LICZENIE czasu, dalej zapalą
-         * czerwone - i o to w nich chodzi.
+         * Gdyby ktoś zepsuł samo LICZENIE czasu, dalej zapalą czerwone.
          */
         private val SEKUNDA_PCM = OpusDecoder.SAMPLE_RATE * 2
     }

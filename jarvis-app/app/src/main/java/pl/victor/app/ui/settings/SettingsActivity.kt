@@ -2982,9 +2982,9 @@ private fun WakeWordSection(
 
         // === Skąd brać PYTANIE po wybudzeniu ===
         // Od przejścia na drogę producenta ten przełącznik NIE zestawia już
-        // profilu rozmowy: dźwięk z mikrofonu okularów idzie strumieniem BLE,
-        // rozkodowanym na 16 kHz. SCO zostaje wyłącznie wtedy, gdy strumienia
-        // nie ma - patrz komentarz przy `held` w AIOrchestrator.startVoiceTurn.
+        // profilu rozmowy: dźwięk z mikrofonu okularów idzie strumieniem BLE.
+        // SCO zostaje wyłącznie wtedy, gdy strumienia nie ma - patrz komentarz
+        // przy `held` w AIOrchestrator.startVoiceTurn.
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Row(
@@ -3330,6 +3330,8 @@ private fun IntelligenceSection(
     var conversationalOn by remember { mutableStateOf(settings.isConversationalModeEnabled()) }
     var longTermOn by remember { mutableStateOf(settings.isLongTermMemoryEnabled()) }
     var translationTarget by remember { mutableStateOf(settings.getTranslationTarget()) }
+    var earFrom by remember { mutableStateOf(settings.getEarTranslationFrom()) }
+    var earTo by remember { mutableStateOf(settings.getEarTranslationTo()) }
     // Stan konta czytamy Z USŁUG GOOGLE, nie z zapamiętanej flagi, i odświeżamy
     // po każdym powrocie na ekran. Wcześniej wartość była brana raz, przy
     // pierwszym złożeniu widoku - więc po udanym logowaniu (osobne Activity!)
@@ -3440,9 +3442,14 @@ private fun IntelligenceSection(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("🌍 Tłumacz symultaniczny", fontWeight = FontWeight.Medium)
+                    // NAZWA BYŁA MYLĄCA I KOSZTOWAŁA NIEPOROZUMIENIE.
+                    // Stało tu "Tłumacz symultaniczny", a to ustawienie dotyczy
+                    // WYŁĄCZNIE napisu odczytanego z kamery (OCR). Tłumaczenie
+                    // ze słuchu ma teraz własną sekcję, niżej.
+                    Text("🌍 Tłumaczenie napisów (z kamery)", fontWeight = FontWeight.Medium)
                     Text(
-                        "Docelowy język: ${pl.victor.app.translation.SimultaneousTranslator.languageName(translationTarget)}",
+                        "Napis odczytany z kamery tłumaczę na: " +
+                            pl.victor.app.translation.SimultaneousTranslator.languageName(translationTarget),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -3476,6 +3483,125 @@ private fun IntelligenceSection(
                                 settings.setTranslationTarget(code)
                                 translationExpanded = false
                             }
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.size(8.dp))
+
+            // === Tłumaczenie ZE SŁUCHU - tryb ciągły, jak w aplikacji producenta ===
+            //
+            // Osobna sekcja, bo to co innego niż tłumaczenie napisów wyżej:
+            // tamto działa na tym, co WIDAĆ, to na tym, co SŁYCHAĆ. Dwa
+            // oddzielne języki, bo tu kierunek jest odwrotny - słucham obcego,
+            // słyszę swój.
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("👂 Tłumaczenie ze słuchu", fontWeight = FontWeight.Medium)
+                    Text(
+                        "Tryb ciągły: wszystko, co słychać w okularach, wraca do " +
+                            "ucha przetłumaczone. Włączasz mówiąc „tłumaczenie na " +
+                            "żywo”, wyłączasz mówiąc „koniec tłumaczenia”. " +
+                            "Tłumaczy na urządzeniu, więc działa bez internetu i " +
+                            "nie zużywa tokenów.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.size(8.dp))
+
+                    var earFromExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = earFromExpanded,
+                        onExpandedChange = { earFromExpanded = !earFromExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = pl.victor.app.translation.SimultaneousTranslator
+                                .languageName(earFrom),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Słucham w języku") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = earFromExpanded)
+                            },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = earFromExpanded,
+                            onDismissRequest = { earFromExpanded = false }
+                        ) {
+                            pl.victor.app.translation.SimultaneousTranslator
+                                .SUPPORTED_LANGUAGES.forEach { (code, _) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                pl.victor.app.translation
+                                                    .SimultaneousTranslator.languageName(code)
+                                            )
+                                        },
+                                        onClick = {
+                                            earFrom = code
+                                            settings.setEarTranslationFrom(code)
+                                            earFromExpanded = false
+                                        }
+                                    )
+                                }
+                        }
+                    }
+                    Spacer(Modifier.size(8.dp))
+
+                    var earToExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = earToExpanded,
+                        onExpandedChange = { earToExpanded = !earToExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = pl.victor.app.translation.SimultaneousTranslator
+                                .languageName(earTo),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Mówię do ucha w języku") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = earToExpanded)
+                            },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = earToExpanded,
+                            onDismissRequest = { earToExpanded = false }
+                        ) {
+                            pl.victor.app.translation.SimultaneousTranslator
+                                .SUPPORTED_LANGUAGES.forEach { (code, _) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                pl.victor.app.translation
+                                                    .SimultaneousTranslator.languageName(code)
+                                            )
+                                        },
+                                        onClick = {
+                                            earTo = code
+                                            settings.setEarTranslationTo(code)
+                                            earToExpanded = false
+                                        }
+                                    )
+                                }
+                        }
+                    }
+                    // OSTRZEŻENIE, A NIE CICHA ODMOWA.
+                    //
+                    // Przy równych językach tryb nie ma co robić i wychodzi od
+                    // razu. Bez tego wiersza wyglądałoby to jak „powiedziałem
+                    // komendę i nic się nie stało".
+                    if (earFrom == earTo) {
+                        Spacer(Modifier.size(8.dp))
+                        Text(
+                            "⚠️ Oba języki są takie same - tryb się nie włączy.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }

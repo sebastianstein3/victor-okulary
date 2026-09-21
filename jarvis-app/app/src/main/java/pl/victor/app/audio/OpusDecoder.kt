@@ -212,50 +212,51 @@ class OpusDecoder(
         private const val TAG = "OpusDecoder"
 
         /**
-         * Częstotliwość, na jakiej WYPUSZCZAMY dźwięk z dekodera - 16 kHz, bo
-         * tak robi to aplikacja producenta.
+         * Częstotliwość, na jakiej WYPUSZCZAMY dźwięk z dekodera - 48 kHz.
          *
-         * ## Skąd ta liczba i czemu była inna
-         * Stało tu 48 000 z uzasadnieniem "Opus zawsze pracuje wewnętrznie na
-         * 48 kHz". To prawda o samym kodeku, ale nie o tym, na czym ma stanąć
-         * WYJŚCIE dekodera - a Opus pozwala je wybrać.
+         * ## Stało tu 16 000 i było to moim błędem
+         * Wpisałem 16 000 z uzasadnieniem "tak robi aplikacja producenta"
+         * (`opusOption.setSampleRate(16000)` w `GlassesAzureSpeechRecognizer`).
+         * Ich konfiguracja opisuje ICH dekoder, nie nasz - a nasz, systemowy
+         * `c2.android.opus.decoder`, tej liczby z `OpusHead` do zmiany wyjścia
+         * NIE używa.
          *
-         * Aplikacja producenta (Prism, `GlassesAzureSpeechRecognizer`) ustawia
-         * dla tego samego strumienia:
+         * ## Czym to zmierzyłem
+         * Dziennik z pięciu kolejnych tur podaje obok siebie czas rzeczywisty
+         * nasłuchu i czas WYLICZONY z liczby bajtów PCM przy zadeklarowanych
+         * 16 kHz:
          *
-         *     opusOption.setHasHead(false)
-         *     opusOption.setSampleRate(16000)
-         *     opusOption.setPacketSize(40)
-         *     opusOption.setChannel(1)
+         *     rzeczywisty  zadeklarowany  krotność
+         *         9,02 s        27,58 s     3,06x
+         *         4,87 s        14,98 s     3,08x
+         *         8,86 s        27,34 s     3,09x
+         *         8,92 s        27,40 s     3,07x
+         *         4,10 s        13,00 s     3,17x
          *
-         * i podaje go dalej jako `AudioStreamFormat.getWaveFormatPCM(16000, 16, 1)`.
-         * Ich rozpoznawanie mowy z tego strumienia DZIAŁA. Nasze nie oddało
-         * tekstu ani razu na około czterdzieści prób, mimo że pakiety
-         * dekodowały się co do sztuki (456 na 456, zero odrzuconych) - czyli
-         * problemem nie było odbieranie, tylko to, co z dekodera wychodziło.
+         * Stała krotność ~3,07 to dokładnie 48000/16000. Potwierdza to drugie,
+         * niezależne liczenie: 460 pakietów po 20 ms (standardowa ramka Opusa)
+         * = 9,20 s, czyli tyle, ile nasłuch trwał naprawdę.
          *
-         * ## Czego NIE twierdzę
-         * Że to na pewno była JEDYNA przyczyna. Nie mam okularów, żeby to
-         * sprawdzić. Twierdzę tyle: konfiguracja producenta jest znana z
-         * działania, nasza z niedziałania, a różniły się tą liczbą.
+         * ## Co ten błąd robił
+         * [PcmResampler] oddaje wejście BEZ ZMIAN, gdy częstotliwość źródła
+         * równa się docelowej. Przy 16 000 przepróbkowanie 48 -> 16 po cichu
+         * przestało się wykonywać i rozpoznawanie mowy dostawało dźwięk 48 kHz
+         * opisany jako 16 kHz - czyli odtwarzany trzy razy wolniej. Nie do
+         * rozpoznania ani dla rozpoznawania mowy, ani dla modelu.
          *
-         * Zmiana jest bezpieczna w obie strony. Gdyby Opus okazał się
-         * obojętny na częstotliwość wyjścia, dostaniemy tę samą mowę, tylko
-         * węziej pasmowo - a przy okazji ZNIKA stratne przepróbkowanie 48 -> 16
-         * przed rozpoznawaniem, bo [pl.victor.app.audio.PcmResampler] oddaje
-         * wejście bez zmian, gdy częstotliwości są równe.
+         * Nie zmieniać bez ponownego pomiaru na sprzęcie: wartość jest
+         * sprawdzalna z dziennika, nie wzięta z konfiguracji cudzej aplikacji.
          */
-        const val SAMPLE_RATE = 16_000
+        const val SAMPLE_RATE = 48_000
 
         private const val OPUS_HEAD_SIZE = 19
 
         /**
          * Standardowe pre-skip dla Opusa - 312 próbek.
          *
-         * ZOSTAJE 312 mimo zejścia wyjścia na 16 kHz: RFC 7845 mówi, że to pole
-         * liczy się ZAWSZE w próbkach 48 kHz, niezależnie od tego, na czym
-         * stawia wyjście dekoder. Przeliczenie go "pod nową częstotliwość"
-         * byłoby błędem.
+         * RFC 7845 mówi, że to pole liczy się ZAWSZE w próbkach 48 kHz,
+         * niezależnie od tego, na czym stawia wyjście dekoder. Przeliczanie go
+         * "pod częstotliwość wyjścia" byłoby błędem.
          */
         private const val PRE_SKIP = 312
 

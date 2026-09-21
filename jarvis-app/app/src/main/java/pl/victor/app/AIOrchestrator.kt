@@ -1392,12 +1392,249 @@ class AIOrchestrator(
      */
     private fun startGlassesConversation(realtimeText: Boolean) {
         if (realtimeText) {
-            // Tryb tekstu na żywo (tłumaczenie) nie ma jeszcze osobnej ścieżki -
-            // traktujemy go jak zwykłe pytanie, żeby wybudzenie w ogóle coś
-            // robiło, zamiast milczeć.
-            Log.i(TAG, "Tryb tekstu na żywo - obsługuję jak zwykłe pytanie")
+            // Okulary proszą o TRYB TEKSTU NA ŻYWO, nie o pytanie do AI.
+            //
+            // Stało tu "obsługuję jak zwykłe pytanie" - zaślepka z czasów, gdy
+            // tego trybu u nas nie było. U producenta ta sama ramka otwiera
+            // tłumaczenie ze słuchu, więc od teraz otwiera je i u nas.
+            Log.i(TAG, "Okulary proszą o tekst na żywo - włączam tłumaczenie ze słuchu")
+            toggleEarTranslation()
+            return
         }
         startVoiceTurn(fromGlasses = true)
+    }
+
+    // ==================== Tłumaczenie ze słuchu ====================
+
+    private val earSession = pl.victor.app.translation.EarTranslationSession()
+    private var earJob: kotlinx.coroutines.Job? = null
+    private val _earTranslation = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    /** Czy trwa tryb tłumaczenia ze słuchu - do pokazania w interfejsie. */
+    val earTranslation: kotlinx.coroutines.flow.StateFlow<Boolean> =
+        _earTranslation.asStateFlow()
+
+    /** Jedno wejście dla przycisku, gestu i komendy głosowej. */
+    fun toggleEarTranslation() {
+        if (_earTranslation.value) stopEarTranslation("ponowne wywołanie")
+        else startEarTranslation()
+    }
+
+    /**
+     * Tłumaczenie ze słuchu - pętla, nie tura.
+     *
+     * ## Czym to się różni od "przetłumacz to zdanie"
+     * Tamto jest turą: pytanie, odpowiedź, koniec. To jest TRYB: dopóki go nie
+     * wyłączysz, wszystko, co słychać, wraca do ucha po polsku. Tak działa
+     * `TranslateListenerActivity` w aplikacji producenta i o to prosił
+     * użytkownik ("tłumaczenie ze słuchu zrób takie samo jak w Prismie").
+     *
+     * ## Droga dźwięku
+     * Ta sama, którą chodzi pytanie z okularów: strumień BLE, dekoder Opusa,
+     * przepróbkowanie do 16 kHz, rozpoznawanie mowy. BEZ profilu rozmowy - SCO
+     * kazałoby okularom oddać mikrofon do HFP i strumień by ucichł, a przy
+     * tłumaczeniu to nie jest jedna zmarnowana tura, tylko cały tryb.
+     *
+     * ## Czego tu NIE robimy
+     * Nie pytamy modelu. Tłumaczy [pl.victor.app.translation.SimultaneousTranslator]
+     * (ML Kit, na urządzeniu), więc tryb działa bez sieci i nie zużywa tokenów -
+     * a przy mowie ciągłej zapytanie do modelu za każdym zdaniem byłoby i
+     * wolniejsze, i kosztowne.
+     *
+     * Wszystkie decyzje ("co jest nowe", "czy to własne echo", "czy już czas")
+     * są w [pl.victor.app.translation.EarTranslationSession] - tutaj jest sama
+     * pętla. Inaczej nie dałoby się sprawdzić niczego bez okularów.
+     */
+    fun startEarTranslation() {
+        if (_earTranslation.value) return
+        if (!speechToText.isAvailable()) {
+            _state.value = OrchestratorState.Error(
+                "To urządzenie nie ma rozpoznawania mowy - tłumaczenie ze słuchu nie zadziała."
+            )
+            return
+        }
+        if (!hasMicrophonePermission()) {
+            val message = "Brak zgody na mikrofon. Otwórz aplikację i naciśnij " +
+                "przycisk Powiedz - system zapyta o uprawnienie."
+            _state.value = OrchestratorState.Error(message)
+            audio.speak(message, language = settings.getResponseLanguage())
+            return
+        }
+        val from = settings.getEarTranslationFrom()
+        val to = settings.getEarTranslationTo()
+        if (from == to) {
+            val message = "Tłumaczenie ze słuchu ma ten sam język na wejściu i wyjściu. " +
+                "Zmień go w Ustawieniach."
+            _state.value = OrchestratorState.Error(message)
+            audio.speak(message, language = settings.getResponseLanguage())
+            return
+        }
+        earSession.wyzeruj()
+        _earTranslation.value = true
+        earJob = scope.launch { earTranslationLoop(from, to) }
+    }
+
+    /**
+     * Wyłącza tryb.
+     *
+     * @param powód trafia do dziennika - inaczej "tryb sam się wyłączył" jest
+     *   nie do odróżnienia od "tryb się wysypał"
+     */
+    fun stopEarTranslation(powód: String) {
+        if (!_earTranslation.value && earJob == null) return
+        Log.i(TAG, "Tłumaczenie ze słuchu - koniec ($powód)")
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: koniec",
+                mapOf("powód" to powód)
+            )
+        }
+        _earTranslation.value = false
+        earJob?.cancel()
+        earJob = null
+    }
+
+    private suspend fun earTranslationLoop(from: String, to: String) {
+        val fromName = pl.victor.app.translation.SimultaneousTranslator.languageName(from)
+        val toName = pl.victor.app.translation.SimultaneousTranslator.languageName(to)
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: start",
+                mapOf("z" to from, "na" to to)
+            )
+        }
+        // Zapowiedź idzie w JĘZYKU DOCELOWYM, bo w nim człowiek będzie słyszał
+        // wszystko, co dalej - i od razu słychać, czy syntezator ten język ma.
+        audio.speakAndAwait("Tłumaczę z $fromName na $toName.", language = to)
+        // POTKNIĘCIE JEDNEGO ZDANIA NIE MOŻE KOŃCZYĆ TRYBU.
+        //
+        // Przy mowie ciągłej wyjątek z rozpoznawania albo z tłumacza jest
+        // normalnym zdarzeniem (urwana sieć przy pobieraniu modelu, mikrofon
+        // zajęty na chwilę przez system). Tryb, który po pierwszym takim
+        // potknięciu milknie bez słowa, wygląda jak zepsuty - a to dokładnie ta
+        // klasa błędu, którą już raz tu zgłoszono ("cicha porażka, widoczna
+        // tylko w logu"). Liczymy je więc i poddajemy się dopiero po serii.
+        var zRzędu = 0
+        try {
+            while (_earTranslation.value) {
+                val usłyszane = runCatching { earListenOnce(from) }
+                    .onFailure { Log.w(TAG, "Tłumaczenie ze słuchu: nasłuch nie wyszedł", it) }
+                    .getOrNull()
+                if (usłyszane.isNullOrBlank()) {
+                    zRzędu++
+                    if (zRzędu >= EAR_MAX_PUSTYCH) {
+                        audio.speakAndAwait(
+                            "Nic nie słyszę. Kończę tłumaczenie.", language = to
+                        )
+                        stopEarTranslation("$EAR_MAX_PUSTYCH nasłuchów bez dźwięku")
+                        return
+                    }
+                    continue
+                }
+                zRzędu = 0
+                when (val decyzja = earSession.rozstrzygnij(usłyszane)) {
+                    is pl.victor.app.translation.EarTranslationSession.Decyzja.Koniec -> {
+                        audio.speakAndAwait("Kończę tłumaczenie.", language = to)
+                        stopEarTranslation("polecenie głosowe")
+                        return
+                    }
+                    is pl.victor.app.translation.EarTranslationSession.Decyzja.Pomiń -> {
+                        Log.d(TAG, "Tłumaczenie ze słuchu: pomijam - ${decyzja.powód}")
+                    }
+                    is pl.victor.app.translation.EarTranslationSession.Decyzja.Tłumacz -> {
+                        val przekład = runCatching {
+                            translator.translate(decyzja.fragment, from, to)
+                        }.onFailure {
+                            Log.w(TAG, "Tłumaczenie ze słuchu: tłumacz odmówił", it)
+                        }.getOrNull()
+                        // Tłumacz oddaje ORYGINAŁ, gdy nie dał rady (patrz
+                        // SimultaneousTranslator.translate). Mówienie wtedy tego
+                        // samego, co przed chwilą padło, jest gorsze niż cisza:
+                        // brzmi jak tłumaczenie, a nim nie jest.
+                        if (przekład.isNullOrBlank() || przekład == decyzja.fragment) {
+                            runCatching {
+                                diag.event(
+                                    DiagFormat.Phase.NASŁUCH,
+                                    "tłumaczenie ze słuchu: brak przekładu",
+                                    mapOf("fragment" to decyzja.fragment.take(60))
+                                )
+                            }
+                            continue
+                        }
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu",
+                                mapOf(
+                                    "usłyszane" to decyzja.fragment.take(60),
+                                    "przekład" to przekład.take(60)
+                                )
+                            )
+                        }
+                        earSession.zapamiętajWłasnąWypowiedź(przekład)
+                        // speakAndAwait, nie speak: dopóki mówimy, NIE słuchamy.
+                        // Mikrofon okularów wisi centymetry od ich głośnika,
+                        // więc nakładanie tych dwóch rzeczy znaczyłoby
+                        // tłumaczyć własny głos w kółko. [EarTranslation.jestEchem]
+                        // jest drugim zabezpieczeniem, nie pierwszym.
+                        audio.speakAndAwait(przekład, language = to)
+                    }
+                }
+            }
+        } finally {
+            _earTranslation.value = false
+            earJob = null
+            _state.value = OrchestratorState.Idle
+        }
+    }
+
+    /**
+     * Jeden nasłuch w trybie tłumaczenia - tą samą drogą, co pytanie z okularów.
+     *
+     * @param from język, którego słuchamy; idzie do rozpoznawania jako język
+     *   nasłuchu i do transkrypcji nagrania z okularów
+     */
+    private suspend fun earListenOnce(from: String): String? {
+        var micStreamLive = false
+        var zatrzymane = false
+        val capture =
+            if (glassesManager.isConnected()) {
+                GlassesVoiceCapture(glassesManager).also { micStreamLive = it.start() }
+            } else {
+                null
+            }
+        return try {
+            _state.value = OrchestratorState.Listening
+            setAsidePhoneTranscript = null
+            val heard = listenUntilSpeechEnds(
+                languageTag = languageTagFor(from),
+                capture = capture,
+                // Telefon leży w kieszeni, a tłumaczymy to, co słychać wokół
+                // okularów. Gdy strumień BLE żyje, to on jest źródłem.
+                trustPhoneMicrophone = !micStreamLive,
+                useBluetoothMic = pl.victor.app.audio.MicChoice.useBluetoothMic(
+                    overSco = false,
+                    bleStreamLive = micStreamLive
+                )
+            )
+            val captured = capture?.stop()
+            zatrzymane = true
+            val zOkularów = captured?.pcm
+                ?.takeIf { captured.hasAudio }
+                ?.let { transcribeGlassesAudio(it, languageTagFor(from)) }
+            zOkularów ?: heard ?: setAsidePhoneTranscript
+        } finally {
+            _state.value = OrchestratorState.Idle
+            // Przy anulowaniu trybu (albo wyjątku) nasłuch kończy się przed
+            // `stop()`, a wtedy strumień BLE zostałby podpięty na zawsze -
+            // okulary nadawałyby mimo wyłączonego tłumaczenia.
+            if (!zatrzymane) {
+                runCatching {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        capture?.stop()
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1601,19 +1838,17 @@ class AIOrchestrator(
             // czterdzieści prób. Wniosek był taki, że jedyną drogą do mikrofonu
             // okularów jest SCO - i pod to poszła cała reszta.
             //
-            // Wniosek był zły, a przyczyna leżała gdzie indziej: DEKODOWALIŚMY
-            // TEN STRUMIEŃ NA ZŁEJ CZĘSTOTLIWOŚCI. Aplikacja producenta bierze
-            // dokładnie ten sam strumień jako 16 kHz mono, my braliśmy go jako
-            // 48 kHz - patrz [pl.victor.app.audio.OpusDecoder.SAMPLE_RATE].
-            // Pakiety dekodowały się co do sztuki, tylko to, co z nich
-            // wychodziło, nie było mową. Rozumowanie "skoro nie ma mowy, to
-            // droga jest ślepa" było spójne i oparte na własnym błędzie.
+            // Wniosek był zły, bo brał skutek obejścia za własność drogi: SCO
+            // każe okularom oddać mikrofon do HFP, przez co PRZESTAJĄ nadawać
+            // ten strumień (w dzienniku pakiety spadały z 456 do 48). Droga,
+            // którą uznałem za ślepą, była psuta przez obejście wprowadzone
+            // dlatego, że uznałem ją za ślepą.
             //
             // ## Co robi producent
             // `GlassesAzureSpeechRecognizer` w Prismie nie zestawia SCO ANI RAZU
-            // i nie tyka mikrofonu telefonu. Bierze dźwięk z okularów po BLE,
-            // rozkodowuje na 16 kHz i pcha do rozpoznawania w chmurze. To jest
-            // cała ich droga - i to jest droga, na którą przechodzimy.
+            // i nie tyka mikrofonu telefonu. Bierze dźwięk z okularów po BLE i
+            // pcha go do rozpoznawania w chmurze. To jest cała ich droga - i to
+            // jest droga, na którą przechodzimy.
             //
             // ## Co z tego wynika tutaj
             // Gdy strumień BLE żyje, profil rozmowy jest NIEPOTRZEBNY - a jest
@@ -1883,9 +2118,9 @@ class AIOrchestrator(
                 // słyszą. Telefon leży w kieszeni, mikrofon okularów wisi przy
                 // ustach, a po odejściu na dwa metry telefon nie słyszy nic.
                 //
-                // Od przejścia na drogę producenta (dekodowanie 16 kHz, bez
-                // SCO) nagranie z okularów jest tym, o co człowiek prosił w
-                // ustawieniach. Tekst z telefonu zostaje jako zapas na wypadek,
+                // Od przejścia na drogę producenta (dźwięk strumieniem BLE,
+                // bez SCO) nagranie z okularów jest tym, o co człowiek prosił
+                // w ustawieniach. Tekst z telefonu zostaje jako zapas na wypadek,
                 // gdyby z okularów nic nie wyszło - `bestHeard` niżej bierze
                 // `glassesHeard ?: heard`, więc cisza z okularów sama oddaje mu
                 // pole.
@@ -4183,6 +4418,28 @@ class AIOrchestrator(
             return true
         }
 
+        // TŁUMACZENIE ZE SŁUCHU - WŁĄCZANE LOKALNIE, PRZED MODELEM.
+        //
+        // Ten tryb ma wejść bez obiegu przez sieć z tego samego powodu, dla
+        // którego wchodzi tak Shazam: model zapytany o czynność ODPOWIADA NA
+        // NIĄ SŁOWAMI. "Włącz tłumaczenie na żywo" wróciłoby zapowiedzią, że
+        // może włączyć - i to jest dokładnie ta klasa błędu, którą użytkownik
+        // zgłaszał już przy trasie i przy Shazamie.
+        //
+        // Sprawdzane PRZED hamulcem trybów ciągłych, bo zdania "wyłącz
+        // tłumaczenie" nie ma w żadnym z nich - o wyjściu z trybu rozstrzyga
+        // [pl.victor.app.translation.EarTranslation.toKoniec] wewnątrz pętli,
+        // na tekście usłyszanym już po włączeniu.
+        if (pl.victor.app.conversation.MetaCommands.startsEarTranslation(text)) {
+            Log.i(TAG, "Komenda tłumaczenia ze słuchu: \"$text\"")
+            if (_earTranslation.value) {
+                stopEarTranslation("powtórzona komenda głosowa")
+            } else {
+                startEarTranslation()
+            }
+            return true
+        }
+
         // HAMULEC TRYBU CIĄGŁEGO - LOKALNY, BO INACZEJ ZALEŻY OD SIECI.
         //
         // Tryby dostępności chodzą w pętli i pytają model kilkadziesiąt razy na
@@ -5165,6 +5422,15 @@ class AIOrchestrator(
          * to zapas nad nim, nie planowany czas pracy.
          */
         private const val LISTEN_WAKE_LOCK_MS = 90_000L
+
+        /**
+         * Po tylu nasłuchach bez dźwięku tłumaczenie ze słuchu samo się kończy.
+         *
+         * Tryb trzyma mikrofon i procesor - zostawiony włączony w kieszeni
+         * zjadłby baterię do rana. Pięć pustych nasłuchów to około minuta ciszy;
+         * krócej znaczyłoby wyłączać się w przerwie w rozmowie.
+         */
+        private const val EAR_MAX_PUSTYCH = 5
 
         /**
          * Bezpiecznik blokady uśpienia na czas CAŁEJ TURY.
