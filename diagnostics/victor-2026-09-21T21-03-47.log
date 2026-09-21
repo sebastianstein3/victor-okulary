@@ -465,3 +465,38 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:42:58.826  +34611 ms  AUDIO        zwinięte łącze audio tury  ms=1
 21:42:58.837  +34622 ms  SESJA        --- KONIEC TURY c933: odpowiedziano ---
 21:42:58.857          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:42:58.989          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:43:31.848          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:44:58.058          ms  PRZYCISK     wciśnięto  numer=1
+21:44:58.368          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:44:58.567          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:44:58.710          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=13 ms=339
+21:44:58.814          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:44:58.819      +0 ms  SESJA        --- TURA 4c7d ---  źródło=OKULARY
+21:44:58.820      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:45:07.498   +8679 ms  NASŁUCH      koniec  ms=8679 zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=27 gotowyPoMs=295
+21:45:07.710   +8891 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=13
+21:45:08.793   +9974 ms  NASŁUCH      nagranie z okularów  jest=true sekund=27.5805 pakietów=460 rozkodowanych=460 odrzuconych=0 przesunięcie=6 ramka=-1
+21:45:13.267  +14448 ms  TRANSKRYPCJA z nagrania okularów  ms=4473 droga=Bez transkrypcji - nagranie do modelu
+21:45:13.281  +14462 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=27580 jestMs=5680 tło=2 szczyt=10879 ile razy=3677.9
+21:45:13.285  +14466 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=181804 B wymuszonyObraz=false
+21:45:13.288  +14470 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+21:45:13.301  +14482 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:45:13.303  +14484 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:45:13.749  +14930 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:45:14.617  +15798 ms  KONTEKST     zebrany  ms=1299 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:45:14.629  +15810 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=9956
+21:45:14.962  +16143 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=334 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+21:45:14.965  +16146 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=9956
+21:45:17.201  +18382 ms  MODEL        koniec odpowiedzi (186 znaków, 6868 tokenów)  ms=2573 dostawca=deepseek początek=Nagranie znowu do mnie nie dotarło, słyszę tylko ciszę. To już kolejny raz, więc
+21:45:17.204  +18385 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=186
+21:45:19.315  +20496 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:45:19.573  +20754 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+21:45:19.682  +20863 ms  AUDIO        zwinięte łącze audio tury  ms=0
+21:45:19.684  +20865 ms  SESJA        --- KONIEC TURY 4c7d: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
