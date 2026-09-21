@@ -1,0 +1,35 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów przy starcie: true
+# źródło zdjęcia: thumbnail (dzielnik 3)
+21:03:47.077          ms  SESJA        start sesji
+21:08:03.058          ms  BLE          ROZŁĄCZONO  świadome=false
+21:08:12.985          ms  BLE          ROZŁĄCZONO  świadome=false
+21:08:18.401          ms  BLE          POŁĄCZONO  noweŁącze=true
+21:08:18.407          ms  BLE          powitanie okularów - start
+21:08:18.427          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+21:08:18.617          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 06 FC 01 01 00 00 00 00 00 01 01 sztuk=1 pierwsza=true
+21:08:18.731          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:08:20.564          ms  BLE          POŁĄCZONO  noweŁącze=false
+21:08:23.426          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+21:09:32.421      +0 ms  SESJA        --- TURA 1a4d ---  źródło=TEXT_INPUT
+21:09:32.423      +2 ms  SESJA        pytanie  tekst=Jaka będzie pogoda? wymuszonyObraz=false
+21:09:32.452     +31 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:09:32.507     +87 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:09:32.515     +94 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:09:32.990    +569 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,2
+21:09:33.338    +917 ms  KONTEKST     zebrany  ms=500 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+21:09:33.353    +932 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash próba=1 zdjęć=0 znakówPromptu=2015
+21:09:38.513   +6092 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:09:42.183   +9762 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=8831
+21:09:42.192   +9771 ms  MODEL        zużycie tokenów  wejście=3084 odpowiedź=71 myślenie=1788 razem=4943 limit=3000 koniec=STOP
+21:09:42.209   +9788 ms  MODEL        koniec odpowiedzi (232 znaków, 4943 tokenów)  ms=8857 dostawca=gemini początek=Dzisiejsza noc w Toruniu będzie chłodna, około jedenastu stopni, ze słabym deszc
+21:09:42.211   +9790 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=232
+21:09:54.890  +22469 ms  MOWA         koniec wypowiedzi  ms=12677
+21:09:54.948  +22527 ms  AUDIO        zwinięte łącze audio tury  ms=0
+21:09:54.952  +22531 ms  SESJA        --- KONIEC TURY 1a4d: odpowiedziano ---
+21:09:54.956          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
