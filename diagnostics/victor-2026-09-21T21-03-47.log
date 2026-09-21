@@ -393,3 +393,75 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:40:31.121  +16104 ms  AUDIO        zwinięte łącze audio tury  ms=0
 21:40:31.123  +16106 ms  SESJA        --- KONIEC TURY 8a2b: odpowiedziano ---
 21:40:31.125          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:40:31.248          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:40:39.532          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:40:44.671          ms  PRZYCISK     wciśnięto  numer=1
+21:40:44.975          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:40:45.195          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:40:45.250          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=273
+21:40:45.337          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:40:45.339      +0 ms  SESJA        --- TURA c981 ---  źródło=OKULARY
+21:40:45.340      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:40:53.993   +8654 ms  NASŁUCH      koniec  ms=8654 zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=0.8799999 próbek=22 gotowyPoMs=352
+21:40:54.119   +8780 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+21:40:55.022   +9683 ms  NASŁUCH      nagranie z okularów  jest=true sekund=27.3405 pakietów=456 rozkodowanych=456 odrzuconych=0 przesunięcie=6 ramka=-1
+21:40:57.901  +12562 ms  TRANSKRYPCJA z nagrania okularów  ms=2876 droga=Nasłuch telefonu
+21:40:57.911  +12572 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=27340 jestMs=2320 tło=0 szczyt=3681 ile razy=21953.3
+21:40:57.916  +12577 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=74284 B wymuszonyObraz=false
+21:40:57.919  +12580 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+21:40:57.934  +12595 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:40:57.937  +12598 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:40:58.464  +13125 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:40:59.264  +13925 ms  KONTEKST     zebrany  ms=1325 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:40:59.271  +13932 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=8598
+21:40:59.606  +14267 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=334 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+21:40:59.608  +14269 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=8598
+21:41:01.482  +16143 ms  MODEL        koniec odpowiedzi (108 znaków, 6428 tokenów)  ms=2211 dostawca=deepseek początek=Nagranie do mnie nie dotarło, słyszę tylko ciszę. Powtórz proszę pytanie na głos
+21:41:01.484  +16145 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=108
+21:41:03.945  +18606 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:41:06.858  +21519 ms  MOWA         koniec wypowiedzi  ms=5372
+21:41:06.880  +21541 ms  AUDIO        zwinięte łącze audio tury  ms=1
+21:41:06.884  +21546 ms  SESJA        --- KONIEC TURY c981: odpowiedziano ---
+21:41:06.893          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:41:06.948          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:42:09.181          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:42:23.482          ms  PRZYCISK     wciśnięto  numer=1
+21:42:23.674          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:42:23.995          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:42:24.090          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=20 ms=409
+21:42:24.210          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:42:24.216      +0 ms  SESJA        --- TURA c933 ---  źródło=OKULARY
+21:42:24.218      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:42:32.727   +8511 ms  NASŁUCH      koniec  ms=8512 zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=1.6000001 próbek=14 gotowyPoMs=404
+21:42:32.739   +8523 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+21:42:35.911  +11696 ms  NASŁUCH      nagranie z okularów  jest=true sekund=27.4005 pakietów=457 rozkodowanych=457 odrzuconych=0 przesunięcie=6 ramka=-1
+21:42:39.072  +14856 ms  TRANSKRYPCJA z nagrania okularów  ms=3157 droga=Bez transkrypcji - nagranie do modelu
+21:42:39.097  +14882 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=27400 jestMs=2340 tło=0 szczyt=2710 ile razy=27990.4
+21:42:39.107  +14891 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=74924 B wymuszonyObraz=false
+21:42:39.110  +14894 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+21:42:48.235  +24019 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:42:48.230  +24014 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:42:48.821  +24605 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:42:49.805  +25589 ms  KONTEKST     zebrany  ms=1556 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:42:49.850  +25634 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-2.5-flash-lite próba=1 zdjęć=0 znakówPromptu=9259
+21:42:50.273  +26057 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-2.5-flash-lite poMs=424 powód=Wybrany model nie istnieje u tego dostawcy. Zmień go w ustawieniach, w sekcji Model AI. komunikat=Wybrany model nie jest dostępny dla tego klucza. Wybierz inny model w Ustawieniach. (HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "This model models
+21:42:50.293  +26077 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=9259
+21:42:52.422  +28206 ms  MODEL        koniec odpowiedzi (120 znaków, 6621 tokenów)  ms=2576 dostawca=deepseek początek=Nagranie znowu do mnie nie dotarło, nie słyszę w nim żadnego pytania. Powtórz je
+21:42:52.431  +28215 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=120
+21:42:54.269  +30054 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:42:58.766  +34551 ms  MOWA         koniec wypowiedzi  ms=6332
+21:42:58.826  +34611 ms  AUDIO        zwinięte łącze audio tury  ms=1
+21:42:58.837  +34622 ms  SESJA        --- KONIEC TURY c933: odpowiedziano ---
+21:42:58.857          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
