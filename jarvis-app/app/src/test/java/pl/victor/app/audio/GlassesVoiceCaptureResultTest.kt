@@ -47,10 +47,9 @@ class GlassesVoiceCaptureResultTest {
 
     @Test
     fun `komplet rozkodowanych podaje czas trwania`() {
-        // 96000 B PCM przy 48 kHz mono 16 bit = dokładnie 1 s.
         val text = result(
             packets = 50, bytes = 4000, decoded = 50,
-            sizes = List(50) { 80 }, pcm = 96_000
+            sizes = List(50) { 80 }, pcm = SEKUNDA_PCM
         ).describe()
         assertTrue(text.contains("Rozkodowano wszystko"))
         assertTrue(text.contains("1,0 s") || text.contains("1.0 s"))
@@ -101,6 +100,23 @@ class GlassesVoiceCaptureResultTest {
 
     @Test
     fun `czas nagrania liczy sie z PCM`() {
-        assertEquals(1.0, result(pcm = 96_000).audioSeconds, 0.0001)
+        assertEquals(1.0, result(pcm = SEKUNDA_PCM).audioSeconds, 0.0001)
+    }
+
+    companion object {
+        /**
+         * Ile bajtów PCM to DOKŁADNIE jedna sekunda - liczone z częstotliwości
+         * dekodera, nie wpisane na sztywno.
+         *
+         * Stało tu `96_000` z komentarzem "przy 48 kHz mono 16 bit = 1 s". Gdy
+         * [OpusDecoder.SAMPLE_RATE] zeszło na 16 kHz (tyle, ile bierze
+         * aplikacja producenta), te same 96 000 bajtów przestały być sekundą i
+         * oba testy oblały - słusznie, bo pilnowały liczby, a nie sekundy.
+         *
+         * Teraz pilnują sekundy. Przy kolejnej zmianie częstotliwości pójdą za
+         * nią same, a gdyby ktoś zepsuł samo LICZENIE czasu, dalej zapalą
+         * czerwone - i o to w nich chodzi.
+         */
+        private val SEKUNDA_PCM = OpusDecoder.SAMPLE_RATE * 2
     }
 }
