@@ -973,3 +973,118 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:34:34.082  +32415 ms  MOWA         koniec wypowiedzi  ms=14777
 21:34:34.138  +32470 ms  SESJA        --- KONIEC TURY 0528: odpowiedziano ---
 21:34:34.151          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:34:35.163          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:34:37.511          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:34:52.173          ms  PRZYCISK     wciśnięto  numer=1
+21:34:52.408          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:34:52.699          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:34:52.787          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=371
+21:34:52.861          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:34:52.866      +1 ms  SESJA        --- TURA 6228 ---  źródło=OKULARY
+21:34:52.869      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:34:53.514    +648 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,1
+21:34:56.097   +3231 ms  NASŁUCH      koniec  ms=3230 odłożone=przetłumacz na polski zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=9.4 próbek=6 gotowyPoMs=543
+21:34:56.119   +3253 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:34:57.250   +4385 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.6935 pakietów=185 rozkodowanych=185 odrzuconych=0 przesunięcie=6 ramka=-1
+21:34:59.524   +6658 ms  TRANSKRYPCJA z nagrania okularów  ms=2270 droga=Nasłuch telefonu
+21:34:59.534   +6669 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3693 jestMs=1240 tło=1 szczyt=10743 ile razy=10204.9
+21:34:59.539   +6673 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=przetłumacz na polski
+21:34:59.541   +6675 ms  SESJA        pytanie  tekst=przetłumacz na polski wymuszonyObraz=false
+21:34:59.557   +6691 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:34:59.569   +6703 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:35:00.544   +7679 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:35:01.223   +8358 ms  KONTEKST     zebrany  ms=1646 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:35:01.273   +8407 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=11498
+21:35:02.046   +9180 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=775
+21:35:02.178   +9312 ms  MODEL        zużycie tokenów  wejście=6737 odpowiedź=34 razem=6771 limit=3000 koniec=STOP
+21:35:02.190   +9324 ms  MODEL        koniec odpowiedzi (116 znaków, 6771 tokenów)  ms=920 dostawca=gemini początek=Nie podałeś tekstu do przetłumaczenia. Wklej go lub powiedz na głos, a natychmia
+21:35:02.201   +9335 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=116
+21:35:02.797   +9932 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,1
+21:35:08.479  +15614 ms  MOWA         koniec wypowiedzi  ms=6274
+21:35:08.531  +15665 ms  SESJA        --- KONIEC TURY 6228: odpowiedziano ---
+21:35:08.546          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:35:08.601          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:35:09.928          ms  PRZYCISK     wciśnięto  numer=1
+21:35:10.196          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:35:10.442          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:35:10.529          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=14 ms=325
+21:35:10.681          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:35:10.688      +0 ms  SESJA        --- TURA b6de ---  źródło=OKULARY
+21:35:10.691      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:35:13.258   +2570 ms  NASŁUCH      koniec  ms=2570 odłożone=przetłumacz zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=4 gotowyPoMs=327
+21:35:13.365   +2677 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+21:35:14.094   +3407 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.0935 pakietów=155 rozkodowanych=155 odrzuconych=0 przesunięcie=6 ramka=-1
+21:35:16.061   +5374 ms  TRANSKRYPCJA z nagrania okularów  ms=1963 droga=Nasłuch telefonu
+21:35:16.071   +5383 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3093 jestMs=1260 tło=1 szczyt=7085 ile razy=6935.6
+21:35:16.076   +5388 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=przetłumacz
+21:35:16.078   +5390 ms  SESJA        pytanie  tekst=przetłumacz wymuszonyObraz=false
+21:35:16.084   +5396 ms  AKCJA        gest wywołany głosem  gest=READ_AND_TRANSLATE
+21:35:16.085   +5397 ms  PRZYCISK     akcja z przycisku  akcja=READ_AND_TRANSLATE kliknięć=1
+21:35:16.088   +5400 ms  SESJA        pytanie  tekst=Powiedz, co jest napisane na tym, na co patrzy użytkownik - opakowaniu produktu, tabliczce, etykiecie, szyldzie. Jeśli w wymuszonyObraz=true
+21:35:16.094   +5406 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+21:35:16.105   +5417 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:35:16.116   +5428 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+21:35:17.210   +6522 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:35:17.679   +6992 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:35:17.688   +7000 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:35:17.693   +7005 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1569
+21:35:22.472  +11785 ms  ZDJĘCIE      próba 0: miniatura  bajtów=36622 jpeg=true kompletny=true
+21:35:22.500  +11813 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=36622 źródło=migawka pełnaRozdzielczość=false
+21:35:24.523  +13835 ms  KONTEKST     zebrany  ms=1761 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:35:24.571  +13883 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=12781
+21:35:26.524  +15836 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1955
+21:35:26.535  +15847 ms  MODEL        zużycie tokenów  wejście=8261 odpowiedź=19 razem=8280 limit=3000 koniec=STOP
+21:35:26.548  +15860 ms  MODEL        koniec odpowiedzi (62 znaków, 8280 tokenów)  ms=1980 dostawca=gemini początek=Na ekranie telefonu widnieje napis: "Bardzo lubię jeść bigos."
+21:35:26.557  +15870 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=62
+21:35:27.599  +16911 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,1
+21:35:30.374  +19686 ms  MOWA         koniec wypowiedzi  ms=3813
+21:35:30.413  +19726 ms  SESJA        --- KONIEC TURY b6de: odpowiedziano ---
+21:35:30.424          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:35:30.499          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:35:33.792          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:35:57.215          ms  PRZYCISK     wciśnięto  numer=1
+21:35:57.315          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:35:57.725          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:35:57.815          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=22 ms=493
+21:35:57.892          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:35:57.898      +0 ms  SESJA        --- TURA f557 ---  źródło=OKULARY
+21:35:57.901      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:35:58.456    +558 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,1
+21:36:00.514   +2616 ms  NASŁUCH      koniec  ms=2616 odłożone=przetłumacz zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=6.88 próbek=3 gotowyPoMs=358
+21:36:00.526   +2628 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=22
+21:36:01.372   +3474 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.1935 pakietów=160 rozkodowanych=160 odrzuconych=0 przesunięcie=6 ramka=-1
+21:36:03.410   +5513 ms  TRANSKRYPCJA z nagrania okularów  ms=2035 droga=Nasłuch telefonu
+21:36:03.420   +5522 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3193 jestMs=1060 tło=0 szczyt=6585 ile razy=30415.0
+21:36:03.426   +5528 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=przetłumacz
+21:36:03.427   +5529 ms  SESJA        pytanie  tekst=przetłumacz wymuszonyObraz=false
+21:36:03.432   +5534 ms  AKCJA        gest wywołany głosem  gest=READ_AND_TRANSLATE
+21:36:03.434   +5536 ms  PRZYCISK     akcja z przycisku  akcja=READ_AND_TRANSLATE kliknięć=1
+21:36:03.436   +5538 ms  SESJA        pytanie  tekst=Powiedz, co jest napisane na tym, na co patrzy użytkownik - opakowaniu produktu, tabliczce, etykiecie, szyldzie. Jeśli w wymuszonyObraz=true
+21:36:03.443   +5545 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+21:36:03.454   +5556 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:36:03.464   +5566 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+21:36:04.983   +7085 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:36:04.996   +7099 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:36:05.005   +7108 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:36:05.039   +7142 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1565
+21:36:08.580  +10683 ms  ZDJĘCIE      próba 0: miniatura  bajtów=24526 jpeg=true kompletny=true
+21:36:08.613  +10716 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=24526 źródło=migawka pełnaRozdzielczość=false
+21:36:10.436  +12539 ms  KONTEKST     zebrany  ms=1676 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:36:10.475  +12577 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=13104
+21:36:12.299  +14401 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1826
+21:36:12.333  +14435 ms  MODEL        zużycie tokenów  wejście=8364 odpowiedź=27 razem=8391 limit=3000 koniec=STOP
+21:36:12.381  +14483 ms  MODEL        koniec odpowiedzi (102 znaków, 8391 tokenów)  ms=1908 dostawca=gemini początek=Na dole ekranu telefonu widnieje napis: "Tak, odpowiedzi są oparte na rzetelnych
+21:36:12.388  +14491 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=102
+21:36:13.223  +15325 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,1
+21:36:17.955  +20057 ms  MOWA         koniec wypowiedzi  ms=5563
+21:36:18.003  +20106 ms  SESJA        --- KONIEC TURY f557: odpowiedziano ---
+21:36:18.017          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
