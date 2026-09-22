@@ -301,8 +301,8 @@
         <span class="how">Kilka ekranów z opisem funkcji. Można je przeklikać, ale ten o przycisku warto przeczytać — przyda się w sekcji 02.</span>
       </li>
       <li>
-        <span class="what">Wybierz model AI i wklej klucz</span>
-        <span class="how">Klucz dostajesz od właściciela. Bez niego asystent nie odpowie na nic — to jedyny krok, którego nie da się pominąć.</span>
+        <span class="what">Wybierz dostawcę AI i wklej SWÓJ klucz</span>
+        <span class="how">Klucz zakładasz na swoje konto — aplikacja pokaże, gdzie i jak, i otworzy właściwą stronę przyciskiem. Bez klucza asystent nie odpowie na nic; to jedyny krok, którego nie da się pominąć. Szczegóły w ramce niżej.</span>
       </li>
       <li>
         <span class="what">Zgody</span>
@@ -317,6 +317,14 @@
         <span class="how">Włącz okulary, w aplikacji wejdź w „Połącz z okularami” i poczekaj na skanowanie. Gdy urządzenie pojawi się na liście — dotknij go. Jeśli nie widać go po kilkunastu sekundach, sprawdź, czy Bluetooth w telefonie jest włączony.</span>
       </li>
     </ol>
+    <div class="box">
+      <span class="head">Klucze API — które są potrzebne i ile kosztują</span>
+      <p><strong>Wymagany jest jeden: klucz do modelu AI.</strong> Zakładasz go na swoje konto, aplikacja zapisuje go zaszyfrowany tylko na Twoim telefonie i nigdzie go nie wysyła. Ekran z kluczem ma zablokowane zrzuty ekranu i podgląd w menu zadań.</p>
+      <p style="margin-top:10px">Do wyboru jest kilku dostawców i <strong>różnią się ceną</strong> — aplikacja pokazuje stawkę przy każdym z nich, zanim wybierzesz. <strong>Google Gemini</strong> ma darmowy próg i jest domyślny; jeśli nie masz powodu wybrać inaczej, weź jego. Reszta (OpenAI, Claude, MiniMax, DeepSeek) jest płatna od pierwszej tury, a DeepSeek jest z nich najtańszy.</p>
+      <p style="margin-top:10px">Jest też <strong>model lokalny</strong>, offline i darmowy — po jednorazowym pobraniu circa 560 MB. Odpowiada wyraźnie gorzej i wolniej, ale działa bez internetu i bez żadnego klucza.</p>
+      <p style="margin-top:10px"><strong>Dwa klucze są opcjonalne</strong> i można je pominąć: OpenWeatherMap (ostrzeżenia pogodowe — nowy klucz aktywuje się do dwóch godzin) oraz Picovoice (słowo wybudzenia wypowiadane do telefonu). Bez nich wszystko inne działa normalnie, a okulary i tak mają własną frazę „Hey Lens”, która Picovoice nie wymaga.</p>
+      <p style="margin-top:10px">Zużycie widać w aplikacji — jest licznik dzienny i tempo na minutę. Warto na niego zerknąć po pierwszym dniu, żeby wiedzieć, czego się spodziewać po rachunku.</p>
+    </div>
   </section>
 
   <section>

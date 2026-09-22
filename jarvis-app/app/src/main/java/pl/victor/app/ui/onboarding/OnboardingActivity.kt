@@ -511,13 +511,50 @@ private fun StepApiKey(viewModel: OnboardingViewModel) {
             )
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
+                // INSTRUKCJA MUSI PASOWAĆ DO WYBRANEGO DOSTAWCY.
+                //
+                // Stały tu na sztywno kroki Gemini: "zaloguj się kontem Google"
+                // i "klucz zaczyna się od AIza...". Kto wybrał wyżej DeepSeeka
+                // albo Claude'a, dostawał instrukcję do zupełnie innej strony -
+                // a to jest jedyny krok samouczka, którego nie da się pominąć.
+                // Przycisk pod spodem otwierał przez cały czas WŁAŚCIWĄ stronę,
+                // więc sprzeczne było tylko to, co człowiek czytał.
                 Text("Jak uzyskać klucz:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.size(4.dp))
                 Text("1. Otwórz stronę z kluczami", style = MaterialTheme.typography.bodySmall)
-                Text("2. Zaloguj się kontem Google", style = MaterialTheme.typography.bodySmall)
-                Text("3. Kliknij \"Create API key\"", style = MaterialTheme.typography.bodySmall)
-                Text("4. Skopiuj klucz (zaczyna się od AIza... lub AQ...)", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "2. Załóż konto albo zaloguj się" +
+                        if (state.providerId == "gemini") " kontem Google" else "",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text("3. Utwórz nowy klucz API", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "4. Skopiuj klucz w całości" + when (state.providerId) {
+                        "gemini" -> " (zaczyna się od AIza... lub AQ...)"
+                        "openai" -> " (zaczyna się od sk-...)"
+                        "claude" -> " (zaczyna się od sk-ant-...)"
+                        "deepseek" -> " (zaczyna się od sk-...)"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall
+                )
                 Text("5. Wklej poniżej", style = MaterialTheme.typography.bodySmall)
+                // POKAZAĆ WPROST, ILE TO KOSZTUJE.
+                //
+                // Osoba, która wpisuje WŁASNY klucz, płaci za każdą turę z
+                // własnej kieszeni - a z tego ekranu nie dało się tego
+                // odczytać. Opis dostawcy zawiera stawkę i informację o
+                // darmowym progu; tutaj jest ostatni moment, w którym ma się
+                // to komu przydać.
+                pl.victor.app.ai.AIProviderFactory.supportedProviders()
+                    .find { it.id == state.providerId }?.description?.let { opis ->
+                        Spacer(Modifier.size(6.dp))
+                        Text(
+                            opis,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 Spacer(Modifier.size(8.dp))
                 Button(
                     onClick = {
