@@ -51,3 +51,39 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:12:09.697  +27819 ms  AUDIO        zwinięte łącze audio tury  ms=1
 21:12:09.701  +27823 ms  SESJA        --- KONIEC TURY f53d: odpowiedziano ---
 21:12:09.704          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:12:11.012          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:12:18.079          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:12:31.168          ms  MODEL        zużycie tokenów  wejście=100 odpowiedź=11 myślenie=426 razem=537 limit=3000 koniec=STOP
+21:15:32.002          ms  MODEL        zużycie tokenów  wejście=100 odpowiedź=13 razem=113 limit=3000 koniec=STOP
+21:15:36.928          ms  PRZYCISK     wciśnięto  numer=1
+21:15:37.138          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:15:37.437          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:15:37.742          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=601
+21:15:38.010          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:15:38.013      +0 ms  SESJA        --- TURA 173d ---  źródło=OKULARY
+21:15:38.014      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:15:41.704   +3691 ms  NASŁUCH      koniec  ms=3691 odłożone=czy mam jakieś wydarzenia w kalendarzu zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=10 gotowyPoMs=430
+21:15:41.864   +3851 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+21:15:42.251   +4238 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.6135 pakietów=231 rozkodowanych=231 odrzuconych=0 przesunięcie=6 ramka=-1
+21:15:44.679   +6666 ms  TRANSKRYPCJA z nagrania okularów  ms=2426 droga=Nasłuch telefonu
+21:15:44.684   +6671 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4613 jestMs=1920 tło=1 szczyt=9225 ile razy=7460.1
+21:15:44.687   +6674 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=czy mam jakieś wydarzenia w kalendarzu
+21:15:44.688   +6675 ms  SESJA        pytanie  tekst=czy mam jakieś wydarzenia w kalendarzu wymuszonyObraz=false
+21:15:44.704   +6691 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:15:44.718   +6705 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:15:44.740   +6727 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:15:45.390   +7377 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:15:45.754   +7741 ms  KONTEKST     zebrany  ms=624 pamięć=true kalendarz=true poczta=false pogoda=false lokalizacja=false limitCzasu=false
+21:15:45.768   +7755 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=2630
+21:15:46.708   +8695 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=941
+21:15:46.855   +8842 ms  MODEL        zużycie tokenów  wejście=3190 odpowiedź=41 razem=3231 limit=3000 koniec=STOP
+21:15:46.865   +8852 ms  MODEL        koniec odpowiedzi (149 znaków, 3231 tokenów)  ms=1097 dostawca=gemini początek=W kalendarzu nadal nie mam żadnych nowych spotkań. Widzę tylko te same powtarzaj
+21:15:46.867   +8854 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=149
+21:15:50.729  +12716 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:15:55.276  +17263 ms  MOWA         koniec wypowiedzi  ms=8407
+21:15:55.294  +17281 ms  AUDIO        zwinięte łącze audio tury  ms=0
+21:15:55.296  +17283 ms  SESJA        --- KONIEC TURY 173d: odpowiedziano ---
+21:15:55.321          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
