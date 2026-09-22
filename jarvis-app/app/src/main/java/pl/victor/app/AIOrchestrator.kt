@@ -5354,11 +5354,24 @@ class AIOrchestrator(
         val target = settings.getTranslationTarget()
         return try {
             val source = settings.getResponseLanguage().take(2).lowercase()
-            val translated = translator.translate(ocr.fullText.take(1000), source, target)
+            // PRZYCIĘCIE MA BYĆ WIDOCZNE, NIE MILCZĄCE.
+            //
+            // Stało tu `ocr.fullText.take(1000)` - urwanie w połowie zdania bez
+            // żadnego śladu. Tłumaczenie wyglądało na kompletne i po prostu
+            // kończyło się w środku. Zgłoszone jako "gdy proszę o tłumaczenie
+            // większego tekstu, tłumaczy tylko fragment".
+            val cięcie = pl.victor.app.translation.LongTextCut.przytnij(ocr.fullText)
+            val translated = translator.translate(cięcie.tekst, source, target)
             if (translated.isBlank() || translated == ocr.fullText) return null
             val targetName = pl.victor.app.translation.SimultaneousTranslator.languageName(target)
-            Log.i(TAG, "Przetłumaczono OCR na $target")
-            "Tłumaczenie odczytanego tekstu ($targetName):\n$translated"
+            Log.i(TAG, "Przetłumaczono OCR na $target (przycięte=${cięcie.przycięte})")
+            val ogon = if (cięcie.przycięte) {
+                "\n(To jest POCZĄTEK tekstu - reszta się nie zmieściła. " +
+                    "Powiedz to użytkownikowi jednym zdaniem na końcu.)"
+            } else {
+                ""
+            }
+            "Tłumaczenie odczytanego tekstu ($targetName):\n$translated$ogon"
         } catch (e: Exception) {
             Log.w(TAG, "Tłumaczenie OCR nie powiodło się", e)
             null

@@ -321,6 +321,13 @@ fun SettingsScreen(
             }
 
             SettingsGroup(
+                title = "Tłumaczenie",
+                subtitle = "Napisy z kamery i tłumaczenie ze słuchu"
+            ) {
+                TranslationSection()
+            }
+
+            SettingsGroup(
                 title = "Funkcje asystenta",
                 subtitle = "Komendy, kalendarz i poczta, alerty, dostępność"
             ) {
@@ -3329,9 +3336,6 @@ private fun IntelligenceSection(
 
     var conversationalOn by remember { mutableStateOf(settings.isConversationalModeEnabled()) }
     var longTermOn by remember { mutableStateOf(settings.isLongTermMemoryEnabled()) }
-    var translationTarget by remember { mutableStateOf(settings.getTranslationTarget()) }
-    var earFrom by remember { mutableStateOf(settings.getEarTranslationFrom()) }
-    var earTo by remember { mutableStateOf(settings.getEarTranslationTo()) }
     // Stan konta czytamy Z USŁUG GOOGLE, nie z zapamiętanej flagi, i odświeżamy
     // po każdym powrocie na ekran. Wcześniej wartość była brana raz, przy
     // pierwszym złożeniu widoku - więc po udanym logowaniu (osobne Activity!)
@@ -3436,6 +3440,117 @@ private fun IntelligenceSection(
             }
             Spacer(Modifier.size(8.dp))
 
+            // Konto Google - logowanie daje Kalendarz; poczta to osobna zgoda
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (googleConnected)
+                        MaterialTheme.colorScheme.tertiaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (googleConnected) "🔗 Konto Google: połączono" else "🔗 Konto Google: nie połączono",
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Text(
+                        "Logowanie odblokowuje 📅 Kalendarz - czyta i tworzy wydarzenia " +
+                            "(\"dodaj spotkanie jutro o 10\").",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!googleConnected && GoogleAccountManager.isLoginExpired()) {
+                        // Bez tego rozłączenie wygląda jak awaria albo cudze działanie.
+                        Spacer(Modifier.size(8.dp))
+                        Text(
+                            "⏳ Logowanie wygasło. Google unieważnia je co 7 dni, dopóki " +
+                                "aplikacja jest w trybie testowym - zaloguj się ponownie, " +
+                                "nic nie trzeba zmieniać w ustawieniach.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (googleConnected) {
+                        Spacer(Modifier.size(8.dp))
+                        Text(
+                            if (gmailConnected) {
+                                "📧 Poczta: włączona - czytam i wysyłam maile."
+                            } else {
+                                "📧 Poczta: wyłączona. Google wymaga do niej osobnej, " +
+                                    "szerszej zgody, więc pytam o nią tylko wtedy, gdy " +
+                                    "naprawdę jest potrzebna."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.size(8.dp))
+                    Row {
+                        if (googleConnected && !gmailConnected) {
+                            OutlinedButton(
+                                onClick = {
+                                    gmailConsentLauncher.launch(
+                                        GoogleAccountManager(context).getGmailConsentIntent()
+                                    )
+                                }
+                            ) { Text("📧 Włącz pocztę") }
+                            Spacer(Modifier.size(8.dp))
+                        }
+                        if (googleConnected) {
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        try {
+                                            pl.victor.app.google.GoogleAccountManager(context).signOut()
+                                            settings.setGoogleAccountConnected(false)
+                                            googleConnected = false
+                                        } catch (e: Exception) { }
+                                    }
+                                }
+                            ) { Text("Wyloguj") }
+                        } else {
+                            Button(onClick = onManageGoogleAccount) {
+                                Text("🔑 Połącz konto Google")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Tłumaczenie - obie drogi w jednym miejscu.
+ *
+ * ## Czemu osobna sekcja, a nie kawałek "Funkcji asystenta"
+ * Bo tam nie dało się tego ZNALEŹĆ. Ustawienia tłumaczenia siedziały w
+ * zwiniętej grupie "Funkcje asystenta", której podtytuł brzmi "Komendy,
+ * kalendarz i poczta, alerty, dostępność" - ani słowa o tłumaczeniu - i to za
+ * całą listą komend, czyli kilkaset pikseli przewijania niżej.
+ *
+ * Zgłoszone wprost: "nie widzę w ustawieniach nic na temat tłumaczenia ze
+ * słuchu". Funkcja tam BYŁA. To jest ta sama klasa błędu, co funkcja podpięta
+ * pod nieistniejący wyzwalacz: jeśli nie da się do niej dojść, to jej nie ma.
+ *
+ * Obie drogi stoją razem, bo nazywają się prawie tak samo i robią co innego -
+ * jedna tłumaczy to, co WIDAĆ, druga to, co SŁYCHAĆ. Zestawione obok siebie
+ * tłumaczą się same; rozdzielone myliły się nawet mnie przy pisaniu kodu.
+ */
+@Composable
+private fun TranslationSection() {
+    val context = LocalContext.current
+    val settings = remember { SettingsRepository(context) }
+    var translationTarget by remember { mutableStateOf(settings.getTranslationTarget()) }
+    var earFrom by remember { mutableStateOf(settings.getEarTranslationFrom()) }
+    var earTo by remember { mutableStateOf(settings.getEarTranslationTo()) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
             // Tłumacz - wybór języka docelowego
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -3607,89 +3722,6 @@ private fun IntelligenceSection(
                 }
             }
             Spacer(Modifier.size(8.dp))
-
-            // Konto Google - logowanie daje Kalendarz; poczta to osobna zgoda
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (googleConnected)
-                        MaterialTheme.colorScheme.tertiaryContainer
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            if (googleConnected) "🔗 Konto Google: połączono" else "🔗 Konto Google: nie połączono",
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Text(
-                        "Logowanie odblokowuje 📅 Kalendarz - czyta i tworzy wydarzenia " +
-                            "(\"dodaj spotkanie jutro o 10\").",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (!googleConnected && GoogleAccountManager.isLoginExpired()) {
-                        // Bez tego rozłączenie wygląda jak awaria albo cudze działanie.
-                        Spacer(Modifier.size(8.dp))
-                        Text(
-                            "⏳ Logowanie wygasło. Google unieważnia je co 7 dni, dopóki " +
-                                "aplikacja jest w trybie testowym - zaloguj się ponownie, " +
-                                "nic nie trzeba zmieniać w ustawieniach.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (googleConnected) {
-                        Spacer(Modifier.size(8.dp))
-                        Text(
-                            if (gmailConnected) {
-                                "📧 Poczta: włączona - czytam i wysyłam maile."
-                            } else {
-                                "📧 Poczta: wyłączona. Google wymaga do niej osobnej, " +
-                                    "szerszej zgody, więc pytam o nią tylko wtedy, gdy " +
-                                    "naprawdę jest potrzebna."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(Modifier.size(8.dp))
-                    Row {
-                        if (googleConnected && !gmailConnected) {
-                            OutlinedButton(
-                                onClick = {
-                                    gmailConsentLauncher.launch(
-                                        GoogleAccountManager(context).getGmailConsentIntent()
-                                    )
-                                }
-                            ) { Text("📧 Włącz pocztę") }
-                            Spacer(Modifier.size(8.dp))
-                        }
-                        if (googleConnected) {
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        try {
-                                            pl.victor.app.google.GoogleAccountManager(context).signOut()
-                                            settings.setGoogleAccountConnected(false)
-                                            googleConnected = false
-                                        } catch (e: Exception) { }
-                                    }
-                                }
-                            ) { Text("Wyloguj") }
-                        } else {
-                            Button(onClick = onManageGoogleAccount) {
-                                Text("🔑 Połącz konto Google")
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

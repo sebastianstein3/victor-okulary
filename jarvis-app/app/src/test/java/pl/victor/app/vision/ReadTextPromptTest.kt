@@ -73,18 +73,44 @@ class ReadTextPromptTest {
     }
 
     @Test
-    fun `przy wielu napisach czyta tylko dominujacy`() {
+    fun `przy wielu OSOBNYCH napisach czyta tylko dominujacy`() {
         // Zdjęcie półki w sklepie to kilkanaście nazw, cen i naklejek. Bez tego
         // warunku „przeczytaj tekst ze zdjęcia" znaczy minutę wyliczanki -
         // czyli dokładnie to, czego przy szybkim tłumaczu nikt nie chce.
         val prompt = ReadTextPrompt.forLanguage("pl")
+        assertTrue(prompt.contains("WIELE OSOBNYCH napisów"))
         assertTrue(prompt.contains("TYLKO ten najważniejszy"))
-        assertTrue(prompt.contains("Nie wyliczaj pozostałych"))
+        assertTrue(prompt.contains("nie wyliczaj pozostałych"))
     }
 
     @Test
-    fun `odpowiedz ma byc krotka`() {
-        assertTrue(ReadTextPrompt.forLanguage("pl").contains("jednym lub dwoma zdaniami"))
+    fun `jeden dlugi tekst idzie w CALOSCI`() {
+        // TO JEST POPRAWKA DO POPRZEDNIEJ WERSJI TEGO TESTU.
+        //
+        // Stał tu warunek „odpowiedz ma być krótka" sprawdzający frazę „jednym
+        // lub dwoma zdaniami" - i pilnował błędu. Wybór dominującego napisu
+        // jest słuszny przy PÓŁCE, ale stosował się też do kadru, w którym
+        // jest jeden tekst, po prostu długi: wtedy „najważniejszy napis" to
+        // był pierwszy nagłówek, a reszta strony przepadała. Zgłoszone
+        // wprost: „gdy proszę o tłumaczenie większego tekstu, tłumaczy tylko
+        // fragment".
+        //
+        // Teraz test pilnuje obu gałęzi naraz - bo to ich WSPÓŁISTNIENIE jest
+        // tu całą treścią, a skasowanie którejkolwiek psuje drugi przypadek.
+        val prompt = ReadTextPrompt.forLanguage("pl")
+        assertTrue(prompt.contains("JEDEN spójny tekst"))
+        assertTrue(prompt.contains("W CAŁOŚCI"))
+        assertTrue(prompt.contains("choćby był długi"))
+    }
+
+    @Test
+    fun `dlugosc odpowiedzi idzie za dlugoscia napisu, a nie za stala regula`() {
+        val prompt = ReadTextPrompt.forLanguage("pl")
+        assertTrue(
+            "polecenie nie może już narzucać stałej długości odpowiedzi",
+            !prompt.contains("jednym lub dwoma zdaniami")
+        )
+        assertTrue(prompt.contains("Długość odpowiedzi dopasuj do długości napisu"))
     }
 
     @Test
