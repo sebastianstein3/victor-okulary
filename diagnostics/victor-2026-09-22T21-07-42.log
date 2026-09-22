@@ -222,3 +222,136 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:21:05.278  +23004 ms  AUDIO        zwinięte łącze audio tury  ms=0
 21:21:05.281  +23007 ms  SESJA        --- KONIEC TURY 1de7: odpowiedziano ---
 21:21:05.283          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:21:05.422          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:21:13.703          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:21:18.856          ms  PRZYCISK     wciśnięto  numer=1
+21:21:19.023          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+21:21:19.377          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:21:19.471          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=21 ms=440
+21:21:19.574          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:21:19.582      +0 ms  SESJA        --- TURA 8ea9 ---  źródło=OKULARY
+21:21:19.585      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:21:25.477   +5896 ms  NASŁUCH      koniec  ms=5896 odłożone=raz dwa trzy test mikrofonu zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=323
+21:21:25.495   +5914 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=21
+21:21:27.790   +8208 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.4735 pakietów=324 rozkodowanych=324 odrzuconych=0 przesunięcie=6 ramka=-1
+21:21:30.776  +11194 ms  TRANSKRYPCJA z nagrania okularów  ms=2982 droga=Nasłuch telefonu
+21:21:30.796  +11214 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6473 jestMs=2600 tło=0 szczyt=4105 ile razy=42401.0
+21:21:30.799  +11217 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=raz dwa trzy test mikrofonu
+21:21:30.800  +11218 ms  SESJA        pytanie  tekst=raz dwa trzy test mikrofonu wymuszonyObraz=false
+21:21:30.808  +11226 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:21:37.777  +18196 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:21:37.781  +18199 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:21:38.325  +18743 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:21:39.500  +19918 ms  KONTEKST     zebrany  ms=1702 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:21:39.539  +19957 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=7143
+21:21:41.581  +21999 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2042
+21:21:41.604  +22022 ms  MODEL        zużycie tokenów  wejście=5369 odpowiedź=31 razem=5400 limit=3000 koniec=STOP
+21:21:41.617  +22035 ms  MODEL        koniec odpowiedzi (96 znaków, 5400 tokenów)  ms=2079 dostawca=gemini początek=Słyszę Cię głośno i wyraźnie, mikrofon działa bez zarzutu. W czym jeszcze mogę C
+21:21:41.629  +22047 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=96
+21:21:43.815  +24234 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:21:46.884  +27303 ms  MOWA         koniec wypowiedzi  ms=5250
+21:21:46.938  +27356 ms  AUDIO        zwinięte łącze audio tury  ms=2
+21:21:46.950  +27369 ms  SESJA        --- KONIEC TURY 8ea9: odpowiedziano ---
+21:21:46.974          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:21:47.098          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:22:06.105          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:22:08.347          ms  PRZYCISK     wciśnięto  numer=1
+21:22:08.613          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+21:22:08.863          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:22:08.980          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=360
+21:22:09.072          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:22:09.076      +1 ms  SESJA        --- TURA e129 ---  źródło=OKULARY
+21:22:09.077      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:22:11.940   +2865 ms  NASŁUCH      koniec  ms=2865 odłożone=co to za piosenka zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=7.96 próbek=5 gotowyPoMs=340
+21:22:12.073   +2998 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:22:12.360   +3285 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.3535 pakietów=168 rozkodowanych=168 odrzuconych=0 przesunięcie=6 ramka=-1
+21:22:14.556   +5481 ms  TRANSKRYPCJA z nagrania okularów  ms=2195 droga=Nasłuch telefonu
+21:22:14.558   +5483 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3353 jestMs=1500 tło=0 szczyt=1949 ile razy=20131.3
+21:22:14.560   +5485 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co to za piosenka
+21:22:14.560   +5486 ms  SESJA        pytanie  tekst=co to za piosenka wymuszonyObraz=false
+21:22:14.721   +5646 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=RECOGNIZE_SONG proba=1/3 aplikacja=com.shazam.android pakietZgadnięty=com.shazam.android adres=com.shazam.android.intent.actions.START_TAGGING
+21:22:21.898  +12824 ms  SESJA        --- KONIEC TURY e129: odpowiedziano ---
+21:22:21.905          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:22:22.016          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:22:35.517          ms  PRZYCISK     wciśnięto  numer=1
+21:22:35.743          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:22:36.033          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:22:36.253          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=503
+21:22:36.296          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:22:36.302      +0 ms  SESJA        --- TURA de39 ---  źródło=OKULARY
+21:22:36.304      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:22:42.180   +5878 ms  NASŁUCH      koniec  ms=5878 odłożone=co to za piosenka zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=9.28 próbek=19 gotowyPoMs=351
+21:22:42.272   +5970 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+21:22:44.687   +8386 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.4735 pakietów=324 rozkodowanych=324 odrzuconych=0 przesunięcie=6 ramka=-1
+21:22:47.567  +11265 ms  TRANSKRYPCJA z nagrania okularów  ms=2876 droga=Nasłuch telefonu
+21:22:47.586  +11284 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6473 jestMs=1420 tło=45 szczyt=5258 ile razy=116.2
+21:22:47.593  +11291 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co to za piosenka
+21:22:47.594  +11292 ms  SESJA        pytanie  tekst=co to za piosenka wymuszonyObraz=false
+21:22:47.641  +11339 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=RECOGNIZE_SONG proba=1/3 aplikacja=com.shazam.android pakietZgadnięty=com.shazam.android adres=com.shazam.android.intent.actions.START_TAGGING
+21:23:02.799  +26497 ms  SESJA        --- KONIEC TURY de39: odpowiedziano ---
+21:23:02.813          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:23:03.357          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:23:18.376          ms  PRZYCISK     wciśnięto  numer=1
+21:23:18.562          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:23:18.887          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:23:18.956          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=19 ms=391
+21:23:18.995          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:23:19.001      +0 ms  SESJA        --- TURA 178a ---  źródło=OKULARY
+21:23:19.004      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:23:22.287   +3286 ms  NASŁUCH      koniec  ms=3286 odłożone=co to za piosenka zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=5 gotowyPoMs=358
+21:23:22.361   +3360 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+21:23:23.007   +4006 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.7535 pakietów=188 rozkodowanych=187 odrzuconych=1 przesunięcie=6 ramka=-1
+21:23:25.525   +6524 ms  TRANSKRYPCJA z nagrania okularów  ms=2515 droga=Nasłuch telefonu
+21:23:25.535   +6534 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3753 jestMs=1480 tło=10 szczyt=10466 ile razy=953.1
+21:23:25.536   +6535 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co to za piosenka
+21:23:25.537   +6536 ms  SESJA        pytanie  tekst=co to za piosenka wymuszonyObraz=false
+21:23:25.547   +6546 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=RECOGNIZE_SONG proba=1/3 aplikacja=com.shazam.android pakietZgadnięty=com.shazam.android adres=com.shazam.android.intent.actions.START_TAGGING
+21:23:30.162  +11161 ms  SESJA        --- KONIEC TURY 178a: odpowiedziano ---
+21:23:30.165          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:23:30.235          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:24:12.989          ms  PRZYCISK     wciśnięto  numer=1
+21:24:13.250          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:24:13.501          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:24:13.583          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=325
+21:24:13.680          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=false profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): brak
+Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu. strumieńBLE=true
+21:24:13.686      +0 ms  SESJA        --- TURA d07b ---  źródło=OKULARY
+21:24:13.689      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:24:17.266   +3580 ms  NASŁUCH      koniec  ms=3580 odłożone=co to co to za piosenka zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=11 gotowyPoMs=318
+21:24:17.416   +3730 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:24:18.590   +4904 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.0935 pakietów=205 rozkodowanych=205 odrzuconych=0 przesunięcie=6 ramka=-1
+21:24:19.698   +6012 ms  TRANSKRYPCJA z nagrania okularów  ms=1105 droga=Nasłuch telefonu
+21:24:19.715   +6029 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4093 jestMs=2160 tło=1 szczyt=3998 ile razy=2327.4
+21:24:19.718   +6033 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co to co to za piosenka
+21:24:19.720   +6034 ms  SESJA        pytanie  tekst=co to co to za piosenka wymuszonyObraz=false
+21:24:19.731   +6045 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:24:19.739   +6053 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+21:24:19.739   +6053 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:24:21.335   +7649 ms  KONTEKST     zebrany  ms=1581 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:24:21.357   +7671 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=7291
+21:24:22.328   +8642 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=972
+21:24:22.331   +8645 ms  MODEL        zużycie tokenów  wejście=5427 odpowiedź=39 razem=5466 limit=3000 koniec=STOP
+21:24:22.339   +8654 ms  MODEL        koniec odpowiedzi (108 znaków, 5466 tokenów)  ms=983 dostawca=gemini początek=Chwila, spróbuję rozpoznać utwór, który aktualnie słyszysz.
+
+[[ACTION: type=app_
+21:24:22.368   +8682 ms  AKCJA        model zlecił akcje  akcje=APP_TASK znakówOdpowiedzi=59
+21:24:25.321  +11635 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,1
+21:24:25.770  +12084 ms  AUDIO        tryb multimediów wstał  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 0 / Odtwarzanie (A2DP): W610T_A6BA / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:24:26.413  +12728 ms  MOWA         koniec wypowiedzi  ms=4042
+21:24:26.426  +12740 ms  AKCJA        Zadanie w cudzej aplikacji: udane  zadanie=RECOGNIZE_SONG proba=1/3 aplikacja=com.shazam.android pakietZgadnięty=com.shazam.android adres=com.shazam.android.intent.actions.START_TAGGING
+21:24:26.441  +12755 ms  SESJA        --- KONIEC TURY d07b: odpowiedziano ---
+21:24:26.445          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
