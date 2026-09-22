@@ -188,3 +188,37 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:18:53.983  +25622 ms  AUDIO        zwinięte łącze audio tury  ms=1
 21:18:53.990  +25630 ms  SESJA        --- KONIEC TURY 73c9: odpowiedziano ---
 21:18:54.008          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:18:54.080          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:20:39.828          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:20:41.503          ms  PRZYCISK     wciśnięto  numer=1
+21:20:41.769          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+21:20:42.020          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:20:42.133          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=356
+21:20:42.266          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:20:42.274      +1 ms  SESJA        --- TURA 1de7 ---  źródło=OKULARY
+21:20:42.277      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:20:50.737   +8463 ms  NASŁUCH      koniec  ms=8462 odłożone=jaka jutro będzie pogoda zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=18 gotowyPoMs=360
+21:20:50.907   +8633 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+21:20:52.037   +9763 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0335 pakietów=452 rozkodowanych=452 odrzuconych=0 przesunięcie=6 ramka=-1
+21:20:52.964  +10690 ms  TRANSKRYPCJA z nagrania okularów  ms=925 droga=Bez transkrypcji - nagranie do modelu
+21:20:52.970  +10696 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=9033 jestMs=1980 tło=0 szczyt=1010 ile razy=1865.2
+21:20:52.972  +10698 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jaka jutro będzie pogoda
+21:20:52.973  +10699 ms  SESJA        pytanie  tekst=jaka jutro będzie pogoda wymuszonyObraz=false
+21:20:52.978  +10704 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:20:52.987  +10713 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:20:52.990  +10716 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:20:53.546  +11272 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,2
+21:20:54.364  +12090 ms  KONTEKST     zebrany  ms=1368 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:20:54.372  +12098 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=7556
+21:20:55.481  +13208 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1109
+21:20:55.486  +13212 ms  MODEL        zużycie tokenów  wejście=5492 odpowiedź=52 razem=5544 limit=3000 koniec=STOP
+21:20:55.509  +13236 ms  MODEL        koniec odpowiedzi (198 znaków, 5544 tokenów)  ms=1137 dostawca=gemini początek=Jutro w Toruniu będzie całkiem przyjemnie. Temperatura wzrośnie do dziewiętnastu
+21:20:55.511  +13237 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=198
+21:20:58.998  +16724 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:21:05.257  +22983 ms  MOWA         koniec wypowiedzi  ms=9745
+21:21:05.278  +23004 ms  AUDIO        zwinięte łącze audio tury  ms=0
+21:21:05.281  +23007 ms  SESJA        --- KONIEC TURY 1de7: odpowiedziano ---
+21:21:05.283          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
