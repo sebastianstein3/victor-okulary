@@ -1450,3 +1450,19 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:42:19.517  +20794 ms  MOWA         koniec wypowiedzi  ms=2737
 21:42:19.578  +20856 ms  SESJA        --- KONIEC TURY 8480: odpowiedziano ---
 21:42:19.606          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:42:19.670          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:42:22.956          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,3
+21:45:28.999      +0 ms  SESJA        --- TURA a9aa ---  źródło=TEXT_INPUT
+21:45:29.006      +7 ms  SESJA        pytanie  tekst=Poszukaj w sieci przepisu na żurek wymuszonyObraz=false
+21:45:29.015     +16 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:45:29.050     +51 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:45:30.564   +1565 ms  KONTEKST     zebrany  ms=1506 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:45:30.579   +1580 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=8258
+21:45:31.389   +2390 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=810
+21:45:31.537   +2539 ms  MODEL        zużycie tokenów  wejście=5766 odpowiedź=79 razem=5845 limit=3000 koniec=STOP
+21:45:31.543   +2544 ms  MODEL        koniec odpowiedzi (262 znaków, 5845 tokenów)  ms=964 dostawca=gemini początek=Znalazłem w sieci kilka sprawdzonych przepisów na tradycyjny żurek. Najpopularni
+21:45:31.547   +2548 ms  AKCJA        model zlecił akcje  akcje=WEB_SEARCH znakówOdpowiedzi=197
+21:45:34.149   +5150 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,13,0,16,10,1
+21:45:43.200  +14201 ms  MOWA         koniec wypowiedzi  ms=11652
+21:45:43.359  +14360 ms  SESJA        --- KONIEC TURY a9aa: odpowiedziano ---
+21:45:43.394          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
