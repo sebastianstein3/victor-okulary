@@ -3294,6 +3294,19 @@ class VictorManager private constructor(context: Context) {
         private set
 
     /**
+     * Czemu ostatnie [captureSharpPhoto] skończyło się miniaturą - po ludzku.
+     *
+     * `null`, gdy oryginał doszedł albo nikt o niego nie prosił. Istnieje po to,
+     * żeby model mógł powiedzieć PRAWDZIWY powód nieudanego odczytu kodu,
+     * zamiast zgadywać: w dzienniku z 23 września mówił "kod zasłonięty" i "kod
+     * niewyraźny" o kodzie, który był wyraźny - bo nie wiedział, że dostał
+     * miniaturę, ani dlaczego.
+     */
+    @Volatile
+    var lastSharpFallbackReason: String? = null
+        private set
+
+    /**
      * Robi zdjęcie i stara się oddać ORYGINAŁ, a nie miniaturę.
      *
      * ## Dlaczego to musi być osobna droga
@@ -3307,15 +3320,33 @@ class VictorManager private constructor(context: Context) {
      * Zostaje też jako zapas, gdy Wi-Fi nie wstanie: gorsze zdjęcie jest lepsze
      * niż żadne, byle wołający wiedział, które dostał ([lastPhotoWasFullResolution]).
      */
-    suspend fun captureSharpPhoto(quality: Int = DEFAULT_THUMBNAIL_QUALITY): ByteArray? {
+    /**
+     * @param forCode zdjęcie do odczytu KODU. Pomija ustawienie "źródło zdjęcia:
+     *   miniatura" i NIE zmniejsza oryginału dzielnikiem - patrz niżej, przy
+     *   obu tych miejscach. Oddane bajty idą wyłącznie do dekodera, nie do
+     *   modelu, więc rozmiar nie ma tu znaczenia, a każdy piksel ma.
+     */
+    suspend fun captureSharpPhoto(
+        quality: Int = DEFAULT_THUMBNAIL_QUALITY,
+        forCode: Boolean = false
+    ): ByteArray? {
         lastPhotoWasFullResolution = false
+        lastSharpFallbackReason = null
         val thumbnail = capturePhoto(quality) ?: return null
 
         // Użytkownik może zostać przy samej miniaturze - jest natychmiast, a do
         // pytania "co przede mną" zwykle wystarcza. Pobieranie oryginału przez
         // Wi-Fi to najdłuższy element tury, więc nie ma go narzucać każdemu.
+        //
+        // ...ALE NIE PRZY KODZIE. Z dziennika z 23 września: to ustawienie było
+        // włączone, a każda próba "ostrzejszego zdjęcia pod kod" kończyła się
+        // tutaj - miniaturą, bez jednej próby Wi-Fi. Kodu kreskowego z miniatury
+        // nie odczyta żadna biblioteka, więc ustawienie o SZYBKOŚCI nie może tu
+        // decydować o tym, czy funkcja w ogóle zadziała.
         val settings = pl.victor.app.data.SettingsRepository.getInstance(appContext)
-        if (settings.getPhotoSource() == pl.victor.app.data.SettingsRepository.PHOTO_THUMBNAIL) {
+        if (!forCode &&
+            settings.getPhotoSource() == pl.victor.app.data.SettingsRepository.PHOTO_THUMBNAIL
+        ) {
             Log.i(tag, "Ustawienia: model dostaje miniaturę (${thumbnail.size} B)")
             return thumbnail
         }
@@ -3358,6 +3389,7 @@ class VictorManager private constructor(context: Context) {
             // Człowiek dowie się o Wi-Fi tam, gdzie to ma znaczenie: gdy model
             // powie, że na tym obrazie nie widzi dość (patrz AIOrchestrator,
             // gałąź `wantsPhoto` przy miniaturze).
+            lastSharpFallbackReason = "Wi-Fi w telefonie jest wyłączone"
             return thumbnail
         }
 
@@ -3369,6 +3401,8 @@ class VictorManager private constructor(context: Context) {
                 "pomijam Wi-Fi Direct - ostatnia próba zawiodła",
                 mapOf("sekundTemu" to sinceWifiFailure / 1000)
             )
+            lastSharpFallbackReason =
+                "połączenie Wi-Fi z okularami nie wstało przy poprzedniej próbie"
             return thumbnail
         }
 
@@ -3378,6 +3412,7 @@ class VictorManager private constructor(context: Context) {
             .getOrNull()
         if (full == null) {
             wifiDirectFailedAtMs = System.currentTimeMillis()
+            lastSharpFallbackReason = "okulary nie oddały oryginału przez Wi-Fi"
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
                 "Wi-Fi Direct nie oddał oryginału",
@@ -3385,6 +3420,20 @@ class VictorManager private constructor(context: Context) {
             )
         } else {
             wifiDirectFailedAtMs = 0L
+        }
+        if (full != null && full.size > thumbnail.size && forCode) {
+            // BEZ DZIELNIKA. Dzielnik jest po to, żeby do MODELU szło mniej
+            // bajtów - a to zdjęcie idzie do dekodera kodów na telefonie, gdzie
+            // rozmiar nic nie kosztuje. Zmniejszenie 3x (tyle stało w
+            // ustawieniach z 23 września) zwęża kreskę trzykrotnie, czyli
+            // dokładnie w stronę, w którą kod przestaje być czytelny.
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "oryginał do odczytu kodu - bez zmniejszania",
+                mapOf("bajtów" to full.size, "miniaturaMiała" to thumbnail.size)
+            )
+            lastPhotoWasFullResolution = true
+            return full
         }
         if (full != null && full.size > thumbnail.size) {
             // Zmniejszamy PRZED wysłaniem: litery zostają czytelne, a to rozmiar

@@ -2139,7 +2139,25 @@ class AIOrchestrator(
                         "rozkodowanych" to captured?.decodedPackets,
                         "odrzuconych" to captured?.failedPackets,
                         "przesunięcie" to captured?.payloadOffset,
-                        "ramka" to captured?.packetSize
+                        "ramka" to captured?.packetSize,
+                        // Głośność co pół sekundy - rozstrzyga, czy "w
+                        // nagraniu nie słychać pytania" znaczy "mowa jest,
+                        // tylko nierozpoznana", czy "okulary po pierwszej
+                        // chwili nadają same zera". Patrz [AudioEnvelope].
+                        "obwiednia" to captured?.pcm?.let {
+                            pl.victor.app.audio.AudioEnvelope.doDziennika(
+                                pl.victor.app.audio.AudioEnvelope.rms(
+                                    it, pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
+                                )
+                            )
+                        },
+                        "ciszaNaKońcuOkien" to captured?.pcm?.let {
+                            pl.victor.app.audio.AudioEnvelope.ciszaNaKońcu(
+                                pl.victor.app.audio.AudioEnvelope.rms(
+                                    it, pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
+                                )
+                            )
+                        }
                     )
                 )
                 val transcribeStartedAt = System.currentTimeMillis()
@@ -3499,6 +3517,7 @@ class AIOrchestrator(
                 // Druga próba, na ORYGINALE z pamięci okularów. Wchodzi tylko
                 // wtedy, gdy pytanie faktycznie dotyczy kodu, a pierwsza próba
                 // nic nie dała - bo kosztuje kilkanaście sekund (Wi-Fi Direct).
+                var sharpForCode: ByteArray? = null
                 if (asksAboutCode && scannedCodes.isEmpty() &&
                     !glassesManager.lastPhotoWasFullResolution
                 ) {
@@ -3508,7 +3527,27 @@ class AIOrchestrator(
                         total = 1,
                         label = "Nie widzę kodu na podglądzie - pobieram ostrzejsze zdjęcie."
                     )
-                    glassesManager.captureSharpPhoto()?.let { scanInto(it) }
+                    // forCode = true: TA PRÓBA DOTĄD ZWRACAŁA GORSZĄ MINIATURĘ.
+                    //
+                    // Z dziennika z 23 września, każda tura o kod: pierwsze
+                    // zdjęcie 36 kB, "ostrzejsze" 19 kB. `captureSharpPhoto`
+                    // słuchało ustawienia "źródło zdjęcia: miniatura" i oddawało
+                    // miniaturę, zanim w ogóle sięgnęło po Wi-Fi - do tego z
+                    // domyślną, NIŻSZĄ jakością (2 zamiast 5). Czyli circa 10 s
+                    // na zdjęcie gorsze od tego, które już było.
+                    //
+                    // Użytkownik zgadł dokładnie: "chyba dostaje miniaturę, choć
+                    // Wi-Fi jest włączone". Wi-Fi nie miało nic do rzeczy -
+                    // aplikacja w ogóle go nie próbowała.
+                    //
+                    // Ustawienie jest o SZYBKOŚCI zwykłych pytań i dla nich
+                    // zostaje. Kodu kreskowego z miniatury nie odczyta żadna
+                    // biblioteka, więc tu ustawienie nie ma prawa decydować.
+                    sharpForCode = glassesManager.captureSharpPhoto(
+                        quality = CODE_PHOTO_QUALITY,
+                        forCode = true
+                    )
+                    sharpForCode?.let { scanInto(it) }
                 }
 
                 if (scannedCodes.isNotEmpty()) {
@@ -3558,8 +3597,50 @@ class AIOrchestrator(
                 // mają na opakowaniu właśnie je. Kod dawał się odczytać i
                 // kończył jako trzynaście cyfr przeczytanych na głos, czyli
                 // informacja zerowa. Patrz [pl.victor.app.vision.ProductCode].
-                val productCode = scannedCodes.firstOrNull {
+                val fromBars = scannedCodes.firstOrNull {
                     pl.victor.app.vision.ProductCode.toKodProduktu(it.format) != null
+                }
+                // CYFRY POD KRESKAMI, GDY KRESEK NIE DAŁO SIĘ ODCZYTAĆ.
+                //
+                // Z dziennika z 23 września: ML Kit nie odczytał kresek ANI
+                // RAZU na kilkanaście prób, a model na tych samych zdjęciach
+                // widział "puszkę kukurydzy Bonduelle, kod w pełni widoczny".
+                // Cyfry pod kodem są kilkukrotnie większe od kresek, więc
+                // rozpoznawanie tekstu czyta je z tej samej miniatury. Cyfra
+                // kontrolna EAN pilnuje, żeby to nie była data ani cena - patrz
+                // [pl.victor.app.vision.EanFromText].
+                //
+                // Pierwsze źródło to samo PYTANIE: człowiek może przeczytać
+                // cyfry na głos ("sprawdź produkt 5 901234 123457") i to jest
+                // droga, która działa zawsze, niezależnie od aparatu.
+                var eanZródło: String? = null
+                // Pytanie sprawdzamy ZAWSZE, nie tylko przy "zeskanuj kod":
+                // "sprawdź produkt 5 901234 123457" nie zawiera słowa "kod", a
+                // jest najpewniejszą drogą ze wszystkich. Fałszywych trafień z
+                // numerów telefonów i dat pilnuje układ druku w EanFromText.
+                val fromDigits: String? = if (fromBars == null) {
+                    pl.victor.app.vision.EanFromText.find(textQuestion)
+                        ?.also { eanZródło = "pytanie" }
+                        ?: if (asksAboutCode) {
+                            (photos + listOfNotNull(sharpForCode)).firstNotNullOfOrNull { zdjęcie ->
+                                runCatching { ocrReader.readBytes(zdjęcie) }.getOrNull()
+                                    ?.takeIf { it.isSuccess }
+                                    ?.let { pl.victor.app.vision.EanFromText.find(it.fullText) }
+                            }?.also { eanZródło = "cyfry pod kodem (OCR)" }
+                        } else {
+                            null
+                        }
+                } else {
+                    null
+                }
+                if (fromDigits != null) {
+                    diag.event(
+                        DiagFormat.Phase.ZDJĘCIE, "kod produktu odczytany z cyfr",
+                        mapOf("kod" to fromDigits, "skąd" to eanZródło)
+                    )
+                }
+                val productCode = fromBars ?: fromDigits?.let {
+                    ScannedCode(rawValue = it, format = if (it.length == 8) "EAN_8" else "EAN_13")
                 }
                 if (productCode != null) {
                     val doWyszukania =
@@ -3827,6 +3908,23 @@ class AIOrchestrator(
                         append(" To są dane z bazy produktów, pewniejsze niż odczyt z ")
                         append("opakowania - jeśli pytanie dotyczy tego produktu, ")
                         append("odpowiedz na ich podstawie.")
+                        append("\n\n")
+                    }
+                    // CO APLIKACJA ZROBIŁA Z KODEM - ŻEBY MODEL NIE ZGADYWAŁ.
+                    //
+                    // Z dziennika z 23 września: "kod zasłonięty", "kod
+                    // niewyraźny", "nie mam jak sprawdzić informacji o
+                    // produkcie" - o wyraźnym kodzie na odsłoniętej puszce, przy
+                    // aplikacji, która ma bazę produktów. Model nie wiedział,
+                    // że dostał miniaturę, ani że baza istnieje.
+                    pl.victor.app.vision.CodeScanReport.dlaModelu(
+                        pytanieOKod = asksAboutCode || productCode != null,
+                        kodProduktu = productCode?.rawValue,
+                        produktZnaleziony = productContext != null,
+                        pełnaRozdzielczość = glassesManager.lastPhotoWasFullResolution,
+                        powódMiniatury = glassesManager.lastSharpFallbackReason
+                    )?.let { raport ->
+                        append(raport)
                         append("\n\n")
                     }
                     if (ocrContext != null && ocrContext.isSuccess) {
@@ -5569,6 +5667,15 @@ class AIOrchestrator(
          * krócej znaczyłoby wyłączać się w przerwie w rozmowie.
          */
         private const val EAR_MAX_PUSTYCH = 5
+
+        /**
+         * Jakość miniatury przy zdjęciu do odczytu kodu.
+         *
+         * Z dziennika z 23 września: przy jakości 5 miniatura miała 36 kB, przy
+         * domyślnej 2 - 19 kB. Próba "ostrzejszego" zdjęcia pod kod szła na tej
+         * drugiej, czyli dawała obraz GORSZY niż pierwszy.
+         */
+        private const val CODE_PHOTO_QUALITY = 5
 
         /**
          * Bezpiecznik blokady uśpienia na czas CAŁEJ TURY.
