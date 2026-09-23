@@ -1201,3 +1201,12 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:37:01.205  +24480 ms  MOWA         koniec wypowiedzi  ms=14431
 21:37:01.218  +24494 ms  SESJA        --- KONIEC TURY deb1: odpowiedziano ---
 21:37:01.221          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:37:01.920          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:37:04.306          ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,3
+21:37:36.385          ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,1
+21:37:37.096          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:37:38.910          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:37:38.912          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:37:38.945          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1848
+21:37:40.315          ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,3
+21:37:42.361          ms  ZDJĘCIE      próba 0: miniatura  bajtów=16722 jpeg=true kompletny=true
