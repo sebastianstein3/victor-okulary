@@ -79,6 +79,9 @@ class SpeechToText(private val context: Context) {
      * Cisza i brak dopasowania celowo NIE są tu raportowane: to normalny koniec
      * nasłuchu, a nie awaria, o której warto meldować użytkownikowi.
      */
+    /** Surowy kod ostatniego błędu - do rozróżnienia "brak języka" od reszty. */
+    val lastFailureCode: Int? get() = lastErrorCode
+
     fun lastFailureReason(): String? {
         val code = lastErrorCode ?: return null
         if (code == SpeechRecognizer.ERROR_NO_MATCH ||
@@ -153,17 +156,91 @@ class SpeechToText(private val context: Context) {
         // sekund po zwolnieniu.
         val usedBluetooth = useBluetoothMic && bluetoothRouter.acquire()
         try {
-            return withTimeoutOrNull(timeoutMs) {
-                withContext(Dispatchers.Main) { listenOnMainThread(languageTag) }
+            val startedAt = System.currentTimeMillis()
+            // Język, o którym już wiemy, że silnik na urządzeniu go nie ma, idzie
+            // od razu przez sieć - inaczej każdy nasłuch płaciłby za tę samą,
+            // z góry przegraną próbę.
+            val onDeviceFirst = languageTag !in onDeviceMissingLanguages
+            val first = withTimeoutOrNull(timeoutMs) {
+                withContext(Dispatchers.Main) {
+                    listenOnMainThread(languageTag, preferOnDevice = onDeviceFirst)
+                }
+            }
+            if (first != null || !onDeviceFirst || !LanguagePackFallback.isLanguageError(lastErrorCode)) {
+                return first
+            }
+            // "MIAŁEM JĘZYK POBRANY, CHOĆ APLIKACJA TWIERDZIŁA INACZEJ".
+            //
+            // Obie strony mówiły prawdę. Rozpoznawanie NA URZĄDZENIU ma WŁASNY
+            // magazyn pakietów - osobny od tego, w którym pobiera się język w
+            // aplikacji Google, w klawiaturze czy w ustawieniach Samsunga. Pakiet
+            // mógł leżeć w jednym, a silnik, którego używamy, pytał drugiego.
+            //
+            // Błąd był mój: `createRecognizer` wybierał silnik na urządzeniu
+            // ZAWSZE, gdy tylko istniał, bez względu na język - i nie miał drogi
+            // zapasowej. Rozpoznawanie Google przez sieć zna angielski bez
+            // żadnego pakietu, więc wystarczyło po nie sięgnąć.
+            onDeviceMissingLanguages.add(languageTag)
+            lastOnDeviceLanguageMiss = languageTag
+            requestOnDeviceDownload(languageTag)
+            val left = timeoutMs - (System.currentTimeMillis() - startedAt)
+            if (left < MIN_FALLBACK_LISTEN_MS) return null
+            Log.i(tag, "Silnik na urządzeniu nie ma $languageTag - słucham przez sieć")
+            lastErrorCode = null
+            return withTimeoutOrNull(left) {
+                withContext(Dispatchers.Main) {
+                    listenOnMainThread(languageTag, preferOnDevice = false)
+                }
             }
         } finally {
             if (usedBluetooth) bluetoothRouter.release()
         }
     }
 
-    private suspend fun listenOnMainThread(languageTag: String): String? =
+    /**
+     * Języki, których silnik NA URZĄDZENIU nie ma w tej sesji. Patrz [listen].
+     *
+     * Nie trwale, bo pakiet może się właśnie pobierać ([requestOnDeviceDownload])
+     * - po restarcie aplikacji silnik dostanie drugą szansę.
+     */
+    private val onDeviceMissingLanguages: MutableSet<String> =
+        java.util.Collections.synchronizedSet(mutableSetOf())
+
+    /** Ostatni język, którego zabrakło silnikowi na urządzeniu - do dziennika. */
+    @Volatile
+    var lastOnDeviceLanguageMiss: String? = null
+        private set
+
+    /**
+     * Prosi silnik na urządzeniu o pobranie pakietu - do JEGO magazynu.
+     *
+     * To jest właściwa odpowiedź na "mam język pobrany": pobieranie w innej
+     * aplikacji trafia gdzie indziej. `triggerModelDownload` (Android 13+) idzie
+     * dokładnie do silnika, którego używamy. Najwyżej raz na język w sesji, bez
+     * czekania na wynik - nasłuch i tak idzie w tej chwili przez sieć.
+     */
+    private fun requestOnDeviceDownload(languageTag: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (!downloadRequested.add(languageTag)) return
+        Handler(Looper.getMainLooper()).post {
+            runCatching {
+                val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+                recognizer.triggerModelDownload(intent(languageTag))
+                recognizer.destroy()
+                Log.i(tag, "Poprosiłem silnik na urządzeniu o pakiet $languageTag")
+            }.onFailure { Log.w(tag, "Nie udało się zlecić pobrania pakietu $languageTag", it) }
+        }
+    }
+
+    private val downloadRequested: MutableSet<String> =
+        java.util.Collections.synchronizedSet(mutableSetOf())
+
+    private suspend fun listenOnMainThread(
+        languageTag: String,
+        preferOnDevice: Boolean = true
+    ): String? =
         suspendCancellableCoroutine { continuation ->
-            val recognizer = createRecognizer()
+            val recognizer = createRecognizer(preferOnDevice)
             if (recognizer == null) {
                 Log.w(tag, "Nie udało się utworzyć SpeechRecognizer")
                 continuation.resume(null)
@@ -370,8 +447,8 @@ class SpeechToText(private val context: Context) {
      * Gdy go nie ma (starszy Android, brak pobranego modelu języka), wracamy do
      * zwykłego - czyli do zachowania sprzed tej zmiany, nie do gorszego.
      */
-    private fun createRecognizer(): SpeechRecognizer? {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    private fun createRecognizer(preferOnDevice: Boolean = true): SpeechRecognizer? {
+        if (preferOnDevice && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             runCatching {
                 if (SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
                     Log.d(tag, "Rozpoznawanie NA URZĄDZENIU - działa też przy zgaszonym ekranie")
@@ -498,6 +575,13 @@ class SpeechToText(private val context: Context) {
          * `SpeechRecognizer` potrafi nie oddać sterowania po zajęciu mikrofonu.
          */
         const val DEFAULT_TIMEOUT_MS = 15_000L
+
+        /**
+         * Poniżej tylu milisekund zapasu nie ma sensu zaczynać nasłuchu przez sieć
+         * po nieudanej próbie na urządzeniu - człowiek i tak nie zdąży nic
+         * powiedzieć, a pusty wynik wyglądałby jak kolejna awaria.
+         */
+        private const val MIN_FALLBACK_LISTEN_MS = 3_000L
 
         /** 16 bitów na próbkę, mono - tak dekodujemy dźwięk z okularów. */
         private const val BYTES_PER_SAMPLE = 2

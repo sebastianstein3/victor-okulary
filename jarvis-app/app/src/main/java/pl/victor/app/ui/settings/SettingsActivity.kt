@@ -3721,11 +3721,18 @@ private fun TranslationSection() {
                     // głos, ale lepiej, żeby dało się to przeczytać TUTAJ -
                     // zanim ktoś wyjdzie z nim do ludzi.
                     Spacer(Modifier.size(8.dp))
+                    // TEN PRZYPIS SAM WPROWADZAŁ W BŁĄD - I TO JEST POPRAWKA.
+                    //
+                    // Kazał pobrać pakiet w ustawieniach Androida. Użytkownik go
+                    // miał, a aplikacja i tak mówiła, że nie ma: rozpoznawanie
+                    // na urządzeniu trzyma pakiety we WŁASNYM magazynie. Teraz
+                    // nasłuch sam przechodzi na rozpoznawanie przez sieć, więc
+                    // jedynym realnym warunkiem jest internet.
                     Text(
-                        "ℹ️ Telefon musi mieć pobrany pakiet rozpoznawania mowy dla " +
-                            "języka, którego słuchasz. Brakujący pakiet wygląda " +
-                            "dokładnie jak cisza. Pobierzesz go w ustawieniach " +
-                            "Androida: System → Języki → Rozpoznawanie mowy.",
+                        "ℹ️ Bez internetu tłumaczenie działa tylko dla języków, " +
+                            "które telefon rozpoznaje offline. Z internetem - dla " +
+                            "każdego z listy. Brakujący pakiet offline aplikacja " +
+                            "pobiera sama przy pierwszym użyciu.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -1418,6 +1418,13 @@ class AIOrchestrator(
     private val deadModels = pl.victor.app.ai.DeadModels()
 
     private val earSession = pl.victor.app.translation.EarTranslationSession()
+
+    /** Błąd ŻYWEGO nasłuchu z ostatniego obiegu tłumaczenia - patrz [earListenOnce]. */
+    @Volatile
+    private var earListenError: String? = null
+
+    @Volatile
+    private var earListenErrorCode: Int? = null
     private var earJob: kotlinx.coroutines.Job? = null
     private val _earTranslation = kotlinx.coroutines.flow.MutableStateFlow(false)
 
@@ -1546,20 +1553,35 @@ class AIOrchestrator(
                     // pustkę - co do znaku tak samo jak przy ciszy. Powód leżał
                     // w `speechToText.lastFailureReason()` przez cały czas;
                     // pętla go nie czytała.
-                    val powód = speechToText.lastFailureReason()
+                    val powód = earListenError
                     runCatching {
                         diag.event(
                             DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: pusty nasłuch",
                             mapOf("powód" to (powód ?: "cisza"), "zRzędu" to (zRzędu + 1))
                         )
                     }
-                    if (powód != null) {
+                    // OD RAZU KOŃCZYMY TYLKO PRZY BRAKU JĘZYKA.
+                    //
+                    // Pierwsza wersja kończyła przy KAŻDYM błędzie - także przy
+                    // zajętym na chwilę mikrofonie albo zerwanej na sekundę
+                    // sieci, czyli przy rzeczach, które same mijają. Brak języka
+                    // w obu silnikach nie minie, i tylko on uzasadnia koniec po
+                    // jednym podejściu. Reszta liczy się jak pusty nasłuch.
+                    if (powód != null &&
+                        pl.victor.app.conversation.LanguagePackFallback.isLanguageError(earListenErrorCode)
+                    ) {
                         // Awaria, nie cisza - liczenie do pięciu nic tu nie da,
                         // bo szósty raz skończy się tak samo.
+                        // Do tego miejsca dochodzi się teraz dopiero wtedy, gdy
+                        // zawiodły OBA silniki: na urządzeniu (brak pakietu w jego
+                        // magazynie) i przez sieć. Pobieranie pakietu gdzie
+                        // indziej nic tu nie da - stąd zdanie o internecie, a nie
+                        // o ustawieniach Androida, które już raz wysłało
+                        // człowieka szukać czegoś, co miał.
                         audio.speakAndAwait(
-                            "Nie mogę słuchać po $fromName: $powód. " +
-                                "Zmień język w Ustawieniach albo pobierz pakiet " +
-                                "rozpoznawania mowy w ustawieniach Androida.",
+                            "Nie mogę słuchać po $fromName: $powód. Rozpoznawanie " +
+                                "bez sieci nie ma tego języka, a przez internet też " +
+                                "się nie udało. Sprawdź połączenie z internetem.",
                             language = to
                         )
                         stopEarTranslation("rozpoznawanie odmówiło: $powód")
@@ -1646,6 +1668,8 @@ class AIOrchestrator(
             } else {
                 null
             }
+        earListenError = null
+        earListenErrorCode = null
         return try {
             _state.value = OrchestratorState.Listening
             setAsidePhoneTranscript = null
@@ -1673,6 +1697,16 @@ class AIOrchestrator(
                     bleStreamLive = micStreamLive
                 )
             )
+            // BŁĄD ŻYWEGO NASŁUCHU - ZAPISANY, ZANIM COŚ GO NADPISZE.
+            //
+            // `lastFailureReason()` pamięta tylko OSTATNI błąd rozpoznawania. Tuż
+            // niżej idzie transkrypcja nagrania z okularów - silnikiem na
+            // urządzeniu - i jej błąd przykrywał wynik nasłuchu. Tak było w
+            // dzienniku z 23 września: "model języka niepobrany" pochodziło z
+            // drogi zapasowej, a pętla uznała je za werdykt o całym trybie i
+            // wyłączyła tłumaczenie po jednym podejściu.
+            earListenError = speechToText.lastFailureReason()
+            earListenErrorCode = speechToText.lastFailureCode
             val captured = capture?.stop()
             zatrzymane = true
             val zOkularów = captured?.pcm
