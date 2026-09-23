@@ -3706,6 +3706,24 @@ private fun TranslationSection() {
                                 }
                         }
                     }
+                    // JĘZYK NASŁUCHU WYMAGA PAKIETU W ANDROIDZIE.
+                    //
+                    // To jest przyczyna zgłoszenia "tłumaczenie na żywo nie
+                    // działa, mówi że nic nie słyszy": tryb nasłuchuje w
+                    // języku ŹRÓDŁOWYM, a polski telefon nie ma pobranego
+                    // pakietu angielskiego. Rozpoznawanie oddaje wtedy pustkę
+                    // nie do odróżnienia od ciszy. Tryb mówi teraz powód na
+                    // głos, ale lepiej, żeby dało się to przeczytać TUTAJ -
+                    // zanim ktoś wyjdzie z nim do ludzi.
+                    Spacer(Modifier.size(8.dp))
+                    Text(
+                        "ℹ️ Telefon musi mieć pobrany pakiet rozpoznawania mowy dla " +
+                            "języka, którego słuchasz. Brakujący pakiet wygląda " +
+                            "dokładnie jak cisza. Pobierzesz go w ustawieniach " +
+                            "Androida: System → Języki → Rozpoznawanie mowy.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     // OSTRZEŻENIE, A NIE CICHA ODMOWA.
                     //
                     // Przy równych językach tryb nie ma co robić i wychodzi od

@@ -40,7 +40,7 @@ object VisionDetail {
      */
     fun isAboutCode(question: String): Boolean {
         val lower = question.lowercase()
-        return CODE_STEMS.any { lower.contains(it) }
+        return CODE_STEMS.any { lower.contains(it) } || CODE_REGEX.containsMatchIn(lower)
     }
 
     /**
@@ -53,8 +53,33 @@ object VisionDetail {
      */
     private val CODE_STEMS = listOf(
         "qr", "kjuar",
-        "kod kresk", "kod pask", "kod ean", "kod produkt", "kodzie kresk",
         "barcode", "zeskanuj", "skanuj", "zeskanowa"
+    )
+
+    /**
+     * "Kod kreskowy" we WSZYSTKICH przypadkach - i to jest poprawka do listy
+     * wyżej.
+     *
+     * Stały tam gotowe zbitki: "kod kresk", "kod pask", "kod ean",
+     * "kod produkt". Każda z nich łapie WYŁĄCZNIE mianownik. Wystarczy
+     * powiedzieć naturalnie - "nie rozpoznaje kodów kreskowych", "sprawdź
+     * z kodu kreskowego", "co jest pod tym kodem kreskowym" - i żadna nie
+     * pasuje, bo między "kod" a "kresk" stoi już inna końcówka.
+     *
+     * Skutek nie był kosmetyczny. Od tej decyzji zależy, czy przy nieudanym
+     * skanie sięgamy po zdjęcie w PEŁNEJ ROZDZIELCZOŚCI - a kodu EAN na
+     * miniaturze nie odczyta żadna biblioteka, bo kreski mają tam grubość
+     * jednego piksela. Zła odmiana = kod nie do odczytania, bez śladu.
+     *
+     * To ten sam błąd, na który wpadliśmy już przy `\w` i `\b` w regexach:
+     * polska odmiana zjada dopasowanie, a test napisany na mianowniku tego
+     * nie widzi.
+     *
+     * Sam rdzeń "kresk" byłby za szeroki - złapałby "kreskówkę" i "kreskę".
+     * Stąd wymóg, żeby przed nim stało słowo zaczynające się od "kod".
+     */
+    private val CODE_REGEX = Regex(
+        """kod[a-ząćęłńóśźż]*\s+(kresk|pask|ean|produkt)"""
     )
 
     /**

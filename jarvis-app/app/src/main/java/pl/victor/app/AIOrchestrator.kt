@@ -1528,10 +1528,43 @@ class AIOrchestrator(
                     .onFailure { Log.w(TAG, "Tłumaczenie ze słuchu: nasłuch nie wyszedł", it) }
                     .getOrNull()
                 if (usłyszane.isNullOrBlank()) {
+                    // "NIC NIE SŁYSZĘ" TO BYŁA ODPOWIEDŹ NA NIEZADANE PYTANIE.
+                    //
+                    // Zgłoszone: "tłumaczenie na żywo nie działa - mówi, że nic
+                    // nie słyszy". I mówiło prawdę, tylko bezużyteczną: pusty
+                    // wynik rozpoznawania ma kilka bardzo różnych powodów, a
+                    // tylko JEDEN z nich to naprawdę cisza w pokoju.
+                    //
+                    // Najważniejszy jest ten, który sam wprowadziłem: tryb
+                    // nasłuchuje w JĘZYKU ŹRÓDŁOWYM (domyślnie angielskim), a
+                    // polski telefon nie ma pobranego pakietu angielskiego.
+                    // Rozpoznawanie oddaje wtedy ERROR_LANGUAGE_UNAVAILABLE i
+                    // pustkę - co do znaku tak samo jak przy ciszy. Powód leżał
+                    // w `speechToText.lastFailureReason()` przez cały czas;
+                    // pętla go nie czytała.
+                    val powód = speechToText.lastFailureReason()
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: pusty nasłuch",
+                            mapOf("powód" to (powód ?: "cisza"), "zRzędu" to (zRzędu + 1))
+                        )
+                    }
+                    if (powód != null) {
+                        // Awaria, nie cisza - liczenie do pięciu nic tu nie da,
+                        // bo szósty raz skończy się tak samo.
+                        audio.speakAndAwait(
+                            "Nie mogę słuchać po $fromName: $powód. " +
+                                "Zmień język w Ustawieniach albo pobierz pakiet " +
+                                "rozpoznawania mowy w ustawieniach Androida.",
+                            language = to
+                        )
+                        stopEarTranslation("rozpoznawanie odmówiło: $powód")
+                        return
+                    }
                     zRzędu++
                     if (zRzędu >= EAR_MAX_PUSTYCH) {
                         audio.speakAndAwait(
-                            "Nic nie słyszę. Kończę tłumaczenie.", language = to
+                            "Nic nie słyszę po $fromName. Kończę tłumaczenie.", language = to
                         )
                         stopEarTranslation("$EAR_MAX_PUSTYCH nasłuchów bez dźwięku")
                         return
@@ -1615,9 +1648,22 @@ class AIOrchestrator(
             val heard = listenUntilSpeechEnds(
                 languageTag = languageTagFor(from),
                 capture = capture,
-                // Telefon leży w kieszeni, a tłumaczymy to, co słychać wokół
-                // okularów. Gdy strumień BLE żyje, to on jest źródłem.
-                trustPhoneMicrophone = !micStreamLive,
+                // MIKROFON TELEFONU JEST TU PRAWOWITYM ŹRÓDŁEM - I TO JEST
+                // POPRAWKA DO MOJEJ WŁASNEJ WERSJI.
+                //
+                // Stało tu `!micStreamLive`, przepisane z tury pytania. Tam ma
+                // sens: człowiek mówi DO okularów, a telefon leży w kieszeni.
+                // Tu jest inaczej - tłumaczy się cudzą rozmowę, telefon równie
+                // dobrze leży na stole, a okulary nadają mikrofon dopiero po
+                // wciśnięciu przycisku (`start()` tylko dopisuje się do
+                // strumienia, nie każe im nadawać). Przy samej subskrypcji
+                // `micStreamLive` jest prawdą, więc wynik z telefonu był
+                // ODKŁADANY, choć bywał jedynym, jaki w ogóle był.
+                //
+                // Nagranie z okularów nic na tym nie traci: niżej i tak idzie
+                // `zOkularów ?: heard`, więc gdy okulary coś przyniosą, one
+                // wygrywają.
+                trustPhoneMicrophone = true,
                 useBluetoothMic = pl.victor.app.audio.MicChoice.useBluetoothMic(
                     overSco = false,
                     bleStreamLive = micStreamLive
@@ -3482,11 +3528,21 @@ class AIOrchestrator(
                 // płatki" a "płatki owsiane, 500 g, zawiera gluten". Nie
                 // kosztuje przy tym ani jednego tokenu modelu.
                 var productContext: String? = null
+                // UPC TEŻ JEST KODEM PRODUKTU - I BYŁ TU POMIJANY.
+                //
+                // Filtr przepuszczał wyłącznie EAN_13 i EAN_8. UPC-A to ten sam
+                // kod co EAN-13 z wiodącym zerem (tak trzyma go Open Food
+                // Facts), a UPC-E to jego skrócony zapis - towary spoza Europy
+                // mają na opakowaniu właśnie je. Kod dawał się odczytać i
+                // kończył jako trzynaście cyfr przeczytanych na głos, czyli
+                // informacja zerowa. Patrz [pl.victor.app.vision.ProductCode].
                 val productCode = scannedCodes.firstOrNull {
-                    it.format == "EAN_13" || it.format == "EAN_8"
+                    pl.victor.app.vision.ProductCode.toKodProduktu(it.format) != null
                 }
                 if (productCode != null) {
-                    productLookup.describe(productCode.rawValue)?.let { described ->
+                    val doWyszukania =
+                        pl.victor.app.vision.ProductCode.znormalizuj(productCode.rawValue)
+                    productLookup.describe(doWyszukania)?.let { described ->
                         productContext = described
                         diag.event(
                             DiagFormat.Phase.ZDJĘCIE, "produkt rozpoznany z kodu",
@@ -3494,7 +3550,7 @@ class AIOrchestrator(
                         )
                     } ?: diag.event(
                         DiagFormat.Phase.ZDJĘCIE, "kodu nie ma w bazie produktów",
-                        mapOf("kod" to productCode.rawValue)
+                        mapOf("kod" to doWyszukania, "format" to productCode.format)
                     )
                 }
 

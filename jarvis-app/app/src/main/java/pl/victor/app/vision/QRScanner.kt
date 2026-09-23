@@ -13,10 +13,25 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 
 /**
- * Skaner QR kodów - używa ML Kit (offline, darmowy).
+ * Skaner kodów - ML Kit, na urządzeniu, bez sieci i bez tokenów.
  *
- * Obsługuje: QR_CODE, EAN_13, EAN_8, CODE_128, DATA_MATRIX, PDF417, AZTEC
- * W MVP skupiamy się na QR_CODE (najpopularniejszy).
+ * ## Dwa różne zadania pod jedną nazwą
+ * QR i kod kreskowy dekoduje ta sama biblioteka, ale wymagają czego innego.
+ * QR ma duże znaczniki w rogach i moduły po kilka pikseli - składa się nawet
+ * z miniatury. EAN-13 to kilkadziesiąt pionowych kresek, z których najcieńsza
+ * na miniaturze ma piksel albo mniej, a po kompresji JPEG zlewa się
+ * z sąsiednią. Zgłoszone wprost: "nie rozpoznaje kodów kreskowych" - przy
+ * działającym QR.
+ *
+ * Stąd dwie zmiany względem pierwszej wersji tego pliku:
+ *
+ *  1. **pełna lista formatów.** Było siedem, brakowało UPC-A i UPC-E (kody
+ *     z towarów spoza Europy - a to właśnie przy nich najczęściej chce się
+ *     wiedzieć, co to jest), a także ITF, CODE_39, CODE_93 i CODABAR, którymi
+ *     znakuje się opakowania zbiorcze, leki i książki;
+ *  2. **kilka podejść zamiast jednego.** Gdy pierwszy skan nic nie da,
+ *     powtarzamy go na powiększonym obrazie - powód i granice tej sztuczki
+ *     opisuje [BarcodeAttempts].
  */
 class QRScanner {
 
@@ -27,7 +42,19 @@ class QRScanner {
             Barcode.FORMAT_QR_CODE,
             Barcode.FORMAT_EAN_13,
             Barcode.FORMAT_EAN_8,
+            // UPC-A i UPC-E to kody spoza Europy. Brakowało ich, a to
+            // dokładnie te towary, przy których najczęściej chce się
+            // zapytać "co to właściwie jest".
+            Barcode.FORMAT_UPC_A,
+            Barcode.FORMAT_UPC_E,
             Barcode.FORMAT_CODE_128,
+            // ITF - opakowania zbiorcze; CODE_39/93 - leki, magazyny;
+            // CODABAR - biblioteki i krew. Każdy z nich bywa jedynym kodem
+            // na opakowaniu.
+            Barcode.FORMAT_ITF,
+            Barcode.FORMAT_CODE_39,
+            Barcode.FORMAT_CODE_93,
+            Barcode.FORMAT_CODABAR,
             Barcode.FORMAT_DATA_MATRIX,
             Barcode.FORMAT_PDF417,
             Barcode.FORMAT_AZTEC
@@ -65,6 +92,53 @@ class QRScanner {
      * Zwraca pustą listę jeśli timeout.
      */
     fun scanSync(bitmap: Bitmap, timeoutMs: Long = 3000): List<ScannedCode> {
+        // PIERWSZE PODEJŚCIE NA ORYGINALE, KOLEJNE NA POWIĘKSZENIU.
+        //
+        // Do wersji z kodem QR wystarczało jedno. Przy kresce o grubości
+        // piksela nie wystarcza - patrz [BarcodeAttempts], gdzie jest powód i
+        // granice tej sztuczki. Plan prób jest tam, bo to zwykła arytmetyka i
+        // da się ją sprawdzić testem; tutaj zostaje samo wywołanie ML Kit.
+        val mnożniki = BarcodeAttempts.mnożniki(minOf(bitmap.width, bitmap.height))
+        for (m in mnożniki) {
+            val próba = if (m == 1) bitmap else powiększ(bitmap, m) ?: continue
+            val wynik = jedenSkan(próba, timeoutMs)
+            if (próba !== bitmap) próba.recycle()
+            if (wynik.isNotEmpty()) {
+                if (m > 1) Log.i(tag, "Kod odczytany dopiero po powiększeniu ${m}x")
+                return wynik
+            }
+        }
+        if (BarcodeAttempts.beznadziejnyRozmiar(bitmap.width)) {
+            // NIE "nie ma kodu", TYLKO "nie ma go jak zobaczyć".
+            //
+            // Te dwie rzeczy wyglądają z zewnątrz identycznie, a wymagają
+            // czego innego: pierwsza - wycelować gdzie indziej, druga -
+            // włączyć Wi-Fi albo przestawić źródło zdjęcia na pełne.
+            Log.w(
+                tag,
+                "Obraz ma ${bitmap.width} px szerokości - dla kodu kreskowego " +
+                    "za mało (potrzeba circa ${BarcodeAttempts.MIN_SZEROKOŚĆ_EAN})"
+            )
+        }
+        return emptyList()
+    }
+
+    /** Czy ten obraz jest za mały, żeby kod kreskowy miał w nim szansę. */
+    fun zaMałyNaKodKreskowy(bitmap: Bitmap): Boolean =
+        BarcodeAttempts.beznadziejnyRozmiar(bitmap.width)
+
+    private fun powiększ(bitmap: Bitmap, mnożnik: Int): Bitmap? = try {
+        Bitmap.createScaledBitmap(
+            bitmap, bitmap.width * mnożnik, bitmap.height * mnożnik, true
+        )
+    } catch (e: Throwable) {
+        // OutOfMemory przy powiększaniu nie może zabić tury - lepiej oddać
+        // "nie znalazłem kodu" niż wywalić aplikację w sklepie.
+        Log.w(tag, "Nie udało się powiększyć ${mnożnik}x: ${e.message}")
+        null
+    }
+
+    private fun jedenSkan(bitmap: Bitmap, timeoutMs: Long): List<ScannedCode> {
         val image = InputImage.fromBitmap(bitmap, 0)
         val task = scanner.process(image)
 
@@ -80,7 +154,7 @@ class QRScanner {
                 )
             }
         } catch (e: Exception) {
-            Log.w(tag, "QR scan failed: ${e.message}")
+            Log.w(tag, "Skan kodu nie powiódł się: ${e.message}")
             emptyList()
         }
     }
@@ -98,6 +172,12 @@ class QRScanner {
         Barcode.FORMAT_QR_CODE -> "QR_CODE"
         Barcode.FORMAT_EAN_13 -> "EAN_13"
         Barcode.FORMAT_EAN_8 -> "EAN_8"
+        Barcode.FORMAT_UPC_A -> "UPC_A"
+        Barcode.FORMAT_UPC_E -> "UPC_E"
+        Barcode.FORMAT_ITF -> "ITF"
+        Barcode.FORMAT_CODE_39 -> "CODE_39"
+        Barcode.FORMAT_CODE_93 -> "CODE_93"
+        Barcode.FORMAT_CODABAR -> "CODABAR"
         Barcode.FORMAT_CODE_128 -> "CODE_128"
         Barcode.FORMAT_DATA_MATRIX -> "DATA_MATRIX"
         Barcode.FORMAT_PDF417 -> "PDF417"
