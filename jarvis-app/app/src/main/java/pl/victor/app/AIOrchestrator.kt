@@ -1376,6 +1376,10 @@ class AIOrchestrator(
         }
         lastCancelReason = reason
         audio.stopSpeaking()
+        // "Przerwij" w aplikacji ma przerywać WSZYSTKO, co mówi i słucha - także
+        // tryb tłumaczenia, który nie jest turą i do tej pory przez to przycisk
+        // go omijał.
+        stopEarTranslation(reason)
         activeTurnJob?.cancel()
         activeTurnJob = null
         _state.value = OrchestratorState.Idle
@@ -2717,6 +2721,24 @@ class AIOrchestrator(
                         .takeIf { it.isNotEmpty() }?.joinToString("/")
                 )
             )
+        }
+        // W TRAKCIE TŁUMACZENIA ZE SŁUCHU PRZYCISK JE KOŃCZY - I TO JEST
+        // JEDYNE WYJŚCIE, NA KTÓRE MOŻNA LICZYĆ.
+        //
+        // Wyjście głosem ("koniec tłumaczenia") ma dziurę, którą sam zrobiłem:
+        // pętla nasłuchuje w języku ŹRÓDŁOWYM. Przy domyślnym angielskim polskie
+        // "koniec tłumaczenia" rozpoznawanie angielskie zamienia w przypadkowe
+        // angielskie słowa i fraza nie pasuje. Człowiek zostawał w trybie,
+        // z którego nie umie wyjść - a ten trzyma mikrofon i baterię.
+        //
+        // Dodatkowo wciśnięcie przycisku w trakcie tego trybu uruchamiało
+        // drugą, równoległą turę pytania, która biła się z pętlą o mikrofon.
+        // Każdy gest - jedno, dwa, trzy kliknięcia, także "Hey Lens", który
+        // przychodzi tą samą ramką - kończy więc tryb i nic więcej nie robi.
+        if (_earTranslation.value) {
+            stopEarTranslation("przycisk na okularach")
+            audio.speak("Kończę tłumaczenie.", language = settings.getResponseLanguage())
+            return
         }
         when (action) {
             // Pojedyncze kliknięcie = "chcę o coś zapytać", więc SŁUCHAMY, a nie

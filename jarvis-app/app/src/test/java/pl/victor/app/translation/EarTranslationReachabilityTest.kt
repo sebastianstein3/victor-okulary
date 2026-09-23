@@ -103,6 +103,39 @@ class EarTranslationReachabilityTest {
     }
 
     @Test
+    fun `przycisk na okularach konczy tryb - wyjscie niezalezne od jezyka`() {
+        // Pętla nasłuchuje w języku ŹRÓDŁOWYM. Przy angielskim polskie
+        // "koniec tłumaczenia" nie ma jak zostać rozpoznane, więc samo wyjście
+        // głosem zostawiało człowieka w trybie bez wyjścia. Przycisk nie zależy
+        // od żadnego języka.
+        //
+        // indexOf zamiast regexu z `(.|\n)*?`: na pliku tej wielkości taki
+        // regex wywraca stos Javy (sprawdzone - pierwsza wersja tego testu
+        // padła na StackOverflowError, a nie na asercji).
+        val plik = zrodlo("src/main/java/pl/victor/app/AIOrchestrator.kt")
+        assumeTrue("Nie znalazłem AIOrchestrator.kt", plik != null)
+        val tekst = plik!!.readText()
+
+        val przycisk = tekst.indexOf("private fun handleButtonAction(action: ButtonAction)")
+        assertTrue("nie znalazłem handleButtonAction", przycisk >= 0)
+        val wyjście = tekst.indexOf("if (_earTranslation.value) {", przycisk)
+        val tura = tekst.indexOf("when (action) {", przycisk)
+        assertTrue(
+            "handleButtonAction ma kończyć tłumaczenie ze słuchu, ZANIM zacznie turę",
+            wyjście in (przycisk + 1) until tura &&
+                tekst.indexOf("stopEarTranslation(", wyjście) in wyjście until tura
+        )
+
+        val przerwij = tekst.indexOf("fun cancelCurrentTurn(")
+        val koniecPrzerwij = tekst.indexOf("\n    }\n", przerwij)
+        assertTrue(
+            "\"Przerwij\" w aplikacji ma przerywać także tryb tłumaczenia",
+            przerwij >= 0 &&
+                tekst.indexOf("stopEarTranslation(reason)", przerwij) in przerwij until koniecPrzerwij
+        )
+    }
+
+    @Test
     fun `tryb ma wyjscie, ktore da sie powiedziec`() {
         // Tryb ciągły bez wyjścia to tryb, z którego wychodzi się przez
         // wyłączenie Bluetootha. Frazy muszą działać na CAŁEJ wypowiedzi.
