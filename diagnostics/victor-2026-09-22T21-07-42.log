@@ -1911,3 +1911,62 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:57:35.737  +15956 ms  MOWA         koniec wypowiedzi  ms=4887
 21:57:35.801  +16020 ms  SESJA        --- KONIEC TURY d2ea: odpowiedziano ---
 21:57:35.817          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:57:35.877          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:57:39.187          ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,3
+21:57:52.667          ms  PRZYCISK     wciśnięto  numer=1
+21:57:52.905          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:57:53.182          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:57:53.288          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=374
+21:57:53.376          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:57:53.383      +1 ms  SESJA        --- TURA 51c1 ---  źródło=OKULARY
+21:57:53.385      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:57:54.005    +623 ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,1
+21:57:57.198   +3816 ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,3
+21:58:00.436   +7054 ms  NASŁUCH      koniec  ms=7053 odłożone=puma zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=4.12 próbek=9 gotowyPoMs=537
+21:58:00.456   +7075 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+21:58:00.876   +7494 ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,1
+21:58:03.413  +10032 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.5935 pakietów=380 rozkodowanych=380 odrzuconych=0 przesunięcie=6 ramka=-1
+21:58:04.842  +11460 ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,3
+21:58:05.526  +12145 ms  TRANSKRYPCJA z nagrania okularów  ms=2106 droga=Nasłuch telefonu
+21:58:05.542  +12160 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7593 jestMs=5900 tło=1 szczyt=5170 ile razy=4138.1
+21:58:05.547  +12165 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=puma
+21:58:05.548  +12167 ms  SESJA        pytanie  tekst=puma wymuszonyObraz=false
+21:58:05.557  +12175 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:58:05.573  +12191 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:58:07.289  +13907 ms  KONTEKST     zebrany  ms=1707 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:58:07.324  +13942 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=7906
+21:58:08.149  +14767 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=826
+21:58:08.355  +14973 ms  MODEL        zużycie tokenów  wejście=5641 odpowiedź=59 razem=5700 limit=3000 koniec=STOP
+21:58:08.360  +14978 ms  MODEL        koniec odpowiedzi (198 znaków, 5700 tokenów)  ms=1038 dostawca=gemini początek=Puma to nazwa marki sportowej, ale także drapieżny ssak z rodziny kotowatych, zw
+21:58:08.369  +14987 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=198
+21:58:09.372  +15991 ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,1
+21:58:19.237  +25855 ms  MOWA         koniec wypowiedzi  ms=10865
+21:58:19.300  +25918 ms  SESJA        --- KONIEC TURY 51c1: odpowiedziano ---
+21:58:19.320          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:58:19.994          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:58:22.702          ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,3
+21:58:31.031          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 47 38 01 02 00 01 00 00 00 01 01 sztuk=1 pierwsza=false
+21:58:32.927          ms  BLE          ROZŁĄCZONO  świadome=false
+21:58:39.015          ms  BLE          ROZŁĄCZONO  świadome=false
+21:58:40.959          ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+21:58:59.822          ms  BLE          ROZŁĄCZONO  świadome=false
+22:02:14.879          ms  BLE          ROZŁĄCZONO  świadome=false
+22:08:15.649          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+22:13:41.806          ms  BLE          ROZŁĄCZONO  świadome=false
+13:14:02.245          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=LIGHT_RAIN
+13:47:07.979          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=LIGHT_RAIN
+16:36:58.002      +4 ms  SESJA        --- TURA 261b ---  źródło=TEXT_INPUT
+16:36:58.012     +12 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+16:36:58.135    +134 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=false
+16:36:58.212    +211 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+16:37:00.255   +2254 ms  KONTEKST     zebrany  ms=1986 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+16:37:00.307   +2306 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=10827
+16:37:01.810   +3809 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1504
+16:37:02.096   +4096 ms  MODEL        zużycie tokenów  wejście=7103 odpowiedź=102 razem=7205 limit=3000 koniec=STOP
+16:37:02.102   +4101 ms  MODEL        koniec odpowiedzi (389 znaków, 7205 tokenów)  ms=1796 dostawca=gemini początek=W kalendarzu na najbliższy czas nie mam żadnych zaplanowanych wydarzeń. W Toruni
+16:37:02.106   +4105 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=389
+16:37:02.108   +4107 ms  MOWA         koniec wypowiedzi  ms=0
+16:37:02.177   +4177 ms  SESJA        --- KONIEC TURY 261b: odpowiedziano ---
