@@ -3545,7 +3545,12 @@ private fun IntelligenceSection(
 @Composable
 private fun TranslationSection() {
     val context = LocalContext.current
-    val settings = remember { SettingsRepository(context) }
+    // Pełna nazwa i getInstance(), tak jak w sąsiednich sekcjach tego pliku.
+    // Napisałem tu `SettingsRepository(context)` - bez importu i konstruktorem,
+    // którego ta klasa nie wystawia. Lokalne sprawdzenie składni tego NIE
+    // widziało, bo odfiltrowuje "unresolved reference" (inaczej brak Compose'a
+    // na classpathie zalewałby wynik). Kompilacja w CI zobaczyła od razu.
+    val settings = remember { pl.victor.app.data.SettingsRepository.getInstance(context) }
     var translationTarget by remember { mutableStateOf(settings.getTranslationTarget()) }
     var earFrom by remember { mutableStateOf(settings.getEarTranslationFrom()) }
     var earTo by remember { mutableStateOf(settings.getEarTranslationTo()) }
