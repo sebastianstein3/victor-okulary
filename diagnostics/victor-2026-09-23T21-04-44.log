@@ -194,3 +194,59 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:13:44.087  +21134 ms  AUDIO        zwinięte łącze audio tury  ms=1
 21:13:44.096  +21143 ms  SESJA        --- KONIEC TURY 6efa: odpowiedziano ---
 21:13:44.117          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:13:44.210          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:13:52.491          ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,3
+21:14:33.960          ms  BLE          ROZŁĄCZONO  świadome=false
+21:14:40.048          ms  BLE          ROZŁĄCZONO  świadome=false
+21:14:42.006          ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+21:14:55.424          ms  BLE          POŁĄCZONO  noweŁącze=true
+21:14:55.437          ms  BLE          okulary wróciły - mówię o tym
+21:14:55.437          ms  BLE          powitanie okularów - start
+21:14:55.473          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+21:14:55.723          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 47 38 01 02 00 01 00 00 00 01 01 sztuk=1 pierwsza=true
+21:14:55.727          ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,15,0,16,10,3
+21:14:55.779          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:14:57.555          ms  BLE          POŁĄCZONO  noweŁącze=false
+21:14:59.414          ms  PRZYCISK     wciśnięto  numer=1
+21:14:59.685          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:14:59.936          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:15:00.214          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=528
+21:15:00.465          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+21:15:00.505          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:15:00.508      +1 ms  SESJA        --- TURA c763 ---  źródło=OKULARY
+21:15:00.509      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:15:03.636   +3129 ms  NASŁUCH      koniec  ms=3129 odłożone=zeskanuj ten kod qr zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=4.6000004 próbek=5 gotowyPoMs=505
+21:15:03.859   +3352 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:15:04.308   +3801 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.0135 pakietów=201 rozkodowanych=201 odrzuconych=0 przesunięcie=6 ramka=-1
+21:15:05.449   +4942 ms  TRANSKRYPCJA z nagrania okularów  ms=1140 droga=Bez transkrypcji - nagranie do modelu
+21:15:05.455   +4948 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4013 jestMs=1840 tło=0 szczyt=4182 ile razy=6587.0
+21:15:05.458   +4951 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zeskanuj ten kod qr
+21:15:05.459   +4953 ms  SESJA        pytanie  tekst=zeskanuj ten kod qr wymuszonyObraz=false
+21:15:05.470   +4963 ms  AKCJA        gest wywołany głosem  gest=SCAN_QR
+21:15:05.471   +4964 ms  PRZYCISK     akcja z przycisku  akcja=SCAN_QR kliknięć=1
+21:15:05.472   +4965 ms  SESJA        pytanie  tekst=Odczytaj kod ze zdjęcia - kreskowy albo QR - i powiedz krótko, co to za produkt albo co jest w kodzie zapisane. wymuszonyObraz=true
+21:15:05.476   +4969 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+21:15:05.485   +4978 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:15:05.499   +4992 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:15:05.509   +5002 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+21:15:05.850   +5343 ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,2
+21:15:07.202   +6695 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:15:07.204   +6697 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:15:07.213   +6706 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1700
+21:15:11.491  +10984 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:15:17.223  +16716 ms  ZDJĘCIE      próba 0: miniatura  bajtów=30390 jpeg=true kompletny=false
+21:15:17.226  +16719 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+21:15:22.233  +21726 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5001
+21:15:22.238  +21731 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+21:15:27.243  +26737 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+21:15:27.247  +26740 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+21:15:28.841  +28334 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:15:28.845  +28338 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:15:37.524  +37018 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=32000
+21:15:37.535  +37028 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 źródło=migawka pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+21:15:37.553  +37047 ms  AUDIO        zwinięte łącze audio tury  ms=2
+21:15:37.562  +37055 ms  SESJA        --- KONIEC TURY c763: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+21:15:37.576          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
