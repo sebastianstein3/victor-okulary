@@ -1210,3 +1210,50 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:37:38.945          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1848
 21:37:40.315          ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,3
 21:37:42.361          ms  ZDJĘCIE      próba 0: miniatura  bajtów=16722 jpeg=true kompletny=true
+21:38:17.538          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 C7 12 01 04 00 01 00 00 00 01 01 sztuk=3 pierwsza=false
+21:38:21.109          ms  PRZYCISK     wciśnięto  numer=1
+21:38:21.327          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+21:38:21.637          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:38:21.668          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=340
+21:38:21.716          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:38:21.718      +0 ms  SESJA        --- TURA 023a ---  źródło=OKULARY
+21:38:21.719      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:38:22.197    +479 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,1
+21:38:25.349   +3631 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,3
+21:38:25.572   +3855 ms  NASŁUCH      koniec  ms=3854 odłożone=zeskanuj ten kod qr zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=6 gotowyPoMs=367
+21:38:25.581   +3863 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:38:26.065   +4347 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.2535 pakietów=213 rozkodowanych=213 odrzuconych=0 przesunięcie=6 ramka=-1
+21:38:28.462   +6744 ms  TRANSKRYPCJA z nagrania okularów  ms=2396 droga=Nasłuch telefonu
+21:38:28.475   +6757 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4253 jestMs=1780 tło=1 szczyt=10741 ile razy=7085.6
+21:38:28.478   +6760 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zeskanuj ten kod qr
+21:38:28.479   +6761 ms  SESJA        pytanie  tekst=zeskanuj ten kod qr wymuszonyObraz=false
+21:38:28.489   +6771 ms  AKCJA        gest wywołany głosem  gest=SCAN_QR
+21:38:28.490   +6772 ms  PRZYCISK     akcja z przycisku  akcja=SCAN_QR kliknięć=1
+21:38:28.491   +6773 ms  SESJA        pytanie  tekst=Odczytaj kod ze zdjęcia - kreskowy albo QR - i powiedz krótko, co to za produkt albo co jest w kodzie zapisane. wymuszonyObraz=true
+21:38:28.493   +6775 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+21:38:28.500   +6783 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:38:28.509   +6791 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+21:38:29.919   +8201 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:38:29.921   +8204 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:38:29.934   +8216 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1424
+21:38:33.042  +11324 ms  ZDJĘCIE      próba 0: miniatura  bajtów=24390 jpeg=true kompletny=true
+21:38:33.064  +11346 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=24390 źródło=migawka pełnaRozdzielczość=false
+21:38:33.106  +11388 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:38:34.419  +12701 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:38:34.421  +12703 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:38:34.467  +12749 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1360
+21:38:35.648  +13930 ms  ZDJĘCIE      próba 0: miniatura  bajtów=9901 jpeg=true kompletny=true
+21:38:35.695  +13977 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=1 pełnaRozdzielczość=false
+21:38:37.138  +15420 ms  KONTEKST     zebrany  ms=1292 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:38:37.159  +15441 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=10103
+21:38:38.531  +16813 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1373
+21:38:38.862  +17144 ms  MODEL        zużycie tokenów  wejście=7248 odpowiedź=81 razem=7329 limit=3000 koniec=STOP
+21:38:38.865  +17147 ms  MODEL        koniec odpowiedzi (275 znaków, 7329 tokenów)  ms=1707 dostawca=gemini początek=Na zdjęciu widzę kod QR wyświetlony na ekranie telefonu, ale jest on zbyt niewyr
+21:38:38.867  +17149 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=275
+21:38:39.533  +17815 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,1
+21:38:52.888  +31170 ms  MOWA         koniec wypowiedzi  ms=14020
+21:38:52.907  +31190 ms  SESJA        --- KONIEC TURY 023a: odpowiedziano ---
+21:38:52.910          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
