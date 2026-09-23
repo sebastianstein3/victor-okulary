@@ -62,3 +62,67 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:10:36.568  +44370 ms  AUDIO        zwinięte łącze audio tury  ms=1
 21:10:36.574  +44376 ms  SESJA        --- KONIEC TURY b1da: odpowiedziano ---
 21:10:36.589          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:10:36.656          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:11:10.458          ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,3
+21:11:19.599          ms  PRZYCISK     wciśnięto  numer=1
+21:11:19.913          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:11:20.115          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:11:20.229          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=309
+21:11:20.371          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:11:20.381      +1 ms  SESJA        --- TURA 21e2 ---  źródło=OKULARY
+21:11:20.385      +5 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:11:24.705   +4325 ms  NASŁUCH      koniec  ms=4325 odłożone=zeskanuj qr zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=4.3599997 próbek=6 gotowyPoMs=370
+21:11:24.725   +4345 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:11:26.071   +5691 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.8735 pakietów=244 rozkodowanych=244 odrzuconych=0 przesunięcie=6 ramka=-1
+21:11:28.298   +7919 ms  TRANSKRYPCJA z nagrania okularów  ms=2223 droga=Nasłuch telefonu
+21:11:28.327   +7947 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4873 jestMs=1480 tło=0 szczyt=9610 ile razy=99256.0
+21:11:28.333   +7953 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zeskanuj qr
+21:11:28.336   +7956 ms  SESJA        pytanie  tekst=zeskanuj qr wymuszonyObraz=false
+21:11:28.349   +7969 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+21:11:28.365   +7985 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:11:28.361   +7982 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:11:28.370   +7990 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:11:28.912   +8533 ms  BLE          ustawienia głośności z okularów  wartości=0,16,4,0,15,13,0,16,10,2
+21:11:29.973   +9594 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:11:29.989   +9609 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:11:30.007   +9627 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1635
+21:11:34.375  +13995 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+21:11:38.716  +18336 ms  ZDJĘCIE      próba 0: miniatura  bajtów=19873 jpeg=true kompletny=true
+21:11:38.768  +18388 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=0 pełnaRozdzielczość=false
+21:11:38.818  +18438 ms  KONTEKST     zebrany  ms=43 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+21:11:38.837  +18457 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=1601
+21:11:39.747  +19367 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=910
+21:11:39.809  +19429 ms  MODEL        zużycie tokenów  wejście=2864 odpowiedź=26 razem=2890 limit=3000 koniec=STOP
+21:11:39.818  +19438 ms  MODEL        koniec odpowiedzi (71 znaków, 2890 tokenów)  ms=982 dostawca=gemini początek=Chwila, spojrzę na to, co jest przed Tobą.
+
+[[ACTION: type=take_photo]]
+21:11:39.825  +19445 ms  AKCJA        model zlecił akcje  akcje=TAKE_PHOTO znakówOdpowiedzi=42
+21:11:44.080  +23701 ms  SESJA        pytanie  tekst=zeskanuj qr wymuszonyObraz=true
+21:11:44.101  +23721 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+21:11:44.108  +23728 ms  AUDIO        zwinięte łącze audio tury  ms=0
+21:11:44.260  +23880 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+21:11:44.267  +23887 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+21:11:45.897  +25517 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:11:45.900  +25520 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:11:45.907  +25528 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1634
+21:11:55.929  +35550 ms  ZDJĘCIE      próba 0: miniatura  bajtów=37086 jpeg=true kompletny=true
+21:11:55.962  +35582 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=37086 źródło=migawka pełnaRozdzielczość=false
+21:11:56.045  +35665 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:11:57.521  +37141 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:11:57.531  +37151 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:11:57.560  +37181 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1514
+21:12:06.252  +45872 ms  ZDJĘCIE      próba 0: miniatura  bajtów=19296 jpeg=true kompletny=true
+21:12:06.318  +45938 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=1 pełnaRozdzielczość=false
+21:12:06.399  +46019 ms  KONTEKST     zebrany  ms=72 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+21:12:06.410  +46030 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=1601
+21:12:08.101  +47721 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1692
+21:12:08.297  +47917 ms  MODEL        zużycie tokenów  wejście=3969 odpowiedź=59 razem=4028 limit=3000 koniec=STOP
+21:12:08.313  +47933 ms  MODEL        koniec odpowiedzi (204 znaków, 4028 tokenów)  ms=1903 dostawca=gemini początek=Kod QR na ekranie telefonu prowadzi do strony z ofertą wodoodpornych naklejek w 
+21:12:08.322  +47943 ms  AKCJA        model zlecił akcje  akcje=OPEN_URL znakówOdpowiedzi=152
+21:12:16.457  +56078 ms  MOWA         koniec wypowiedzi  ms=8130
+21:12:16.693  +56313 ms  AUDIO        zwinięte łącze audio tury  ms=1
+21:12:16.697  +56317 ms  SESJA        --- KONIEC TURY 21e2: odpowiedziano ---
+21:12:16.706          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
