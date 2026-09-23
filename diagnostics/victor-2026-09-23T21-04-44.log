@@ -628,3 +628,51 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 21:22:25.923  +47403 ms  MOWA         koniec wypowiedzi  ms=13318
 21:22:26.007  +47487 ms  SESJA        --- KONIEC TURY 01e8: odpowiedziano ---
 21:22:26.023          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:22:27.076          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:22:29.428          ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,3
+21:24:23.974          ms  PRZYCISK     wciśnięto  numer=1
+21:24:24.349          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:24:24.481          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:24:24.525          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=174
+21:24:24.583          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+21:24:24.586      +0 ms  SESJA        --- TURA 58ca ---  źródło=OKULARY
+21:24:24.587      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:24:27.147   +2561 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,1
+21:24:28.257   +3671 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,3
+21:24:28.964   +4378 ms  NASŁUCH      koniec  ms=4378 odłożone=zeskanuj ten kod kreskowy zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=5.68 próbek=9 gotowyPoMs=335
+21:24:28.978   +4392 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+21:24:29.567   +4981 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.5735 pakietów=179 rozkodowanych=179 odrzuconych=0 przesunięcie=6 ramka=-1
+21:24:31.391   +6805 ms  TRANSKRYPCJA z nagrania okularów  ms=1820 droga=Nasłuch telefonu
+21:24:31.397   +6811 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3573 jestMs=1020 tło=0 szczyt=5020 ile razy=9246.0
+21:24:31.399   +6814 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zeskanuj ten kod kreskowy
+21:24:31.401   +6815 ms  SESJA        pytanie  tekst=zeskanuj ten kod kreskowy wymuszonyObraz=false
+21:24:31.409   +6823 ms  AKCJA        gest wywołany głosem  gest=SCAN_QR
+21:24:31.410   +6824 ms  PRZYCISK     akcja z przycisku  akcja=SCAN_QR kliknięć=1
+21:24:31.411   +6825 ms  SESJA        pytanie  tekst=Odczytaj kod ze zdjęcia - kreskowy albo QR - i powiedz krótko, co to za produkt albo co jest w kodzie zapisane. wymuszonyObraz=true
+21:24:31.416   +6830 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+21:24:31.426   +6840 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:24:31.434   +6848 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+21:24:32.853   +8267 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:24:32.855   +8269 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:24:32.858   +8272 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1422
+21:24:35.261  +10675 ms  ZDJĘCIE      próba 0: miniatura  bajtów=25054 jpeg=true kompletny=true
+21:24:35.270  +10684 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=25054 źródło=migawka pełnaRozdzielczość=false
+21:24:35.327  +10741 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+21:24:36.653  +12067 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+21:24:36.655  +12069 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+21:24:36.675  +12090 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1347
+21:24:37.965  +13379 ms  ZDJĘCIE      próba 0: miniatura  bajtów=12962 jpeg=true kompletny=true
+21:24:38.011  +13425 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=1 pełnaRozdzielczość=false
+21:24:39.638  +15052 ms  KONTEKST     zebrany  ms=1546 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:24:39.654  +15068 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=11611
+21:24:41.194  +16608 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1541
+21:24:41.449  +16863 ms  MODEL        zużycie tokenów  wejście=7746 odpowiedź=73 razem=7819 limit=3000 koniec=STOP
+21:24:41.451  +16865 ms  MODEL        koniec odpowiedzi (292 znaków, 7819 tokenów)  ms=1798 dostawca=gemini początek=Na zdjęciu widzę puszkę kukurydzy marki Bonduelle. Kod kreskowy jest teraz w peł
+21:24:41.453  +16867 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=292
+21:24:42.390  +17804 ms  BLE          ustawienia głośności z okularów  wartości=0,16,6,0,15,13,0,16,10,1
+21:24:55.679  +31093 ms  MOWA         koniec wypowiedzi  ms=14226
+21:24:55.727  +31142 ms  SESJA        --- KONIEC TURY 58ca: odpowiedziano ---
+21:24:55.737          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
