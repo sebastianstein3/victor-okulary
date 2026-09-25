@@ -1812,3 +1812,41 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 16:42:45.431   +7175 ms  MOWA         koniec wypowiedzi  ms=0
 16:42:45.505   +7250 ms  SESJA        --- KONIEC TURY 1e8d: odpowiedziano ---
 16:42:45.514          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+16:42:45.570          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+10:38:39.717          ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=alert proaktywny limitMs=6000
+10:38:45.800          ms  AUDIO        tryb multimediów nie wstał w limicie  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 0 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): brak / Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu.
+10:39:00.930          ms  MOWA         alert wypowiedziany, ale NIE przez okulary  rodzaj=LIGHT_RAIN okularyPołączone=true kanałMultimediów=false
+18:07:33.624          ms  BLE          Podgląd na żywo: podnoszę
+18:07:38.627          ms  BLE          Podgląd na żywo: odpowiedź na komendę
+18:08:08.459          ms  MODEL        zużycie tokenów  wejście=100 odpowiedź=15 razem=115 limit=3000 koniec=STOP
+18:08:42.278          ms  NASŁUCH      usłyszane, ale nie do mnie - brak frazy poza rozmową  usłyszane=kotka
+18:09:13.426          ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+18:10:38.546          ms  BLE          ROZŁĄCZONO  świadome=false
+18:10:44.442          ms  BLE          POŁĄCZONO  noweŁącze=true
+18:10:44.444          ms  BLE          okulary wróciły - mówię o tym
+18:10:44.445          ms  BLE          powitanie okularów - start
+18:10:44.485          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+18:10:44.716          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 47 29 01 06 00 03 00 00 00 01 01 sztuk=1 pierwsza=false
+18:10:44.718          ms  BLE          ustawienia głośności z okularów  wartości=0,16,11,0,15,15,0,16,10,3
+18:10:44.725          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:10:45.233          ms  BLE          ustawienia głośności z okularów  wartości=0,16,11,0,15,15,0,16,10,3
+18:10:46.535          ms  BLE          POŁĄCZONO  noweŁącze=false
+18:10:48.294          ms  BLE          ustawienia głośności z okularów  wartości=0,16,11,0,15,15,0,16,11,3
+18:10:49.478          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+18:13:00.164      +1 ms  SESJA        --- TURA f354 ---  źródło=BUTTON
+18:13:00.168      +4 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+18:13:00.177     +13 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+18:13:00.200     +36 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:13:00.206     +42 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+18:13:05.214   +5050 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=false ms=5004
+18:13:05.217   +5053 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+18:13:10.222  +10058 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5003
+18:13:10.227  +10063 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+18:13:15.234  +15070 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+18:13:15.238  +15074 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+18:13:31.247  +31083 ms  ZDJĘCIE      próba 2: miniatura  notify=false
+18:13:31.250  +31086 ms  ZDJĘCIE      próba 3: ostatnia miniatura bez komendy
+18:13:32.208  +32045 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=32000
+18:13:32.215  +32051 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 źródło=migawka pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+18:13:32.222  +32058 ms  SESJA        --- KONIEC TURY f354: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+18:13:32.286          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
