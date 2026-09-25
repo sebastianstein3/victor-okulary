@@ -315,3 +315,21 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 18:26:48.723   +4222 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
 18:27:00.250  +15750 ms  MOWA         koniec wypowiedzi  ms=12203
 18:27:00.277  +15776 ms  SESJA        --- KONIEC TURY 3e94: odpowiedziano ---
+18:27:03.731          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:27:44.471          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+18:27:44.480          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+18:27:58.673          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=15583 jpeg=true kompletny=true
+18:27:58.674      +0 ms  SESJA        --- TURA 9435 ---  źródło=BUTTON
+18:27:58.674      +1 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+18:27:58.677      +3 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+18:27:58.687     +13 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:27:58.724     +50 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=15583 źródło=migawka pełnaRozdzielczość=false
+18:28:00.335   +1661 ms  KONTEKST     zebrany  ms=1537 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:28:00.348   +1674 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=8819
+18:28:01.933   +3259 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1585
+18:28:01.938   +3264 ms  MODEL        zużycie tokenów  wejście=6768 odpowiedź=59 razem=6827 limit=3000 koniec=STOP
+18:28:01.941   +3268 ms  MODEL        koniec odpowiedzi (180 znaków, 6827 tokenów)  ms=1593 dostawca=gemini początek=Na zdjęciu trzymasz w dłoni szklaną butelkę alkoholu, na której widnieje napis S
+18:28:01.943   +3270 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=180
+18:28:02.558   +3884 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:28:09.938  +11264 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+18:28:10.060  +11386 ms  SESJA        --- KONIEC TURY 9435: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
