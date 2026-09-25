@@ -588,3 +588,59 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 18:33:43.344  +23687 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
 18:33:49.204  +29546 ms  MOWA         koniec wypowiedzi  ms=8340
 18:33:49.281  +29623 ms  SESJA        --- KONIEC TURY a26a: odpowiedziano ---
+18:33:52.733          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:33:52.868          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=28254 jpeg=true kompletny=true
+18:33:52.880      +2 ms  SESJA        --- TURA f7e0 ---  źródło=BUTTON
+18:33:52.887      +9 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+18:33:52.907     +28 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+18:33:53.005    +126 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:33:53.033    +154 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=28254 źródło=migawka pełnaRozdzielczość=false
+18:33:56.192   +3313 ms  KONTEKST     zebrany  ms=2880 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:33:56.225   +3347 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=9694
+18:33:57.903   +5024 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1678
+18:33:57.967   +5088 ms  MODEL        zużycie tokenów  wejście=7045 odpowiedź=60 razem=7105 limit=3000 koniec=STOP
+18:33:57.974   +5095 ms  MODEL        koniec odpowiedzi (202 znaków, 7105 tokenów)  ms=1750 dostawca=gemini początek=Na zdjęciu widać fragment pokoju w przyciemnionym, czerwonym świetle. W centraln
+18:33:57.978   +5099 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=202
+18:33:58.729   +5851 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:34:03.180  +10301 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+18:34:03.193  +10315 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+18:34:08.989  +16111 ms  MOWA         koniec wypowiedzi  ms=11010
+18:34:09.045  +16166 ms  SESJA        --- KONIEC TURY f7e0: odpowiedziano ---
+18:34:12.392          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=28587 jpeg=true kompletny=true
+18:34:12.405      +1 ms  SESJA        --- TURA 41cd ---  źródło=BUTTON
+18:34:12.412      +8 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+18:34:12.433     +28 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+18:34:12.527    +122 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:34:12.532    +127 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:34:12.547    +142 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=28587 źródło=migawka pełnaRozdzielczość=false
+18:34:14.553   +2148 ms  KONTEKST     zebrany  ms=1858 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:34:14.585   +2180 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=9972
+18:34:14.591   +2186 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+18:34:14.594   +2189 ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+18:34:16.020   +3615 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1434
+18:34:16.200   +3795 ms  MODEL        zużycie tokenów  wejście=7137 odpowiedź=66 razem=7203 limit=3000 koniec=STOP
+18:34:16.212   +3807 ms  MODEL        koniec odpowiedzi (204 znaków, 7203 tokenów)  ms=1627 dostawca=gemini początek=Na tym zdjęciu widać Twoją dłoń spoczywającą na oparciu kanapy w słabym, czerwon
+18:34:16.219   +3814 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=204
+18:34:16.951   +4547 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:34:23.636  +11232 ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=26552 jpeg=true kompletny=true
+18:34:23.652  +11248 ms  BŁĄD         trigger ODRZUCONY - tura już trwa  źródło=BUTTON stan=Streaming
+18:34:27.927  +15523 ms  MOWA         koniec wypowiedzi  ms=11703
+18:34:27.965  +15561 ms  SESJA        --- KONIEC TURY 41cd: odpowiedziano ---
+18:34:31.406          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:34:34.292          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+18:34:34.297          ms  ZDJĘCIE      zdjęcie z przycisku: pobieram
+18:34:43.632          ms  ZDJĘCIE      zdjęcie z przycisku: miniatura  bajtów=28455 jpeg=true kompletny=true
+18:34:43.643      +1 ms  SESJA        --- TURA 7a64 ---  źródło=BUTTON
+18:34:43.649      +8 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+18:34:43.665     +23 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+18:34:43.758    +116 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:34:43.779    +137 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=28455 źródło=migawka pełnaRozdzielczość=false
+18:34:46.148   +2506 ms  KONTEKST     zebrany  ms=2217 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:34:46.181   +2540 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=10316
+18:34:47.553   +3911 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1371
+18:34:47.642   +4000 ms  MODEL        zużycie tokenów  wejście=7251 odpowiedź=61 razem=7312 limit=3000 koniec=STOP
+18:34:47.650   +4008 ms  MODEL        koniec odpowiedzi (210 znaków, 7312 tokenów)  ms=1469 dostawca=gemini początek=Na zdjęciu widzisz siebie oraz drugą osobę w zaciemnionym pomieszczeniu, w który
+18:34:47.658   +4016 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=210
+18:34:48.621   +4980 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:34:59.078  +15437 ms  MOWA         koniec wypowiedzi  ms=11418
+18:34:59.117  +15476 ms  SESJA        --- KONIEC TURY 7a64: odpowiedziano ---
