@@ -412,3 +412,89 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 18:29:10.235  +16382 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
 18:29:21.733  +27880 ms  MOWA         koniec wypowiedzi  ms=12215
 18:29:21.789  +27936 ms  SESJA        --- KONIEC TURY 8ce9: odpowiedziano ---
+18:29:25.185          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:29:28.061          ms  PRZYCISK     wciśnięto  numer=1
+18:29:28.189          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+18:29:28.576          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:29:28.678          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=23 ms=482
+18:29:28.740          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+18:29:28.746      +0 ms  SESJA        --- TURA 2011 ---  źródło=OKULARY
+18:29:28.749      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:29:29.035    +289 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:29:32.231   +3486 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:29:35.806   +7060 ms  NASŁUCH      koniec  ms=7060 odłożone=zrób zdjęcie tej wódki i znajdź najtańszą ofertę namioty w internecie zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=21 gotowyPoMs=319
+18:29:35.827   +7081 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=23
+18:29:36.186   +7440 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:29:38.340   +9595 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.6535 pakietów=383 rozkodowanych=383 odrzuconych=0 przesunięcie=6 ramka=-1
+18:29:40.244  +11498 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:29:43.242  +14496 ms  TRANSKRYPCJA z nagrania okularów  ms=4893 droga=Nasłuch telefonu
+18:29:43.262  +14516 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7653 jestMs=5740 tło=457 szczyt=17113 ile razy=37.3
+18:29:43.269  +14523 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zrób zdjęcie tej wódki i znajdź najtańszą ofertę namioty w i
+18:29:43.271  +14525 ms  SESJA        pytanie  tekst=zrób zdjęcie tej wódki i znajdź najtańszą ofertę namioty w internecie wymuszonyObraz=false
+18:29:43.283  +14537 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:29:43.294  +14548 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:29:45.190  +16445 ms  KONTEKST     zebrany  ms=1889 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:29:45.235  +16489 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=9081
+18:29:46.199  +17453 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=965
+18:29:46.238  +17492 ms  MODEL        zużycie tokenów  wejście=5760 odpowiedź=64 razem=5824 limit=3000 koniec=STOP
+18:29:46.264  +17518 ms  MODEL        koniec odpowiedzi (198 znaków, 5824 tokenów)  ms=1030 dostawca=gemini początek=Chwila, spojrzę na tę butelkę. Jeśli chodzi o najtańszy namiot, zaraz przeszukam
+18:29:46.272  +17526 ms  AKCJA        model zlecił akcje  akcje=TAKE_PHOTO,WEB_SEARCH znakówOdpowiedzi=111
+18:29:47.193  +18448 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:29:52.819  +24074 ms  SESJA        pytanie  tekst=zrób zdjęcie tej wódki i znajdź najtańszą ofertę namioty w internecie wymuszonyObraz=true
+18:29:52.846  +24100 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+18:29:52.952  +24206 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:29:52.959  +24213 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+18:29:55.228  +26482 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+18:29:55.231  +26485 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+18:29:55.281  +26535 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=2314
+18:29:56.311  +27565 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:30:00.175  +31430 ms  ZDJĘCIE      próba 0: miniatura  bajtów=30600 jpeg=true kompletny=true
+18:30:00.195  +31450 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=30600 źródło=migawka pełnaRozdzielczość=false
+18:30:01.915  +33169 ms  KONTEKST     zebrany  ms=1625 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:30:01.945  +33199 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=1 znakówPromptu=9081
+18:30:03.301  +34555 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1358
+18:30:03.473  +34728 ms  MODEL        zużycie tokenów  wejście=6865 odpowiedź=90 razem=6955 limit=3000 koniec=STOP
+18:30:03.481  +34735 ms  MODEL        koniec odpowiedzi (313 znaków, 6955 tokenów)  ms=1538 dostawca=gemini początek=Nie mogę zrobić zdjęcia, ponieważ nie mam dostępu do kamery Twoich okularów w ty
+18:30:03.495  +34750 ms  AKCJA        model zlecił akcje  akcje=WEB_SEARCH znakówOdpowiedzi=254
+18:30:04.685  +35939 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:30:10.985  +42240 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
+18:30:15.524  +46779 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=2 opisz=true powtórka=false
+18:30:15.541  +46796 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=false poNaszejMigawce=true
+18:30:16.840  +48094 ms  MOWA         koniec wypowiedzi  ms=13339
+18:30:17.129  +48383 ms  SESJA        --- KONIEC TURY 2011: odpowiedziano ---
+18:30:22.904          ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,3
+18:30:26.770          ms  PRZYCISK     wciśnięto  numer=1
+18:30:26.856          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+18:30:27.277          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:30:27.336          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=23 ms=476
+18:30:27.441          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+18:30:27.450      +0 ms  SESJA        --- TURA 2a8f ---  źródło=OKULARY
+18:30:27.452      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:30:27.987    +537 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
+18:30:31.120   +3671 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,3
+18:30:34.964   +7515 ms  NASŁUCH      koniec  ms=7514 odłożone=poszukaj najtańszej oferty na cytrynówkę półlitrową zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=24 gotowyPoMs=412
+18:30:34.986   +7536 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=23
+18:30:35.439   +7989 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
+18:30:37.934  +10485 ms  NASŁUCH      nagranie z okularów  jest=true sekund=8.1335 pakietów=407 rozkodowanych=407 odrzuconych=0 przesunięcie=6 ramka=-1
+18:30:39.346  +11896 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,3
+18:30:43.328  +15878 ms  TRANSKRYPCJA z nagrania okularów  ms=5384 droga=Nasłuch telefonu
+18:30:43.347  +15897 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=8133 jestMs=4160 tło=150 szczyt=15229 ile razy=101.2
+18:30:43.353  +15903 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=poszukaj najtańszej oferty na cytrynówkę półlitrową
+18:30:43.355  +15905 ms  SESJA        pytanie  tekst=poszukaj najtańszej oferty na cytrynówkę półlitrową wymuszonyObraz=false
+18:30:43.400  +15951 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:30:43.873  +16423 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:30:45.543  +18093 ms  KONTEKST     zebrany  ms=1648 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:30:45.596  +18146 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=9224
+18:30:46.512  +19062 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=919
+18:30:46.605  +19155 ms  MODEL        zużycie tokenów  wejście=5805 odpowiedź=61 razem=5866 limit=3000 koniec=STOP
+18:30:46.630  +19180 ms  MODEL        koniec odpowiedzi (182 znaków, 5866 tokenów)  ms=1037 dostawca=gemini początek=Przeszukuję internet w poszukiwaniu najtańszych ofert na cytrynówkę o pojemności
+18:30:46.638  +19188 ms  AKCJA        model zlecił akcje  akcje=WEB_SEARCH znakówOdpowiedzi=114
+18:30:47.652  +20202 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
+18:30:53.338  +25888 ms  MOWA         koniec wypowiedzi  ms=6698
+18:30:53.434  +25984 ms  SESJA        --- KONIEC TURY 2a8f: odpowiedziano ---
