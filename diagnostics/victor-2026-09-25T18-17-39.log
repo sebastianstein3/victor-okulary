@@ -681,3 +681,73 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 18:36:46.566  +19411 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
 18:36:46.962  +19807 ms  MOWA         koniec wypowiedzi  ms=9427
 18:36:46.984  +19829 ms  SESJA        --- KONIEC TURY 3615: odpowiedziano ---
+18:36:48.369          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,2
+18:37:02.513      +0 ms  SESJA        --- TURA 28d1 ---  źródło=VOICE
+18:37:02.514      +1 ms  SESJA        pytanie  tekst=kutasa w spodniach wymuszonyObraz=false
+18:37:02.519      +6 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:37:02.549     +36 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:37:02.955    +442 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:37:04.149   +1636 ms  KONTEKST     zebrany  ms=1590 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:37:04.161   +1648 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=9003
+18:37:04.314   +1801 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+18:37:04.433   +1920 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:37:05.147   +2634 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.1-flash-lite poMs=986 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Streaming error: StandaloneCoroutine was cancelled
+18:37:05.149   +2636 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=9003
+18:37:05.156   +2643 ms  MODEL        dostawca zawiódł  dostawca=deepseek model=deepseek-flash poMs=996 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=StandaloneCoroutine was cancelled
+18:37:05.158   +2645 ms  MODEL        wysyłam pytanie  dostawca=local próba=3 zdjęć=0 znakówPromptu=9003
+18:37:05.166   +2653 ms  MODEL        model lokalny: ładuję plik  okno=2048
+18:37:05.167   +2654 ms  MODEL        model lokalny: NIE UDAŁO SIĘ załadować  ms=1 błąd=StandaloneCoroutine was cancelled
+18:37:05.169   +2656 ms  MODEL        dostawca zawiódł  dostawca=local poMs=1009 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=StandaloneCoroutine was cancelled
+18:37:05.171   +2658 ms  SESJA        --- KONIEC TURY 28d1: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+18:37:05.608          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,2
+18:37:19.035      +0 ms  SESJA        --- TURA ccfc ---  źródło=VOICE
+18:37:19.036      +1 ms  SESJA        pytanie  tekst=o jak na przykład się nie połączy z modelem danym dobrze będzie na model offline ten nie nie słaby taki wiesz git nie wymuszonyObraz=false
+18:37:19.041      +6 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:37:19.100     +65 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:37:19.467    +432 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:37:20.505   +1470 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:37:21.454   +2419 ms  KONTEKST     zebrany  ms=1728 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:37:21.465   +2430 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=9816
+18:37:21.889   +2854 ms  MODEL        zużycie tokenów  wejście=100 odpowiedź=14 razem=114 limit=3000 koniec=STOP
+18:37:23.253   +4218 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:37:23.603   +4569 ms  MODEL        koniec odpowiedzi (186 znaków, 6788 tokenów)  ms=2139 dostawca=deepseek początek=Nie do końca Cię zrozumiałem - chodzi Ci o to, co się dzieje, gdy okulary tracą 
+18:37:23.606   +4571 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=186
+18:37:24.144   +5109 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:37:32.960  +13926 ms  MOWA         koniec wypowiedzi  ms=9353
+18:37:32.979  +13944 ms  SESJA        --- KONIEC TURY ccfc: odpowiedziano ---
+18:37:34.314          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,2
+18:38:19.538          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,2
+18:38:21.616          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:38:31.255          ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+18:38:31.824          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:38:37.228          ms  PRZYCISK     wciśnięto  numer=1
+18:38:37.489          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:38:37.731          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:38:37.760          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=14 ms=270
+18:38:37.818          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+18:38:37.820      +1 ms  SESJA        --- TURA c255 ---  źródło=OKULARY
+18:38:37.822      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:38:37.843     +23 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:38:38.165    +346 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:38:41.363   +3543 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:38:44.811   +6991 ms  NASŁUCH      koniec  ms=6991 odłożone=jak coś zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=14 gotowyPoMs=291
+18:38:44.861   +7041 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+18:38:45.186   +7366 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:38:45.933   +8113 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.3535 pakietów=368 rozkodowanych=368 odrzuconych=0 przesunięcie=6 ramka=-1
+18:38:49.393  +11573 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:38:50.605  +12785 ms  TRANSKRYPCJA z nagrania okularów  ms=4670 droga=Nasłuch telefonu
+18:38:50.613  +12794 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7353 jestMs=5100 tło=112 szczyt=24325 ile razy=216.0
+18:38:50.616  +12797 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jak coś
+18:38:50.617  +12798 ms  SESJA        pytanie  tekst=jak coś wymuszonyObraz=false
+18:38:50.623  +12803 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:38:50.719  +12900 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:38:52.294  +14475 ms  KONTEKST     zebrany  ms=1558 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:38:52.304  +14484 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=1 zdjęć=0 znakówPromptu=9499
+18:38:54.227  +16407 ms  MODEL        koniec odpowiedzi (154 znaków, 6657 tokenów)  ms=1924 dostawca=deepseek początek="Jak coś" to trochę urwane - dopowiedz, o co dokładnie chodzi, a wtedy pomogę. M
+18:38:54.231  +16411 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=154
+18:38:54.859  +17039 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:39:02.907  +25087 ms  MOWA         koniec wypowiedzi  ms=8675
+18:39:02.929  +25109 ms  SESJA        --- KONIEC TURY c255: odpowiedziano ---
