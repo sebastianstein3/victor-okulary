@@ -644,3 +644,40 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 18:34:48.621   +4980 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
 18:34:59.078  +15437 ms  MOWA         koniec wypowiedzi  ms=11418
 18:34:59.117  +15476 ms  SESJA        --- KONIEC TURY 7a64: odpowiedziano ---
+18:35:02.532          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:35:35.290          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,2
+18:35:48.965          ms  NASŁUCH      usłyszane, ale nie do mnie - brak frazy poza rozmową  usłyszane=to można mieć większy dom
+18:35:57.351          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:36:26.511          ms  PRZYCISK     wciśnięto  numer=1
+18:36:26.685          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:36:27.018          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:36:27.098          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=410
+18:36:27.154          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+18:36:27.155      +0 ms  SESJA        --- TURA 3615 ---  źródło=OKULARY
+18:36:27.156      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:36:27.486    +331 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:36:30.668   +3513 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:36:30.988   +3833 ms  NASŁUCH      koniec  ms=3833 odłożone=pogoda w toruniu zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=8 gotowyPoMs=278
+18:36:31.043   +3888 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+18:36:31.442   +4287 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:36:31.487   +4332 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.3135 pakietów=216 rozkodowanych=216 odrzuconych=0 przesunięcie=6 ramka=-1
+18:36:34.120   +6966 ms  TRANSKRYPCJA z nagrania okularów  ms=2632 droga=Bez transkrypcji - nagranie do modelu
+18:36:34.124   +6969 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4313 jestMs=2100 tło=11 szczyt=16520 ile razy=1391.9
+18:36:34.125   +6970 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=pogoda w toruniu
+18:36:34.126   +6971 ms  SESJA        pytanie  tekst=pogoda w toruniu wymuszonyObraz=false
+18:36:34.130   +6975 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:36:34.137   +6982 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:36:35.387   +8232 ms  KONTEKST     zebrany  ms=1243 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:36:35.394   +8239 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=9440
+18:36:35.411   +8256 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,2
+18:36:37.315  +10160 ms  MODEL        zużycie tokenów  wejście=5873 odpowiedź=45 razem=5918 limit=3000 koniec=STOP
+18:36:37.515  +10360 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2121
+18:36:37.531  +10376 ms  MODEL        koniec odpowiedzi (175 znaków, 5918 tokenów)  ms=2137 dostawca=gemini początek=W Toruniu wieczorem będzie około czternastu stopni i może słabo padać. Jutro pog
+18:36:37.533  +10378 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=175
+18:36:46.001  +18846 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:36:46.566  +19411 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:36:46.962  +19807 ms  MOWA         koniec wypowiedzi  ms=9427
+18:36:46.984  +19829 ms  SESJA        --- KONIEC TURY 3615: odpowiedziano ---
