@@ -1,0 +1,55 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1)
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów przy starcie: true
+# źródło zdjęcia: thumbnail (dzielnik 3)
+18:17:39.864          ms  SESJA        start sesji
+18:19:22.543          ms  BLE          ROZŁĄCZONO  świadome=false
+18:19:29.627          ms  BLE          POŁĄCZONO  noweŁącze=true
+18:19:29.631          ms  BLE          powitanie okularów - start
+18:19:29.660          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=false kanałZapisu=true
+18:19:29.941          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 47 29 01 06 00 03 00 00 00 01 01 sztuk=1 pierwsza=true
+18:19:29.988          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=false zgłaszają=false
+18:19:31.712          ms  BLE          POŁĄCZONO  noweŁącze=false
+18:19:32.518          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,10,3
+18:19:34.656          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+18:19:51.569          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,11,3
+18:19:52.008          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,12,3
+18:19:52.342          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,13,3
+18:19:53.268          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,14,3
+18:19:53.747          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,15,3
+18:19:54.199          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,16,3
+18:19:54.981          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,16,3
+18:20:07.846          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,14,0,16,16,2
+18:20:14.821          ms  MOWA         alert wypowiedziany  rodzaj=SUNSET okularyPołączone=true kanałMultimediów=true
+18:20:23.239          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,16,3
+18:20:23.531          ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,16,3
+18:20:36.855          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=10 mikrofonOkularów=true
+18:20:36.938      +1 ms  SESJA        --- TURA 1f46 ---  źródło=TELEFON
+18:20:36.941      +4 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true ustawienieMikOkularów=true
+18:20:37.539    +602 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,16,2
+18:20:42.001   +5064 ms  NASŁUCH      koniec  ms=5064 telefonUsłyszał=jaka jest pogoda w toruniu zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=4 gotowyPoMs=518
+18:20:42.003   +5066 ms  NASŁUCH      nagranie z okularów  jest=false
+18:20:42.004   +5067 ms  SESJA        pytanie  tekst=jaka jest pogoda w toruniu wymuszonyObraz=false
+18:20:42.022   +5085 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:20:42.270   +5333 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:20:42.704   +5767 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,16,3
+18:20:43.052   +6115 ms  KONTEKST     zebrany  ms=467 pamięć=false kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+18:20:43.062   +6125 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=1243
+18:20:43.869   +6932 ms  BLE          ustawienia głośności z okularów  wartości=0,16,9,0,15,15,0,16,16,1
+18:20:44.191   +7254 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1129
+18:20:44.195   +7258 ms  MODEL        zużycie tokenów  wejście=2829 odpowiedź=48 razem=2877 limit=3000 koniec=STOP
+18:20:44.201   +7264 ms  MODEL        koniec odpowiedzi (186 znaków, 2877 tokenów)  ms=1139 dostawca=gemini początek=W Toruniu wieczorem będzie około czternastu stopni i może słabo padać. Jutro w c
+18:20:44.203   +7266 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=186
+18:20:47.467  +10530 ms  BLE          ustawienia głośności z okularów  wartości=0,16,10,0,15,15,0,16,16,1
+18:20:47.823  +10886 ms  BLE          ustawienia głośności z okularów  wartości=0,16,11,0,15,15,0,16,16,1
+18:20:48.126  +11189 ms  BLE          ustawienia głośności z okularów  wartości=0,16,12,0,15,15,0,16,16,1
+18:20:48.543  +11606 ms  BLE          ustawienia głośności z okularów  wartości=0,16,13,0,15,15,0,16,16,1
+18:20:48.993  +12056 ms  BLE          ustawienia głośności z okularów  wartości=0,16,14,0,15,15,0,16,16,1
+18:20:49.385  +12449 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
+18:20:49.744  +12807 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
+18:20:53.608  +16671 ms  MOWA         koniec wypowiedzi  ms=9400
+18:20:53.630  +16693 ms  SESJA        --- KONIEC TURY 1f46: odpowiedziano ---
