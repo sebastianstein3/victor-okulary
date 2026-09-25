@@ -498,3 +498,56 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 18:30:47.652  +20202 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
 18:30:53.338  +25888 ms  MOWA         koniec wypowiedzi  ms=6698
 18:30:53.434  +25984 ms  SESJA        --- KONIEC TURY 2a8f: odpowiedziano ---
+18:31:00.449          ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,3
+18:31:19.989          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=28 mikrofonOkularów=true
+18:31:20.114      +0 ms  SESJA        --- TURA 01e5 ---  źródło=TELEFON
+18:31:20.115      +1 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true ustawienieMikOkularów=true
+18:31:20.732    +618 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,2
+18:31:27.466   +7352 ms  NASŁUCH      koniec  ms=7351 telefonUsłyszał=okej jak tam jaka jest ta najniższa cena na tą wódkę zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=10 gotowyPoMs=347
+18:31:27.470   +7356 ms  NASŁUCH      nagranie z okularów  jest=false
+18:31:27.471   +7357 ms  SESJA        pytanie  tekst=okej jak tam jaka jest ta najniższa cena na tą wódkę wymuszonyObraz=false
+18:31:27.477   +7364 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:31:27.658   +7544 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:31:28.069   +7955 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,3
+18:31:29.212   +9098 ms  KONTEKST     zebrany  ms=1546 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:31:29.226   +9112 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=9425
+18:31:29.322   +9209 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
+18:31:30.110   +9996 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=884
+18:31:30.235  +10122 ms  MODEL        zużycie tokenów  wejście=5870 odpowiedź=89 razem=5959 limit=3000 koniec=STOP
+18:31:30.248  +10134 ms  MODEL        koniec odpowiedzi (338 znaków, 5959 tokenów)  ms=1022 dostawca=gemini początek=Niestety nie udało mi się znaleźć konkretnych cen w czasie rzeczywistym, poniewa
+18:31:30.252  +10138 ms  AKCJA        model zlecił akcje  akcje=WEB_SEARCH znakówOdpowiedzi=270
+18:31:32.345  +12231 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+18:31:32.471  +12357 ms  SESJA        --- KONIEC TURY 01e5: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+18:31:34.198          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=5 mikrofonOkularów=true
+18:31:34.278      +0 ms  SESJA        --- TURA e8c7 ---  źródło=TELEFON
+18:31:34.279      +1 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true ustawienieMikOkularów=true
+18:31:34.669    +391 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,2
+18:31:44.484  +10207 ms  NASŁUCH      koniec  ms=10206 telefonUsłyszał=najniższa cena zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=24 gotowyPoMs=716
+18:31:44.487  +10209 ms  NASŁUCH      nagranie z okularów  jest=false
+18:31:44.488  +10210 ms  SESJA        pytanie  tekst=najniższa cena wymuszonyObraz=false
+18:31:44.495  +10217 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:31:44.654  +10376 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:31:45.026  +10748 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,3
+18:31:45.878  +11600 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
+18:31:45.968  +11690 ms  KONTEKST     zebrany  ms=1309 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:31:45.976  +11698 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=9043
+18:31:46.908  +12630 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=932
+18:31:47.035  +12757 ms  MODEL        zużycie tokenów  wejście=5755 odpowiedź=53 razem=5808 limit=3000 koniec=STOP
+18:31:47.043  +12765 ms  MODEL        koniec odpowiedzi (212 znaków, 5808 tokenów)  ms=1067 dostawca=gemini początek=Jako asystent nie mam możliwości przeglądania sklepów w czasie rzeczywistym, wię
+18:31:47.046  +12768 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=212
+18:31:49.350  +15072 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+18:31:49.469  +15192 ms  SESJA        --- KONIEC TURY e8c7: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+18:31:52.814          ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,3
+18:32:06.903      +0 ms  SESJA        --- TURA 41ae ---  źródło=TEXT_INPUT
+18:32:06.904      +1 ms  SESJA        pytanie  tekst=najniższa cena na cytrynówkę Soplica 0,5l wymuszonyObraz=false
+18:32:06.910      +7 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:32:06.945     +42 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:32:08.474   +1571 ms  KONTEKST     zebrany  ms=1524 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:32:08.482   +1579 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.1-flash-lite próba=1 zdjęć=0 znakówPromptu=9436
+18:32:09.345   +2442 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=864
+18:32:09.502   +2599 ms  MODEL        zużycie tokenów  wejście=5872 odpowiedź=65 razem=5937 limit=3000 koniec=STOP
+18:32:09.505   +2602 ms  MODEL        koniec odpowiedzi (244 znaków, 5937 tokenów)  ms=1024 dostawca=gemini początek=Przykro mi, ale nie mam możliwości sprawdzania aktualnych cen w sklepach w czasi
+18:32:09.508   +2605 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=244
+18:32:10.223   +3320 ms  BLE          ustawienia głośności z okularów  wartości=0,16,15,0,15,15,0,16,16,1
+18:32:16.752   +9849 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+18:32:16.876   +9973 ms  SESJA        --- KONIEC TURY 41ae: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
