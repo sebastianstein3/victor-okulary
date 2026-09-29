@@ -751,3 +751,73 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 18:38:54.859  +17039 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,1
 18:39:02.907  +25087 ms  MOWA         koniec wypowiedzi  ms=8675
 18:39:02.929  +25109 ms  SESJA        --- KONIEC TURY c255: odpowiedziano ---
+18:39:06.384          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,16,3
+18:16:20.597          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=SUNSET
+18:31:21.673          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=SUNSET
+04:57:41.386          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+07:02:18.186          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+10:03:29.290          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+13:17:44.756          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+13:43:25.116          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+18:05:20.650          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=SUNSET
+19:12:01.139          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+22:09:17.059          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+07:23:45.661          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+22:18:59.524          ms  BLE          ROZŁĄCZONO  świadome=false
+22:19:08.520          ms  BLE          ROZŁĄCZONO  świadome=false
+22:19:16.535          ms  BLE          ROZŁĄCZONO  świadome=false
+22:19:25.558          ms  BLE          ROZŁĄCZONO  świadome=false
+22:19:36.602          ms  BLE          POŁĄCZONO  noweŁącze=true
+22:19:36.608          ms  BLE          okulary wróciły - mówię o tym
+22:19:36.608          ms  BLE          powitanie okularów - start
+22:19:36.664          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=false kanałZapisu=true
+22:19:36.954          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=false zgłaszają=false
+22:19:38.740          ms  BLE          POŁĄCZONO  noweŁącze=false
+22:19:41.622          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+22:24:21.992          ms  PRZYCISK     wciśnięto  numer=1
+22:24:22.160          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+22:24:22.513          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:24:22.853          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=20 ms=680
+22:24:23.087          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+22:24:23.092      +1 ms  SESJA        --- TURA 0595 ---  źródło=OKULARY
+22:24:23.095      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:24:23.649    +557 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:24:26.785   +3693 ms  NASŁUCH      koniec  ms=3692 odłożone=sprawdź produkt zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=6 gotowyPoMs=424
+22:24:26.790   +3698 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+22:24:26.886   +3794 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:24:27.288   +4196 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:24:28.376   +5284 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.6335 pakietów=232 rozkodowanych=232 odrzuconych=0 przesunięcie=6 ramka=-1
+22:24:30.958   +7866 ms  TRANSKRYPCJA z nagrania okularów  ms=2575 droga=Nasłuch telefonu
+22:24:30.985   +7893 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4633 jestMs=1300 tło=0 szczyt=5867 ile razy=9045.1
+22:24:30.992   +7900 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=sprawdź produkt
+22:24:30.995   +7903 ms  SESJA        pytanie  tekst=sprawdź produkt wymuszonyObraz=false
+22:24:31.028   +7937 ms  AKCJA        gest wywołany głosem  gest=SCAN_QR
+22:24:31.033   +7942 ms  PRZYCISK     akcja z przycisku  akcja=SCAN_QR kliknięć=1
+22:24:31.038   +7946 ms  SESJA        pytanie  tekst=Odczytaj kod ze zdjęcia - kreskowy albo QR - i powiedz krótko, co to za produkt albo co jest w kodzie zapisane. wymuszonyObraz=true
+22:24:31.052   +7961 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+22:24:31.077   +7985 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:24:31.236   +8145 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:24:31.534   +8442 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+22:24:32.909   +9818 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+22:24:32.919   +9827 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+22:24:32.937   +9845 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1399
+22:24:34.657  +11566 ms  ZDJĘCIE      próba 0: miniatura  bajtów=10976 jpeg=true kompletny=true
+22:24:34.703  +11611 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=10976 źródło=migawka pełnaRozdzielczość=false
+22:24:34.784  +11692 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+22:24:36.118  +13026 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+22:24:36.127  +13036 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+22:24:36.140  +13049 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1355
+22:24:37.812  +14720 ms  ZDJĘCIE      próba 0: miniatura  bajtów=5642 jpeg=true kompletny=true
+22:24:37.897  +14805 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=1 pełnaRozdzielczość=false
+22:24:40.814  +17723 ms  KONTEKST     zebrany  ms=2719 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+22:24:40.863  +17772 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=1 znakówPromptu=6032
+22:24:42.240  +19148 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1378
+22:24:42.259  +19168 ms  MODEL        zużycie tokenów  wejście=6008 odpowiedź=41 razem=6049 limit=3000 koniec=STOP
+22:24:42.302  +19210 ms  MODEL        koniec odpowiedzi (138 znaków, 6049 tokenów)  ms=1441 dostawca=gemini początek=Zdjęcie jest nadal za ciemne i rozmyte, żeby odczytać kod kreskowy. Spróbuj włąc
+22:24:42.312  +19220 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=138
+22:24:45.749  +22658 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:24:53.226  +30135 ms  MOWA         koniec wypowiedzi  ms=10909
+22:24:53.289  +30197 ms  SESJA        --- KONIEC TURY 0595: odpowiedziano ---
