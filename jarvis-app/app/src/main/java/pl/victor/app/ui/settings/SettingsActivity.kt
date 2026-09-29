@@ -561,7 +561,8 @@ private fun DeveloperOptionsGate() {
     var lastTapAtMs by remember { mutableStateOf(0L) }
 
     Text(
-        "V.I.C.T.O.R. ${pl.victor.app.BuildConfig.VERSION_NAME}",
+        "V.I.C.T.O.R. ${pl.victor.app.BuildConfig.VERSION_NAME} " +
+            "(${pl.victor.app.BuildConfig.BUILD_ID})",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,

@@ -3306,6 +3306,10 @@ class VictorManager private constructor(context: Context) {
     var lastSharpFallbackReason: String? = null
         private set
 
+    /** Nazwa ostatnio pobranego pliku i liczba plików tego typu - do dziennika. */
+    @Volatile
+    private var lastDownloadedPhotoName: String? = null
+
     /**
      * Robi zdjęcie i stara się oddać ORYGINAŁ, a nie miniaturę.
      *
@@ -3420,6 +3424,51 @@ class VictorManager private constructor(context: Context) {
             )
         } else {
             wifiDirectFailedAtMs = 0L
+        }
+        // CZY TO W OGÓLE TO ZDJĘCIE, KTÓRE PRZED CHWILĄ ZROBILIŚMY.
+        //
+        // Zgłoszone: "AI dostaje zdjęcie sprzed kilku dni zamiast aktualnego".
+        // Dziennik ramek pokazuje, że pobieranie przez Wi-Fi zadziałało - tylko
+        // pobrało niewłaściwy plik. `downloadLatestPhoto` bierze NAJNOWSZY plik
+        // z pamięci okularów i zakłada, że to zdjęcie z tej tury. Na tym
+        // egzemplarzu zdjęcie AI nie trafia do pamięci, więc najnowszym plikiem
+        // było zdjęcie z innego dnia.
+        //
+        // Stare zdjęcie jest gorsze niż miniatura: miniatura jest niewyraźna,
+        // ale prawdziwa. Porównujemy więc oryginał z miniaturą zrobioną sekundę
+        // wcześniej (patrz [pl.victor.app.vision.PhotoMatch]) i przy
+        // niezgodności - albo gdy nie da się tego sprawdzić - zostajemy przy
+        // miniaturze. Dotyczy KAŻDEGO wołającego, nie tylko kodów: czytanie
+        // tekstu i tryby dostępności miały ten sam błąd.
+        if (full != null && full.size > thumbnail.size) {
+            val odciskMiniatury = pl.victor.app.vision.PhotoFingerprint.of(thumbnail)
+            val odciskOryginału = pl.victor.app.vision.PhotoFingerprint.of(full)
+            val różnica = if (odciskMiniatury != null && odciskOryginału != null) {
+                pl.victor.app.vision.PhotoMatch.różnica(odciskMiniatury, odciskOryginału)
+            } else {
+                null
+            }
+            val zgodne = różnica != null && różnica <= pl.victor.app.vision.PhotoMatch.MAX_RÓŻNICA
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                if (zgodne) "pobrany oryginał to to samo zdjęcie"
+                else "pobrany oryginał to INNE zdjęcie niż właśnie zrobione - odrzucam",
+                mapOf(
+                    "różnica" to różnica,
+                    "próg" to pl.victor.app.vision.PhotoMatch.MAX_RÓŻNICA,
+                    "plik" to lastDownloadedPhotoName
+                )
+            )
+            if (!zgodne) {
+                lastSharpFallbackReason =
+                    "okulary nie zapisały nowego zdjęcia w pamięci - najnowszy plik to " +
+                        "starsze zdjęcie, więc zostałem przy miniaturze"
+                // Ten sam bezpiecznik co przy nieudanym Wi-Fi Direct: skoro
+                // okulary nie zapisują zdjęć AI, następna próba skończy się tak
+                // samo, a kosztuje około 30 sekund transferu.
+                wifiDirectFailedAtMs = System.currentTimeMillis()
+                return thumbnail
+            }
         }
         if (full != null && full.size > thumbnail.size && forCode) {
             // BEZ DZIELNIKA. Dzielnik jest po to, żeby do MODELU szło mniej
@@ -4360,6 +4409,9 @@ class VictorManager private constructor(context: Context) {
                     // największa = najnowsza.
                     val latest = matching.max()
                     Log.i(tag, "Pobieranie najnowszego pliku $label: $latest")
+                    // Do dziennika - bez nazwy nie da się potem stwierdzić, czy
+                    // okulary zapisały nowy plik, czy oddały stary.
+                    lastDownloadedPhotoName = "$latest (plików: ${matching.size})"
                     downloadFile(latest)
                 }
             }

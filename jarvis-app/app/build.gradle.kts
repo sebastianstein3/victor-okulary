@@ -69,6 +69,20 @@ android {
         versionCode = 1
         versionName = "0.1.0-alpha"
 
+        // KTÓRY BUILD JEST ZAINSTALOWANY - ZAPISANE W SAMEJ APLIKACJI.
+        //
+        // versionName i versionCode są takie same w każdym buildzie, więc z
+        // nagłówka dziennika nie dało się odczytać, co jest na telefonie. Przy
+        // zgłoszeniu "aplikacja mówi, że nie ma języka" to rozstrzygało, czy
+        // poprawka w ogóle jest zainstalowana - i trzeba było o to dopytywać.
+        // GITHUB_SHA i GITHUB_RUN_NUMBER ustawia sam GitHub Actions; lokalnie ich
+        // nie ma i wtedy stoi "lokalny".
+        buildConfigField(
+            "String", "BUILD_ID",
+            "\"" + (System.getenv("GITHUB_RUN_NUMBER")?.let { "bieg $it, " } ?: "") +
+                (System.getenv("GITHUB_SHA")?.take(7) ?: "lokalny") + "\""
+        )
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true

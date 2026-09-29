@@ -75,6 +75,34 @@ class WeatherContextTest {
     }
 
     @Test
+    fun `prognoza mowi, dla jakiego miejsca jest - i co zrobic z innym`() {
+        // Zgłoszone: "nie ma informacji o pogodzie w Bodrum, bo ma pogodę tylko
+        // dla Torunia". Blok był doklejany do każdego pytania o pogodę i kazał
+        // się na sobie opierać - więc model odmawiał, zamiast sprawdzić.
+        val note = WeatherContext.scopeNote("Toruń")
+        assertTrue(note.contains("WYŁĄCZNIE miejscowości Toruń"))
+        assertTrue("ma kazać sprawdzić w internecie", note.contains("wyszukiwarce internetowej"))
+        // Model bez wyszukiwarki (zapasowy, lokalny) nie może zmyślać prognozy.
+        assertTrue(note.contains("jeśli nie masz do niej dostępu"))
+    }
+
+    @Test
+    fun `zastrzezenie o miejscu trafia do samego promptu`() {
+        val now = 1_700_000_000_000L
+        val forecast = WeatherForecast(
+            city = "Toruń",
+            entries = listOf(
+                WeatherEntry(
+                    timestampMs = now + 3_600_000L, tempCelsius = 10.0, feelsLike = 10.0,
+                    humidity = 60, windSpeed = 2.0, condition = "Clear", description = "bezchmurnie"
+                )
+            )
+        )
+        val text = WeatherContext.buildPromptContext(forecast, nowMs = now)!!
+        assertTrue(text.contains(WeatherContext.scopeNote("Toruń")))
+    }
+
+    @Test
     fun `stare wpisy prognozy nie trafiaja do promptu`() {
         val now = 1_700_000_000_000L
         val forecast = WeatherForecast(

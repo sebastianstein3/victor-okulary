@@ -39,6 +39,21 @@ object WeatherContext {
      * @return `null`, gdy nie ma prognozy - wtedy prompt zostaje bez zmian,
      *         a model odpowie, że nie zna aktualnej pogody
      */
+    /**
+     * Do jakiego miejsca odnosi się prognoza i co zrobić z pytaniem o inne.
+     *
+     * Nie zakłada, że model ma wyszukiwarkę: z Gemini ją ma, z modelem
+     * zapasowym czy lokalnym - nie. Dlatego dwa wyjścia zamiast jednego, bo
+     * polecenie "sprawdź w internecie" wydane modelowi bez internetu kończy się
+     * zmyśloną prognozą.
+     */
+    fun scopeNote(city: String): String =
+        "Ta prognoza dotyczy WYŁĄCZNIE miejscowości $city, ustawionej w aplikacji. " +
+            "Jeśli pytanie dotyczy innego miejsca (innego miasta albo kraju), NIE " +
+            "odpowiadaj tymi danymi: sprawdź pogodę dla tamtego miejsca w " +
+            "wyszukiwarce internetowej, a jeśli nie masz do niej dostępu, powiedz " +
+            "wprost, że masz prognozę tylko dla $city. Nie zgaduj pogody z pamięci."
+
     fun buildPromptContext(
         forecast: WeatherForecast?,
         airQuality: AirQuality? = null,
@@ -57,6 +72,14 @@ object WeatherContext {
             append("=== PROGNOZA POGODY (").append(forecast.city).append(") ===\n")
             append("Dane z serwisu pogodowego, pobrane przed chwilą. ")
             append("Opieraj się na nich, nie na własnej pamięci.\n")
+            // PROGNOZA JEST DLA JEDNEGO MIEJSCA - I MODEL MUSI TO WIEDZIEĆ.
+            //
+            // Zgłoszone: "mówi, że nie ma informacji o pogodzie w Bodrum, bo ma
+            // pogodę tylko dla Torunia". Ten blok jest doklejany do KAŻDEGO
+            // pytania o pogodę, dla miejscowości z ustawień - a zdanie wyżej
+            // każe się na nim opierać. Model zrobił dokładnie to, co mu
+            // kazano: nie miał Bodrum w danych, więc odmówił, zamiast sprawdzić.
+            append(scopeNote(forecast.city)).append('\n')
 
             upcoming.forEach { entry ->
                 append("- ").append(timeFormat.format(Date(entry.timestampMs)))

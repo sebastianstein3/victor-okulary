@@ -82,6 +82,10 @@ class VictorApplication : Application() {
      * Z PackageManagera, nie z `BuildConfig`: log z telefonu, którego nie mam,
      * jest bezwartościowy bez informacji, KTÓRA to wersja - a odczyt z pakietu
      * działa niezależnie od tego, jak zbudowano APK.
+     *
+     * Do tego numer biegu CI i skrót commita ([BuildConfig.BUILD_ID]), bo nazwa i
+     * kod wersji są w każdym buildzie takie same - a pytanie "czy ta poprawka
+     * jest już zainstalowana?" padało przy prawie każdym dzienniku.
      */
     private fun appVersionLabel(): String = runCatching {
         val info = packageManager.getPackageInfo(packageName, 0)
@@ -91,7 +95,7 @@ class VictorApplication : Application() {
             @Suppress("DEPRECATION")
             info.versionCode.toLong()
         }
-        "${info.versionName} ($code)"
+        "${info.versionName} ($code), ${BuildConfig.BUILD_ID}"
     }.getOrDefault("nieznana")
 
     override fun onCreate() {
