@@ -918,3 +918,52 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 22:26:41.580  +28098 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
 22:26:53.470  +39988 ms  MOWA         koniec wypowiedzi  ms=13612
 22:26:53.494  +40012 ms  SESJA        --- KONIEC TURY db37: odpowiedziano ---
+22:26:57.011          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:27:07.549          ms  BLE          okulary zgłaszają błąd P2P  kod=255
+22:27:07.591          ms  BLE          nieobsługiwana ramka notify  typ=0x1 ramka=BC 73 09 00 86 E5 01 07 00 03 00 00 00 01 01 sztuk=1 pierwsza=false
+22:27:33.323          ms  PRZYCISK     wciśnięto  numer=1
+22:27:33.492          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+22:27:33.853          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:27:34.209          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=21 ms=713
+22:27:34.434          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+22:27:34.440      +1 ms  SESJA        --- TURA f6c6 ---  źródło=OKULARY
+22:27:34.442      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:27:35.272    +832 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:27:38.313   +3873 ms  NASŁUCH      koniec  ms=3873 odłożone=zeskanuj ten kod qr zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=670
+22:27:38.422   +3982 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=21
+22:27:38.424   +3984 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:27:39.668   +5229 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.8535 pakietów=243 rozkodowanych=243 odrzuconych=0 przesunięcie=6 ramka=-1
+22:27:42.294   +7854 ms  TRANSKRYPCJA z nagrania okularów  ms=2623 droga=Nasłuch telefonu
+22:27:42.301   +7861 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4853 jestMs=1840 tło=0 szczyt=9031 ile razy=28561.4
+22:27:42.303   +7863 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zeskanuj ten kod qr
+22:27:42.304   +7864 ms  SESJA        pytanie  tekst=zeskanuj ten kod qr wymuszonyObraz=false
+22:27:42.310   +7870 ms  AKCJA        gest wywołany głosem  gest=SCAN_QR
+22:27:42.310   +7870 ms  PRZYCISK     akcja z przycisku  akcja=SCAN_QR kliknięć=1
+22:27:42.311   +7871 ms  SESJA        pytanie  tekst=Odczytaj kod ze zdjęcia - kreskowy albo QR - i powiedz krótko, co to za produkt albo co jest w kodzie zapisane. wymuszonyObraz=true
+22:27:42.313   +7873 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+22:27:42.319   +7879 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:27:42.329   +7889 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+22:27:43.788   +9349 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+22:27:43.801   +9362 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+22:27:43.851   +9412 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1518
+22:27:47.498  +13058 ms  ZDJĘCIE      próba 0: miniatura  bajtów=22646 jpeg=true kompletny=true
+22:27:47.527  +13087 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_85CE0E24A6BA
+22:27:48.687  +14248 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+22:27:59.012  +24572 ms  BLE          Hotspot okularów: gotowe  ms=11486
+22:27:59.464  +25024 ms  BLE          internet wrócił po sieci okularów  ms=8
+22:27:59.471  +25031 ms  ZDJĘCIE      zmniejszam oryginał przed wysłaniem  dzielnik=1 bajtówPrzed=626588 bajtówPo=626588
+22:27:59.558  +25118 ms  BLE          okulary zgłaszają błąd P2P  kod=255
+22:27:59.659  +25219 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=613715 źródło=migawka pełnaRozdzielczość=true
+22:27:59.693  +25253 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=1 pełnaRozdzielczość=true
+22:28:01.659  +27219 ms  KONTEKST     zebrany  ms=1666 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+22:28:01.686  +27246 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=1 znakówPromptu=7677
+22:28:03.642  +29202 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1956
+22:28:03.767  +29328 ms  MODEL        zużycie tokenów  wejście=6497 odpowiedź=62 razem=6559 limit=3000 koniec=STOP
+22:28:03.777  +29337 ms  MODEL        koniec odpowiedzi (193 znaków, 6559 tokenów)  ms=2091 dostawca=gemini początek=Na żadnym z dzisiejszych zdjęć nie widać kodu kreskowego ani QR, bo kadry skupia
+22:28:03.785  +29345 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=193
+22:28:05.479  +31040 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:28:15.804  +41364 ms  MOWA         koniec wypowiedzi  ms=12016
+22:28:15.832  +41392 ms  SESJA        --- KONIEC TURY f6c6: odpowiedziano ---
