@@ -1089,3 +1089,68 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 22:34:16.595  +21705 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
 22:34:26.967  +32078 ms  MOWA         koniec wypowiedzi  ms=11431
 22:34:27.021  +32132 ms  SESJA        --- KONIEC TURY c1d5: odpowiedziano ---
+22:34:29.455          ms  PRZYCISK     wciśnięto  numer=1
+22:34:29.730          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+22:34:29.973          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:34:30.070          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=13 ms=333
+22:34:30.189          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+22:34:30.197      +2 ms  SESJA        --- TURA ae87 ---  źródło=OKULARY
+22:34:30.198      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:34:30.536    +341 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:34:33.642   +3447 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:34:38.504   +8309 ms  NASŁUCH      koniec  ms=8308 odłożone=pogoda na 18 października w bodrum w turcji zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=9.88 próbek=24 gotowyPoMs=298
+22:34:38.599   +8404 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=13
+22:34:39.131   +8936 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:34:41.435  +11240 ms  NASŁUCH      nagranie z okularów  jest=true sekund=8.7935 pakietów=440 rozkodowanych=440 odrzuconych=0 przesunięcie=6 ramka=-1
+22:34:42.874  +12679 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:34:46.114  +15919 ms  TRANSKRYPCJA z nagrania okularów  ms=4671 droga=Bez transkrypcji - nagranie do modelu
+22:34:46.134  +15939 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=8793 jestMs=5540 tło=192 szczyt=13300 ile razy=69.1
+22:34:46.139  +15944 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=pogoda na 18 października w bodrum w turcji
+22:34:46.140  +15945 ms  SESJA        pytanie  tekst=pogoda na 18 października w bodrum w turcji wymuszonyObraz=false
+22:34:46.147  +15953 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+22:34:46.829  +16634 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:34:48.522  +18327 ms  KONTEKST     zebrany  ms=1680 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+22:34:48.558  +18363 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=8768
+22:34:49.365  +19170 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=809
+22:34:49.380  +19186 ms  MODEL        zużycie tokenów  wejście=5778 odpowiedź=47 razem=5825 limit=3000 koniec=STOP
+22:34:49.398  +19203 ms  MODEL        koniec odpowiedzi (188 znaków, 5825 tokenów)  ms=842 dostawca=gemini początek=Nie mam informacji o pogodzie na osiemnastego października w "Bodrum", ponieważ 
+22:34:49.405  +19210 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=188
+22:34:50.576  +20381 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:34:59.788  +29593 ms  MOWA         koniec wypowiedzi  ms=10378
+22:34:59.873  +29679 ms  SESJA        --- KONIEC TURY ae87: odpowiedziano ---
+22:35:03.275          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:35:55.929          ms  PRZYCISK     wciśnięto  numer=1
+22:35:56.095          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+22:35:56.441          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:35:56.552          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=21 ms=449
+22:35:56.641          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=true profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): W610T_A6BA
+Rozmowa (SCO/HFP): W610T_A6BA
+Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
+22:35:56.647      +0 ms  SESJA        --- TURA 0f0e ---  źródło=OKULARY
+22:35:56.650      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:35:57.343    +696 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:36:00.439   +3792 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:36:03.744   +7097 ms  NASŁUCH      koniec  ms=7097 odłożone=na wakacje w październiku zebrałTelefonZamiastOkularów=true mikrofon=mowa wykryta szczytDb=4.96 próbek=19 gotowyPoMs=495
+22:36:03.759   +7112 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=21
+22:36:04.179   +7532 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:36:07.003  +10356 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.6935 pakietów=385 rozkodowanych=385 odrzuconych=0 przesunięcie=6 ramka=-1
+22:36:08.142  +11496 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:36:11.766  +15119 ms  TRANSKRYPCJA z nagrania okularów  ms=4755 droga=Nasłuch telefonu
+22:36:11.788  +15141 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7693 jestMs=4360 tło=39 szczyt=16023 ile razy=401.6
+22:36:11.796  +15149 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=na wakacje w październiku
+22:36:11.798  +15151 ms  SESJA        pytanie  tekst=na wakacje w październiku wymuszonyObraz=false
+22:36:11.806  +15159 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+22:36:12.115  +15468 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:36:13.707  +17060 ms  KONTEKST     zebrany  ms=1571 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+22:36:13.739  +17092 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=8417
+22:36:14.463  +17817 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=725
+22:36:14.513  +17866 ms  MODEL        zużycie tokenów  wejście=5689 odpowiedź=62 razem=5751 limit=3000 koniec=STOP
+22:36:14.525  +17878 ms  MODEL        koniec odpowiedzi (224 znaków, 5751 tokenów)  ms=787 dostawca=gemini początek=W październiku na wakacje możesz wybrać się w ciepłe miejsca, takie jak Turcja, 
+22:36:14.529  +17882 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=224
+22:36:15.506  +18859 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:36:26.711  +30065 ms  MOWA         koniec wypowiedzi  ms=12180
+22:36:26.755  +30109 ms  SESJA        --- KONIEC TURY 0f0e: odpowiedziano ---
