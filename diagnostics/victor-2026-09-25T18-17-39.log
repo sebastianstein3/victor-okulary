@@ -1412,3 +1412,11 @@ Mikrofon okularów jest dostępny dla rozmowy. strumieńBLE=true
 22:42:14.988  +11520 ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
 22:42:28.594  +25126 ms  MOWA         koniec wypowiedzi  ms=14156
 22:42:28.636  +25168 ms  SESJA        --- KONIEC TURY e867: odpowiedziano ---
+22:42:32.048          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:43:56.435          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,1
+22:43:57.368          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+22:43:59.289          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+22:43:59.291          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+22:43:59.314          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1944
+22:44:00.613          ms  BLE          ustawienia głośności z okularów  wartości=0,16,16,0,15,15,0,16,9,3
+22:44:01.126          ms  ZDJĘCIE      próba 0: miniatura  bajtów=7050 jpeg=true kompletny=true
