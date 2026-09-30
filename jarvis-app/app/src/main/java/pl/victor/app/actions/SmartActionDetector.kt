@@ -1355,7 +1355,10 @@ Dostępne typy i klucze:
   samochodem; domyślnie pieszo)
 - set_alarm: hour, minute (opcjonalnie), label (opcjonalnie)
 - set_timer: minutes, seconds (opcjonalnie)
-- web_search: query
+- web_search: query - TYLKO otwiera wyniki Google w przeglądarce telefonu,
+  żeby człowiek sam je przejrzał. Ty nie dostajesz z tego żadnych wyników.
+  Używaj wyłącznie, gdy człowiek prosi o otwarcie wyszukiwania ("otwórz
+  to w Google"), nie po to, żeby czegoś się dowiedzieć - patrz INTERNET.
 - translate: text, target (kod języka, np. "en")
 - take_photo: (bez kluczy) - poproś o zdjęcie z kamery okularów, gdy do
   odpowiedzi potrzebujesz zobaczyć to, na co user patrzy, a nie masz obrazu

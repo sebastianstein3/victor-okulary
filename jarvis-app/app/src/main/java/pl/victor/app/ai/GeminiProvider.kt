@@ -678,6 +678,8 @@ class GeminiProvider(
                 val fullText = StringBuilder()
                 var totalTokens = 0
                 var lastUsage: GeminiResponse? = null
+                val searchQueries = linkedSetOf<String>()
+                var sourcesFound = 0
 
                 while (!source.exhausted()) {
                     val line = source.readUtf8Line() ?: break
@@ -698,6 +700,10 @@ class GeminiProvider(
                                     ))
                                 }
                             }
+                            chunk.candidates?.firstOrNull()?.groundingMetadata?.let { g: GroundingMetadata ->
+                                g.webSearchQueries?.let { q: List<String> -> searchQueries.addAll(q) }
+                                sourcesFound = maxOf(sourcesFound, g.groundingChunks?.size ?: 0)
+                            }
                             chunk.usageMetadata?.totalTokenCount?.let { totalTokens = it }
                             // ROZBICIE ZUŻYCIA MUSI BYĆ WŁAŚNIE TUTAJ.
                             //
@@ -716,6 +722,25 @@ class GeminiProvider(
                     }
                 }
                 lastUsage?.let { reportUsage(it) }
+                // CZY MODEL W OGÓLE SZUKAŁ.
+                //
+                // Przy "nie mam dostępu do aktualnych cen" z włączonym
+                // wyszukiwaniem dziennik nie mówił, czy wyszukiwarka zawiodła,
+                // czy model po nią nie sięgnął. To są różne naprawy.
+                if (enableWebSearch) {
+                    runCatching {
+                        pl.victor.app.VictorApplication.get().diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.MODEL,
+                            if (searchQueries.isEmpty()) "wyszukiwarka dostępna, model nie szukał"
+                            else "model szukał w internecie",
+                            mapOf(
+                                "zapytań" to searchQueries.size,
+                                "zapytanie" to searchQueries.firstOrNull()?.take(80),
+                                "źródeł" to sourcesFound
+                            )
+                        )
+                    }
+                }
 
                 // Ostatni chunk - z summary
                 emit(AIResponseChunk(
@@ -859,7 +884,9 @@ data class GeminiCandidate(
 
 @Serializable
 data class GroundingMetadata(
-    val groundingChunks: List<GroundingChunk>? = null
+    val groundingChunks: List<GroundingChunk>? = null,
+    /** O co model zapytał wyszukiwarkę - puste, gdy nie szukał wcale. */
+    val webSearchQueries: List<String>? = null
 )
 
 @Serializable

@@ -123,6 +123,11 @@ class VictorApplication : Application() {
                     // "włączony". Stan BIEŻĄCY każdej tury jest w zdarzeniu
                     // NASŁUCH/start, a każde samoczynne przełączenie - w AUDIO.
                     "mikrofon okularów przy starcie: ${settings.isGlassesMicEnabled()}",
+                    // Ten przełącznik decyduje, czy okulary w ogóle słuchają
+                    // "Hey Lens". Zgłoszenie "przestały reagować na frazę"
+                    // rozstrzygał dotąd dopiero wiersz WAKE "żądano=false" -
+                    // czyli aplikacja SAMA kazała okularom nie słuchać.
+                    "fraza wybudzenia w okularach: ${settings.isGlassesWakeWordEnabled()}",
                     "źródło zdjęcia: ${settings.getPhotoSource()} (dzielnik ${settings.getPhotoDivisor()})"
                 )
             )

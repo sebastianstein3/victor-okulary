@@ -2972,8 +2972,28 @@ private fun WakeWordSection(
                     }
                     Switch(
                         checked = glassesWakeEnabled,
-                        onCheckedChange = { glasses.setGlassesWakeWord(it) },
+                        onCheckedChange = {
+                            // Do dziennika, bo wyłączenie tego przełącznika
+                            // wygląda z zewnątrz jak awaria okularów.
+                            runCatching {
+                                pl.victor.app.VictorApplication.get().diag.event(
+                                    pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                                    "użytkownik przestawił frazę wybudzenia w okularach",
+                                    mapOf("włączona" to it)
+                                )
+                            }
+                            glasses.setGlassesWakeWord(it)
+                        },
                         enabled = glassesConnection == pl.victor.app.ble.ConnectionState.READY
+                    )
+                }
+                if (glassesConnection == pl.victor.app.ble.ConnectionState.READY && !glassesWakeEnabled) {
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        "⚠️ Wyłączone - okulary nie reagują na swoją frazę " +
+                            "(\"Hey Lens\"). Zostaje przycisk na oprawce.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
                 if (glassesConnection != pl.victor.app.ble.ConnectionState.READY) {

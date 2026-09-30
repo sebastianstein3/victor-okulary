@@ -7,6 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -3727,8 +3729,17 @@ class AIOrchestrator(
                 // ma, albo prosi o nie przy odłączonych okularach.
                 val visionStatus = when {
                     photos.isNotEmpty() || (video != null && video.isNotEmpty()) ->
+                        // "Zrobione przed chwilą" jest tu kluczowe. Dziennik
+                        // z 18:29 (tura 2011): "zrób zdjęcie tej wódki i..."
+                        // wróciło do modelu ze zdjęciem, a model odpowiedział
+                        // "nie mogę zrobić zdjęcia, nie mam dostępu do kamery".
+                        // Czytał prośbę w pytaniu jako zadanie dla siebie.
                         "\n\nOBRAZ: masz zdjęcie z kamery okularów w tej wiadomości - " +
-                            "odpowiadaj na jego podstawie i NIE proś o kolejne."
+                            "aplikacja zrobiła je przed chwilą właśnie na potrzeby " +
+                            "tego pytania. Jeśli user prosi \"zrób zdjęcie\", to " +
+                            "zdjęcie JUŻ jest zrobione i to jest właśnie ono - nie " +
+                            "mów, że nie masz dostępu do kamery. Odpowiadaj na jego " +
+                            "podstawie i NIE proś o kolejne."
                     glassesManager.connectionState.value == ConnectionState.READY ->
                         "\n\nOBRAZ: nie masz zdjęcia, ale okulary są połączone - " +
                             "jeśli musisz zobaczyć, o co pyta user, użyj [[ACTION: type=take_photo]]."
@@ -3739,6 +3750,9 @@ class AIOrchestrator(
                 val effectiveSystemPrompt = persona.systemPrompt +
                     "\n\n" + pl.victor.app.actions.SmartActionDetector.AI_ACTION_CAPABILITIES_PROMPT +
                     visionStatus +
+                    pl.victor.app.ai.WebSearchPrompt.dlaModelu(
+                        maWyszukiwarkę = provider.supportsWebSearch && settings.isWebSearchEnabled()
+                    ) +
                     NOTES_CAPABILITY_PROMPT +
                     PRIVATE_DATA_HONESTY_PROMPT +
                     ENGLISH_QUOTING_PROMPT
@@ -4211,6 +4225,18 @@ class AIOrchestrator(
                         successfulProvider = attemptProvider
                         break  // sukces - koniec prób
                     } catch (e: Exception) {
+                        // PRZERWANA TURA TO NIE AWARIA DOSTAWCY.
+                        //
+                        // Dziennik z 18:37 (tura 28d1): użytkownik przerwał,
+                        // a pętla uznała to za trzy awarie z rzędu - Gemini
+                        // "odmówił", potem DeepSeek, potem model lokalny, z
+                        // zapowiedzią "Przechodzę na model lokalny" już po
+                        // przerwaniu. Sprawdzenie typu wyjątku nie wystarcza:
+                        // Gemini opakowuje anulowanie we własny wyjątek
+                        // ("Streaming error: StandaloneCoroutine was
+                        // cancelled"). Rozstrzyga stan korutyny - gdy jest
+                        // anulowana, to rzuca i kończy turę bez kolejnych prób.
+                        currentCoroutineContext().ensureActive()
                         // POWÓD DO DZIENNIKA, nie tylko do logcata.
                         //
                         // W dzienniku z 15 września stoją trzy "wysyłam pytanie"
