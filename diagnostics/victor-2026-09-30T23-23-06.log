@@ -41,3 +41,33 @@
 23:25:23.030   +9490 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
 23:25:23.555  +10015 ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
 23:25:23.561  +10021 ms  SESJA        --- KONIEC TURY f47e: BEZ ODPOWIEDZI (stan Idle, powód: dotknięcie zauszników) ---
+23:25:24.857          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+23:25:24.859          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=false poNaszejMigawce=true
+23:25:42.998          ms  NASŁUCH      usłyszane, ale nie do mnie - brak frazy poza rozmową  usłyszane=helence
+23:26:58.225          ms  WAKE         użytkownik przestawił frazę wybudzenia w okularach  włączona=true
+23:26:58.966          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:27:02.047          ms  PRZYCISK     wciśnięto  numer=1
+23:27:02.304          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+23:27:02.557          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+23:27:02.627          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=321
+23:27:02.675      +0 ms  SESJA        --- TURA c0d3 ---  źródło=OKULARY
+23:27:02.676      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+23:27:07.158   +4484 ms  NASŁUCH      koniec  ms=4483 odłożone=dokąd tupta nocą jeż zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=5 gotowyPoMs=601
+23:27:07.162   +4488 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+23:27:08.263   +5588 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.9135 pakietów=246 rozkodowanych=246 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 33 3495 1974 4860 2465 2 1 1 ciszaNaKońcuOkien=0
+23:27:11.044   +8369 ms  TRANSKRYPCJA z nagrania okularów  ms=2779 droga=Nasłuch telefonu
+23:27:11.078   +8403 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4913 jestMs=2020 tło=2 szczyt=12505 ile razy=5848.6
+23:27:11.079   +8404 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=dokąd tupta nocą jeż
+23:27:11.080   +8405 ms  SESJA        pytanie  tekst=dokąd tupta nocą jeż wymuszonyObraz=false
+23:27:11.088   +8413 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:27:11.098   +8423 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:27:11.149   +8474 ms  KONTEKST     zebrany  ms=45 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:27:11.160   +8485 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=459
+23:27:11.838   +9163 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=678
+23:27:12.033   +9358 ms  MODEL        zużycie tokenów  wejście=2679 odpowiedź=47 razem=2726 limit=3000 koniec=STOP
+23:27:12.035   +9360 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:27:12.037   +9362 ms  MODEL        koniec odpowiedzi (144 znaków, 2726 tokenów)  ms=877 dostawca=gemini początek=Jeż nocą szuka pożywienia, głównie owadów, ślimaków i dżdżownic, przemierzając w
+23:27:12.040   +9365 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=144
+23:27:20.443  +17768 ms  MOWA         koniec wypowiedzi  ms=8401
+23:27:20.471  +17797 ms  SESJA        --- KONIEC TURY c0d3: odpowiedziano ---
+23:27:20.476          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
