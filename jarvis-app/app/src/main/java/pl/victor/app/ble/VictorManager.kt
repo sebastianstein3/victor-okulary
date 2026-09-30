@@ -192,6 +192,14 @@ class VictorManager private constructor(context: Context) {
     private val _notifyLog = MutableStateFlow<List<NotifyLogEntry>>(emptyList())
     val notifyLog: StateFlow<List<NotifyLogEntry>> = _notifyLog.asStateFlow()
 
+    /** Ostatnio zgłoszony tryb importu - do dziennika tylko przy zmianie. */
+    @Volatile
+    private var apImportOnly: Boolean? = null
+
+    /** Ostatnie poziomy głośności - patrz obsługa [NotifyEvent.VolumeSettings]. */
+    @Volatile
+    private var lastVolumeLevels: List<Int>? = null
+
     private val _mediaCount = MutableStateFlow<MediaCount?>(null)
     val mediaCount: StateFlow<MediaCount?> = _mediaCount.asStateFlow()
 
@@ -844,18 +852,51 @@ class VictorManager private constructor(context: Context) {
                     }
                 }
             }
+            is NotifyEvent.MediaCountReport -> {
+                // Cicho w dzienniku, poza zmianą trybu importu: okulary wysyłają
+                // to po każdym zdjęciu, a "nieobsługiwana ramka" przy każdym z
+                // nich tylko zaśmiecała dziennik.
+                Log.d(tag, "Notify: pliki na okularach ${event.count}, tylkoHotspot=${event.apImportOnly}")
+                _mediaCount.value = event.count
+                if (apImportOnly != event.apImportOnly) {
+                    apImportOnly = event.apImportOnly
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                            "okulary zgłaszają pliki i tryb importu",
+                            mapOf(
+                                "zdjęć" to event.count.images,
+                                "filmów" to event.count.videos,
+                                "nagrań" to event.count.records,
+                                "tylkoHotspot" to event.apImportOnly
+                            )
+                        )
+                    }
+                }
+            }
             is NotifyEvent.VolumeSettings -> {
-                // Do dziennika, bo to jedyna droga, żeby ustalić znaczenie tych
-                // liczb: w terenie widać, która z nich rusza się przy którym
-                // geście na zausznikach. Zachowania jeszcze nie zmieniamy -
-                // najpierw pomiar, potem decyzja.
+                // ZNACZENIE JUŻ ZNAMY - z aplikacji producenta: trzy trójki
+                // (min, max, bieżąca) dla muzyki, rozmowy i dźwięków systemu, a
+                // na końcu kanał, którym akurat sterują przyciski głośności
+                // (1 muzyka, 2 rozmowa, 3 system). Ten ostatni skacze przy
+                // każdej zmianie stanu dźwięku i dawał dziesiątki wierszy na
+                // minutę w dzienniku. Zapisujemy więc tylko zmianę GŁOŚNOŚCI.
                 Log.d(tag, "Notify: ustawienia głośności ${event.values}")
-                runCatching {
-                    diag.event(
-                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
-                        "ustawienia głośności z okularów",
-                        mapOf("wartości" to event.values.joinToString(","))
-                    )
+                val poziomy = event.values.take(9)
+                if (poziomy != lastVolumeLevels) {
+                    lastVolumeLevels = poziomy
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                            "głośność okularów",
+                            mapOf(
+                                "muzyka" to event.values.getOrNull(2),
+                                "rozmowa" to event.values.getOrNull(5),
+                                "system" to event.values.getOrNull(8),
+                                "kanałPrzycisków" to event.values.getOrNull(9)
+                            )
+                        )
+                    }
                 }
             }
             is NotifyEvent.Unknown -> {
@@ -894,6 +935,9 @@ class VictorManager private constructor(context: Context) {
      */
     private fun resetPerConnectionState() {
         greetingDone = false
+        // Okulary zgłaszają tryb importu zaraz po połączeniu - a na nowym łączu
+        // mogą być to już inne okulary.
+        apImportOnly = null
         // Subskrypcja przypięta do POPRZEDNIEGO łącza już nie istnieje;
         // onGlassesReady() przypnie ją na nowo.
         micNotifyPinned = false
@@ -1069,8 +1113,18 @@ class VictorManager private constructor(context: Context) {
 
             // Wykrywanie komendy głosowej po stronie okularów - nie wymaga Picovoice.
             // Respektujemy wybór użytkownika, a nie włączamy na sztywno.
+            //
+            // ALE WYŁĄCZENIA NIE WYSYŁAMY PRZY POŁĄCZENIU. Okulary same pamiętają
+            // to ustawienie, a aplikacja producenta w ogóle go przy połączeniu
+            // nie rusza (pyta dopiero na ekranie ustawień AI). My wysyłaliśmy
+            // zapisaną wartość przy każdym połączeniu - i zapisane "wyłączone"
+            // (jedno przestawienie przełącznika, choćby omyłkowe) gasiło "Hey
+            // Lens" po każdym powrocie łącza. Zgłoszone jako "przestały
+            // reagować na hey lens" (dziennik: żądano=false). Teraz przy
+            // wyłączonym przełączniku tylko PYTAMY i przyjmujemy to, co okulary
+            // zgłoszą - włączenie w aplikacji producenta też się wtedy liczy.
             val wakeWordWanted = settings.isGlassesWakeWordEnabled()
-            setGlassesWakeWord(wakeWordWanted)
+            if (wakeWordWanted) setGlassesWakeWord(true) else queryGlassesWakeWord()
 
             runCatching {
                 diag.event(
@@ -1251,7 +1305,11 @@ class VictorManager private constructor(context: Context) {
      */
     fun addMicStreamListenerWithBacklog(
         listener: (ByteArray) -> Unit
-    ): List<MicBacklog.Packet> {
+    ): List<MicBacklog.Packet>? {
+        // null = subskrypcja NIE doszła do skutku. Dotąd szła wtedy pusta
+        // lista - nie do odróżnienia od "brak zaległości" - i wołający uznawał
+        // strumień za żywy: rezygnował z profilu rozmowy, a z okularów nie
+        // przychodziło nic.
         if (simulator != null) return emptyList()
         val now = System.currentTimeMillis()
         val backlog = synchronized(micStreamListeners) {
@@ -1262,7 +1320,7 @@ class VictorManager private constructor(context: Context) {
             micStreamListeners.add(listener)
             if (!micStreamActive && !armMicNotify()) {
                 micStreamListeners.remove(listener)
-                return emptyList()
+                return null
             }
             taken
         }
@@ -1515,7 +1573,18 @@ class VictorManager private constructor(context: Context) {
      * ta seria zajęła trzy kolejne okna.
      */
     private fun rozwazWybudzenieZDzwieku() {
-        if (!micWakeDetector.onStrayPacket(System.currentTimeMillis())) return
+        val teraz = System.currentTimeMillis()
+        // PO PRZYCISKU TEN DŹWIĘK JUŻ MA WŁAŚCICIELA.
+        //
+        // Okulary zaczynają nadawać w chwili wciśnięcia, a nasłuch podpina się
+        // dopiero po oknie na podwójne kliknięcie (~1 s). Te pakiety są "bez
+        // odbiorcy" - i przy odrobinie opóźnienia przekraczały próg, dając
+        // drugie wybudzenie i drugą turę, która przejmowała pierwszą.
+        if (lastTriggerAtMs != 0L && teraz - lastTriggerAtMs < RECENT_TRIGGER_MS) {
+            micWakeDetector.reset()
+            return
+        }
+        if (!micWakeDetector.onStrayPacket(teraz)) return
         runCatching {
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
@@ -1527,8 +1596,9 @@ class VictorManager private constructor(context: Context) {
             )
         }
         // Ta sama droga co przycisk: dźwięk sprzed startu nasłuchu należy już do
-        // pytania (patrz [lastTriggerAtMs] i MicBacklog).
-        lastTriggerAtMs = System.currentTimeMillis()
+        // pytania (patrz [lastTriggerAtMs] i MicBacklog). Od POCZĄTKU okna, nie
+        // od chwili decyzji - inaczej pierwsza sekunda pytania przepadała.
+        lastTriggerAtMs = micWakeDetector.wakeWindowStartMs.takeIf { it > 0L } ?: teraz
         _buttonEvent.tryEmit(ButtonEvent.ShortClick)
     }
 
@@ -1580,9 +1650,49 @@ class VictorManager private constructor(context: Context) {
      * po anulowanej turze, gdzie okulary mogą już być odłączone.
      */
     fun stopGlassesListening() {
+        // Puls PRZED sprawdzeniem połączenia: po zerwanym łączu też ma stanąć.
+        stopVoiceHeartbeat()
         if (!isConnected()) return
         Log.i(tag, "Kończę nasłuch po stronie okularów")
         send(GlassesProtocol.stopAiSession())
+    }
+
+    private var voiceHeartbeatJob: Job? = null
+
+    /**
+     * Puls rozmowy głosowej - `syncHeartBeat(7)` co trzy sekundy, dopóki
+     * słuchamy pytania z okularów.
+     *
+     * ## Skąd to się wzięło
+     * Z porównania z aplikacją producenta. Jej rozpoznawanie mowy z okularów
+     * uruchamia przy starcie timer z typem 7 i odstępem 3 s, a zatrzymuje go
+     * razem z końcem nasłuchu. Nasza aplikacja wysyłała puls wyłącznie w sesji
+     * Wi-Fi (typ 4) - w rozmowie nie szło nic. Typ znaczy "wciąż potrzebuję
+     * TEJ sesji" (patrz [startSessionHeartbeat]), więc bez niego okulary mogą
+     * uznać sesję głosową za porzuconą i przestać nadawać w połowie dłuższego
+     * pytania.
+     *
+     * Kończy się sam po [VOICE_HEARTBEAT_MAX_MS] - na wypadek, gdyby koniec
+     * nasłuchu nie doszedł (wyjątek w turze), okulary nie dostają pulsu
+     * w nieskończoność.
+     */
+    fun startVoiceHeartbeat() {
+        stopVoiceHeartbeat()
+        if (!isConnected() || simulator != null) return
+        voiceHeartbeatJob = scope.launch {
+            val koniec = System.currentTimeMillis() + VOICE_HEARTBEAT_MAX_MS
+            while (System.currentTimeMillis() < koniec) {
+                delay(VOICE_HEARTBEAT_MS)
+                if (!isConnected()) break
+                runCatching { largeDataHandler.syncHeartBeat(VOICE_HEARTBEAT_TYPE) }
+                    .onFailure { Log.w(tag, "Puls rozmowy nie poszedł", it) }
+            }
+        }
+    }
+
+    fun stopVoiceHeartbeat() {
+        voiceHeartbeatJob?.cancel()
+        voiceHeartbeatJob = null
     }
 
     /**
@@ -1616,6 +1726,35 @@ class VictorManager private constructor(context: Context) {
             )
         }
         setGlassesWakeWord(true)
+    }
+
+    /**
+     * Pyta okulary, czy wykrywają frazę wybudzenia - bez zmieniania jej.
+     *
+     * Odpowiedź staje się ustawieniem aplikacji: okulary są tu źródłem prawdy,
+     * bo to one pamiętają stan między połączeniami. Patrz powitanie w
+     * [onGlassesReady] - dlaczego przy połączeniu nie wysyłamy wyłączenia.
+     */
+    fun queryGlassesWakeWord() {
+        if (simulator != null) {
+            _glassesWakeWordEnabled.value = settings.isGlassesWakeWordEnabled()
+            return
+        }
+        runCatching {
+            // Pierwszy parametr fałsz = ODCZYT (patrz setGlassesWakeWord).
+            largeDataHandler.aiVoiceWake(false, false) { _, rsp ->
+                val open = runCatching { rsp?.isOpen == true }.getOrDefault(false)
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                        "okulary odpowiedziały o frazie wybudzenia",
+                        mapOf("żądano" to "odczyt", "zgłaszają" to open)
+                    )
+                }
+                _glassesWakeWordEnabled.value = open
+                settings.setGlassesWakeWordEnabled(open)
+            }
+        }.onFailure { Log.w(tag, "Odczyt aiVoiceWake nie powiódł się", it) }
     }
 
     /**
@@ -1822,6 +1961,8 @@ class VictorManager private constructor(context: Context) {
         is NotifyEvent.CameraAngle -> "Kąt kamery: ${event.angle}"
         is NotifyEvent.AiSessionRequested ->
             if (event.realtimeText) "Okulary: tekst na żywo" else "Okulary: rozmowa z AI"
+        is NotifyEvent.MediaCountReport ->
+            "Pliki na okularach: ${event.count.images} zdjęć, ${event.count.videos} filmów"
         is NotifyEvent.Unknown -> "Nieobsługiwany typ 0x%02X".format(event.type)
         is NotifyEvent.Malformed -> "Ramka uszkodzona (${event.size} B)"
     }
@@ -2866,14 +3007,40 @@ class VictorManager private constructor(context: Context) {
             return null
         }
         lastPhotoFailure = null
+        // ZDJĘCIE Z PRZYCISKU WŁAŚNIE SIĘ POBIERA - POCZEKAJ NA NIE.
+        //
+        // SDK ma na odbiór miniatury jedno miejsce na odpowiedź. Dwa pobrania
+        // naraz (przycisk i pytanie "co widzę") podbierały je sobie nawzajem i
+        // oba kończyły się limitem czasu. Po odczekaniu to świeże zdjęcie
+        // leży w schowku niżej, więc nie trzeba nawet nowej migawki.
+        if (hardwarePhotoInProgress) {
+            withTimeoutOrNull(HARDWARE_PHOTO_WAIT_MS) { hardwarePhotoLock.withLock { } }
+        }
         // Znacznik dotyczy OSTATNIEGO zdjęcia, więc musi się kasować przy
         // każdym - inaczej "true" sprzed kilku minut kazałoby pominąć
         // ponowną próbę odczytania kodu na ostrzejszym zdjęciu.
         lastPhotoWasFullResolution = false
         pendingHardwarePhoto?.let { ready ->
             pendingHardwarePhoto = null
-            Log.i(tag, "Używam zdjęcia zrobionego przyciskiem - bez nowej migawki")
-            return ready
+            // ZDJĘCIE Z PRZYCISKU MA TERMIN WAŻNOŚCI.
+            //
+            // Zostaje w schowku także wtedy, gdy tura, której było potrzebne,
+            // została odrzucona (dziennik z 18:34:23: miniatura przyszła, a
+            // zaraz po niej "trigger ODRZUCONY - tura już trwa"). Bez terminu
+            // następne "co widzę" choćby po kwadransie dostawało tamtą scenę
+            // zamiast nowej migawki.
+            val wiek = System.currentTimeMillis() - pendingHardwarePhotoAtMs
+            if (wiek <= HARDWARE_PHOTO_MAX_AGE_MS) {
+                Log.i(tag, "Używam zdjęcia zrobionego przyciskiem - bez nowej migawki")
+                return ready
+            }
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                    "zdjęcie z przycisku za stare - robię nowe",
+                    mapOf("wiekMs" to wiek)
+                )
+            }
         }
         _photoReady.value = false
         captureInProgress = true
@@ -3411,9 +3578,21 @@ class VictorManager private constructor(context: Context) {
         }
 
         val wifiStartedAt = System.currentTimeMillis()
-        val full = runCatching { downloadLatestPhoto() }
-            .onFailure { Log.w(tag, "Pobranie oryginału nie powiodło się", it) }
-            .getOrNull()
+        // JEDEN LIMIT NA CAŁOŚĆ. Hotspot, a po nim zapasowe Wi-Fi Direct z
+        // trzema podejściami, potrafiły razem zająć ponad cztery minuty jednej
+        // tury głosowej. Udane pobranie przez hotspot trwa w dziennikach
+        // około 12 s, więc limit zostawia duży zapas.
+        //
+        // try zamiast runCatching: tamto połykało też ANULOWANIE tury, a wtedy
+        // przerwana tura szła dalej z miniaturą.
+        val full = try {
+            withTimeoutOrNull(SHARP_PHOTO_BUDGET_MS) { downloadLatestPhoto() }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(tag, "Pobranie oryginału nie powiodło się", e)
+            null
+        }
         if (full == null) {
             wifiDirectFailedAtMs = System.currentTimeMillis()
             lastSharpFallbackReason = "okulary nie oddały oryginału przez Wi-Fi"
@@ -3441,21 +3620,42 @@ class VictorManager private constructor(context: Context) {
         // miniaturze. Dotyczy KAŻDEGO wołającego, nie tylko kodów: czytanie
         // tekstu i tryby dostępności miały ten sam błąd.
         if (full != null && full.size > thumbnail.size) {
-            val odciskMiniatury = pl.victor.app.vision.PhotoFingerprint.of(thumbnail)
-            val odciskOryginału = pl.victor.app.vision.PhotoFingerprint.of(full)
+            // URWANA MINIATURA TO NIE "INNE ZDJĘCIE".
+            //
+            // Miniatura bywa urwana (limit transferu po BLE), a dekoder
+            // dopełnia wtedy dół szarością - odcisk całości wychodził "inny"
+            // dla tego samego zdjęcia i dobry oryginał szedł do kosza akurat
+            // wtedy, gdy był najbardziej potrzebny. Przy urwanej porównujemy
+            // samą górę obu obrazów.
+            val miniaturaCała = GlassesProtocol.isCompleteJpeg(thumbnail)
+            val część = if (miniaturaCała) 1f else URWANA_MINIATURA_GÓRA
+            val odciskMiniatury = pl.victor.app.vision.PhotoFingerprint.of(thumbnail, część)
+            val odciskOryginału = pl.victor.app.vision.PhotoFingerprint.of(full, część)
             val różnica = if (odciskMiniatury != null && odciskOryginału != null) {
                 pl.victor.app.vision.PhotoMatch.różnica(odciskMiniatury, odciskOryginału)
             } else {
                 null
             }
-            val zgodne = różnica != null && różnica <= pl.victor.app.vision.PhotoMatch.MAX_RÓŻNICA
+            // Trzy wyniki, nie dwa. Nieczytelny ORYGINAŁ jest bezużyteczny -
+            // zostaje miniatura. Nieczytelna MINIATURA nie daje czego porównać,
+            // a sama też nic modelowi nie powie - bierzemy oryginał.
+            val zgodne = when {
+                odciskOryginału == null -> false
+                odciskMiniatury == null -> true
+                else -> różnica!! <= pl.victor.app.vision.PhotoMatch.MAX_RÓŻNICA
+            }
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
-                if (zgodne) "pobrany oryginał to to samo zdjęcie"
-                else "pobrany oryginał to INNE zdjęcie niż właśnie zrobione - odrzucam",
+                when {
+                    odciskMiniatury == null && odciskOryginału != null ->
+                        "miniatury nie da się odczytać - biorę oryginał bez porównania"
+                    zgodne -> "pobrany oryginał to to samo zdjęcie"
+                    else -> "pobrany oryginał to INNE zdjęcie niż właśnie zrobione - odrzucam"
+                },
                 mapOf(
                     "różnica" to różnica,
                     "próg" to pl.victor.app.vision.PhotoMatch.MAX_RÓŻNICA,
+                    "porównanaCzęść" to część,
                     "plik" to lastDownloadedPhotoName
                 )
             )
@@ -3463,10 +3663,14 @@ class VictorManager private constructor(context: Context) {
                 lastSharpFallbackReason =
                     "okulary nie zapisały nowego zdjęcia w pamięci - najnowszy plik to " +
                         "starsze zdjęcie, więc zostałem przy miniaturze"
-                // Ten sam bezpiecznik co przy nieudanym Wi-Fi Direct: skoro
-                // okulary nie zapisują zdjęć AI, następna próba skończy się tak
-                // samo, a kosztuje około 30 sekund transferu.
-                wifiDirectFailedAtMs = System.currentTimeMillis()
+                // Bezpiecznik tylko przy PEWNEJ niezgodności (oba odciski,
+                // cała miniatura): wtedy okulary najpewniej w ogóle nie
+                // zapisują zdjęć AI i następna próba skończy się tak samo, za
+                // około 30 sekund transferu. Przy porównaniu samej góry albo
+                // nieczytelnym oryginale nie ma takiej pewności.
+                if (miniaturaCała && różnica != null) {
+                    wifiDirectFailedAtMs = System.currentTimeMillis()
+                }
                 return thumbnail
             }
         }
@@ -3594,6 +3798,7 @@ class VictorManager private constructor(context: Context) {
         )
         if (photo != null && acceptPhoto(photo)) {
             pendingHardwarePhoto = photo
+            pendingHardwarePhotoAtMs = System.currentTimeMillis()
             return@withLock true
         }
 
@@ -3617,6 +3822,7 @@ class VictorManager private constructor(context: Context) {
                 mapOf("bajtów" to partial.size)
             )
             pendingHardwarePhoto = partial
+            pendingHardwarePhotoAtMs = System.currentTimeMillis()
             return@withLock true
         }
         false
@@ -3638,6 +3844,10 @@ class VictorManager private constructor(context: Context) {
      */
     @Volatile
     private var pendingHardwarePhoto: ByteArray? = null
+
+    /** Kiedy [pendingHardwarePhoto] powstało - patrz [HARDWARE_PHOTO_MAX_AGE_MS]. */
+    @Volatile
+    private var pendingHardwarePhotoAtMs: Long = 0L
 
     /**
      * Odbiera miniaturę po BLE. Vendor SDK dostarcza ją w kawałkach -
@@ -3877,6 +4087,16 @@ class VictorManager private constructor(context: Context) {
     private suspend fun awaitGlassesIp(): Boolean {
         lastTransferFailure = null
         if (simulator == null && tryAccessPoint()) return true
+        // Okulary same mówią, że importu przez Wi-Fi Direct nie mają (ostatni
+        // bajt ramki z licznikami plików, patrz NOTIFY_MEDIA_COUNT). Próba i
+        // tak by zawiodła - po trzech podejściach, za kilkadziesiąt sekund.
+        if (simulator == null && apImportOnly == true) {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "Wi-Fi Direct pomijam - okulary przyjmują import tylko przez hotspot"
+            )
+            return false
+        }
         return awaitGlassesIpOverP2p()
     }
 
@@ -4374,6 +4594,22 @@ class VictorManager private constructor(context: Context) {
         stopSessionHeartbeat()
         if (simulator == null) wifiTransfer.stop()
         _glassesIp.value = null
+        // OKULARY TEŻ MAJĄ WYJŚĆ Z TRYBU TRANSFERU.
+        //
+        // Telefon zwalniał sieć, ale do okularów nie szedł żaden bajt - więc
+        // zostawały z podniesionym hotspotem. Widać to w dzienniku: zaraz po
+        // każdym pobraniu "okulary zgłaszają błąd P2P kod=255" (telefon
+        // zniknął z ich sieci), a następna próba zaczynała się od "utknęły
+        // w trybie transferu" i resetu z dwiema sekundami czekania.
+        //
+        // Reset łącza, nie "koniec transferu" 0x09: tamten producent wysyła
+        // na końcu importu, ale u nas pomiar pokazał, że KASUJE pliki
+        // (patrz GlassesProtocol.WORK_RELEASE_STORAGE). Reset jest tym, co
+        // i tak wysyłamy przy zaklinowanym trybie - plików nie dotyka.
+        if (simulator == null && isConnected()) {
+            runCatching { send(GlassesProtocol.resetP2p()) }
+                .onFailure { Log.w(tag, "Reset łącza po transferze nie poszedł", it) }
+        }
     }
 
     /** Pobiera najnowsze zdjęcie w pełnej rozdzielczości przez Wi-Fi Direct. */
@@ -4714,6 +4950,23 @@ class VictorManager private constructor(context: Context) {
          * głosowej - czyli liczba wskazuje rodzaj sesji, nie samo życie.
          */
         private const val SESSION_HEARTBEAT_TYPE = 4
+        /** Przez tyle po przycisku lub frazie dźwięk bez odbiorcy nie jest wybudzeniem. */
+        private const val RECENT_TRIGGER_MS = 4_000L
+
+        /** Limit na całe pobranie oryginału w [captureSharpPhoto]. */
+        private const val SHARP_PHOTO_BUDGET_MS = 45_000L
+
+        /** Część wysokości porównywana przy urwanej miniaturze - patrz captureSharpPhoto. */
+        private const val URWANA_MINIATURA_GÓRA = 0.4f
+
+        /** Ile najwyżej czekać, aż skończy się pobieranie zdjęcia z przycisku. */
+        private const val HARDWARE_PHOTO_WAIT_MS = 20_000L
+
+        /** Jak długo zdjęcie z przycisku może czekać na odbiorcę. */
+        private const val HARDWARE_PHOTO_MAX_AGE_MS = 30_000L
+        private const val VOICE_HEARTBEAT_TYPE = 7
+        private const val VOICE_HEARTBEAT_MS = 3_000L
+        private const val VOICE_HEARTBEAT_MAX_MS = 60_000L
         private const val IP_POLL_INTERVAL_MS = 100L
 
         private const val CONNECT_TIMEOUT_MS = 5_000

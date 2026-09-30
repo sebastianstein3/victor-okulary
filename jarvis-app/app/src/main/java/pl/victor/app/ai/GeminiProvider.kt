@@ -2,6 +2,7 @@ package pl.victor.app.ai
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.withContext
@@ -169,7 +170,7 @@ class GeminiProvider(
                 .post(body)
                 .build()
 
-            client.newCall(request).execute().use { response ->
+            client.newCall(request).executeCancellable { response ->
                 val responseBody = response.body?.string() ?: ""
                 if (!response.isSuccessful) {
                     throw AIProviderException(
@@ -294,7 +295,7 @@ class GeminiProvider(
             .build()
 
         try {
-            client.newCall(httpRequest).execute().use { response ->
+            client.newCall(httpRequest).executeCancellable { response ->
                 if (!response.isSuccessful) {
                     val errorBody = response.body?.string() ?: "Unknown error"
                     // Odmowa dotycząca myślenia jest DO NAPRAWIENIA W LOCIE:
@@ -652,8 +653,16 @@ class GeminiProvider(
             .post(requestBody)
             .build()
 
+        // ANULOWANIE MUSI DOCHODZIĆ DO SIECI.
+        //
+        // Przerwana tura (dotknięcie zausznika, "przerwij", limit czasu
+        // dostawcy) kończy korutynę, ale nie blokujące readUtf8Line() niżej -
+        // odpowiedź ściągała się do końca i była liczona w tokenach, a
+        // sprzątanie starej tury wpadało w środek następnej. executeCancellable
+        // zamyka połączenie przy anulowaniu, co przerywa odczyt od razu.
+        val call = client.newCall(httpRequest)
         try {
-            client.newCall(httpRequest).execute().use { response ->
+            call.executeCancellable { response ->
                 if (!response.isSuccessful) {
                     val errorBody = response.body?.string() ?: "Unknown error"
                     // Odmowa dotycząca myślenia jest DO NAPRAWIENIA W LOCIE:
@@ -716,6 +725,10 @@ class GeminiProvider(
                             // Zużycie przychodzi w OSTATNIM fragmencie, więc
                             // zapisujemy ten, w którym w ogóle jest.
                             if (chunk.usageMetadata != null) lastUsage = chunk
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            // emit() po anulowaniu rzuca właśnie to - "błąd
+                            // parsowania" kazałby czytać strumień do końca.
+                            throw e
                         } catch (e: Exception) {
                             Log.w(TAG, "Failed to parse chunk: ${e.message}")
                         }
@@ -751,7 +764,12 @@ class GeminiProvider(
             }
         } catch (e: AIProviderException) {
             throw e
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
+            // Zamknięte przy anulowaniu połączenie daje IOException - to nadal
+            // przerwanie, nie awaria dostawcy.
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
             Log.e(TAG, "Streaming failed", e)
             throw AIProviderException(
                 "Streaming error: ${e.message}",

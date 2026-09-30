@@ -252,18 +252,20 @@ class ConversationalMode(
     suspend fun listenOnce(
         languageTag: String = recognitionLanguageTag,
         timeoutMs: Long = SpeechToText.DEFAULT_TIMEOUT_MS,
-        useBluetoothMic: Boolean = true
+        useBluetoothMic: Boolean = true,
+        onPartial: ((String) -> Unit)? = null
     ): String? {
         val stt = speechToText ?: return null
         if (!stt.isAvailable()) return null
-        return listenWithRecognizer(stt, languageTag, timeoutMs, useBluetoothMic)
+        return listenWithRecognizer(stt, languageTag, timeoutMs, useBluetoothMic, onPartial)
     }
 
     private suspend fun listenWithRecognizer(
         stt: SpeechToText,
         languageTag: String = recognitionLanguageTag,
         timeoutMs: Long = SpeechToText.DEFAULT_TIMEOUT_MS,
-        useBluetoothMic: Boolean = true
+        useBluetoothMic: Boolean = true,
+        onPartial: ((String) -> Unit)? = null
     ): String? {
         val wakeWordWasRunning = wakeWord?.state?.value == WakeWordState.LISTENING
         if (wakeWordWasRunning) {
@@ -275,7 +277,8 @@ class ConversationalMode(
             stt.listen(
                 languageTag = languageTag,
                 timeoutMs = timeoutMs,
-                useBluetoothMic = useBluetoothMic
+                useBluetoothMic = useBluetoothMic,
+                onPartial = onPartial
             )
         } finally {
             if (wakeWordWasRunning) {

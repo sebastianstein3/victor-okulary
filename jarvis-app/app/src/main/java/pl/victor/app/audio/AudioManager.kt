@@ -86,6 +86,16 @@ class AudioManager(
      */
     private val pendingUtterances = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
 
+    private val _speaking = MutableStateFlow(false)
+
+    /**
+     * Czy syntezator właśnie mówi - od pierwszej głoski do końca kolejki.
+     *
+     * Między zdaniami strumienia potrafi na chwilę spaść do fałszu; kto
+     * potrzebuje ciągłości (sygnał dla okularów), niech odczeka chwilę.
+     */
+    val speaking: StateFlow<Boolean> = _speaking.asStateFlow()
+
     init {
         initializeTts()
         setupAudioFocus()
@@ -830,11 +840,13 @@ class AudioManager(
         pendingUtterances[id] = done
         // Pierwsze zdanie strumienia wypiera to, co ewentualnie jeszcze leci
         // (np. "chwila, spojrzę"); każde następne DOPISUJE się do kolejki.
+        // Język z [beginStream], nie "pl" na sztywno - inaczej odpowiedź po
+        // angielsku (język odpowiedzi w Ustawieniach) czytał polski głos.
         val queued = if (streamStarted) {
-            speakQueued(sentence, "pl", id)
+            speakQueued(sentence, streamLanguage, id)
         } else {
             streamStarted = true
-            speakInternal(sentence, "pl", id, queueMode = TextToSpeech.QUEUE_FLUSH)
+            speakInternal(sentence, streamLanguage, id, queueMode = TextToSpeech.QUEUE_FLUSH)
         }
         if (queued == null) {
             pendingUtterances.remove(id)
@@ -899,8 +911,13 @@ class AudioManager(
         }
     }
 
+    /** Język bieżącego strumienia - patrz [beginStream]. */
+    @Volatile
+    private var streamLanguage: String = "pl"
+
     /** Zaczyna nowy strumień odpowiedzi - patrz [queueSentence]. */
-    fun beginStream() {
+    fun beginStream(language: String = "pl") {
+        streamLanguage = language
         streamBuffer.clear()
         streamStarted = false
         lastStreamUtteranceId = null
@@ -925,6 +942,7 @@ class AudioManager(
      */
     fun stopSpeaking() {
         tts?.stop()
+        _speaking.value = false
         completeAllPending(false)
     }
 
@@ -934,7 +952,9 @@ class AudioManager(
      */
     private fun installUtteranceListener() {
         tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) = Unit
+            override fun onStart(utteranceId: String?) {
+                _speaking.value = true
+            }
 
             override fun onDone(utteranceId: String?) {
                 complete(utteranceId, true)
@@ -957,6 +977,9 @@ class AudioManager(
     }
 
     private fun complete(utteranceId: String?, success: Boolean) {
+        // Przed wczesnym powrotem: koniec wypowiedzi bez identyfikatora też
+        // może być końcem mówienia.
+        if (runCatching { tts?.isSpeaking }.getOrNull() != true) _speaking.value = false
         val id = utteranceId ?: return
         pendingUtterances.remove(id)?.complete(success)
     }

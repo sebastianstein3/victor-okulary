@@ -233,6 +233,10 @@
             android:exported="false"
             android:label="Notatki" />
         <activity
+            android:name=".ui.translation.TranslationActivity"
+            android:exported="false"
+            android:label="Tłumaczenie na żywo" />
+        <activity
             android:name=".ui.memory.FactsActivity"
             android:exported="false"
             android:label="Co o Tobie wiem" />

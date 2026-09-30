@@ -132,7 +132,7 @@ class ClaudeProvider(
             .build()
 
         try {
-            client.newCall(httpRequest).execute().use { response ->
+            client.newCall(httpRequest).executeCancellable { response ->
                 if (!response.isSuccessful) {
                     val errorBody = response.body?.string() ?: "Unknown error"
                     throw AIProviderException(

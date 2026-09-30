@@ -184,6 +184,16 @@ object GlassesProtocol {
 
     // === Typy ramek notify (loadData[6]) ===
 
+    /**
+     * Liczniki plików w pamięci okularów, wysyłane samoczynnie po każdej zmianie.
+     *
+     * `[7..8]` zdjęcia, `[9..10]` filmy, `[11..12]` nagrania (little endian),
+     * `[13]` rodzaj spisu plików, `[14]` = 1, gdy okulary przyjmują import TYLKO
+     * przez własny hotspot (bez Wi-Fi Direct). Znaczenie z aplikacji producenta,
+     * która na tej podstawie pokazuje "N plików do pobrania". W naszych
+     * dziennikach szło to jako "nieobsługiwana ramka typu 0x1".
+     */
+    const val NOTIFY_MEDIA_COUNT = 0x01
     const val NOTIFY_PHOTO_READY = 0x02
     const val NOTIFY_AI_BUTTON = 0x03
     const val NOTIFY_OTA_PROGRESS = 0x04
@@ -348,10 +358,26 @@ object GlassesProtocol {
     // Świadomie NIE zgadujemy tu "dźwięku powitalnego" - producent go nie gra,
     // tylko ucisza to, co akurat leci, zanim zacznie nową rozmowę.
 
-    /** Wstrzymaj to, co okulary właśnie odtwarzają. */
-    const val TONE_PAUSE_PLAYBACK = 0x02
+    /**
+     * "Zaczynam mówić" - producent wysyła to na starcie KAŻDEJ wypowiedzi
+     * syntezatora, razem z pulsem [TONE_PLAYBACK_ALIVE] co 2 s i kodem
+     * [TONE_STOP_PLAYBACK] na końcu. Okulary wiedzą wtedy, że gra asystent,
+     * i dotknięcie zausznika może go uciszyć (ramka 0x0C).
+     */
+    const val TONE_PLAYBACK_STARTED = 0x01
 
-    /** Zatrzymaj odtwarzanie - producent woła to na starcie nowej rozmowy. */
+    /**
+     * Puls "wciąż mówię", co dwie sekundy w trakcie wypowiedzi.
+     *
+     * Wcześniej opisany u nas jako "wstrzymaj odtwarzanie" - błędnie. Z kodu
+     * producenta: wysyłany wyłącznie w pętli co 2 s, dopóki trwa dźwięk.
+     */
+    const val TONE_PLAYBACK_ALIVE = 0x02
+
+    /**
+     * Koniec albo przerwanie wypowiedzi - producent wysyła to na końcu każdej
+     * wypowiedzi i na starcie nowej rozmowy.
+     */
     const val TONE_STOP_PLAYBACK = 0x03
 
     /** Komunikat błędu - producent gra go, gdy nie ma sieci. */
@@ -798,6 +824,20 @@ object GlassesProtocol {
         }
 
         return when (val type = loadData[NOTIFY_TYPE_INDEX].toIntUnsigned()) {
+            NOTIFY_MEDIA_COUNT ->
+                if (loadData.size > 14) {
+                    NotifyEvent.MediaCountReport(
+                        count = MediaCount(
+                            images = le16(loadData, 7),
+                            videos = le16(loadData, 9),
+                            records = le16(loadData, 11)
+                        ),
+                        apImportOnly = loadData[14].toIntUnsigned() == 1
+                    )
+                } else {
+                    NotifyEvent.Malformed(loadData.size)
+                }
+
             // Bajt 9 mówi, PO CO zdjęcie powstało. Producent przy wartości 2
             // dokleja do niego polecenie "opisz, co widzisz" - i tylko dzięki
             // temu drugi przycisk okularów robi cokolwiek poza wrzuceniem
@@ -908,6 +948,9 @@ object GlassesProtocol {
     /** Bajty w Kotlinie są ze znakiem, a protokół operuje na 0..255. */
     private fun Byte.toIntUnsigned(): Int = this.toInt() and 0xFF
 
+    private fun le16(data: ByteArray, at: Int): Int =
+        data[at].toIntUnsigned() or (data[at + 1].toIntUnsigned() shl 8)
+
     /** Czytelny podgląd ramki - do logów i ekranu diagnostycznego. */
     fun formatFrame(loadData: ByteArray?): String {
         if (loadData == null || loadData.isEmpty()) return "(pusta ramka)"
@@ -992,6 +1035,9 @@ sealed class NotifyEvent {
      * @param realtimeText tryb tekstu na żywo (tłumaczenie) zamiast pytania do AI
      */
     data class AiSessionRequested(val realtimeText: Boolean) : NotifyEvent()
+
+    /** Liczniki plików na okularach - patrz [GlassesProtocol.NOTIFY_MEDIA_COUNT]. */
+    data class MediaCountReport(val count: MediaCount, val apImportOnly: Boolean) : NotifyEvent()
 
     /** Ramka poprawna, ale typ nieobsługiwany. */
     data class Unknown(val type: Int) : NotifyEvent()

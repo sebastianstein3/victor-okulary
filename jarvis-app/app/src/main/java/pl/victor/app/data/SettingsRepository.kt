@@ -298,6 +298,21 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putString(KEY_EAR_TRANSLATION_TO, lang).apply()
     }
 
+    /**
+     * Czy tłumaczenie ze słuchu ma czytać przekład na głos.
+     *
+     * Domyślnie tak - bez panelu na ekranie głos jest jedynym wyjściem. Przy
+     * otwartym panelu tłumaczenia bywa zbędny (przekład widać), a wtedy tryb
+     * nie musi czekać, aż syntezator skończy, i słucha niemal bez przerw. Ten
+     * sam przełącznik ma panel tłumaczenia w aplikacji producenta.
+     */
+    fun isEarTranslationSpoken(): Boolean =
+        prefs.getBoolean(KEY_EAR_TRANSLATION_SPOKEN, true)
+
+    fun setEarTranslationSpoken(spoken: Boolean) {
+        prefs.edit().putBoolean(KEY_EAR_TRANSLATION_SPOKEN, spoken).apply()
+    }
+
     // === Konto Google - Calendar + Gmail, jedno logowanie (v1.2, rozszerzone) ===
 
     /** Nazwa klucza zostaje z czasów gdy dotyczyła tylko kalendarza - flaga już nie. */
@@ -1157,6 +1172,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_TRANSLATION_TARGET = "translation_target"
         private const val KEY_EAR_TRANSLATION_FROM = "ear_translation_from"
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
+        private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
         private const val KEY_GCAL_CONNECTED = "gcal_connected"
         private const val KEY_CAPTURE_MODE = "capture_mode"
         private const val KEY_AUTO_DEGRADE_CAPTURE = "auto_degrade_capture"

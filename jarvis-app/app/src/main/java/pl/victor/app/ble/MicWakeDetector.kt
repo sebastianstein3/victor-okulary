@@ -31,6 +31,14 @@ class MicWakeDetector(
     private var lastWakeMs = 0L
 
     /**
+     * Początek okna, które właśnie dało wybudzenie - czyli chwila, od której
+     * człowiek mówi. Wybudzenie zapada dopiero po [packetsNeeded] pakietach,
+     * około sekundy później; liczony od TEJ chwili początek pytania przepadał.
+     */
+    var wakeWindowStartMs = 0L
+        private set
+
+    /**
      * Zgłasza jeden pakiet, którego nikt nie zamawiał.
      *
      * @return `true`, gdy właśnie uznaliśmy to za wybudzenie
@@ -44,6 +52,7 @@ class MicWakeDetector(
         if (inWindow < packetsNeeded) return false
         if (lastWakeMs != 0L && nowMs - lastWakeMs < cooldownMs) return false
         lastWakeMs = nowMs
+        wakeWindowStartMs = windowStartMs
         inWindow = 0
         return true
     }

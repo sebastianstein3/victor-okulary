@@ -373,6 +373,20 @@ private fun IdleContent(
         androidx.compose.material3.Text("Podgląd na żywo z kamery")
     }
 
+    // === Tłumaczenie na żywo ===
+    // Panel jak w aplikacji producenta: to, co słychać, i przekład na ekranie.
+    Spacer(modifier = Modifier.height(12.dp))
+    androidx.compose.material3.OutlinedButton(
+        onClick = {
+            context.startActivity(
+                Intent(context, pl.victor.app.ui.translation.TranslationActivity::class.java)
+            )
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("🌍 Tłumaczenie na żywo")
+    }
+
     // === Notatki ===
     Spacer(modifier = Modifier.height(12.dp))
     androidx.compose.material3.OutlinedButton(

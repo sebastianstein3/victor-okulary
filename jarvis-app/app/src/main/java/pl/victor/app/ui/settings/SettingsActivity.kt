@@ -3640,14 +3640,28 @@ private fun TranslationSection() {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("👂 Tłumaczenie ze słuchu", fontWeight = FontWeight.Medium)
                     Text(
-                        "Tryb ciągły: wszystko, co słychać w okularach, wraca do " +
-                            "ucha przetłumaczone. Włączasz mówiąc „tłumaczenie na " +
-                            "żywo”, wyłączasz mówiąc „koniec tłumaczenia”. " +
-                            "Tłumaczy na urządzeniu, więc działa bez internetu i " +
-                            "nie zużywa tokenów.",
+                        "Tryb ciągły: wszystko, co słychać, wraca do ucha " +
+                            "przetłumaczone, a w panelu tłumaczenia widać tekst i " +
+                            "przekład. Włączasz mówiąc „tłumaczenie na żywo” albo " +
+                            "w panelu, wyłączasz przyciskiem na okularach albo w " +
+                            "panelu. Tłumaczy na urządzeniu i nie zużywa tokenów.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(Modifier.size(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            context.startActivity(
+                                android.content.Intent(
+                                    context,
+                                    pl.victor.app.ui.translation.TranslationActivity::class.java
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("🌍 Otwórz panel tłumaczenia")
+                    }
                     Spacer(Modifier.size(8.dp))
 
                     var earFromExpanded by remember { mutableStateOf(false) }

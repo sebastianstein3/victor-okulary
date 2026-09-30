@@ -123,7 +123,8 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
      *
      * @return `false`, gdy urządzenie nie ma dekodera Opusa - wtedy i tak
      *   zbieramy pakiety, bo sam ich licznik jest już odpowiedzią na pytanie
-     *   "czy okulary nadają"
+     *   "czy okulary nadają" - albo gdy subskrypcja strumienia się nie udała,
+     *   a więc pakiety nie przyjdą wcale
      */
     fun start(): Boolean = synchronized(lock) {
         if (active) return true
@@ -149,6 +150,7 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         // rozruch). Pakiety z tego odstępu dotąd przepadały razem z pierwszymi
         // słowami pytania - patrz [pl.victor.app.ble.MicBacklog].
         val backlog = glasses.addMicStreamListenerWithBacklog(packetListener)
+            ?: return false  // subskrypcja nie wstała - strumienia NIE ma
         adoptBacklog(backlog)
         decoderOk
     }

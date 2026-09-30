@@ -78,6 +78,10 @@ object MicChoice {
     fun phoneMicNotTrusted(
         fromGlasses: Boolean,
         wantsGlassesMic: Boolean,
-        overSco: Boolean
-    ): Boolean = fromGlasses && wantsGlassesMic && !overSco
+        overSco: Boolean,
+        // Żywy strumień BLE TO JEST mikrofon okularów - SCO jest wtedy celowo
+        // niezestawiane (zabiłoby strumień). Bez tego warunku dziennik przy
+        // KAŻDEJ turze z przycisku mówił "zebrał telefon zamiast okularów".
+        bleStreamLive: Boolean = false
+    ): Boolean = fromGlasses && wantsGlassesMic && !overSco && !bleStreamLive
 }

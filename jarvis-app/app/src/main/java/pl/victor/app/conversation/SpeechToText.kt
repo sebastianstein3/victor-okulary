@@ -131,7 +131,16 @@ class SpeechToText(private val context: Context) {
     suspend fun listen(
         languageTag: String = Locale.getDefault().toLanguageTag(),
         timeoutMs: Long = DEFAULT_TIMEOUT_MS,
-        useBluetoothMic: Boolean = true
+        useBluetoothMic: Boolean = true,
+        /**
+         * Tekst częściowy w trakcie mówienia - dla panelu tłumaczenia.
+         *
+         * Tylko gdy ktoś go chce: prośba o wyniki częściowe zmienia zamówienie
+         * u silnika, a dodatki do zamówienia już raz popsuły tu wykrywanie
+         * końca wypowiedzi (patrz komentarz w [intent]). Zwykłe pytanie idzie
+         * więc dokładnie tak jak dotąd.
+         */
+        onPartial: ((String) -> Unit)? = null
     ): String? {
         if (!isAvailable()) {
             Log.w(tag, "Rozpoznawanie mowy niedostępne na tym urządzeniu")
@@ -160,10 +169,10 @@ class SpeechToText(private val context: Context) {
             // Język, o którym już wiemy, że silnik na urządzeniu go nie ma, idzie
             // od razu przez sieć - inaczej każdy nasłuch płaciłby za tę samą,
             // z góry przegraną próbę.
-            val onDeviceFirst = languageTag !in onDeviceMissingLanguages
+            val onDeviceFirst = !onDeviceStillMissing(languageTag)
             val first = withTimeoutOrNull(timeoutMs) {
                 withContext(Dispatchers.Main) {
-                    listenOnMainThread(languageTag, preferOnDevice = onDeviceFirst)
+                    listenOnMainThread(languageTag, preferOnDevice = onDeviceFirst, onPartial = onPartial)
                 }
             }
             if (first != null || !onDeviceFirst || !LanguagePackFallback.isLanguageError(lastErrorCode)) {
@@ -180,7 +189,7 @@ class SpeechToText(private val context: Context) {
             // ZAWSZE, gdy tylko istniał, bez względu na język - i nie miał drogi
             // zapasowej. Rozpoznawanie Google przez sieć zna angielski bez
             // żadnego pakietu, więc wystarczyło po nie sięgnąć.
-            onDeviceMissingLanguages.add(languageTag)
+            onDeviceMissingLanguages[languageTag] = System.currentTimeMillis()
             lastOnDeviceLanguageMiss = languageTag
             requestOnDeviceDownload(languageTag)
             val left = timeoutMs - (System.currentTimeMillis() - startedAt)
@@ -189,7 +198,7 @@ class SpeechToText(private val context: Context) {
             lastErrorCode = null
             return withTimeoutOrNull(left) {
                 withContext(Dispatchers.Main) {
-                    listenOnMainThread(languageTag, preferOnDevice = false)
+                    listenOnMainThread(languageTag, preferOnDevice = false, onPartial = onPartial)
                 }
             }
         } finally {
@@ -203,8 +212,23 @@ class SpeechToText(private val context: Context) {
      * Nie trwale, bo pakiet może się właśnie pobierać ([requestOnDeviceDownload])
      * - po restarcie aplikacji silnik dostanie drugą szansę.
      */
-    private val onDeviceMissingLanguages: MutableSet<String> =
-        java.util.Collections.synchronizedSet(mutableSetOf())
+    private val onDeviceMissingLanguages: MutableMap<String, Long> =
+        java.util.concurrent.ConcurrentHashMap()
+
+    /**
+     * Czy silnik na urządzeniu wciąż NIE MA języka.
+     *
+     * Z terminem, bo pakiet właśnie się pobiera ([requestOnDeviceDownload]).
+     * Bez niego raz brakujący język szedł przez sieć aż do restartu
+     * aplikacji - także wtedy, gdy pakiet był już od dawna na telefonie, a
+     * silnik na urządzeniu jest tym, który działa przy zgaszonym ekranie.
+     */
+    private fun onDeviceStillMissing(languageTag: String): Boolean {
+        val since = onDeviceMissingLanguages[languageTag] ?: return false
+        if (System.currentTimeMillis() - since < ON_DEVICE_RETRY_MS) return true
+        onDeviceMissingLanguages.remove(languageTag)
+        return false
+    }
 
     /** Ostatni język, którego zabrakło silnikowi na urządzeniu - do dziennika. */
     @Volatile
@@ -237,7 +261,8 @@ class SpeechToText(private val context: Context) {
 
     private suspend fun listenOnMainThread(
         languageTag: String,
-        preferOnDevice: Boolean = true
+        preferOnDevice: Boolean = true,
+        onPartial: ((String) -> Unit)? = null
     ): String? =
         suspendCancellableCoroutine { continuation ->
             val recognizer = createRecognizer(preferOnDevice)
@@ -258,7 +283,7 @@ class SpeechToText(private val context: Context) {
 
             val signal = MicSignal()
             lastMicSignal = signal
-            recognizer.setRecognitionListener(listener(signal, ::finish))
+            recognizer.setRecognitionListener(listener(signal, ::finish, onPartial))
             continuation.invokeOnCancellation {
                 // Anulowanie (np. z withTimeoutOrNull) przychodzi z dowolnego wątku,
                 // a SpeechRecognizer wolno ruszać tylko z głównego - stąd post().
@@ -270,7 +295,7 @@ class SpeechToText(private val context: Context) {
                 }
             }
 
-            runCatching { recognizer.startListening(intent(languageTag)) }
+            runCatching { recognizer.startListening(intent(languageTag, partial = onPartial != null)) }
                 .onFailure {
                     Log.w(tag, "startListening nie powiodło się", it)
                     finish(null)
@@ -463,7 +488,8 @@ class SpeechToText(private val context: Context) {
 
     private fun listener(
         signal: MicSignal,
-        finish: (String?) -> Unit
+        finish: (String?) -> Unit,
+        onPartial: ((String) -> Unit)? = null
     ) = object : RecognitionListener {
         override fun onResults(results: Bundle?) {
             val text = results
@@ -498,11 +524,17 @@ class SpeechToText(private val context: Context) {
         override fun onRmsChanged(rmsdB: Float) = signal.noteLevel(rmsdB)
         override fun onBufferReceived(buffer: ByteArray?) = Unit
         override fun onEndOfSpeech() = Unit
-        override fun onPartialResults(partialResults: Bundle?) = Unit
+        override fun onPartialResults(partialResults: Bundle?) {
+            val callback = onPartial ?: return
+            partialResults
+                ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                ?.firstOrNull { it.isNotBlank() }
+                ?.let { runCatching { callback(it) } }
+        }
         override fun onEvent(eventType: Int, params: Bundle?) = Unit
     }
 
-    private fun intent(languageTag: String): Intent =
+    private fun intent(languageTag: String, partial: Boolean = false): Intent =
         Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
@@ -510,7 +542,7 @@ class SpeechToText(private val context: Context) {
             )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, partial)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
             // NIE USTAWIAMY OKIEN CISZY. TO NIE JEST NIEDOPATRZENIE.
             //
@@ -582,6 +614,9 @@ class SpeechToText(private val context: Context) {
          * powiedzieć, a pusty wynik wyglądałby jak kolejna awaria.
          */
         private const val MIN_FALLBACK_LISTEN_MS = 3_000L
+
+        /** Po jakim czasie silnik na urządzeniu dostaje drugą szansę na brakujący język. */
+        private const val ON_DEVICE_RETRY_MS = 10 * 60_000L
 
         /** 16 bitów na próbkę, mono - tak dekodujemy dźwięk z okularów. */
         private const val BYTES_PER_SAMPLE = 2

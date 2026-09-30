@@ -56,6 +56,18 @@ class MicChoiceTest {
     }
 
     @Test
+    fun `zywy strumien BLE to mikrofon okularow, nie zastepstwo`() {
+        assertFalse(
+            MicChoice.phoneMicNotTrusted(
+                fromGlasses = true,
+                wantsGlassesMic = true,
+                overSco = false,
+                bleStreamLive = true
+            )
+        )
+    }
+
+    @Test
     fun `tekst z telefonu jest niepewny tylko przy niespelnionej prosbie`() {
         assertTrue(
             "prośba o mikrofon okularów + brak SCO = telefon zbierał zastępczo",

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
@@ -77,6 +78,26 @@ class LocalAIProvider(private val context: Context) : AIProvider {
         enableWebSearch: Boolean,
         systemPrompt: String?
     ): Flow<AIResponseChunk> = callbackFlow {
+        // PRZERWANA TURA MA ZATRZYMAĆ SILNIK.
+        //
+        // Generowanie idzie w blokującym wywołaniu biblioteki, więc anulowanie
+        // korutyny go nie zatrzymuje - silnik liczył dalej do końca, zajmując
+        // procesor i baterię dla odpowiedzi, której nikt już nie odbierze. Tylko
+        // limit czasu w orkiestratorze wołał cancelOngoing(); przerwanie przez
+        // użytkownika - nie. Strażnik jest dzieckiem tego producenta, więc
+        // dostaje anulowanie od razu, choć sam producent wisi w silniku.
+        var skończone = false
+        val strażnik = launch {
+            try {
+                kotlinx.coroutines.awaitCancellation()
+            } finally {
+                if (!skończone) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        runCatching { engine.cancelGeneration() }
+                    }
+                }
+            }
+        }
         try {
             warnIfUnsupportedMedia(images)
             ensureModelLoaded()
@@ -110,9 +131,13 @@ class LocalAIProvider(private val context: Context) : AIProvider {
                 },
                 onFailure = { e -> close(toProviderException(e)) }
             )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             close(toProviderException(e))
         }
+        skończone = true
+        strażnik.cancel()
         awaitClose { }
     }.buffer(Channel.UNLIMITED)
 

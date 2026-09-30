@@ -114,6 +114,10 @@ class ButtonActionDetector {
     /**
      * Przetwarza event z przycisku. Wywołaj z obserwatora buttonEvent w VictorManager.
      */
+    // processEvent przychodzi z wątku głównego, a zamknięcie okna z
+    // Dispatchers.Default - bez blokady klik tuż przy granicy 500 ms potrafił
+    // zginąć albo dać akcję dwa razy.
+    @Synchronized
     fun processEvent(event: ButtonEvent) {
         when (event) {
             ButtonEvent.ShortClick -> handleClick()
@@ -160,16 +164,25 @@ class ButtonActionDetector {
         lastClickTime = now
 
         flushJob?.cancel()
+        val seria = ++generation
         flushJob = scope.launch {
             delay(CLICK_WINDOW_MS)
-            flushPendingClick()
+            // Okno mogło się w międzyczasie przedłużyć nowym kliknięciem -
+            // wtedy zamyka je tamto, nie to.
+            synchronized(this@ButtonActionDetector) {
+                if (seria == generation) flushPendingClick()
+            }
         }
     }
+
+    /** Numer bieżącego okna kliknięć - patrz [handleClick]. */
+    private var generation = 0L
 
     /**
      * Zamyka okno liczenia kliknięć i emituje akcję odpowiadającą ich liczbie.
      * Woła się sama po [CLICK_WINDOW_MS] od ostatniego kliknięcia.
      */
+    @Synchronized
     fun flushPendingClick() {
         // Zapisane PRZED reset() - inaczej orkiestrator odczytałby wyzerowane
         // pola, bo akcja dociera do niego już po zamknięciu serii.

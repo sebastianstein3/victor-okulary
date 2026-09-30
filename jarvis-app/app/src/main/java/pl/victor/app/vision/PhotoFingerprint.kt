@@ -13,7 +13,14 @@ import android.graphics.Color
  */
 object PhotoFingerprint {
 
-    fun of(jpeg: ByteArray): Long? = runCatching {
+    /**
+     * @param górnaCzęść jaka część wysokości obrazu idzie do odcisku, od góry.
+     *   Mniej niż 1 przy URWANEJ miniaturze: dekoder dopełnia brakujący dół
+     *   szarością, a odcisk całości wyszedłby wtedy "inny" dla tego samego
+     *   zdjęcia. Góra jest w urwanym pliku kompletna, bo JPEG z okularów
+     *   zapisuje się wierszami od góry.
+     */
+    fun of(jpeg: ByteArray, górnaCzęść: Float = 1f): Long? = runCatching {
         // Najpierw sam rozmiar, potem dekodowanie od razu zmniejszone - pełne
         // zdjęcie z okularów to kilka megapikseli i nie ma powodu trzymać go w
         // pamięci tylko po to, żeby zrobić z niego 72 piksele.
@@ -27,12 +34,19 @@ object PhotoFingerprint {
         val small = BitmapFactory.decodeByteArray(
             jpeg, 0, jpeg.size, BitmapFactory.Options().apply { inSampleSize = sample }
         ) ?: return null
-        val grid = Bitmap.createScaledBitmap(small, PhotoMatch.SZEROKOŚĆ, PhotoMatch.WYSOKOŚĆ, true)
+        val wysokość = (small.height * górnaCzęść.coerceIn(0.1f, 1f)).toInt().coerceAtLeast(1)
+        val kadr = if (wysokość < small.height) {
+            Bitmap.createBitmap(small, 0, 0, small.width, wysokość)
+        } else {
+            small
+        }
+        val grid = Bitmap.createScaledBitmap(kadr, PhotoMatch.SZEROKOŚĆ, PhotoMatch.WYSOKOŚĆ, true)
         val jasność = IntArray(PhotoMatch.SZEROKOŚĆ * PhotoMatch.WYSOKOŚĆ) { i ->
             val c = grid.getPixel(i % PhotoMatch.SZEROKOŚĆ, i / PhotoMatch.SZEROKOŚĆ)
             (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
         }
-        if (grid !== small) grid.recycle()
+        if (grid !== kadr) grid.recycle()
+        if (kadr !== small) kadr.recycle()
         small.recycle()
         PhotoMatch.odcisk(jasność)
     }.getOrNull()

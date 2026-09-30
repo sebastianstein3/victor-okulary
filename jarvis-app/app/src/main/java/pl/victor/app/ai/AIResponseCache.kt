@@ -66,6 +66,12 @@ class AIResponseCache {
         modelId: String,
         ttlMinutes: Int = 60
     ) {
+        // PUSTEJ ODPOWIEDZI NIE ZAPAMIĘTUJEMY. Model potrafi oddać pustkę
+        // (blokada treści, urwany strumień) - zapisana, odpowiadała na to samo
+        // pytanie przez godzinę "model nie odesłał odpowiedzi", bez pytania
+        // modelu drugi raz. Tak samo odpowiedź ze znacznikiem akcji: odtworzona
+        // z pamięci wykonałaby akcję (SMS, połączenie) ponownie.
+        if (answer.isBlank() || answer.contains("[ACTION", ignoreCase = true)) return
         val key = hashKey(question, providerId, modelId)
         synchronized(lock) {
             if (cache.size >= maxSize) {

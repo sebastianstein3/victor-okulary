@@ -101,7 +101,17 @@ class QRScanner {
         val mnożniki = BarcodeAttempts.mnożniki(minOf(bitmap.width, bitmap.height))
         for (m in mnożniki) {
             val próba = if (m == 1) bitmap else powiększ(bitmap, m) ?: continue
-            val wynik = jedenSkan(próba, timeoutMs)
+            val (wynik, skończony) = jedenSkan(próba, timeoutMs)
+            // NIEDOKOŃCZONEGO SKANU NIE WOLNO ZWALNIAĆ.
+            //
+            // Po limicie czasu ML Kit wciąż czyta ten obraz w tle - zwolniony
+            // pod nim dawał błąd albo śmieci. Taki skan zatyka też kolejkę
+            // detektora, więc następne próby i tak skończyłyby się limitem:
+            // przerywamy, a obraz zbierze odśmiecacz.
+            if (!skończony) {
+                Log.w(tag, "Skan nie zdążył w ${timeoutMs} ms - przerywam próby")
+                return emptyList()
+            }
             if (próba !== bitmap) próba.recycle()
             if (wynik.isNotEmpty()) {
                 if (m > 1) Log.i(tag, "Kod odczytany dopiero po powiększeniu ${m}x")
@@ -138,11 +148,12 @@ class QRScanner {
         null
     }
 
-    private fun jedenSkan(bitmap: Bitmap, timeoutMs: Long): List<ScannedCode> {
+    /** @return kody i to, czy ML Kit w ogóle skończył (fałsz = limit czasu). */
+    private fun jedenSkan(bitmap: Bitmap, timeoutMs: Long): Pair<List<ScannedCode>, Boolean> {
         val image = InputImage.fromBitmap(bitmap, 0)
         val task = scanner.process(image)
 
-        return try {
+        val kody: List<ScannedCode> = try {
             // ML Kit zwraca Task z Play Services, nie java.util.concurrent.Future.
             val barcodes = Tasks.await(task, timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
             barcodes.map { barcode ->
@@ -157,6 +168,7 @@ class QRScanner {
             Log.w(tag, "Skan kodu nie powiódł się: ${e.message}")
             emptyList()
         }
+        return kody to task.isComplete
     }
 
     /**

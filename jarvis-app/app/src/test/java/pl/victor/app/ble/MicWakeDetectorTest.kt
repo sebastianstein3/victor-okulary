@@ -98,4 +98,19 @@ class MicWakeDetectorTest {
         }
         assertFalse("rzadkie pakiety nie mogą uzbierać progu", wybudzen > 0)
     }
+
+    @Test
+    fun `wybudzenie pamieta poczatek okna, nie chwile decyzji`() {
+        // Pytanie zaczyna się tam, gdzie pierwszy pakiet serii - decyzja zapada
+        // dopiero po progu, około sekundy później.
+        val d = MicWakeDetector()
+        var czas = 10_000L
+        var przy = -1L
+        repeat(MicWakeDetector.WAKE_PACKETS) {
+            if (d.onStrayPacket(czas)) przy = czas
+            czas += 20
+        }
+        assertTrue(przy > 10_000L)
+        assertEquals(10_000L, d.wakeWindowStartMs)
+    }
 }

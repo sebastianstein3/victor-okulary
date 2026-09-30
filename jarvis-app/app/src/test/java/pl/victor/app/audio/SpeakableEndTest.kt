@@ -57,4 +57,18 @@ class SpeakableEndTest {
     fun `znacznik na samym poczatku nie przepuszcza nic`() {
         assertEquals("", speakable("[[ACTION: type=take_photo]]"))
     }
+
+    @Test
+    fun `znacznik z pojedynczym nawiasem tez zostaje wstrzymany`() {
+        assertEquals(
+            "Wysyłam. ",
+            speakable("Wysyłam. [ACTION: type=send_sms to=Ania body=\"Będę za 10 min.\"]")
+        )
+    }
+
+    @Test
+    fun `niedokonczony poczatek znacznika czeka`() {
+        assertEquals("Już. ", speakable("Już. [AC"))
+        assertEquals("Już. ", speakable("Już. [ ACTI"))
+    }
 }

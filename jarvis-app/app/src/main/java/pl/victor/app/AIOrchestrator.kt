@@ -14,6 +14,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import pl.victor.app.ai.AIProvider
@@ -479,12 +480,14 @@ class AIOrchestrator(
      * wyliczankę wszystkiego po kolei.
      */
     private fun buildNotesContext(question: String, force: Boolean = false): String? {
-        if (!force && !pl.victor.app.notes.Notes.mentionsNotes(question) &&
-            !openContextTopics.contains(TOPIC_NOTES)
+        if (!openContextTopics.dokleić(
+                TOPIC_NOTES,
+                pytanieOTemat = pl.victor.app.notes.Notes.mentionsNotes(question),
+                wymuszone = force
+            )
         ) {
             return null
         }
-        openContextTopics.add(TOPIC_NOTES)
         return pl.victor.app.notes.Notes.buildPromptContext(settings.getNotes())
             ?.also { Log.i(TAG, "Doklejam notatki użytkownika") }
     }
@@ -538,12 +541,14 @@ class AIOrchestrator(
         // `force` obchodzi bramkę słów kluczowych - używa go briefing, który
         // ma zebrać wszystko, o co użytkownik poprosił w ustawieniach, a nie
         // to, co akurat wynika z brzmienia pytania.
-        if (!force && !pl.victor.app.proactive.CalendarContext.isAboutSchedule(question) &&
-            !openContextTopics.contains(TOPIC_CALENDAR)
+        if (!openContextTopics.dokleić(
+                TOPIC_CALENDAR,
+                pytanieOTemat = pl.victor.app.proactive.CalendarContext.isAboutSchedule(question),
+                wymuszone = force
+            )
         ) {
             return null
         }
-        openContextTopics.add(TOPIC_CALENDAR)
 
         // DWIE DROGI DO KALENDARZA, BO SĄ DWA RÓŻNE KALENDARZE.
         //
@@ -625,12 +630,14 @@ class AIOrchestrator(
         // `force` obchodzi bramkę słów kluczowych - używa go briefing, który
         // ma zebrać wszystko, o co użytkownik poprosił w ustawieniach, a nie
         // to, co akurat wynika z brzmienia pytania.
-        if (!force && !pl.victor.app.proactive.WeatherContext.isAboutWeather(question) &&
-            !openContextTopics.contains(TOPIC_WEATHER)
+        if (!openContextTopics.dokleić(
+                TOPIC_WEATHER,
+                pytanieOTemat = pl.victor.app.proactive.WeatherContext.isAboutWeather(question),
+                wymuszone = force
+            )
         ) {
             return null
         }
-        openContextTopics.add(TOPIC_WEATHER)
 
         val apiKey = settings.getOpenWeatherApiKey()
         if (apiKey.isBlank()) {
@@ -678,12 +685,14 @@ class AIOrchestrator(
         // `force` obchodzi bramkę słów kluczowych - używa go briefing, który
         // ma zebrać wszystko, o co użytkownik poprosił w ustawieniach, a nie
         // to, co akurat wynika z brzmienia pytania.
-        if (!force && !pl.victor.app.proactive.GmailContext.isAboutEmail(question) &&
-            !openContextTopics.contains(TOPIC_MAIL)
+        if (!openContextTopics.dokleić(
+                TOPIC_MAIL,
+                pytanieOTemat = pl.victor.app.proactive.GmailContext.isAboutEmail(question),
+                wymuszone = force
+            )
         ) {
             return null
         }
-        openContextTopics.add(TOPIC_MAIL)
 
         val gmail = pl.victor.app.google.GmailService(context)
         // WYGASŁE logowanie przed "niepołączonym": od chwili wykrycia wygaśnięcia
@@ -805,8 +814,9 @@ class AIOrchestrator(
      * że nie ma dostępu do aktualnej pogody - minutę po tym, jak ją podał.
      * Zgłoszono to dokładnie tak.
      *
-     * Raz otwarty temat zostaje więc otwarty do końca rozmowy. Czyści go "nowy
-     * temat" - tak samo jak historię.
+     * Raz otwarty temat zostaje więc otwarty - ale na kilka minut od ostatniej
+     * wzmianki, nie do końca życia procesu. Powód i skutek poprzedniej wersji:
+     * [pl.victor.app.conversation.ContextTopics]. Czyści go też "nowy temat".
      */
     /**
      * Zbiór współbieżny, nie zwykły [mutableSetOf].
@@ -815,8 +825,7 @@ class AIOrchestrator(
      * RÓWNOLEGLE, dopisują się do niego z kilku korutyn naraz - a zwykły
      * HashSet potrafi się przy tym trwale uszkodzić.
      */
-    private val openContextTopics: MutableSet<String> =
-        java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap())
+    private val openContextTopics = pl.victor.app.conversation.ContextTopics()
 
 
     private var currentProvider: AIProvider? = null
@@ -906,6 +915,40 @@ class AIOrchestrator(
         scope.launch {
             glassesManager.aiSessionRequest.collect { realtimeText ->
                 bezpiecznie("rozmowa z okularów") { startGlassesConversation(realtimeText) }
+            }
+        }
+
+        // OKULARY MAJĄ WIEDZIEĆ, ŻE MÓWIMY - tak jak u producenta.
+        //
+        // Aplikacja producenta przy każdej wypowiedzi wysyła "zaczynam" (1),
+        // puls co 2 s (2) i "koniec" (3). U nas nie szło nic, więc okulary nie
+        // miały skąd wiedzieć, że gra asystent - a to od nich zależy, czy
+        // dotknięcie zausznika przyjdzie jako "ucisz" (0x0C). Chwilowy spadek
+        // między zdaniami strumienia nie może dawać "koniec, zaczynam" co
+        // zdanie, stąd odczekanie przed kodem 3.
+        scope.launch {
+            var okularyWiedzą = false
+            audio.speaking.collectLatest { mówi ->
+                bezpiecznie("sygnał mówienia dla okularów") {
+                    if (mówi) {
+                        if (!glassesManager.isConnected()) return@bezpiecznie
+                        if (!okularyWiedzą) {
+                            glassesManager.playGlassesTone(GlassesProtocol.TONE_PLAYBACK_STARTED)
+                            okularyWiedzą = true
+                        }
+                        while (true) {
+                            delay(PLAYBACK_PULSE_MS)
+                            if (!glassesManager.isConnected()) break
+                            glassesManager.playGlassesTone(GlassesProtocol.TONE_PLAYBACK_ALIVE)
+                        }
+                    } else if (okularyWiedzą) {
+                        delay(PLAYBACK_END_GRACE_MS)
+                        okularyWiedzą = false
+                        if (glassesManager.isConnected()) {
+                            glassesManager.playGlassesTone(GlassesProtocol.TONE_STOP_PLAYBACK)
+                        }
+                    }
+                }
             }
         }
 
@@ -1111,6 +1154,18 @@ class AIOrchestrator(
      * @return tekst albo `null`, gdy żadna droga nie dała rady
      */
     private suspend fun transcribeGlassesAudio(pcm: ByteArray, languageTag: String): String? {
+        val wynik = transcribeGlassesAudioSteps(pcm, languageTag)
+        // PRZERWANA TURA NIE MOŻE DOSTAĆ TEKSTU.
+        //
+        // Kolejne drogi transkrypcji siedzą w runCatching, a ono połyka też
+        // anulowanie - funkcja oddawała wtedy null albo tekst, a przerwana tura
+        // szła dalej: zadawała pytanie albo mówiła "nic nie słyszałem", mimo
+        // dotknięcia zausznika w trakcie przepisywania.
+        currentCoroutineContext().ensureActive()
+        return wynik
+    }
+
+    private suspend fun transcribeGlassesAudioSteps(pcm: ByteArray, languageTag: String): String? {
         // Opus rozkodowuje się na 48 kHz, a rozpoznawanie mowy pracuje na 16 kHz.
         // Przeliczamy sami - podanie 48 kHz i liczenie na to, że usługa sobie
         // poradzi, byłoby zakładem o całą transkrypcję.
@@ -1434,6 +1489,43 @@ class AIOrchestrator(
     val earTranslation: kotlinx.coroutines.flow.StateFlow<Boolean> =
         _earTranslation.asStateFlow()
 
+    private val _earTranscript = MutableStateFlow(pl.victor.app.translation.EarTranscript())
+
+    /**
+     * Co słychać i co z tego wyszło - dla panelu tłumaczenia.
+     *
+     * Panel jest tylko widokiem: tryb działa tak samo z panelem i bez niego
+     * (z przycisku na okularach, z komendy głosowej).
+     */
+    val earTranscript: StateFlow<pl.victor.app.translation.EarTranscript> =
+        _earTranscript.asStateFlow()
+
+    /** Ostatni tekst częściowy - źródło przekładu na żywo, patrz [startEarPartialTranslation]. */
+    private val earPartial = MutableStateFlow("")
+    private var earPartialJob: kotlinx.coroutines.Job? = null
+
+    /** Czyści tekst w panelu. Trwającego trybu nie zatrzymuje. */
+    fun clearEarTranscript() {
+        _earTranscript.value = _earTranscript.value.wyczyść()
+    }
+
+    /**
+     * Zmienia języki trybu.
+     *
+     * W trakcie trybu uruchamia go od nowa - rozpoznawanie słucha w języku
+     * źródłowym i tłumacz jest zbudowany dla pary, więc zmiana w locie nie ma
+     * jak zadziałać. Tak samo robi aplikacja producenta.
+     */
+    fun setEarTranslationLanguages(from: String, to: String) {
+        settings.setEarTranslationFrom(from)
+        settings.setEarTranslationTo(to)
+        _earTranscript.value = _earTranscript.value.copy(z = from, na = to)
+        if (_earTranslation.value) {
+            stopEarTranslation("zmiana języków")
+            startEarTranslation()
+        }
+    }
+
     /** Jedno wejście dla przycisku, gestu i komendy głosowej. */
     fun toggleEarTranslation() {
         if (_earTranslation.value) stopEarTranslation("ponowne wywołanie")
@@ -1486,12 +1578,53 @@ class AIOrchestrator(
             val message = "Tłumaczenie ze słuchu ma ten sam język na wejściu i wyjściu. " +
                 "Zmień go w Ustawieniach."
             _state.value = OrchestratorState.Error(message)
+            _earTranscript.value = _earTranscript.value.copy(z = from, na = to, komunikat = message)
             audio.speak(message, language = settings.getResponseLanguage())
             return
         }
         earSession.wyzeruj()
+        _earTranscript.value = _earTranscript.value.start(from, to)
         _earTranslation.value = true
-        earJob = scope.launch { earTranslationLoop(from, to) }
+        startEarPartialTranslation(from, to)
+        // LAZY i start() po przypisaniu: pętla porównuje się z [earJob], więc
+        // uchwyt musi już stać, zanim wykona pierwszą instrukcję.
+        earJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
+            earTranslationLoop(from, to)
+        }
+        earJob?.start()
+    }
+
+    /**
+     * Przekład tekstu częściowego - najwyżej raz na sekundę.
+     *
+     * Ten sam rytm co u producenta: częściej to miganie tekstu i marnowanie
+     * tłumacza na słowa, które za chwilę się zmienią. Tłumaczy zawsze
+     * NAJNOWSZY tekst - odczytany po odczekaniu, nie ten, który zbudził pętlę.
+     */
+    private fun startEarPartialTranslation(from: String, to: String) {
+        earPartialJob?.cancel()
+        earPartial.value = ""
+        earPartialJob = scope.launch {
+            var ostatnio = 0L
+            earPartial.collect { pierwszy ->
+                if (pierwszy.isBlank()) return@collect
+                val czekaj = ostatnio + pl.victor.app.translation.EarTranslation.MIN_ODSTĘP_MS -
+                    System.currentTimeMillis()
+                if (czekaj > 0) delay(czekaj)
+                val tekst = earPartial.value.takeIf { it.isNotBlank() } ?: return@collect
+                ostatnio = System.currentTimeMillis()
+                val przekład = try {
+                    translator.translate(tekst, from, to)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    null
+                }
+                if (!przekład.isNullOrBlank() && przekład != tekst) {
+                    _earTranscript.value = _earTranscript.value.zCzęściowymPrzekładem(tekst, przekład)
+                }
+            }
+        }
     }
 
     /**
@@ -1510,8 +1643,16 @@ class AIOrchestrator(
             )
         }
         _earTranslation.value = false
+        _earTranscript.value = _earTranscript.value.stop()
+        earPartialJob?.cancel()
+        earPartialJob = null
         earJob?.cancel()
         earJob = null
+    }
+
+    /** Komunikat dla człowieka w panelu - to samo, co tryb mówi na głos. */
+    private fun noteEarMessage(tekst: String) {
+        _earTranscript.value = _earTranscript.value.copy(komunikat = tekst)
     }
 
     private suspend fun earTranslationLoop(from: String, to: String) {
@@ -1525,7 +1666,10 @@ class AIOrchestrator(
         }
         // Zapowiedź idzie w JĘZYKU DOCELOWYM, bo w nim człowiek będzie słyszał
         // wszystko, co dalej - i od razu słychać, czy syntezator ten język ma.
-        audio.speakAndAwait("Tłumaczę z $fromName na $toName.", language = to)
+        // Przy wyciszonym trybie (przekład tylko w panelu) - bez zapowiedzi.
+        val mówić = settings.isEarTranslationSpoken()
+        if (mówić) audio.speakAndAwait("Tłumaczę z $fromName na $toName.", language = to)
+        val mójJob = currentCoroutineContext()[kotlinx.coroutines.Job]
         // POTKNIĘCIE JEDNEGO ZDANIA NIE MOŻE KOŃCZYĆ TRYBU.
         //
         // Przy mowie ciągłej wyjątek z rozpoznawania albo z tłumacza jest
@@ -1536,10 +1680,20 @@ class AIOrchestrator(
         // tylko w logu"). Liczymy je więc i poddajemy się dopiero po serii.
         var zRzędu = 0
         try {
-            while (_earTranslation.value) {
-                val usłyszane = runCatching { earListenOnce(from) }
-                    .onFailure { Log.w(TAG, "Tłumaczenie ze słuchu: nasłuch nie wyszedł", it) }
-                    .getOrNull()
+            // `earJob === mójJob`: po szybkim "wyłącz i włącz" flaga jest znowu
+            // prawdą, ale należy już do NOWEJ sesji - stara pętla ma wtedy
+            // skończyć, a nie słuchać równolegle z nową.
+            while (_earTranslation.value && earJob === mójJob) {
+                val usłyszane = try {
+                    earListenOnce(from)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    // runCatching połykał i to - anulowana pętla liczyła wtedy
+                    // "puste nasłuchy" i mówiła "nic nie słyszę, kończę".
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Tłumaczenie ze słuchu: nasłuch nie wyszedł", e)
+                    null
+                }
                 if (usłyszane.isNullOrBlank()) {
                     // "NIC NIE SŁYSZĘ" TO BYŁA ODPOWIEDŹ NA NIEZADANE PYTANIE.
                     //
@@ -1580,20 +1734,19 @@ class AIOrchestrator(
                         // indziej nic tu nie da - stąd zdanie o internecie, a nie
                         // o ustawieniach Androida, które już raz wysłało
                         // człowieka szukać czegoś, co miał.
-                        audio.speakAndAwait(
-                            "Nie mogę słuchać po $fromName: $powód. Rozpoznawanie " +
-                                "bez sieci nie ma tego języka, a przez internet też " +
-                                "się nie udało. Sprawdź połączenie z internetem.",
-                            language = to
-                        )
+                        val komunikat = "Nie mogę słuchać po $fromName: $powód. Rozpoznawanie " +
+                            "bez sieci nie ma tego języka, a przez internet też " +
+                            "się nie udało. Sprawdź połączenie z internetem."
+                        noteEarMessage(komunikat)
+                        audio.speakAndAwait(komunikat, language = to)
                         stopEarTranslation("rozpoznawanie odmówiło: $powód")
                         return
                     }
                     zRzędu++
                     if (zRzędu >= EAR_MAX_PUSTYCH) {
-                        audio.speakAndAwait(
-                            "Nic nie słyszę po $fromName. Kończę tłumaczenie.", language = to
-                        )
+                        val komunikat = "Nic nie słyszę po $fromName. Kończę tłumaczenie."
+                        noteEarMessage(komunikat)
+                        audio.speakAndAwait(komunikat, language = to)
                         stopEarTranslation("$EAR_MAX_PUSTYCH nasłuchów bez dźwięku")
                         return
                     }
@@ -1610,11 +1763,14 @@ class AIOrchestrator(
                         Log.d(TAG, "Tłumaczenie ze słuchu: pomijam - ${decyzja.powód}")
                     }
                     is pl.victor.app.translation.EarTranslationSession.Decyzja.Tłumacz -> {
-                        val przekład = runCatching {
+                        val przekład = try {
                             translator.translate(decyzja.fragment, from, to)
-                        }.onFailure {
-                            Log.w(TAG, "Tłumaczenie ze słuchu: tłumacz odmówił", it)
-                        }.getOrNull()
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Tłumaczenie ze słuchu: tłumacz odmówił", e)
+                            null
+                        }
                         // Tłumacz oddaje ORYGINAŁ, gdy nie dał rady (patrz
                         // SimultaneousTranslator.translate). Mówienie wtedy tego
                         // samego, co przed chwilą padło, jest gorsze niż cisza:
@@ -1638,20 +1794,43 @@ class AIOrchestrator(
                                 )
                             )
                         }
-                        earSession.zapamiętajWłasnąWypowiedź(przekład)
-                        // speakAndAwait, nie speak: dopóki mówimy, NIE słuchamy.
-                        // Mikrofon okularów wisi centymetry od ich głośnika,
-                        // więc nakładanie tych dwóch rzeczy znaczyłoby
-                        // tłumaczyć własny głos w kółko. [EarTranslation.jestEchem]
-                        // jest drugim zabezpieczeniem, nie pierwszym.
-                        audio.speakAndAwait(przekład, language = to)
+                        _earTranscript.value = _earTranscript.value.zSegmentem(
+                            decyzja.fragment, przekład, System.currentTimeMillis()
+                        )
+                        earPartial.value = ""
+                        // Czytamy na głos tylko przy włączonym głosie - w panelu
+                        // można go wyciszyć, jak u producenta. Wtedy tryb nie
+                        // czeka na syntezator i słucha niemal bez przerw.
+                        if (settings.isEarTranslationSpoken()) {
+                            earSession.zapamiętajWłasnąWypowiedź(przekład)
+                            _earTranscript.value = _earTranscript.value
+                                .czyta(_earTranscript.value.segmenty.lastOrNull()?.id)
+                            // speakAndAwait, nie speak: dopóki mówimy, NIE słuchamy.
+                            // Mikrofon okularów wisi centymetry od ich głośnika,
+                            // więc nakładanie tych dwóch rzeczy znaczyłoby
+                            // tłumaczyć własny głos w kółko. [EarTranslation.jestEchem]
+                            // jest drugim zabezpieczeniem, nie pierwszym.
+                            try {
+                                audio.speakAndAwait(przekład, language = to)
+                            } finally {
+                                _earTranscript.value = _earTranscript.value.czyta(null)
+                            }
+                        }
                     }
                 }
             }
         } finally {
-            _earTranslation.value = false
-            earJob = null
-            _state.value = OrchestratorState.Idle
+            // Tylko gdy to wciąż NASZA sesja. Stara pętla, która kończy się
+            // po szybkim ponownym włączeniu, wyłączała tu nową i zostawiała ją
+            // bez uchwytu - stopEarTranslation nie miał już czego zatrzymać.
+            if (earJob === mójJob || earJob == null) {
+                _earTranslation.value = false
+                earJob = null
+                earPartialJob?.cancel()
+                earPartialJob = null
+                _earTranscript.value = _earTranscript.value.stop()
+                _state.value = OrchestratorState.Idle
+            }
         }
     }
 
@@ -1697,7 +1876,12 @@ class AIOrchestrator(
                 useBluetoothMic = pl.victor.app.audio.MicChoice.useBluetoothMic(
                     overSco = false,
                     bleStreamLive = micStreamLive
-                )
+                ),
+                // Tekst na żywo do panelu - i jego przekład, raz na sekundę.
+                onPartial = { tekst ->
+                    earPartial.value = tekst
+                    _earTranscript.value = _earTranscript.value.zCzęściowym(tekst)
+                }
             )
             // BŁĄD ŻYWEGO NASŁUCHU - ZAPISANY, ZANIM COŚ GO NADPISZE.
             //
@@ -1898,6 +2082,9 @@ class AIOrchestrator(
                 // Producent nie gra tu żadnego dźwięku powitalnego, tylko
                 // ucisza to, co leci - i my robimy tak samo.
                 glassesManager.playGlassesTone(GlassesProtocol.TONE_STOP_PLAYBACK)
+                // Puls "wciąż słucham" - jak u producenta, patrz
+                // VictorManager.startVoiceHeartbeat. Gaśnie w stopGlassesListening.
+                glassesManager.startVoiceHeartbeat()
             }
             // Sygnał "teraz mów" idzie PRZED zestawianiem łącza audio, gdy
             // strumień mikrofonu z okularów już nagrywa.
@@ -1997,7 +2184,8 @@ class AIOrchestrator(
             val phoneMicNotTrusted = pl.victor.app.audio.MicChoice.phoneMicNotTrusted(
                 fromGlasses = fromGlasses,
                 wantsGlassesMic = wantsGlassesMic,
-                overSco = overSco
+                overSco = overSco,
+                bleStreamLive = micStreamLive
             )
             // PROŚBA O MIKROFON OKULARÓW, KTÓREJ NIE DAŁO SIĘ SPEŁNIĆ, BYŁA
             // DOTĄD NIEWIDOCZNA.
@@ -2007,7 +2195,10 @@ class AIOrchestrator(
             // ŻADNEGO śladu: ani w dzienniku, ani dla człowieka. Z zewnątrz
             // wyglądało to jak zignorowane ustawienie i dokładnie tak zostało
             // zgłoszone.
-            if (wantsGlassesMic && !overSco) {
+            // Tylko wtedy, gdy NIE MA strumienia BLE: przy żywym strumieniu
+            // profil rozmowy jest celowo niezestawiany i ten wpis był fałszywym
+            // alarmem przy każdym naciśnięciu przycisku.
+            if (wantsGlassesMic && !overSco && !micStreamLive) {
                 runCatching {
                     diag.event(
                         DiagFormat.Phase.AUDIO,
@@ -2464,7 +2655,15 @@ class AIOrchestrator(
                 // syntezator, a okulary nasłuchiwały dalej. Ale TYLKO wtedy, gdy
                 // ścieżka normalna tego nie zrobiła: patrz znacznik wyżej.
                 if (fromGlasses && !nasluchZatrzymany) glassesManager.stopGlassesListening()
-                if (held) audio.endConversationRouting()
+                // NonCancellable: ten blok wykonuje się też po ANULOWANIU tury, a
+                // wtedy zawieszenie na blokadzie routera rzuca od razu - licznik
+                // łącza zostawał podbity, SCO stało, a wiersze niżej (blokada
+                // ekranu, mikrofon frazy) nie wykonywały się wcale.
+                if (held) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        audio.endConversationRouting()
+                    }
+                }
                 // Nazwa jest tu istotna: bez niej ten blok zwalniał blokadę TURY,
                 // która startuje z tego samego miejsca i żyje dłużej niż nasłuch.
                 wakeLock.release(LOCK_LISTENING)
@@ -2537,12 +2736,14 @@ class AIOrchestrator(
         languageTag: String,
         capture: GlassesVoiceCapture?,
         trustPhoneMicrophone: Boolean = true,
-        useBluetoothMic: Boolean = true
+        useBluetoothMic: Boolean = true,
+        onPartial: ((String) -> Unit)? = null
     ): String? {
         if (capture == null) {
             return conversationalMode.listenOnce(
                 languageTag = languageTag,
-                useBluetoothMic = useBluetoothMic
+                useBluetoothMic = useBluetoothMic,
+                onPartial = onPartial
             )
         }
 
@@ -2550,7 +2751,8 @@ class AIOrchestrator(
             val listening = async {
                 conversationalMode.listenOnce(
                     languageTag = languageTag,
-                    useBluetoothMic = useBluetoothMic
+                    useBluetoothMic = useBluetoothMic,
+                    onPartial = onPartial
                 )
             }
             val glassesQuiet = async { capture.awaitSpeechEnd() }
@@ -2849,7 +3051,7 @@ class AIOrchestrator(
                 // przechwycić zdanie, zanim w ogóle doszło do aparatu.
                 forceVision = true
             )
-            ButtonAction.NEW_CONVERSATION -> reset()
+            ButtonAction.NEW_CONVERSATION -> startNewConversation()
         }
     }
 
@@ -4008,7 +4210,7 @@ class AIOrchestrator(
                 var firstChunk = true
                 // Nowa odpowiedź = nowy strumień mowy. Bez tego pierwsze zdanie
                 // dopisałoby się do kolejki po poprzedniej turze.
-                audio.beginStream()
+                audio.beginStream(language = language)
                 // Czy cokolwiek poszło na głos w trakcie generowania - decyduje,
                 // czy na końcu CZEKAMY na syntezator, czy dopiero go prosimy.
                 var spokenWhileStreaming = false
@@ -4044,12 +4246,19 @@ class AIOrchestrator(
                 // fallbacku nigdy by się nie powtórzyło (kolejne zapytanie sprawdza
                 // cache pod aktywnym providerem, nie pod tym z fallbacku).
                 val cacheProviderId = settings.getActiveProvider()
-                val cacheModelId = settings.getSelectedModel(cacheProviderId) ?: "default"
+                // Język odpowiedzi w kluczu: to samo pytanie po zmianie języka
+                // miało dostać zapamiętaną odpowiedź w poprzednim.
+                val cacheModelId = (settings.getSelectedModel(cacheProviderId) ?: "default") +
+                    "|" + settings.getResponseLanguage()
                 // Nagranie nie jest kluczem cache'a: dwa różne pytania mają tę
                 // samą instrukcję tekstową, więc trafienie byłoby czystym
                 // przypadkiem - i odpowiedzią na cudze pytanie.
+                // W trwającej rozmowie odpowiedź zależy od tego, co padło
+                // wcześniej: "dlaczego?", "a po angielsku?", "ile to kosztuje?"
+                // z pamięci dostawałyby odpowiedź z INNEJ rozmowy.
                 val cacheEligible = aiCache.shouldCache(textQuestion) &&
-                    photos.isEmpty() && video == null && audioQuestion == null
+                    photos.isEmpty() && video == null && audioQuestion == null &&
+                    conversationContext.size() == 0
 
                 // CACHE CHECK - może już mamy odpowiedź?
                 val cachedAnswer = if (cacheEligible) {
@@ -4099,7 +4308,16 @@ class AIOrchestrator(
                         // jakości (mały model offline), user powinien wiedzieć, że o to chodzi.
                         audio.speak("Przechodzę na model lokalny, offline.", language = settings.getResponseLanguage())
                     }
-                    val attemptProvider = if (attemptIndex == 0) provider else buildProviderForFallback(attemptProviderId)
+                    // Po identyfikatorze, nie po numerze próby: kolejka stawia
+                    // dostawcę z martwym modelem NA KOŃCU, więc pierwsza próba
+                    // bywa innym dostawcą niż główny. Numer próby wysyłał wtedy
+                    // pytanie do martwego modelu głównego, podpisując to w
+                    // dzienniku (i w odstawieniu) nazwą następnego w kolejce.
+                    val attemptProvider = if (attemptProviderId == currentProviderId) {
+                        provider
+                    } else {
+                        buildProviderForFallback(attemptProviderId)
+                    }
                     try {
                         // LIMIT CZASU NA JEDNEGO DOSTAWCĘ.
                         //
@@ -4378,7 +4596,11 @@ class AIOrchestrator(
                             trigger,
                             textQuestion,
                             forceVision = true,
-                            audioQuestion = audioQuestion
+                            audioQuestion = audioQuestion,
+                            // "...i zrób z tego notatkę" przy pytaniu, które
+                            // wymaga zdjęcia - bez tego notatka ginęła właśnie
+                            // na powtórce z obrazem.
+                            saveAsNote = saveAsNote
                         )
                         return@launch
                     }
@@ -4597,7 +4819,10 @@ class AIOrchestrator(
                 // przynajmniej wykluczy to miejsce.
                 if (audioHeld) {
                     val teardownStartedAt = System.currentTimeMillis()
-                    audio.endConversationRouting()
+                    // NonCancellable - patrz ten sam blok w turze głosowej.
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        audio.endConversationRouting()
+                    }
                     runCatching {
                         diag.event(
                             DiagFormat.Phase.AUDIO, "zwinięte łącze audio tury",
@@ -4795,6 +5020,21 @@ class AIOrchestrator(
      */
     fun reset() {
         _state.value = OrchestratorState.Idle
+    }
+
+    /**
+     * Gest "nowa rozmowa" (cztery kliknięcia) - to samo, co komenda "nowy temat".
+     *
+     * Wcześniej gest wołał [reset], czyli tylko przestawiał stan na bezczynny:
+     * historia rozmowy i doklejane tematy zostawały, a trwająca tura żyła
+     * dalej, tyle że już bez możliwości przerwania (nowa tura nadpisywała jej
+     * uchwyt).
+     */
+    private fun startNewConversation() {
+        cancelCurrentTurn("nowa rozmowa")
+        conversationContext.clear()
+        openContextTopics.clear()
+        audio.speak("Zaczynamy od nowa.", language = settings.getResponseLanguage())
     }
 
     /** Kiedy ostatnio wysłano dziennik - patrz [uploadDiagnosticsInBackground]. */
@@ -5174,6 +5414,14 @@ class AIOrchestrator(
                     }
                 }
             }
+
+            // PRZERWANY NASŁUCH TO NIE "NIEZROZUMIAŁA ODPOWIEDŹ".
+            //
+            // Nową turą ten nasłuch jest anulowany, ale runCatching wyżej
+            // połyka anulowanie i oddaje null - a to parsowało się jako
+            // UNCLEAR i "Nie odczytałem odpowiedzi..." wchodziło w nową turę,
+            // ucinając jej sygnał nasłuchu albo odpowiedź.
+            currentCoroutineContext().ensureActive()
 
             // Użytkownik mógł w tym czasie kliknąć w oknie - wtedy nie ma już
             // czego potwierdzać i nie wolno wykonać akcji drugi raz.
@@ -5727,6 +5975,12 @@ class AIOrchestrator(
          * krócej znaczyłoby wyłączać się w przerwie w rozmowie.
          */
         private const val EAR_MAX_PUSTYCH = 5
+
+        /** Puls "wciąż mówię" dla okularów - odstęp jak u producenta. */
+        private const val PLAYBACK_PULSE_MS = 2_000L
+
+        /** Ile czekać po ucichnięciu, zanim okulary usłyszą "koniec" - przerwy między zdaniami. */
+        private const val PLAYBACK_END_GRACE_MS = 600L
 
         /**
          * Jakość miniatury przy zdjęciu do odczytu kodu.
