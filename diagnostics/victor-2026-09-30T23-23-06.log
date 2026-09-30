@@ -238,3 +238,91 @@
 23:31:17.258  +11438 ms  MOWA         koniec wypowiedzi  ms=2556
 23:31:17.346  +11525 ms  SESJA        --- KONIEC TURY 0a7d: odpowiedziano ---
 23:31:17.350          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:31:17.414          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:31:18.261          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:31:18.271          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:31:18.347          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:31:24.137      +0 ms  SESJA        --- TURA 31d1 ---  źródło=VOICE
+23:31:24.138      +1 ms  SESJA        pytanie  tekst=helence wymuszonyObraz=false
+23:31:24.143      +6 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:31:24.303    +167 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:31:24.362    +225 ms  KONTEKST     zebrany  ms=46 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:31:24.370    +233 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2283
+23:31:25.079    +942 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=710
+23:31:25.083    +946 ms  MODEL        zużycie tokenów  wejście=3350 odpowiedź=28 razem=3378 limit=3000 koniec=STOP
+23:31:25.086    +949 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:31:25.091    +954 ms  MODEL        koniec odpowiedzi (90 znaków, 3378 tokenów)  ms=722 dostawca=gemini początek=Chodzi o Helenę? Powiedz mi, co chcesz do niej wysłać albo czy mam otworzyć z ni
+23:31:25.092    +955 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=90
+23:31:30.433   +6296 ms  MOWA         koniec wypowiedzi  ms=5339
+23:31:30.461   +6324 ms  SESJA        --- KONIEC TURY 31d1: odpowiedziano ---
+23:31:30.468          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:31:30.529          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:31:31.102          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:31:44.591      +1 ms  SESJA        --- TURA 090e ---  źródło=VOICE
+23:31:44.594      +3 ms  SESJA        pytanie  tekst=mordo wymuszonyObraz=false
+23:31:44.603     +12 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:31:44.781    +190 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:31:44.859    +268 ms  KONTEKST     zebrany  ms=64 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:31:44.868    +277 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2147
+23:31:45.563    +972 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=696
+23:31:45.569    +978 ms  MODEL        zużycie tokenów  wejście=3322 odpowiedź=9 razem=3331 limit=3000 koniec=STOP
+23:31:45.574    +983 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:31:45.578    +987 ms  MODEL        koniec odpowiedzi (28 znaków, 3331 tokenów)  ms=711 dostawca=gemini początek=Siemanko. W czym mogę pomóc?
+23:31:45.583    +992 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=28
+23:31:47.971   +3380 ms  MOWA         koniec wypowiedzi  ms=2387
+23:31:47.994   +3403 ms  SESJA        --- KONIEC TURY 090e: odpowiedziano ---
+23:31:47.998          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:31:48.049          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:31:48.742          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:31:52.646      +0 ms  SESJA        --- TURA 19b4 ---  źródło=VOICE
+23:31:52.647      +1 ms  SESJA        pytanie  tekst=włącz latarkę wymuszonyObraz=false
+23:31:54.053   +1407 ms  SESJA        --- KONIEC TURY 19b4: odpowiedziano ---
+23:31:54.056          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:31:54.108          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:31:54.771          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:31:59.396      +0 ms  SESJA        --- TURA d2a6 ---  źródło=VOICE
+23:31:59.397      +1 ms  SESJA        pytanie  tekst=wiem że włączona więc wyłącz wymuszonyObraz=false
+23:31:59.405      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:31:59.554    +158 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:31:59.627    +231 ms  KONTEKST     zebrany  ms=60 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:31:59.636    +240 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2039
+23:32:00.409   +1013 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=773
+23:32:00.418   +1022 ms  MODEL        zużycie tokenów  wejście=3285 odpowiedź=20 razem=3305 limit=3000 koniec=STOP
+23:32:00.421   +1025 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:32:00.423   +1028 ms  MODEL        koniec odpowiedzi (68 znaków, 3305 tokenów)  ms=787 dostawca=gemini początek=Wyłączam latarkę.
+[[ACTION: type=toggle_flashlight enabled="false"]]
+23:32:00.430   +1034 ms  AKCJA        model zlecił akcje  akcje=TOGGLE_FLASHLIGHT znakówOdpowiedzi=17
+23:32:01.806   +2411 ms  MOWA         koniec wypowiedzi  ms=1373
+23:32:01.839   +2443 ms  SESJA        --- KONIEC TURY d2a6: odpowiedziano ---
+23:32:01.843          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:32:01.904          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:32:02.924          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:32:03.098          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:32:03.164          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:32:09.869      +0 ms  SESJA        --- TURA ea4f ---  źródło=VOICE
+23:32:09.871      +2 ms  SESJA        pytanie  tekst=lens wymuszonyObraz=false
+23:32:09.876      +7 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:32:10.060    +191 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:32:10.113    +244 ms  KONTEKST     zebrany  ms=42 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:32:10.121    +252 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1947
+23:32:11.772   +1903 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1650
+23:32:11.774   +1906 ms  MODEL        zużycie tokenów  wejście=3260 odpowiedź=27 razem=3287 limit=3000 koniec=STOP
+23:32:11.776   +1907 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:32:11.782   +1913 ms  MODEL        koniec odpowiedzi (68 znaków, 3287 tokenów)  ms=1661 dostawca=gemini początek=Chwila, spojrzę na to, na co patrzysz. 
+
+[[ACTION: type=take_photo]]
+23:32:11.785   +1916 ms  AKCJA        model zlecił akcje  akcje=TAKE_PHOTO znakówOdpowiedzi=38
+23:32:14.429   +4560 ms  SESJA        pytanie  tekst=lens wymuszonyObraz=true
+23:32:14.437   +4568 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+23:32:14.517   +4648 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:32:14.523   +4654 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+23:32:14.602   +4733 ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:32:14.610   +4741 ms  SESJA        --- KONIEC TURY ea4f: BEZ ODPOWIEDZI (stan Idle, powód: dotknięcie zauszników) ---
+23:32:15.952          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+23:32:15.954          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=false poNaszejMigawce=true
+23:33:12.024          ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=2
+23:33:12.500          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:33:13.674          ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+23:33:13.676          ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+23:33:13.706          ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1681
+23:33:15.356          ms  ZDJĘCIE      próba 0: miniatura  bajtów=9874 jpeg=true kompletny=true
