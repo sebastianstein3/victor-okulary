@@ -135,3 +135,58 @@
 23:28:24.402   +8087 ms  MOWA         koniec wypowiedzi  ms=7059
 23:28:24.425   +8110 ms  SESJA        --- KONIEC TURY 66eb: odpowiedziano ---
 23:28:24.429          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:28:24.594          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:28:25.135          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:28:31.545      +0 ms  SESJA        --- TURA 6493 ---  źródło=VOICE
+23:28:31.548      +3 ms  SESJA        pytanie  tekst=tego że jerzy jedzą jabłka wymuszonyObraz=false
+23:28:31.558     +13 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:28:31.739    +194 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:28:31.832    +287 ms  KONTEKST     zebrany  ms=79 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:28:31.841    +296 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1515
+23:28:32.534    +989 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=694
+23:28:32.646   +1101 ms  MODEL        zużycie tokenów  wejście=3080 odpowiedź=52 razem=3132 limit=3000 koniec=STOP
+23:28:32.651   +1107 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:28:32.657   +1112 ms  MODEL        koniec odpowiedzi (143 znaków, 3132 tokenów)  ms=816 dostawca=gemini początek=Chyba chodziło Ci o to, czy jeże jedzą jabłka. Rozmawialiśmy o tym niedawno, a o
+23:28:32.662   +1117 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=143
+23:28:40.684   +9139 ms  MOWA         koniec wypowiedzi  ms=8020
+23:28:40.708   +9163 ms  SESJA        --- KONIEC TURY 6493: odpowiedziano ---
+23:28:40.712          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:28:40.794          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:28:41.379          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:28:48.709      +1 ms  SESJA        --- TURA 404e ---  źródło=VOICE
+23:28:48.710      +2 ms  SESJA        pytanie  tekst=skąd wziął się taki mit że ja żyję do niejobka wymuszonyObraz=false
+23:28:48.720     +12 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:28:48.874    +166 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:28:48.960    +252 ms  KONTEKST     zebrany  ms=72 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:28:48.969    +261 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1442
+23:28:49.638    +930 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=668
+23:28:50.006   +1298 ms  MODEL        zużycie tokenów  wejście=3067 odpowiedź=79 razem=3146 limit=3000 koniec=STOP
+23:28:50.009   +1301 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:28:50.017   +1309 ms  MODEL        koniec odpowiedzi (239 znaków, 3146 tokenów)  ms=1048 dostawca=gemini początek=Skąd wziął się ten mit? Wziął się z dawnych rysunków i bajek, w których jeże nos
+23:28:50.023   +1315 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=239
+23:29:02.320  +13612 ms  MOWA         koniec wypowiedzi  ms=12294
+23:29:02.345  +13638 ms  SESJA        --- KONIEC TURY 404e: odpowiedziano ---
+23:29:02.353          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:29:02.444          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:29:03.066          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:29:09.736      +1 ms  SESJA        --- TURA b803 ---  źródło=VOICE
+23:29:09.737      +1 ms  SESJA        pytanie  tekst=jakie masz funkcje wymuszonyObraz=false
+23:29:09.740      +4 ms  AKCJA        odpowiadam z katalogu, bez modelu  temat=CAPABILITIES
+23:29:09.746     +10 ms  SESJA        --- KONIEC TURY b803: odpowiedziano ---
+23:29:09.747          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:29:09.910          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:29:25.532          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:29:33.927      +0 ms  SESJA        --- TURA 0311 ---  źródło=VOICE
+23:29:33.927      +0 ms  SESJA        pytanie  tekst=a możesz włączyć tłumaczenie na żywo wymuszonyObraz=false
+23:29:33.933      +6 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:29:34.097    +170 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:29:34.160    +234 ms  KONTEKST     zebrany  ms=52 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:29:34.170    +243 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2387
+23:29:34.998   +1071 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=829
+23:29:35.113   +1187 ms  MODEL        zużycie tokenów  wejście=3351 odpowiedź=45 razem=3396 limit=3000 koniec=STOP
+23:29:35.117   +1190 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:29:35.121   +1195 ms  MODEL        koniec odpowiedzi (176 znaków, 3396 tokenów)  ms=952 dostawca=gemini początek=Nie mam funkcji bezpośredniego tłumaczenia na żywo w czasie rzeczywistym. Mogę j
+23:29:35.125   +1198 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=176
+23:29:43.876   +9949 ms  MOWA         koniec wypowiedzi  ms=8749
+23:29:43.905   +9978 ms  SESJA        --- KONIEC TURY 0311: odpowiedziano ---
+23:29:43.913          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
