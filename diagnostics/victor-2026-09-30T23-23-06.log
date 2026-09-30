@@ -190,3 +190,51 @@
 23:29:43.876   +9949 ms  MOWA         koniec wypowiedzi  ms=8749
 23:29:43.905   +9978 ms  SESJA        --- KONIEC TURY 0311: odpowiedziano ---
 23:29:43.913          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:29:44.057          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:29:44.694          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:29:52.458          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+23:29:57.112          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:29:57.115          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=dotknięcie zauszników
+23:30:00.850          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+23:30:03.506          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:30:03.508          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=dotknięcie zauszników
+23:30:04.872          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+23:30:07.504          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:30:07.506          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=dotknięcie zauszników
+23:30:16.253          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+23:30:18.854          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:30:18.855          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=dotknięcie zauszników
+23:30:22.487          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+23:30:25.149          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:30:25.150          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=dotknięcie zauszników
+23:30:27.712          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+23:30:30.330          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:30:30.333          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=dotknięcie zauszników
+23:30:37.487          ms  NASŁUCH      usłyszane, ale nie do mnie - brak frazy poza rozmową  usłyszane=nie żuli
+23:31:05.203          ms  PRZYCISK     wciśnięto  numer=1
+23:31:05.436          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+23:31:05.712          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+23:31:05.763          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=325
+23:31:05.821      +0 ms  SESJA        --- TURA 0a7d ---  źródło=OKULARY
+23:31:05.823      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+23:31:10.253   +4433 ms  NASŁUCH      koniec  ms=4432 odłożone=latarka włącz zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=816
+23:31:10.333   +4512 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+23:31:11.070   +5249 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.8735 pakietów=244 rozkodowanych=244 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 17 25 4837 1293 3454 349 0 0 ciszaNaKońcuOkien=2
+23:31:13.787   +7967 ms  TRANSKRYPCJA z nagrania okularów  ms=2715 droga=Nasłuch telefonu
+23:31:13.794   +7973 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4873 jestMs=2140 tło=0 szczyt=11644 ile razy=45819.3
+23:31:13.796   +7975 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=latarka włącz
+23:31:13.798   +7977 ms  SESJA        pytanie  tekst=latarka włącz wymuszonyObraz=false
+23:31:13.803   +7982 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:31:13.818   +7997 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:31:13.863   +8042 ms  KONTEKST     zebrany  ms=39 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:31:13.880   +8059 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1964
+23:31:14.534   +8713 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=654
+23:31:14.574   +8753 ms  MODEL        zużycie tokenów  wejście=3242 odpowiedź=23 razem=3265 limit=3000 koniec=STOP
+23:31:14.576   +8755 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:31:14.698   +8877 ms  MODEL        koniec odpowiedzi (74 znaków, 3265 tokenów)  ms=818 dostawca=gemini początek=Jasne, włączam latarkę.
+
+[[ACTION: type=toggle_flashlight enabled="true"]]
+23:31:14.701   +8880 ms  AKCJA        model zlecił akcje  akcje=TOGGLE_FLASHLIGHT znakówOdpowiedzi=23
+23:31:17.258  +11438 ms  MOWA         koniec wypowiedzi  ms=2556
+23:31:17.346  +11525 ms  SESJA        --- KONIEC TURY 0a7d: odpowiedziano ---
+23:31:17.350          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
