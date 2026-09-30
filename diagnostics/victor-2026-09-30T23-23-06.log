@@ -71,3 +71,67 @@
 23:27:20.443  +17768 ms  MOWA         koniec wypowiedzi  ms=8401
 23:27:20.471  +17797 ms  SESJA        --- KONIEC TURY c0d3: odpowiedziano ---
 23:27:20.476          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:27:20.573          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:27:21.120          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:27:28.258      +0 ms  SESJA        --- TURA 8592 ---  źródło=VOICE
+23:27:28.259      +1 ms  SESJA        pytanie  tekst=helence wymuszonyObraz=false
+23:27:28.265      +7 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:27:28.293     +35 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:27:28.367    +109 ms  KONTEKST     zebrany  ms=67 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:27:28.376    +118 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=674
+23:27:29.140    +882 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=765
+23:27:29.250    +993 ms  MODEL        zużycie tokenów  wejście=2760 odpowiedź=30 razem=2790 limit=3000 koniec=STOP
+23:27:29.252    +994 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:27:29.253    +995 ms  MODEL        koniec odpowiedzi (106 znaków, 2790 tokenów)  ms=878 dostawca=gemini początek=Helence? Przepraszam, nie do końca rozumiem, o co chodzi z Heleną. Powiedz mi, c
+23:27:29.255    +997 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=106
+23:27:35.472   +7214 ms  MOWA         koniec wypowiedzi  ms=6216
+23:27:35.492   +7234 ms  SESJA        --- KONIEC TURY 8592: odpowiedziano ---
+23:27:35.496          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:27:35.546          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:27:36.146          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:27:50.912      +0 ms  SESJA        --- TURA 5b8f ---  źródło=VOICE
+23:27:50.913      +1 ms  SESJA        pytanie  tekst=heidens wymuszonyObraz=false
+23:27:50.921      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:27:51.123    +212 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:27:51.210    +298 ms  KONTEKST     zebrany  ms=72 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:27:51.219    +307 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=816
+23:27:52.088   +1176 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=869
+23:27:52.128   +1216 ms  MODEL        zużycie tokenów  wejście=2811 odpowiedź=28 razem=2839 limit=3000 koniec=STOP
+23:27:52.131   +1219 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:27:52.137   +1225 ms  MODEL        koniec odpowiedzi (90 znaków, 2839 tokenów)  ms=918 dostawca=gemini początek=Chodzi o Helenę? Powiedz mi, co chcesz do niej wysłać albo czy mam otworzyć z ni
+23:27:52.140   +1228 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=90
+23:27:57.115   +6203 ms  MOWA         koniec wypowiedzi  ms=4973
+23:27:57.134   +6222 ms  SESJA        --- KONIEC TURY 5b8f: odpowiedziano ---
+23:27:57.138          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:27:57.273          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:27:57.816          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:28:05.625      +1 ms  SESJA        --- TURA f2d0 ---  źródło=VOICE
+23:28:05.626      +2 ms  SESJA        pytanie  tekst=słyszysz mnie wymuszonyObraz=false
+23:28:05.633      +9 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:28:05.658     +34 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:28:05.713     +89 ms  KONTEKST     zebrany  ms=48 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:28:05.723     +99 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1202
+23:28:06.314    +691 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=591
+23:28:06.380    +756 ms  MODEL        zużycie tokenów  wejście=2942 odpowiedź=19 razem=2961 limit=3000 koniec=STOP
+23:28:06.381    +757 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:28:06.385    +761 ms  MODEL        koniec odpowiedzi (48 znaków, 2961 tokenów)  ms=662 dostawca=gemini początek=Słyszę Cię głośno i wyraźnie. W czym mogę pomóc?
+23:28:06.387    +763 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=48
+23:28:09.877   +4253 ms  MOWA         koniec wypowiedzi  ms=3489
+23:28:09.898   +4274 ms  SESJA        --- KONIEC TURY f2d0: odpowiedziano ---
+23:28:09.904          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+23:28:09.964          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+23:28:10.557          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+23:28:16.315      +0 ms  SESJA        --- TURA 66eb ---  źródło=VOICE
+23:28:16.316      +1 ms  SESJA        pytanie  tekst=powiedz mi czy jeże jedzą jabłka wymuszonyObraz=false
+23:28:16.325     +10 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+23:28:16.448    +133 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+23:28:16.501    +186 ms  KONTEKST     zebrany  ms=43 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+23:28:16.511    +196 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1301
+23:28:17.170    +855 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=660
+23:28:17.333   +1018 ms  MODEL        zużycie tokenów  wejście=2984 odpowiedź=44 razem=3028 limit=3000 koniec=STOP
+23:28:17.337   +1022 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+23:28:17.339   +1024 ms  MODEL        koniec odpowiedzi (112 znaków, 3028 tokenów)  ms=829 dostawca=gemini początek=Jeże nie jedzą jabłek, bo są drapieżnikami i wolą owady, ślimaki czy dżdżownice.
+23:28:17.341   +1026 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=112
+23:28:24.402   +8087 ms  MOWA         koniec wypowiedzi  ms=7059
+23:28:24.425   +8110 ms  SESJA        --- KONIEC TURY 66eb: odpowiedziano ---
+23:28:24.429          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
