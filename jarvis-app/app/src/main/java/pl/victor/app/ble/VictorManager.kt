@@ -813,6 +813,8 @@ class VictorManager private constructor(context: Context) {
                 lastPhotoFailure = "Okulary zgłaszają brak miejsca w pamięci. " +
                     "Pobierz z nich pliki albo je wyczyść."
             }
+            is NotifyEvent.PlaybackStateEcho ->
+                Log.d(tag, "Notify: okulary potwierdzają stan odtwarzania (${event.value})")
             is NotifyEvent.SpeechInterrupted -> {
                 Log.i(tag, "Notify: użytkownik uciszył V.I.C.T.O.R.-a")
                 _speechInterrupted.tryEmit(Unit)
@@ -1953,6 +1955,7 @@ class VictorManager private constructor(context: Context) {
             "OTA: pobrano ${event.download}%, SoC ${event.soc}%, NOR ${event.nor}%"
         is NotifyEvent.LowMemory -> "Mało pamięci na okularach"
         is NotifyEvent.SpeechInterrupted -> "Użytkownik przerwał wypowiedź"
+        is NotifyEvent.PlaybackStateEcho -> "Okulary potwierdzają stan odtwarzania (${event.value})"
         is NotifyEvent.Unbound -> "Okulary odpięły aplikację"
         is NotifyEvent.IdentificationStopped -> "Przerwano rozpoznawanie obrazu"
         is NotifyEvent.VolumeChanged -> "Głośność: ${event.level}"

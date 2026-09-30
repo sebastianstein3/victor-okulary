@@ -37,7 +37,12 @@ object WakePhrase {
      * telefon w dzienniku - to nie jest zgadywanie, tylko obserwacja.
      */
     val GLASSES_PHRASES: List<String> = listOf(
-        "ok lens", "okej lens", "okay lens", "o kej lens", "okey lens", "hej lens", "hey lens"
+        "ok lens", "okej lens", "okay lens", "o kej lens", "okey lens", "hej lens", "hey lens",
+        // Dziennik z 30 września: "Hey Lens" zapisane przez telefon jako
+        // "helence" (cztery razy), "heidens" i samo "lens" - każde poszło do
+        // modelu jako pytanie i model dopytywał "chodzi o Helenę?".
+        // "helens" i "hellens" to te same głoski w innym zapisie.
+        "helence", "helens", "hellens", "heidens", "lens"
     )
 
     /**

@@ -132,13 +132,30 @@ object MetaCommands {
      * Osobno od `przetłumacz` z [pl.victor.app.actions.SmartActionDetector.detectGesture]
      * (to tłumaczy NAPIS z kamery) - te dwie rzeczy już raz się pomyliły.
      */
-    fun startsEarTranslation(text: String): Boolean =
-        EAR_TRANSLATION_START_REGEX.matches(text.lowercase().trim().trimEnd('.', '!', '?'))
+    fun startsEarTranslation(text: String): Boolean {
+        // GRZECZNOŚĆ NIE MOŻE ZMIENIAĆ KOMENDY.
+        //
+        // Dziennik z 30 września: "a możesz włączyć tłumaczenie na żywo" nie
+        // pasowało do żadnego wzorca, poszło do modelu, a model odpowiedział,
+        // że takiej funkcji nie ma. Wzorzec zostaje "cała wypowiedź", ale bez
+        // wstępu i dopisku, które nic nie zmieniają.
+        val bare = text.lowercase().replace(',', ' ').replace(Regex("\\s+"), " ")
+            .trim().trimEnd('.', '!', '?')
+            .replace(EAR_POLITE_PREFIX, "")
+            .replace(EAR_POLITE_SUFFIX, "")
+            .trim()
+        return EAR_TRANSLATION_START_REGEX.matches(bare)
+    }
+
+    private val EAR_POLITE_PREFIX = Regex(
+        """^(a\s+|no\s+|to\s+)?((czy\s+)?(mo[zż]esz|m[oó]g[lł]by[sś]|mo[zż]na)\s+)?(prosz[eę]\s+)?"""
+    )
+    private val EAR_POLITE_SUFFIX = Regex("""\s+(prosz[eę]|dla\s+mnie)$""")
 
     private val EAR_TRANSLATION_START_REGEX = Regex(
-        """^(w[lł][aą]cz\s+)?t[lł]umacz(enie|:)?\s*(ze\s+s[lł]uchu|na\s+[zż]ywo|symultaniczn[ey]|""" +
+        """^(w[lł][aą]cz(y[cć])?\s+)?t[lł]umacz(enie|:)?\s*(ze\s+s[lł]uchu|na\s+[zż]ywo|symultaniczn[ey]|""" +
             """co\s+m[oó]wi[aą]|rozmow[eę])$|""" +
-            """^(w[lł][aą]cz|uruchom)\s+t[lł]umacza(\s+(ze\s+s[lł]uchu|na\s+[zż]ywo))?$|""" +
+            """^(w[lł][aą]cz(y[cć])?|uruchom(i[cć])?)\s+t[lł]umacza(\s+(ze\s+s[lł]uchu|na\s+[zż]ywo))?$|""" +
             """^t[lł]umacz\s+mi\s+(na\s+bie[zż][aą]co|wszystko|co\s+s[lł]ysz[eę])$"""
     )
 

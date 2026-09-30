@@ -796,7 +796,7 @@ object GlassesProtocol {
         notifyFrame(NOTIFY_AI_SESSION_A, if (realtimeText) 1 else 0)
 
     /** Ramka "użytkownik uciszył asystenta". */
-    fun interruptSpeechFrame(): ByteArray = notifyFrame(NOTIFY_INTERRUPT_SPEECH)
+    fun interruptSpeechFrame(): ByteArray = notifyFrame(NOTIFY_INTERRUPT_SPEECH, 1)
 
     /** Ramka zmiany głośności na zausznikach. */
     fun volumeFrame(level: Int): ByteArray =
@@ -908,7 +908,21 @@ object GlassesProtocol {
                 }
 
             NOTIFY_LOW_MEMORY -> NotifyEvent.LowMemory
-            NOTIFY_INTERRUPT_SPEECH -> NotifyEvent.SpeechInterrupted
+            // "UCISZ" TYLKO PRZY [7] == 1 - DOKŁADNIE JAK U PRODUCENTA.
+            //
+            // Ta sama ramka przychodzi też jako odpowiedź na nasz sygnał
+            // "skończyłem mówić" (aiVoicePlay 3). Braliśmy każdą za dotknięcie
+            // zausznika, więc po KAŻDEJ wypowiedzi przerywaliśmy turę -
+            // także tłumaczenie ze słuchu zaraz po jego zapowiedzi i zdjęcie,
+            // o które poprosił model (dziennik z 30 września, 23:25-23:33).
+            NOTIFY_INTERRUPT_SPEECH ->
+                if (loadData.size > 7 && loadData[7].toIntUnsigned() == 1) {
+                    NotifyEvent.SpeechInterrupted
+                } else {
+                    NotifyEvent.PlaybackStateEcho(
+                        value = if (loadData.size > 7) loadData[7].toIntUnsigned() else -1
+                    )
+                }
             NOTIFY_UNBIND -> NotifyEvent.Unbound
 
             NOTIFY_IDENTIFICATION_STOP -> NotifyEvent.IdentificationStopped
@@ -1035,6 +1049,12 @@ sealed class NotifyEvent {
      * @param realtimeText tryb tekstu na żywo (tłumaczenie) zamiast pytania do AI
      */
     data class AiSessionRequested(val realtimeText: Boolean) : NotifyEvent()
+
+    /**
+     * Ramka 0x0C bez znacznika "ucisz" - okulary odpowiadają nią m.in. na nasz
+     * sygnał końca mówienia. NIE jest dotknięciem zausznika.
+     */
+    data class PlaybackStateEcho(val value: Int) : NotifyEvent()
 
     /** Liczniki plików na okularach - patrz [GlassesProtocol.NOTIFY_MEDIA_COUNT]. */
     data class MediaCountReport(val count: MediaCount, val apImportOnly: Boolean) : NotifyEvent()

@@ -45,7 +45,12 @@ class EarTranslationReachabilityTest {
             "Włącz tłumacza ze słuchu",
             "tłumaczenie ze słuchu",
             "włącz tłumaczenie na żywo",
-            "tłumacz mi na bieżąco"
+            "tłumacz mi na bieżąco",
+            // Dosłownie z dziennika z 30 września - poszło do modelu, a ten
+            // odpowiedział, że takiej funkcji nie ma.
+            "a możesz włączyć tłumaczenie na żywo",
+            "czy możesz uruchomić tłumacza, proszę",
+            "proszę tłumaczenie na żywo"
         ).forEach {
             assertTrue("„$it” miało włączyć tryb", MetaCommands.startsEarTranslation(it))
         }

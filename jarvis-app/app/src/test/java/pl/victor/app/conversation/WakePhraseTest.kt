@@ -73,4 +73,16 @@ class WakePhraseTest {
             WakePhrase.stripLeadingWakePhrase("okej lens co widzisz", extra)
         )
     }
+
+    @Test
+    fun `zapisy hey lens z dziennika z 30 wrzesnia to wybudzenie`() {
+        listOf("helence", "Helence.", "heidens", "lens").forEach {
+            assertTrue("\"$it\" to fraza okularów", WakePhrase.isOnlyWakePhrase(it))
+        }
+    }
+
+    @Test
+    fun `helence z pytaniem zostawia samo pytanie`() {
+        assertEquals("jaka jest pogoda", WakePhrase.stripLeadingWakePhrase("helence jaka jest pogoda"))
+    }
 }

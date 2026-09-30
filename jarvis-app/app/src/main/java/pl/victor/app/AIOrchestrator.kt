@@ -956,6 +956,23 @@ class AIOrchestrator(
         scope.launch {
             glassesManager.speechInterrupted.collect {
                 bezpiecznie("przerwanie wypowiedzi") {
+                    // "Ucisz" dotyczy MÓWIENIA - jak u producenta, który na
+                    // tę ramkę zatrzymuje wyłącznie syntezator. Kiedy nic nie
+                    // mówimy, nie ma czego uciszać, a przerwanie całej tury
+                    // zabijało nasłuch, zdjęcie w trakcie robienia i tryb
+                    // tłumaczenia. W tłumaczeniu producent tę ramkę pomija
+                    // całkowicie - wychodzi się z niego przyciskiem.
+                    val mówimy = audio.speaking.value
+                    if (_earTranslation.value || !mówimy) {
+                        Log.i(TAG, "Okulary: 'ucisz' pominięte (tłumaczenie=${_earTranslation.value}, mówię=$mówimy)")
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.WAKE, "ucisz z okularów pominięte",
+                                mapOf("tłumaczenie" to _earTranslation.value, "mówię" to mówimy)
+                            )
+                        }
+                        return@bezpiecznie
+                    }
                     Log.i(TAG, "Okulary: użytkownik przerwał wypowiedź")
                     cancelCurrentTurn("dotknięcie zauszników")
                 }
