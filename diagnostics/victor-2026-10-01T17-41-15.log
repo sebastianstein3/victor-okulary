@@ -477,3 +477,53 @@
 17:54:56.420  +47040 ms  AUDIO        zwinięte łącze audio tury  ms=1
 17:54:56.422  +47042 ms  SESJA        --- KONIEC TURY 3c8e: odpowiedziano ---
 17:54:56.426          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:54:56.539          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:55:01.387          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=0 mikrofonOkularów=true
+17:55:01.472      +0 ms  SESJA        --- TURA 5b9f ---  źródło=TELEFON
+17:55:01.474      +2 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true ustawienieMikOkularów=true
+17:55:05.917   +4445 ms  NASŁUCH      koniec  ms=4445 telefonUsłyszał=sprawdź te liczby w internecie zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=7 gotowyPoMs=204
+17:55:05.919   +4447 ms  NASŁUCH      nagranie z okularów  jest=false
+17:55:05.920   +4448 ms  SESJA        pytanie  tekst=sprawdź te liczby w internecie wymuszonyObraz=false
+17:55:05.928   +4456 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:55:06.136   +4664 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:55:06.136   +4664 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:55:09.330   +7858 ms  KONTEKST     zebrany  ms=3186 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:55:09.343   +7871 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=10405
+17:55:10.854   +9382 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=1511 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:55:10.857   +9385 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=10405
+17:55:12.149  +10677 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:55:19.349  +17877 ms  MODEL        koniec odpowiedzi (633 znaków, 7867 tokenów)  ms=10007 dostawca=deepseek początek=Sprawdziłem te cyfry w bazach — dwadzieścia zero zero zero jeden dziewięć dziewi
+17:55:19.352  +17880 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=633
+17:55:50.712  +49240 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+17:55:50.861  +49389 ms  AUDIO        zwinięte łącze audio tury  ms=0
+17:55:50.864  +49392 ms  SESJA        --- KONIEC TURY 5b9f: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+17:55:51.534      +0 ms  SESJA        --- TURA a9db ---  źródło=BUTTON
+17:55:51.536      +2 ms  SESJA        pytanie  tekst=Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, przeczytaj to, co istotne. wymuszonyObraz=true
+17:55:51.540      +6 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=true wymuszone=true zNagrania=false
+17:55:51.560     +27 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:55:51.561     +27 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:55:51.568     +35 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+17:55:51.616     +82 ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:55:53.194   +1661 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:55:53.197   +1663 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:55:53.222   +1688 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1651
+17:55:57.568   +6034 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:55:59.272   +7739 ms  BLE          głośność okularów  muzyka=16 rozmowa=9 system=10 kanałPrzycisków=2
+17:56:03.233  +11699 ms  ZDJĘCIE      próba 0: miniatura  bajtów=36468 jpeg=true kompletny=false
+17:56:03.238  +11704 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+17:56:05.257  +13723 ms  BLE          głośność okularów  muzyka=16 rozmowa=8 system=10 kanałPrzycisków=2
+17:56:08.244  +16711 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5004
+17:56:08.249  +16715 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+17:56:13.256  +21722 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+17:56:13.261  +21727 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+17:56:14.848  +23315 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:56:14.851  +23317 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:56:23.573  +32039 ms  ZDJĘCIE      przerwane po wyczerpaniu budżetu czasu  ms=32000
+17:56:23.581  +32047 ms  ZDJĘCIE      przechwycone  sztuk=0 bajtów=0 źródło=migawka pełnaRozdzielczość=false powódBłędu=Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo.
+17:56:23.584  +32050 ms  AUDIO        zwinięte łącze audio tury  ms=1
+17:56:23.587  +32053 ms  SESJA        --- KONIEC TURY a9db: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
+17:56:23.610          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
