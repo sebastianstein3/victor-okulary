@@ -50,3 +50,23 @@
 17:43:12.532  +19244 ms  AUDIO        zwinięte łącze audio tury  ms=0
 17:43:12.534  +19245 ms  SESJA        --- KONIEC TURY 2974: odpowiedziano ---
 17:43:12.538          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:43:12.633          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:44:23.403          ms  PRZYCISK     wciśnięto  numer=1
+17:44:23.706          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+17:44:23.912          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:44:24.138          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=430
+17:44:24.210      +0 ms  SESJA        --- TURA b4eb ---  źródło=OKULARY
+17:44:24.211      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+17:44:28.725   +4515 ms  NASŁUCH      koniec  ms=4515 odłożone=ile to jest 7 + 7 zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=6.88 próbek=9 gotowyPoMs=355
+17:44:28.925   +4715 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+17:44:29.249   +5039 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.1135 pakietów=256 rozkodowanych=256 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=1 1 0 0 0 3415 1639 1341 42 1 0 ciszaNaKońcuOkien=1
+17:44:31.567   +7357 ms  TRANSKRYPCJA z nagrania okularów  ms=2316 droga=Nasłuch telefonu
+17:44:31.571   +7361 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5113 jestMs=2000 tło=0 szczyt=6523 ile razy=32790.0
+17:44:31.574   +7364 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=ile to jest 7 + 7
+17:44:31.575   +7365 ms  SESJA        pytanie  tekst=ile to jest 7 + 7 wymuszonyObraz=false
+17:44:31.581   +7371 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:44:31.592   +7382 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:44:31.593   +7383 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:44:31.950   +7740 ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+17:44:32.132   +7922 ms  AUDIO        zwinięte łącze audio tury  ms=0
+17:44:32.134   +7924 ms  SESJA        --- KONIEC TURY b4eb: BEZ ODPOWIEDZI (stan Idle, powód: dotknięcie zauszników) ---
