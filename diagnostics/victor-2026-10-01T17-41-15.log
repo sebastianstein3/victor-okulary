@@ -527,3 +527,73 @@
 17:56:23.584  +32050 ms  AUDIO        zwinięte łącze audio tury  ms=1
 17:56:23.587  +32053 ms  SESJA        --- KONIEC TURY a9db: BŁĄD: Nie udało się zrobić zdjęcia. Okulary nie oddały zdjęcia w ciągu 32 sekund. Sprawdź, czy są połączone i czy nie nagrywają w tej chwili wideo. ---
 17:56:23.610          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:56:23.837          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:56:31.537          ms  BLE          głośność okularów  muzyka=16 rozmowa=7 system=10 kanałPrzycisków=2
+17:56:32.387          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:56:37.837          ms  PRZYCISK     wciśnięto  numer=1
+17:56:38.193          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+17:56:38.360          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:56:38.430          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=234
+17:56:38.526      +1 ms  SESJA        --- TURA 580f ---  źródło=OKULARY
+17:56:38.528      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+17:56:44.964   +6440 ms  NASŁUCH      koniec  ms=6439 odłożone=jaka będzie pogoda w bodrum w turcji w ten weekend zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=8.68 próbek=16 gotowyPoMs=354
+17:56:45.125   +6600 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+17:56:46.060   +7535 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.9335 pakietów=347 rozkodowanych=347 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=8 13 18 2233 602 1679 481 201 1257 262 721 50 0 0 ciszaNaKońcuOkien=2
+17:56:49.958  +11433 ms  TRANSKRYPCJA z nagrania okularów  ms=3896 droga=Nasłuch telefonu
+17:56:49.967  +11442 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6933 jestMs=4680 tło=33 szczyt=4404 ile razy=129.6
+17:56:49.971  +11446 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jaka będzie pogoda w bodrum w turcji w ten weekend
+17:56:49.972  +11448 ms  SESJA        pytanie  tekst=jaka będzie pogoda w bodrum w turcji w ten weekend wymuszonyObraz=false
+17:56:49.981  +11456 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:56:49.992  +11467 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:56:49.994  +11469 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:56:51.450  +12925 ms  KONTEKST     zebrany  ms=1449 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:56:51.461  +12936 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=11373
+17:56:52.230  +13705 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=769 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:56:52.233  +13708 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=11373
+17:56:55.996  +17472 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:56:57.553  +19028 ms  MODEL        koniec odpowiedzi (275 znaków, 7544 tokenów)  ms=6093 dostawca=deepseek początek=Mam pod ręką prognozę tylko dla Torunia, więc dla Bodrum musiałbym sprawdzić oso
+17:56:57.557  +19032 ms  AKCJA        model zlecił akcje  akcje=WEB_SEARCH znakówOdpowiedzi=187
+17:57:07.161  +28636 ms  MOWA         koniec wypowiedzi  ms=9602
+17:57:07.411  +28886 ms  AUDIO        zwinięte łącze audio tury  ms=1
+17:57:07.413  +28888 ms  SESJA        --- KONIEC TURY 580f: odpowiedziano ---
+17:57:07.437          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:57:07.574          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:57:07.895          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+17:57:08.091          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:57:08.223          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:57:08.885          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:57:28.431          ms  PRZYCISK     wciśnięto  numer=1
+17:57:28.658          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+17:57:28.943          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:57:29.142          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=473
+17:57:29.237      +1 ms  SESJA        --- TURA f786 ---  źródło=OKULARY
+17:57:29.240      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+17:57:34.148   +4911 ms  NASŁUCH      koniec  ms=4910 odłożone=w takim razie sprawdź w internecie tą pogodę zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=6.6400003 próbek=12 gotowyPoMs=351
+17:57:34.269   +5032 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+17:57:35.514   +6277 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.5535 pakietów=278 rozkodowanych=278 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=2 41 0 0 1407 2227 1718 1017 410 14 1 0 ciszaNaKońcuOkien=1
+17:57:38.214   +8977 ms  TRANSKRYPCJA z nagrania okularów  ms=2694 droga=Nasłuch telefonu
+17:57:38.237   +9001 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5553 jestMs=2960 tło=1 szczyt=4581 ile razy=3100.1
+17:57:38.244   +9007 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=w takim razie sprawdź w internecie tą pogodę
+17:57:38.246   +9010 ms  SESJA        pytanie  tekst=w takim razie sprawdź w internecie tą pogodę wymuszonyObraz=false
+17:57:38.261   +9024 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:57:38.291   +9054 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:57:38.288   +9052 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:57:38.897   +9660 ms  KONTEKST     zebrany  ms=596 pamięć=false kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+17:57:38.925   +9688 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=6948
+17:57:39.351  +10114 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=427 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:57:39.357  +10120 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=6948
+17:57:43.766  +14529 ms  MODEL        koniec odpowiedzi (270 znaków, 5714 tokenów)  ms=4842 dostawca=deepseek początek=Otwieram Ci wyszukiwanie z prognozą dla Bodrum na sobotę i niedzielę. Sam nie od
+17:57:43.781  +14544 ms  AKCJA        model zlecił akcje  akcje=WEB_SEARCH znakówOdpowiedzi=187
+17:57:44.301  +15065 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:57:55.839  +26603 ms  MOWA         koniec wypowiedzi  ms=12051
+17:57:55.959  +26722 ms  AUDIO        zwinięte łącze audio tury  ms=1
+17:57:55.964  +26728 ms  SESJA        --- KONIEC TURY f786: odpowiedziano ---
+17:57:55.975          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
