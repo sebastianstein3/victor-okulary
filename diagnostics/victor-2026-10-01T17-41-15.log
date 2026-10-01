@@ -425,3 +425,55 @@
 17:53:31.303  +33817 ms  AUDIO        zwinięte łącze audio tury  ms=0
 17:53:31.306  +33820 ms  SESJA        --- KONIEC TURY e696: odpowiedziano ---
 17:53:31.309          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:53:31.446          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:53:32.078          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:53:35.722          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=1 mikrofonOkularów=true
+17:53:35.804      +0 ms  SESJA        --- TURA 7eb7 ---  źródło=TELEFON
+17:53:35.806      +2 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true ustawienieMikOkularów=true
+17:53:42.811   +7007 ms  NASŁUCH      koniec  ms=7007 telefonUsłyszał=podany przeze mnie kod był prawidłowy ten twój był nieprawidłowy zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=4 gotowyPoMs=203
+17:53:42.814   +7010 ms  NASŁUCH      nagranie z okularów  jest=false
+17:53:42.815   +7011 ms  SESJA        pytanie  tekst=podany przeze mnie kod był prawidłowy ten twój był nieprawidłowy wymuszonyObraz=false
+17:53:42.821   +7018 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:53:42.991   +7187 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:53:42.991   +7187 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:53:44.477   +8673 ms  KONTEKST     zebrany  ms=1477 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:53:44.487   +8683 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=9872
+17:53:45.202   +9398 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=714 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:53:45.205   +9401 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=9872
+17:53:49.004  +13200 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:53:50.154  +14350 ms  MODEL        koniec odpowiedzi (151 znaków, 7000 tokenów)  ms=5667 dostawca=deepseek początek=Masz rację, przepraszam — to mój odczyt był błędny, nie Twój kod. Podaj mi jeszc
+17:53:50.157  +14353 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=151
+17:54:01.143  +25339 ms  MOWA         koniec wypowiedzi  ms=10985
+17:54:01.164  +25360 ms  AUDIO        zwinięte łącze audio tury  ms=0
+17:54:01.166  +25363 ms  SESJA        --- KONIEC TURY 7eb7: odpowiedziano ---
+17:54:01.170          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:54:01.234          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:54:01.913          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:54:09.283          ms  AUDIO        zestawiony profil rozmowy do nasłuchu  ms=32 mikrofonOkularów=true
+17:54:09.380      +0 ms  SESJA        --- TURA 3c8e ---  źródło=TELEFON
+17:54:09.381      +2 ms  NASŁUCH      start  strumieńBLE=false sco=true mikrofonBT=true ustawienieMikOkularów=true
+17:54:18.371   +8991 ms  NASŁUCH      koniec  ms=8991 telefonUsłyszał=2 0 0 0 1 9 9 3 1 7 2 1 5 zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=15 gotowyPoMs=649
+17:54:18.373   +8993 ms  NASŁUCH      nagranie z okularów  jest=false
+17:54:18.374   +8994 ms  SESJA        pytanie  tekst=2 0 0 0 1 9 9 3 1 7 2 1 5 wymuszonyObraz=false
+17:54:18.380   +9001 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:54:18.550   +9170 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:54:18.551   +9171 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:54:20.187  +10807 ms  KONTEKST     zebrany  ms=1627 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:54:20.199  +10819 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=10077
+17:54:22.312  +12932 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=2114 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:54:22.316  +12936 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=10077
+17:54:24.561  +15181 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:54:27.740  +18360 ms  MODEL        koniec odpowiedzi (467 znaków, 7519 tokenów)  ms=7542 dostawca=deepseek początek=Zapisuję: dwa, zero, zero, zero, jeden, dziewięć, dziewięć, trzy, jeden, siedem,
+17:54:27.742  +18362 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=467
+17:54:56.397  +47017 ms  MOWA         koniec wypowiedzi  ms=28654
+17:54:56.420  +47040 ms  AUDIO        zwinięte łącze audio tury  ms=1
+17:54:56.422  +47042 ms  SESJA        --- KONIEC TURY 3c8e: odpowiedziano ---
+17:54:56.426          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
