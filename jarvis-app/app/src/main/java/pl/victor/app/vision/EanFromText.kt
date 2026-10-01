@@ -98,6 +98,41 @@ object EanFromText {
         8 to listOf(listOf(8), listOf(4, 4))
     )
 
+    /**
+     * Kod podyktowany NA GŁOS - z tego, co oddało rozpoznawanie mowy.
+     *
+     * [find] przyjmuje tylko układy druku, i słusznie dla tekstu z aparatu.
+     * Ale dyktowany kod wraca z rozpoznawania inaczej: "2 0 0 0 1 9 9 3 1 7
+     * 2 1 5" (dziennik z biegu 152) albo "20 00 19 93 17 215" - cyfra po
+     * cyfrze, parami, jak kto czyta. Żaden z tych układów nie jest układem
+     * druku, więc kod podany głosem nie był rozpoznawany wcale.
+     *
+     * Tu wystarczy, że w wypowiedzi jest JEDEN ciąg krótkich grup cyfr, który
+     * razem daje 8, 12 albo 13 cyfr z poprawną cyfrą kontrolną. Przypadkowe
+     * trafienie jest tu mało groźne: człowiek, który dyktuje cyfry, chce
+     * właśnie, żeby je sprawdzić.
+     */
+    fun zMowy(text: String?): String? {
+        if (text.isNullOrBlank()) return null
+        for (grupa in CIĄGI_MOWY.findAll(text)) {
+            val kawałki = grupa.value.split(Regex("""[^\d]+""")).filter { it.isNotEmpty() }
+            // Data ("12.05.2024") to trzy grupy i osiem cyfr - z cyfrą
+            // kontrolną zgadłaby się co dziesiąta. Dyktowany kod to zawsze
+            // więcej grup, więc od czterech w górę.
+            if (kawałki.size < MIN_GRUP_MOWY || kawałki.any { it.length > MAKS_GRUPA_MOWY }) continue
+            val kandydat = kawałki.joinToString("")
+            if (kandydat.length in DŁUGOŚCI && poprawnaCyfraKontrolna(kandydat)) return kandydat
+        }
+        return null
+    }
+
+    /** Grupy po 1-4 cyfry, rozdzielone spacjami, przecinkami, kropkami, myślnikami. */
+    private val CIĄGI_MOWY = Regex("""(?<!\d)\d{1,4}(?:[ \t\u00A0.,\-]+\d{1,4})+(?!\d)""")
+
+    private const val MAKS_GRUPA_MOWY = 4
+
+    private const val MIN_GRUP_MOWY = 4
+
     /** Cyfry rozdzielone co najwyżej pojedynczymi białymi znakami. */
     private val CIĄGI = Regex("""\d(?:[ \t ]?\d)+""")
 }

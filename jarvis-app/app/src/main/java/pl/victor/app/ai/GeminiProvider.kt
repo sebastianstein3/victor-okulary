@@ -147,7 +147,7 @@ class GeminiProvider(
                     }
                 }
             }
-            if (enableWebSearch) {
+            if (useSearch(enableWebSearch)) {
                 putJsonArray("tools") {
                     add(buildJsonObject { put("googleSearch", buildJsonObject {}) })
                 }
@@ -157,7 +157,7 @@ class GeminiProvider(
             // żadnej granicy, czyli najdroższym z nich wszystkich.
             putJsonObject("generationConfig") {
                 put("maxOutputTokens", MAX_OUTPUT_TOKENS)
-                if (limitThinking && !thinkingRejected) {
+                if (sendThinkingLimit()) {
                     putJsonObject("thinkingConfig") { put("thinkingBudget", 0) }
                 }
             }
@@ -208,17 +208,22 @@ class GeminiProvider(
         scannedCodes: List<ScannedCode>,
         enableWebSearch: Boolean,
         systemPrompt: String?
-    ): AIResponse = try {
-        analyzeOnce(
-            textQuestion = textQuestion,
-            images = images,
-            audioBytes = audioBytes,
-            scannedCodes = scannedCodes,
-            enableWebSearch = enableWebSearch,
-            systemPrompt = systemPrompt
-        )
-    } catch (e: ThinkingRejectedRetry) {
-        analyzeOnce(
+    ): AIResponse {
+        repeat(MAX_REPAIRS) {
+            try {
+                return analyzeOnce(
+                    textQuestion = textQuestion,
+                    images = images,
+                    audioBytes = audioBytes,
+                    scannedCodes = scannedCodes,
+                    enableWebSearch = enableWebSearch,
+                    systemPrompt = systemPrompt
+                )
+            } catch (e: RepairedRequestRetry) {
+                // Naprawa zapamiętana - następna próba idzie bez zdjętej części.
+            }
+        }
+        return analyzeOnce(
             textQuestion = textQuestion,
             images = images,
             audioBytes = audioBytes,
@@ -276,14 +281,15 @@ class GeminiProvider(
         )
         parts.add(GeminiPart(text = prompt))
 
-        val tools = if (enableWebSearch) {
+        val tools = if (useSearch(enableWebSearch)) {
             listOf(GeminiTool(googleSearch = GoogleSearchTool()))
         } else null
+        val config = generationConfig()
 
         val request = GeminiRequest(
             contents = listOf(GeminiContent(parts = parts)),
             tools = tools,
-            generationConfig = generationConfig()
+            generationConfig = config
         )
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
@@ -298,12 +304,11 @@ class GeminiProvider(
             client.newCall(httpRequest).executeCancellable { response ->
                 if (!response.isSuccessful) {
                     val errorBody = response.body?.string() ?: "Unknown error"
-                    // Odmowa dotycząca myślenia jest DO NAPRAWIENIA W LOCIE:
-                    // zapamiętujemy ją i powtarzamy zapytanie bez tej prośby,
-                    // zamiast zwracać użytkownikowi błąd za coś, co jest tylko
-                    // optymalizacją kosztu.
-                    if (noteThinkingRejected(response.code, errorBody)) {
-                        throw ThinkingRejectedRetry()
+                    // Odmowa dodatku do zapytania jest DO NAPRAWIENIA W LOCIE:
+                    // zapamiętujemy ją i powtarzamy zapytanie bez niego,
+                    // zamiast oddawać rozmowę dostawcy zapasowemu.
+                    if (noteBadRequest(response.code, errorBody, config.thinkingConfig != null, tools != null)) {
+                        throw RepairedRequestRetry()
                     }
                     throw AIProviderException(
                         explainHttpError(response.code, errorBody),
@@ -320,6 +325,11 @@ class GeminiProvider(
                 parseResponse(body)
             }
         } catch (e: AIProviderException) {
+            throw e
+        } catch (e: RepairedRequestRetry) {
+            // MUSI przejść nietknięty. Ogólny `catch` niżej zamieniał go w
+            // "Network error", więc ponowienie bez odrzuconej części nie
+            // zadziałało ani razu - także w starszej wersji tylko dla myślenia.
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "Gemini API call failed", e)
@@ -446,51 +456,92 @@ class GeminiProvider(
      */
     private fun generationConfig(): GeminiGenerationConfig = GeminiGenerationConfig(
         maxOutputTokens = MAX_OUTPUT_TOKENS,
-        thinkingConfig = if (limitThinking && !thinkingRejected) {
+        thinkingConfig = if (sendThinkingLimit()) {
             GeminiThinkingConfig(thinkingBudget = 0)
         } else {
             null
         }
     )
 
+    /** Czy dołożyć prośbę o ograniczenie myślenia - nie, gdy ten model ją odrzucił. */
+    private fun sendThinkingLimit(): Boolean = limitThinking && model !in thinkingRejectedModels
+
     /**
-     * Rozpoznaje odmowę dotyczącą myślenia i zapamiętuje ją na stałe.
-     *
-     * @return `true` gdy warto powtórzyć zapytanie BEZ tej prośby
+     * Czy dołożyć wyszukiwarkę. Po odmowie wyłączamy ją dla modelu tylko na
+     * [SEARCH_REJECT_MS] - odmowa bywa przejściowa, a bez wyszukiwarki
+     * asystent nie sprawdzi niczego aktualnego.
      */
-    private fun noteThinkingRejected(code: Int, body: String): Boolean {
-        if (!limitThinking || thinkingRejected) return false
+    private fun useSearch(enableWebSearch: Boolean): Boolean {
+        if (!enableWebSearch) return false
+        val until = searchRejectedUntil[model] ?: return true
+        return System.currentTimeMillis() >= until
+    }
+
+    /**
+     * Zapisuje odmowę 400 w dzienniku W CAŁOŚCI i decyduje, czy ponowić.
+     *
+     * Dotąd w dzienniku zostawał tylko początek odmowy, ucięty przed polem
+     * `details`, które mówi, KTÓRY argument się nie spodobał.
+     *
+     * @return `true` gdy warto powtórzyć zapytanie bez zdjętej części
+     */
+    private fun noteBadRequest(code: Int, body: String, sentThinkingLimit: Boolean, sentSearch: Boolean): Boolean {
         if (code != HTTP_BAD_REQUEST) return false
-        if (!body.contains("thinking", ignoreCase = true)) return false
-        thinkingRejected = true
+        val repair = GeminiBadRequest.naprawa(code, body, sentThinkingLimit, sentSearch)
+        when (repair) {
+            GeminiBadRequest.Naprawa.BEZ_OGRANICZENIA_MYŚLENIA ->
+                thinkingRejectedModels = thinkingRejectedModels + model
+            GeminiBadRequest.Naprawa.BEZ_WYSZUKIWARKI ->
+                searchRejectedUntil = searchRejectedUntil + (model to System.currentTimeMillis() + SEARCH_REJECT_MS)
+            null -> Unit
+        }
+        val what = when (repair) {
+            GeminiBadRequest.Naprawa.BEZ_OGRANICZENIA_MYŚLENIA -> "Gemini odrzucił zapytanie - ponawiam bez ograniczenia myślenia"
+            GeminiBadRequest.Naprawa.BEZ_WYSZUKIWARKI -> "Gemini odrzucił zapytanie - ponawiam bez wyszukiwarki"
+            null -> "Gemini odrzucił zapytanie - nie ma czego zdjąć"
+        }
+        val oneLine = GeminiBadRequest.jednaLinia(body)
         runCatching {
             pl.victor.app.VictorApplication.get().diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.MODEL,
-                "Gemini odrzucił prośbę o ograniczenie myślenia - ponawiam bez niej",
-                mapOf("odpowiedź" to body.take(ERROR_BODY_CHARS))
+                what,
+                mapOf(
+                    "model" to model,
+                    "ograniczenieMyślenia" to sentThinkingLimit,
+                    "wyszukiwarka" to sentSearch,
+                    "odpowiedź" to oneLine
+                )
             )
         }
-        Log.w(TAG, "Prośba o ograniczenie myślenia odrzucona: ${body.take(ERROR_BODY_CHARS)}")
-        return true
+        Log.w(TAG, "$what: $oneLine")
+        return repair != null
     }
 
     companion object {
         private const val TAG = "GeminiProvider"
 
         /**
-         * Czy API odrzuciło już prośbę o ograniczenie myślenia.
+         * Modele, które odrzuciły prośbę o ograniczenie myślenia.
          *
          * Wspólne dla wszystkich egzemplarzy i na całe uruchomienie: skoro
-         * nazwa pola nie pasuje, nie pasuje dla każdego zapytania, a powtarzanie
-         * odrzucanej próby kosztowałoby dodatkowy obieg za każdym razem.
+         * model tego pola nie przyjmuje, nie przyjmie go w żadnym zapytaniu, a
+         * powtarzanie odrzucanej próby kosztowałoby dodatkowy obieg za każdym
+         * razem. Per model, bo inny model może je przyjmować.
          */
         @Volatile
-        private var thinkingRejected = false
+        private var thinkingRejectedModels: Set<String> = emptySet()
+
+        /** Do kiedy nie dokładać wyszukiwarki danemu modelowi. */
+        @Volatile
+        private var searchRejectedUntil: Map<String, Long> = emptyMap()
+
+        private const val SEARCH_REJECT_MS = 30 * 60_000L
+
+        /** Ile razy można zdjąć coś z zapytania: myślenie i wyszukiwarkę. */
+        private const val MAX_REPAIRS = 2
 
         private const val HTTP_BAD_REQUEST = 400
 
-        /** Ile znaków odpowiedzi serwera zapisać przy odmowie. */
-        private const val ERROR_BODY_CHARS = 200
         private const val API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val STREAM_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val IMAGES_IN_REQUEST = 5
@@ -599,7 +650,7 @@ class GeminiProvider(
             scannedCodes = scannedCodes,
             enableWebSearch = enableWebSearch,
             systemPrompt = systemPrompt
-    ).retry(1) { it is ThinkingRejectedRetry }
+    ).retry(MAX_REPAIRS.toLong()) { it is RepairedRequestRetry }
 
     private fun streamOnce(
         textQuestion: String,
@@ -637,12 +688,13 @@ class GeminiProvider(
         val prompt = buildPrompt(textQuestion, images.isNotEmpty(), scannedCodes, systemPrompt)
         parts.add(GeminiPart(text = prompt))
 
-        val tools = if (enableWebSearch) listOf(GeminiTool(googleSearch = GoogleSearchTool())) else null
+        val tools = if (useSearch(enableWebSearch)) listOf(GeminiTool(googleSearch = GoogleSearchTool())) else null
+        val config = generationConfig()
 
         val request = GeminiRequest(
             contents = listOf(GeminiContent(parts = parts)),
             tools = tools,
-            generationConfig = generationConfig()
+            generationConfig = config
         )
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
@@ -665,12 +717,11 @@ class GeminiProvider(
             call.executeCancellable { response ->
                 if (!response.isSuccessful) {
                     val errorBody = response.body?.string() ?: "Unknown error"
-                    // Odmowa dotycząca myślenia jest DO NAPRAWIENIA W LOCIE:
-                    // zapamiętujemy ją i powtarzamy zapytanie bez tej prośby,
-                    // zamiast zwracać użytkownikowi błąd za coś, co jest tylko
-                    // optymalizacją kosztu.
-                    if (noteThinkingRejected(response.code, errorBody)) {
-                        throw ThinkingRejectedRetry()
+                    // Odmowa dodatku do zapytania jest DO NAPRAWIENIA W LOCIE:
+                    // zapamiętujemy ją i powtarzamy zapytanie bez niego,
+                    // zamiast oddawać rozmowę dostawcy zapasowemu.
+                    if (noteBadRequest(response.code, errorBody, config.thinkingConfig != null, tools != null)) {
+                        throw RepairedRequestRetry()
                     }
                     throw AIProviderException(
                         explainHttpError(response.code, errorBody),
@@ -740,7 +791,7 @@ class GeminiProvider(
                 // Przy "nie mam dostępu do aktualnych cen" z włączonym
                 // wyszukiwaniem dziennik nie mówił, czy wyszukiwarka zawiodła,
                 // czy model po nią nie sięgnął. To są różne naprawy.
-                if (enableWebSearch) {
+                if (tools != null) {
                     runCatching {
                         pl.victor.app.VictorApplication.get().diag.event(
                             pl.victor.app.diagnostics.DiagFormat.Phase.MODEL,
@@ -765,6 +816,9 @@ class GeminiProvider(
         } catch (e: AIProviderException) {
             throw e
         } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: RepairedRequestRetry) {
+            // Patrz analyzeOnce - inaczej `retry` niżej nie miałby czego złapać.
             throw e
         } catch (e: Exception) {
             // Zamknięte przy anulowaniu połączenie daje IOException - to nadal
@@ -819,12 +873,12 @@ data class GeminiGenerationConfig(
 )
 
 /**
- * Sygnał wewnętrzny: powtórz zapytanie bez prośby o ograniczenie myślenia.
+ * Sygnał wewnętrzny: powtórz zapytanie bez części, którą serwer odrzucił.
  *
  * Nie wychodzi poza [GeminiProvider] - wołający ma zobaczyć odpowiedź albo
  * prawdziwy błąd, nigdy tego wyjątku.
  */
-private class ThinkingRejectedRetry : Exception("Powtórka bez ograniczenia myślenia")
+private class RepairedRequestRetry : Exception("Powtórka bez odrzuconej części zapytania")
 
 /**
  * Prośba o ograniczenie myślenia.
@@ -837,7 +891,7 @@ private class ThinkingRejectedRetry : Exception("Powtórka bez ograniczenia myś
  * przestaje odpowiadać W OGÓLE.
  *
  * Dlatego zamiast zgadywać w ciemno, aplikacja PRÓBUJE i uczy się z odmowy -
- * patrz [GeminiProvider.noteThinkingRejected]. Nieudana próba kosztuje jedno
+ * patrz [GeminiProvider.noteBadRequest]. Nieudana próba kosztuje jedno
  * dodatkowe zapytanie raz na uruchomienie, a nie zepsutą rozmowę.
  */
 @Serializable

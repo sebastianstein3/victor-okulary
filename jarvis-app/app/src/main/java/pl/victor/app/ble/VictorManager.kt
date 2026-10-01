@@ -1138,6 +1138,18 @@ class VictorManager private constructor(context: Context) {
                     )
                 )
             }
+
+            // A2DP PO POŁĄCZENIU - ZANIM PADNIE PIERWSZE PYTANIE.
+            //
+            // Dziennik z biegu 152: przez pół godziny KAŻDA tura szła profilem
+            // rozmowy ("brak A2DP - biorę profil rozmowy"), a prośba o tryb
+            // multimediów przed odpowiedzią ani razu nie zadziałała. Za to
+            // prośba wysłana, gdy profil rozmowy NIE stał (alert o 18:10),
+            // dała A2DP po 4,3 s. Wniosek: prośba szła zawsze razem z
+            // zestawianiem SCO, które ją blokowało - błędne koło, bo bez A2DP
+            // każda kolejna tura znowu brała SCO. Tu jest chwila, kiedy SCO na
+            // pewno nie stoi.
+            requestClassicAudioWhenIdle("po połączeniu")
         }
     }
 
@@ -1586,6 +1598,17 @@ class VictorManager private constructor(context: Context) {
             micWakeDetector.reset()
             return
         }
+        // W TRYBIE, KTÓRY SAM TRZYMA MIKROFON, DŹWIĘK NIE JEST WYBUDZENIEM.
+        //
+        // Dziennik z biegu 152: tłumaczenie ze słuchu zatrzymane przyciskiem, a
+        // pięć sekund później "wybudzenie z DŹWIĘKU" i tura z pytaniem
+        // "znaczenie" - okulary dalej nadawały po wciśnięciu, a karencja po
+        // przycisku (cztery sekundy) już minęła. Tryb tłumaczenia mówi tu
+        // wprost, kiedy słucha sam - patrz [suspendMicWake].
+        if (micWakeSuspended || teraz < micWakeSuspendedUntilMs) {
+            micWakeDetector.reset()
+            return
+        }
         if (!micWakeDetector.onStrayPacket(teraz)) return
         runCatching {
             diag.event(
@@ -1605,6 +1628,23 @@ class VictorManager private constructor(context: Context) {
     }
 
     private val micWakeDetector = MicWakeDetector()
+
+    @Volatile
+    private var micWakeSuspended = false
+
+    @Volatile
+    private var micWakeSuspendedUntilMs = 0L
+
+    /**
+     * Wyłącza wybudzenie z dźwięku na czas trybu, który sam słucha okularów
+     * (tłumaczenie ze słuchu), i na [graceMs] po jego końcu - okulary nadają
+     * jeszcze chwilę po ostatnim nasłuchu.
+     */
+    fun suspendMicWake(suspended: Boolean, graceMs: Long = 0L) {
+        micWakeSuspended = suspended
+        micWakeSuspendedUntilMs = if (suspended) 0L else System.currentTimeMillis() + graceMs
+        micWakeDetector.reset()
+    }
 
     /** Wołane wyłącznie pod blokadą [micStreamListeners]. */
     private fun unsubscribeMicStream() {
@@ -1633,8 +1673,26 @@ class VictorManager private constructor(context: Context) {
      */
     fun playGlassesTone(code: Int) {
         if (!isConnected()) return
+        if (code == GlassesProtocol.TONE_PLAYBACK_STARTED || code == GlassesProtocol.TONE_STOP_PLAYBACK) {
+            lastPlaybackEdgeAtMs = System.currentTimeMillis()
+        }
         runCatching { largeDataHandler.aiVoicePlay(code, null) }
             .onFailure { Log.w(tag, "aiVoicePlay($code) nie powiodło się", it) }
+    }
+
+    @Volatile
+    private var lastPlaybackEdgeAtMs = 0L
+
+    /**
+     * Ile minęło od ostatniego "zaczynam" / "kończę" mówić wysłanego okularom.
+     *
+     * Okulary odpowiadają na te dwie komendy ramką 0x0C, która wygląda jak
+     * dotknięcie zausznika - patrz [pl.victor.app.AIOrchestrator], obsługa
+     * `speechInterrupted`. `Long.MAX_VALUE`, gdy nic jeszcze nie poszło.
+     */
+    fun msSincePlaybackEdge(): Long {
+        val at = lastPlaybackEdgeAtMs
+        return if (at == 0L) Long.MAX_VALUE else System.currentTimeMillis() - at
     }
 
     /**
@@ -1867,6 +1925,33 @@ class VictorManager private constructor(context: Context) {
 
     @Volatile
     private var lastClassicAudioRequestAtMs = 0L
+
+    private var classicAudioIdleJob: Job? = null
+
+    /**
+     * Prosi o tryb multimediów, gdy NIC nie trzyma profilu rozmowy.
+     *
+     * Czeka na zejście SCO (tura, karencja routera), odczekuje chwilę i prosi
+     * z czekaniem na wynik - patrz [ensureClassicAudio]. Gdy profil rozmowy
+     * nie zejdzie w [CLASSIC_AUDIO_IDLE_WAIT_MS], odpuszcza: następna okazja
+     * przyjdzie z końcem następnej tury.
+     */
+    fun requestClassicAudioWhenIdle(reason: String) {
+        if (simulator != null) return
+        classicAudioIdleJob?.cancel()
+        classicAudioIdleJob = scope.launch {
+            val router = pl.victor.app.audio.BluetoothAudioRouter.getInstance(appContext)
+            if (router.hasA2dpOutput()) return@launch
+            kotlinx.coroutines.withTimeoutOrNull(CLASSIC_AUDIO_IDLE_WAIT_MS) {
+                router.isRoutedToBluetooth.first { !it }
+            } ?: return@launch
+            delay(CLASSIC_AUDIO_IDLE_SETTLE_MS)
+            if (!isConnected() || router.hasA2dpOutput()) return@launch
+            if (router.isRoutedToBluetooth.value) return@launch
+            lastClassicAudioRequestAtMs = System.currentTimeMillis()
+            ensureClassicAudio(reason, CLASSIC_AUDIO_IDLE_TIMEOUT_MS)
+        }
+    }
 
     /**
      * Prosi o tryb multimediów i CZEKA na wynik. `true`, gdy kanał wstał.
@@ -2824,6 +2909,9 @@ class VictorManager private constructor(context: Context) {
      * [pl.victor.app.stream.YuvFrame.sceneChanged].
      */
     fun liveFingerprint(): IntArray? = frameGrabber?.latestFingerprint
+
+    /** Ile klatek strumień wyjął do tej pory - rośnie, gdy przyszła nowa. */
+    fun liveFrameCount(): Int = frameGrabber?.grabbed ?: 0
 
     /** Zdarzenia strumienia do dziennika - waga przychodzi od nadawcy. */
     private fun streamEvent(message: String, fields: Map<String, Any?>, problem: Boolean) {
@@ -4784,6 +4872,15 @@ class VictorManager private constructor(context: Context) {
 
         /** Jak często pytać, czy kanał multimediów już stoi - patrz [ensureClassicAudio]. */
         private const val CLASSIC_AUDIO_POLL_MS = 250L
+
+        /** Jak długo czekać, aż profil rozmowy zejdzie - patrz [requestClassicAudioWhenIdle]. */
+        private const val CLASSIC_AUDIO_IDLE_WAIT_MS = 30_000L
+
+        /** Chwila po zejściu profilu rozmowy, zanim okulary przyjmą prośbę. */
+        private const val CLASSIC_AUDIO_IDLE_SETTLE_MS = 1_500L
+
+        /** Limit na wstanie A2DP w spokoju - w dzienniku wstał po 4,3 s. */
+        private const val CLASSIC_AUDIO_IDLE_TIMEOUT_MS = 10_000L
 
         /**
          * Ile wciśnięć zmieści się w buforze, zanim kolektor je odbierze.

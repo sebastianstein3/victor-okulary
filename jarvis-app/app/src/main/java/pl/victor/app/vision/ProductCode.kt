@@ -48,5 +48,27 @@ object ProductCode {
         return if (cyfry.length == DŁUGOŚĆ_UPC) "0$cyfry" else cyfry
     }
 
+    /**
+     * Czy to kod WEWNĘTRZNY sklepu (GS1 "restricted circulation").
+     *
+     * Dziennik z biegu 152: "2000199317215" - poprawna cyfra kontrolna, a
+     * baza produktów milczy, model zaś obiecuje sprawdzić "w internecie".
+     * Nie znajdzie: prefiksy 200-299 (i 020-029) GS1 zostawia sklepom do
+     * własnego użytku - tak znakuje się towar ważony i pakowany na miejscu
+     * (mięso, ser, pieczywo, owoce), często z wagą albo ceną w środku kodu.
+     * Każdy sklep nadaje je po swojemu, więc w żadnej publicznej bazie ich
+     * nie ma i nigdy nie będzie. EAN-8 z zerem albo dwójką na początku to
+     * ten sam przypadek w krótszej wersji.
+     */
+    fun jestWewnętrzny(raw: String): Boolean {
+        val kod = znormalizuj(raw)
+        if (!kod.all { it.isDigit() }) return false
+        return when (kod.length) {
+            13 -> kod[0] == '2' || kod.startsWith("02")
+            8 -> kod[0] == '0' || kod[0] == '2'
+            else -> false
+        }
+    }
+
     private const val DŁUGOŚĆ_UPC = 12
 }

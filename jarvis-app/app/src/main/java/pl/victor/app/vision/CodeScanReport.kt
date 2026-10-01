@@ -46,6 +46,15 @@ object CodeScanReport {
         // same za siebie.
         if (kodProduktu != null && produktZnaleziony) return null
 
+        if (kodProduktu != null && ProductCode.jestWewnętrzny(kodProduktu)) {
+            return "Kod $kodProduktu zaczyna się od cyfry 2 - to kod WEWNĘTRZNY " +
+                "SKLEPU, a nie kod producenta. Tak sklep znakuje towar ważony albo " +
+                "pakowany na miejscu (mięso, wędliny, ser, pieczywo, owoce); w " +
+                "środku kodu bywa zapisana waga albo cena. Takich kodów nie ma w " +
+                "żadnej publicznej bazie ani w internecie, bo każdy sklep nadaje je " +
+                "sam - powiedz to wprost i krótko, nie obiecuj, że go sprawdzisz. " +
+                "Jeśli masz zdjęcie etykiety, przeczytaj z niej nazwę, wagę i cenę."
+        }
         if (kodProduktu != null) {
             return "Aplikacja odczytała kod produktu $kodProduktu i sprawdziła go w " +
                 "bazie Open Food Facts - tego produktu w niej NIE MA. Powiedz to " +

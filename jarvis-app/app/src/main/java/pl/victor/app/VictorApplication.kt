@@ -128,6 +128,10 @@ class VictorApplication : Application() {
                     // rozstrzygał dotąd dopiero wiersz WAKE "żądano=false" -
                     // czyli aplikacja SAMA kazała okularom nie słuchać.
                     "fraza wybudzenia w okularach: ${settings.isGlassesWakeWordEnabled()}",
+                    // Prośba o ograniczenie myślenia zmienia KSZTAŁT zapytania do
+                    // Gemini - a dziennik z biegu 152 to sześćdziesiąt odmów 400
+                    // bez słowa o tym, co w zapytaniu było.
+                    "ograniczenie myślenia: ${settings.isThinkingLimitEnabled()}",
                     "źródło zdjęcia: ${settings.getPhotoSource()} (dzielnik ${settings.getPhotoDivisor()})"
                 )
             )

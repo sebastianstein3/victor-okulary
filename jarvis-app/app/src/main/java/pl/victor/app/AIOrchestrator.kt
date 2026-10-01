@@ -92,6 +92,31 @@ class AIOrchestrator(
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob() + coroutineErrors)
 
+    /** Klawisz słuchawek w trakcie mówienia = "cicho" - patrz [SpeechMediaButtons]. */
+    private val mediaButtons by lazy {
+        pl.victor.app.audio.SpeechMediaButtons(context) { keyCode ->
+            scope.launch {
+                bezpiecznie("klawisz multimediów") {
+                    val mówimy = audio.speaking.value
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.WAKE, "klawisz multimediów z okularów",
+                            mapOf(
+                                "klawisz" to android.view.KeyEvent.keyCodeToString(keyCode),
+                                "mówię" to mówimy,
+                                "tłumaczenie" to _earTranslation.value
+                            )
+                        )
+                    }
+                    // Te same zasady co ramka "ucisz": dotyczy mówienia, a w
+                    // tłumaczeniu wychodzi się przyciskiem.
+                    if (!mówimy || _earTranslation.value) return@bezpiecznie
+                    cancelCurrentTurn("klawisz słuchawek (dotknięcie zausznika)")
+                }
+            }
+        }
+    }
+
     private val _state = MutableStateFlow<OrchestratorState>(OrchestratorState.Idle)
     val state: StateFlow<OrchestratorState> = _state.asStateFlow()
 
@@ -973,10 +998,37 @@ class AIOrchestrator(
                         }
                         return@bezpiecznie
                     }
+                    // ECHO NASZEJ WŁASNEJ KOMENDY, NIE DOTKNIĘCIE.
+                    //
+                    // Dziennik z biegu 152: tę samą ramkę okulary odsyłają
+                    // circa pół sekundy po "zaczynam/kończę mówić", które sami
+                    // im wysyłamy. Po "kończę" nikt nie mówi, więc warunek
+                    // wyżej ją odsiewa - ale echo "zaczynam" trafia akurat w
+                    // mówienie. Tak zginęła tura "ile to jest 7 + 7" o
+                    // 17:44:31: PRZERWANO 0,36 s po zestawieniu dźwięku, zanim
+                    // padło jedno słowo odpowiedzi. Dotknąć w pierwszej
+                    // półtorej sekundy nikt nie zdąży, więc to okno nic nie
+                    // odbiera człowiekowi.
+                    val odKomendy = glassesManager.msSincePlaybackEdge()
+                    if (odKomendy < PLAYBACK_ECHO_WINDOW_MS) {
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.WAKE, "ucisz z okularów pominięte - echo komendy odtwarzania",
+                                mapOf("msOdKomendy" to odKomendy)
+                            )
+                        }
+                        return@bezpiecznie
+                    }
                     Log.i(TAG, "Okulary: użytkownik przerwał wypowiedź")
                     cancelCurrentTurn("dotknięcie zauszników")
                 }
             }
+        }
+
+        // To samo "cicho" KLAWISZEM MULTIMEDIÓW - tędy przychodzi dotknięcie
+        // zausznika, gdy mowa idzie profilem rozmowy. Patrz [SpeechMediaButtons].
+        scope.launch {
+            audio.speaking.collect { mówi -> mediaButtons.setSpeaking(mówi) }
         }
 
         // === ROZŁĄCZENIE MA BYĆ SŁYSZALNE ===
@@ -1603,10 +1655,13 @@ class AIOrchestrator(
         _earTranscript.value = _earTranscript.value.start(from, to)
         _earTranslation.value = true
         startEarPartialTranslation(from, to)
+        // Włączone GŁOSEM rusza z wnętrza tury, która jeszcze sprząta po sobie
+        // (łącze audio, mikrofon frazy) - patrz początek [earTranslationLoop].
+        val turaWToku = activeTurnJob?.takeIf { it.isActive }
         // LAZY i start() po przypisaniu: pętla porównuje się z [earJob], więc
         // uchwyt musi już stać, zanim wykona pierwszą instrukcję.
         earJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
-            earTranslationLoop(from, to)
+            earTranslationLoop(from, to, turaWToku)
         }
         earJob?.start()
     }
@@ -1672,21 +1727,59 @@ class AIOrchestrator(
         _earTranscript.value = _earTranscript.value.copy(komunikat = tekst)
     }
 
-    private suspend fun earTranslationLoop(from: String, to: String) {
+    private suspend fun earTranslationLoop(
+        from: String,
+        to: String,
+        turaWToku: kotlinx.coroutines.Job? = null
+    ) {
         val fromName = pl.victor.app.translation.SimultaneousTranslator.languageName(from)
         val toName = pl.victor.app.translation.SimultaneousTranslator.languageName(to)
         runCatching {
             diag.event(
                 DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: start",
-                mapOf("z" to from, "na" to to)
+                mapOf("z" to from, "na" to to, "zTury" to (turaWToku != null))
             )
         }
+        val mójJob = currentCoroutineContext()[kotlinx.coroutines.Job]
+        // WŁĄCZONE GŁOSEM CZEKA, AŻ TURA, KTÓRA JE WŁĄCZYŁA, SKOŃCZY SPRZĄTAĆ.
+        //
+        // Dziennik z biegu 152: z panelu tryb działał, a włączony głosem
+        // ("tłumaczenie na żywo") milczał 23 i 37 sekund - bez zapowiedzi w
+        // dzienniku, bez jednego pustego nasłuchu, do wciśnięcia przycisku.
+        // Różnica między tymi drogami jest jedna: głosem pętla rusza W ŚRODKU
+        // tury z okularów, a ta w swoim `finally` zwija łącze audio rozmowy i
+        // wznawia nasłuch frazy na mikrofonie telefonu - równolegle z
+        // zapowiedzią i pierwszym nasłuchem tłumaczenia. Panel nie ma tury,
+        // więc niczego takiego nie ma. Czekanie jest krótkie (sprzątanie trwa
+        // milisekundy) i ma limit, żeby zawieszona tura nie zatrzymała trybu.
+        if (turaWToku != null && turaWToku !== mójJob) {
+            val czekamOd = System.currentTimeMillis()
+            val zdążyła = kotlinx.coroutines.withTimeoutOrNull(EAR_TURN_WAIT_MS) { turaWToku.join() } != null
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: tura włączająca skończona",
+                    mapOf("ms" to (System.currentTimeMillis() - czekamOd), "zdążyła" to zdążyła)
+                )
+            }
+        }
+        // Tryb SAM trzyma mikrofon: nasłuch frazy na telefonie i wybudzenie z
+        // dźwięku okularów tylko by mu go podbierały - i odpalały tury w trakcie.
+        pauseWakeWordMic()
+        glassesManager.suspendMicWake(true)
         // Zapowiedź idzie w JĘZYKU DOCELOWYM, bo w nim człowiek będzie słyszał
         // wszystko, co dalej - i od razu słychać, czy syntezator ten język ma.
         // Przy wyciszonym trybie (przekład tylko w panelu) - bez zapowiedzi.
         val mówić = settings.isEarTranslationSpoken()
-        if (mówić) audio.speakAndAwait("Tłumaczę z $fromName na $toName.", language = to)
-        val mójJob = currentCoroutineContext()[kotlinx.coroutines.Job]
+        if (mówić) {
+            val zapowiedźOd = System.currentTimeMillis()
+            val powiedziane = audio.speakAndAwait("Tłumaczę z $fromName na $toName.", language = to)
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: zapowiedź",
+                    mapOf("ms" to (System.currentTimeMillis() - zapowiedźOd), "powiedziane" to powiedziane)
+                )
+            }
+        }
         // POTKNIĘCIE JEDNEGO ZDANIA NIE MOŻE KOŃCZYĆ TRYBU.
         //
         // Przy mowie ciągłej wyjątek z rozpoznawania albo z tłumacza jest
@@ -1701,8 +1794,21 @@ class AIOrchestrator(
             // prawdą, ale należy już do NOWEJ sesji - stara pętla ma wtedy
             // skończyć, a nie słuchać równolegle z nową.
             while (_earTranslation.value && earJob === mójJob) {
+                val nasłuchOd = System.currentTimeMillis()
                 val usłyszane = try {
-                    earListenOnce(from)
+                    // STRAŻNIK: jeden nasłuch ma swoje limity (rozpoznawanie,
+                    // cisza w strumieniu okularów - najwyżej kilkanaście
+                    // sekund). Gdy mimo to wisi, tryb nie może milczeć do
+                    // przycisku - liczymy to jak pusty nasłuch, Z WPISEM.
+                    // Pusty tekst zamiast null, żeby odróżnić "nic" od "zawisł".
+                    val wynik = kotlinx.coroutines.withTimeoutOrNull(EAR_LISTEN_MAX_MS) {
+                        earListenOnce(from) ?: ""
+                    }
+                    if (wynik == null) {
+                        earListenError = "nasłuch zawisł na ${EAR_LISTEN_MAX_MS / 1000} s"
+                        earListenErrorCode = null
+                    }
+                    wynik
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     // runCatching połykał i to - anulowana pętla liczyła wtedy
                     // "puste nasłuchy" i mówiła "nic nie słyszę, kończę".
@@ -1730,7 +1836,11 @@ class AIOrchestrator(
                     runCatching {
                         diag.event(
                             DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: pusty nasłuch",
-                            mapOf("powód" to (powód ?: "cisza"), "zRzędu" to (zRzędu + 1))
+                            mapOf(
+                                "powód" to (powód ?: "cisza"),
+                                "zRzędu" to (zRzędu + 1),
+                                "ms" to (System.currentTimeMillis() - nasłuchOd)
+                            )
                         )
                     }
                     // OD RAZU KOŃCZYMY TYLKO PRZY BRAKU JĘZYKA.
@@ -1777,7 +1887,14 @@ class AIOrchestrator(
                         return
                     }
                     is pl.victor.app.translation.EarTranslationSession.Decyzja.Pomiń -> {
-                        Log.d(TAG, "Tłumaczenie ze słuchu: pomijam - ${decyzja.powód}")
+                        // Do dziennika, nie tylko do logcata: pominięty tekst
+                        // wygląda z zewnątrz dokładnie jak "nie tłumaczy".
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: pomijam",
+                                mapOf("powód" to decyzja.powód, "usłyszane" to usłyszane.take(60))
+                            )
+                        }
                     }
                     is pl.victor.app.translation.EarTranslationSession.Decyzja.Tłumacz -> {
                         val przekład = try {
@@ -1841,6 +1958,10 @@ class AIOrchestrator(
             // po szybkim ponownym włączeniu, wyłączała tu nową i zostawiała ją
             // bez uchwytu - stopEarTranslation nie miał już czego zatrzymać.
             if (earJob === mójJob || earJob == null) {
+                // Okulary nadają jeszcze chwilę po ostatnim nasłuchu - bez
+                // karencji ten ogon odpalał turę z przypadkowym pytaniem.
+                glassesManager.suspendMicWake(false, graceMs = EAR_MIC_WAKE_GRACE_MS)
+                resumeWakeWordMic()
                 _earTranslation.value = false
                 earJob = null
                 earPartialJob?.cancel()
@@ -3010,6 +3131,10 @@ class AIOrchestrator(
         // przychodzi tą samą ramką - kończy więc tryb i nic więcej nie robi.
         if (_earTranslation.value) {
             stopEarTranslation("przycisk na okularach")
+            // Wciśnięcie samo włączyło okulary w nasłuch (tak działa ich
+            // przycisk AI) - bez końca sesji nadawały dalej, choć nikt już
+            // nie słuchał.
+            glassesManager.stopGlassesListening()
             audio.speak("Kończę tłumaczenie.", language = settings.getResponseLanguage())
             return
         }
@@ -3499,12 +3624,25 @@ class AIOrchestrator(
             actionDetector.needsVision(textQuestion)
         if (wantsToLook) Log.i(TAG, "Pytanie o to, co widać - robię zdjęcie bez pytania modelu")
 
-        val useVision = forceVision || trigger == TriggerSource.BUTTON || wantsToLook
+        // "ZESKANUJ TEN KOD" TO TEŻ PROŚBA O OBRAZ.
+        //
+        // Dziennik z biegu 152: "zeskanuj ten kod produktu" nie pasował do
+        // wzorców widzenia, więc tura szła "bez zdjęcia" i dopiero gałąź kodu
+        // robiła migawkę - z pominięciem strumienia, który daje kod w pełnej
+        // rozdzielczości. Wyjątek: cyfry podyktowane w samym pytaniu wystarczą,
+        // aparat nic do nich nie doda.
+        val wantsCode = glassesReady && audioQuestion == null &&
+            pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion) &&
+            pl.victor.app.vision.EanFromText.find(textQuestion) == null &&
+            pl.victor.app.vision.EanFromText.zMowy(textQuestion) == null
+
+        val useVision = forceVision || trigger == TriggerSource.BUTTON || wantsToLook || wantsCode
         diag.event(
             DiagFormat.Phase.ZDJĘCIE, if (useVision) "robię zdjęcie" else "bez zdjęcia",
             mapOf(
                 "okularyGotowe" to glassesReady,
                 "wzorzecWidzenia" to wantsToLook,
+                "kod" to wantsCode,
                 "wymuszone" to forceVision,
                 "zNagrania" to (audioQuestion != null)
             )
@@ -3635,6 +3773,8 @@ class AIOrchestrator(
                             DiagFormat.Phase.ZDJĘCIE, "klatka ze strumienia zamiast migawki",
                             mapOf("bajtów" to frame.size, "szczegół" to wantsText)
                         )
+                    }?.let { frame ->
+                        if (pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)) scanStreamForCode(frame) else frame
                     }
                 } else {
                     null
@@ -3773,9 +3913,13 @@ class AIOrchestrator(
                 // wtedy, gdy pytanie faktycznie dotyczy kodu, a pierwsza próba
                 // nic nie dała - bo kosztuje kilkanaście sekund (Wi-Fi Direct).
                 var sharpForCode: ByteArray? = null
-                if (asksAboutCode && scannedCodes.isEmpty() &&
-                    !glassesManager.lastPhotoWasFullResolution
-                ) {
+                // Klatka ze strumienia JEST pełną rozdzielczością - a flaga z
+                // VictorManager mówi o ostatnim ZDJĘCIU, czyli o czymś sprzed
+                // tej tury. Dziennik z biegu 152: kod nie wyszedł z klatki
+                // 1600x1200, flaga pamiętała miniaturę, więc aplikacja szła po
+                // ostre zdjęcie przez Wi-Fi okularów - 30 s i znów miniatura.
+                val photosSharp = streamFrame != null || glassesManager.lastPhotoWasFullResolution
+                if (asksAboutCode && scannedCodes.isEmpty() && !photosSharp) {
                     Log.i(TAG, "Kod nieodczytany z miniatury - próbuję na pełnym zdjęciu")
                     _state.value = OrchestratorState.Capturing(
                         progress = 1,
@@ -3825,7 +3969,8 @@ class AIOrchestrator(
                             "pytanie o kod, ale ŻADNEGO nie odczytano",
                             mapOf(
                                 "zdjęć" to photos.size,
-                                "pełnaRozdzielczość" to glassesManager.lastPhotoWasFullResolution
+                                "pełnaRozdzielczość" to photosSharp,
+                                "źródło" to if (streamFrame != null) "strumień" else "migawka"
                             )
                         )
                     }
@@ -3874,7 +4019,8 @@ class AIOrchestrator(
                 // jest najpewniejszą drogą ze wszystkich. Fałszywych trafień z
                 // numerów telefonów i dat pilnuje układ druku w EanFromText.
                 val fromDigits: String? = if (fromBars == null) {
-                    pl.victor.app.vision.EanFromText.find(textQuestion)
+                    (pl.victor.app.vision.EanFromText.find(textQuestion)
+                        ?: pl.victor.app.vision.EanFromText.zMowy(textQuestion))
                         ?.also { eanZródło = "pytanie" }
                         ?: if (asksAboutCode) {
                             (photos + listOfNotNull(sharpForCode)).firstNotNullOfOrNull { zdjęcie ->
@@ -3897,7 +4043,17 @@ class AIOrchestrator(
                 val productCode = fromBars ?: fromDigits?.let {
                     ScannedCode(rawValue = it, format = if (it.length == 8) "EAN_8" else "EAN_13")
                 }
-                if (productCode != null) {
+                if (productCode != null &&
+                    pl.victor.app.vision.ProductCode.jestWewnętrzny(productCode.rawValue)
+                ) {
+                    // Kodu sklepu nie ma w żadnej bazie - pytanie Open Food
+                    // Facts to tylko strata czasu. Co z nim zrobić, mówi
+                    // modelowi CodeScanReport.
+                    diag.event(
+                        DiagFormat.Phase.ZDJĘCIE, "kod wewnętrzny sklepu - nie szukam w bazie",
+                        mapOf("kod" to productCode.rawValue)
+                    )
+                } else if (productCode != null) {
                     val doWyszukania =
                         pl.victor.app.vision.ProductCode.znormalizuj(productCode.rawValue)
                     productLookup.describe(doWyszukania)?.let { described ->
@@ -4188,8 +4344,8 @@ class AIOrchestrator(
                         pytanieOKod = asksAboutCode || productCode != null,
                         kodProduktu = productCode?.rawValue,
                         produktZnaleziony = productContext != null,
-                        pełnaRozdzielczość = glassesManager.lastPhotoWasFullResolution,
-                        powódMiniatury = glassesManager.lastSharpFallbackReason
+                        pełnaRozdzielczość = streamFrame != null || glassesManager.lastPhotoWasFullResolution,
+                        powódMiniatury = if (streamFrame != null) null else glassesManager.lastSharpFallbackReason
                     )?.let { raport ->
                         append(raport)
                         append("\n\n")
@@ -4846,6 +5002,10 @@ class AIOrchestrator(
                             mapOf("ms" to (System.currentTimeMillis() - teardownStartedAt))
                         )
                     }
+                    // Tura szła profilem rozmowy, bo A2DP nie było. Gdy SCO
+                    // zejdzie, poprosimy o A2DP w spokoju - inaczej każda
+                    // następna tura znowu bierze SCO (patrz VictorManager).
+                    glassesManager.requestClassicAudioWhenIdle("po turze przez profil rozmowy")
                 }
                 wakeLock.release(LOCK_TURN)
                 resumeWakeWordMic()
@@ -4955,6 +5115,9 @@ class AIOrchestrator(
             } else {
                 startEarTranslation()
             }
+            // Ta droga nie przechodzi przez stan Completed, więc tura zostawała
+            // w dzienniku otwarta - kolejne wiersze liczyły czas od niej.
+            runCatching { diag.endTurn("tłumaczenie ze słuchu") }
             return true
         }
 
@@ -5580,7 +5743,14 @@ class AIOrchestrator(
     private suspend fun streamFrameForText(useVision: Boolean, textQuestion: String): ByteArray? {
         if (!useVision) return null
         if (glassesManager.isLiveVisionRunning) return null
-        if (!glassesManager.wifiDirectKnownBroken) return null
+        // KOD IDZIE STRUMIENIEM OD RAZU, nie dopiero po zatrzaśniętym
+        // bezpieczniku. Dziennik z biegu 152: pierwsza próba szła migawką -
+        // miniatura bez kodu, potem 41 s nieudanego dołączania do sieci
+        // okularów - a druga, już strumieniem, miała klatkę 1600x1200 po
+        // dziewięciu sekundach. Do kodu potrzeba pełnej rozdzielczości i kilku
+        // szans (patrz [scanStreamForCode]), a migawka daje jedną miniaturę.
+        val forCode = pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)
+        if (!glassesManager.wifiDirectKnownBroken && !forCode) return null
         if (!pl.victor.app.ai.VisionDetail.needsDetail(textQuestion)) return null
 
         _state.value = OrchestratorState.Capturing(
@@ -5614,10 +5784,62 @@ class AIOrchestrator(
                         "ms" to (System.currentTimeMillis() - startedAt)
                     )
                 )
+            }?.let { frame ->
+                // Skanowanie PRZED zgaszeniem strumienia - po nim nie ma już
+                // skąd brać kolejnych klatek.
+                if (pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)) scanStreamForCode(frame) else frame
             }
         } finally {
             glassesManager.stopLiveVision()
         }
+    }
+
+    /**
+     * Przy pytaniu o kod: skanuje KOLEJNE klatki strumienia, aż któraś da kod.
+     *
+     * Dziennik z biegu 152 (17:51): strumień wstał, pierwsza klatka 1600x1200
+     * przyszła sekundę po starcie - i kodu na niej nie było. Jedna klatka to
+     * jeden moment: kamera tuż po starcie jeszcze ustawia ostrość i
+     * naświetlenie, a głowa się rusza. Aplikacja gasiła wtedy strumień i szła
+     * po "ostre zdjęcie", które przez Wi-Fi okularów nie doszło, więc po 30 s
+     * skończyło się miniaturą bez kodu. Strumień daje kilka klatek na sekundę
+     * w pełnej rozdzielczości, a ML Kit czyta klatkę w ułamku sekundy - kilka
+     * sekund skanowania to kilkanaście szans zamiast jednej.
+     *
+     * @return klatka z kodem, a gdy żadna go nie dała - ostatnia klatka
+     */
+    private suspend fun scanStreamForCode(first: ByteArray): ByteArray {
+        if (qrScanner.scanImageBytesSync(first).isNotEmpty()) return first
+        val startedAt = System.currentTimeMillis()
+        var last = first
+        var klatek = 1
+        var seen = glassesManager.liveFrameCount()
+        _state.value = OrchestratorState.Capturing(
+            progress = 1,
+            total = 1,
+            label = "Szukam kodu w obrazie z okularów - patrz chwilę na kod."
+        )
+        while (System.currentTimeMillis() - startedAt < CODE_STREAM_SCAN_MS) {
+            delay(CODE_STREAM_POLL_MS)
+            val count = glassesManager.liveFrameCount()
+            if (count == seen) continue
+            seen = count
+            val frame = glassesManager.liveFrame(detail = true) ?: continue
+            klatek++
+            last = frame
+            if (qrScanner.scanImageBytesSync(frame).isNotEmpty()) {
+                diag.event(
+                    DiagFormat.Phase.ZDJĘCIE, "kod znaleziony w strumieniu",
+                    mapOf("klatek" to klatek, "ms" to (System.currentTimeMillis() - startedAt))
+                )
+                return frame
+            }
+        }
+        diag.event(
+            DiagFormat.Phase.ZDJĘCIE, "strumień bez kodu",
+            mapOf("klatek" to klatek, "ms" to (System.currentTimeMillis() - startedAt))
+        )
+        return last
     }
 
     private fun shouldRunOcr(text: String): Boolean {
@@ -5992,6 +6214,23 @@ class AIOrchestrator(
          * krócej znaczyłoby wyłączać się w przerwie w rozmowie.
          */
         private const val EAR_MAX_PUSTYCH = 5
+
+        /** Jak długo skanować strumień w poszukiwaniu kodu - patrz [scanStreamForCode]. */
+        private const val CODE_STREAM_SCAN_MS = 6_000L
+
+        private const val CODE_STREAM_POLL_MS = 150L
+
+        /** Okno, w którym ramka "ucisz" jest echem naszej komendy odtwarzania. */
+        private const val PLAYBACK_ECHO_WINDOW_MS = 1_500L
+
+        /** Ile czekać, aż tura, która włączyła tłumaczenie, posprząta po sobie. */
+        private const val EAR_TURN_WAIT_MS = 5_000L
+
+        /** Górna granica jednego nasłuchu tłumaczenia - patrz strażnik w pętli. */
+        private const val EAR_LISTEN_MAX_MS = 30_000L
+
+        /** Karencja wybudzenia z dźwięku po końcu tłumaczenia. */
+        private const val EAR_MIC_WAKE_GRACE_MS = 8_000L
 
         /** Puls "wciąż mówię" dla okularów - odstęp jak u producenta. */
         private const val PLAYBACK_PULSE_MS = 2_000L
