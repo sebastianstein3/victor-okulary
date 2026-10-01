@@ -216,3 +216,57 @@
 17:48:22.888  +38848 ms  AUDIO        zwinięte łącze audio tury  ms=0
 17:48:22.890  +38851 ms  SESJA        --- KONIEC TURY 8a6d: odpowiedziano ---
 17:48:22.894          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:48:22.942          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:48:23.545          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:48:33.184          ms  PRZYCISK     wciśnięto  numer=1
+17:48:33.479          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+17:48:33.691          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:48:33.893          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=411
+17:48:33.972      +0 ms  SESJA        --- TURA e439 ---  źródło=OKULARY
+17:48:33.974      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+17:48:39.759   +5787 ms  NASŁUCH      koniec  ms=5787 odłożone=czy jesteś w stanie stwierdzić co to dokładnie za konsola zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.28 próbek=16 gotowyPoMs=351
+17:48:39.964   +5992 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+17:48:40.652   +6681 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.3535 pakietów=318 rozkodowanych=318 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=19 0 1 0 1602 1542 250 421 565 11 8 10 0 ciszaNaKońcuOkien=1
+17:48:43.788   +9816 ms  TRANSKRYPCJA z nagrania okularów  ms=3134 droga=Nasłuch telefonu
+17:48:43.793   +9821 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6353 jestMs=3040 tło=3 szczyt=4629 ile razy=1516.2
+17:48:43.795   +9823 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=czy jesteś w stanie stwierdzić co to dokładnie za konsola
+17:48:43.797   +9825 ms  SESJA        pytanie  tekst=czy jesteś w stanie stwierdzić co to dokładnie za konsola wymuszonyObraz=false
+17:48:43.804   +9832 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:48:43.814   +9843 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:48:43.816   +9844 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:48:43.903   +9931 ms  KONTEKST     zebrany  ms=80 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+17:48:43.913   +9942 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2908
+17:48:44.326  +10354 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=412 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:48:44.329  +10357 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=2908
+17:48:46.679  +12707 ms  MODEL        koniec odpowiedzi (119 znaków, 3907 tokenów)  ms=2766 dostawca=deepseek początek=Chwila, spojrzę dokładniej, najlepiej od tyłu, gdzie zwykle jest tabliczka z naz
+17:48:46.683  +12712 ms  AKCJA        model zlecił akcje  akcje=TAKE_PHOTO znakówOdpowiedzi=90
+17:48:49.828  +15856 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:48:52.122  +18150 ms  SESJA        pytanie  tekst=czy jesteś w stanie stwierdzić co to dokładnie za konsola wymuszonyObraz=true
+17:48:52.128  +18156 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+17:48:52.131  +18159 ms  AUDIO        zwinięte łącze audio tury  ms=1
+17:48:52.297  +18325 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:48:52.304  +18332 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+17:48:52.372  +18400 ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:48:53.847  +19875 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:48:53.849  +19877 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:48:53.860  +19888 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1555
+17:49:03.874  +29902 ms  ZDJĘCIE      próba 0: miniatura  bajtów=34688 jpeg=true kompletny=true
+17:49:03.889  +29917 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=34688 źródło=migawka pełnaRozdzielczość=false
+17:49:03.958  +29986 ms  KONTEKST     zebrany  ms=59 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+17:49:03.969  +29997 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=1 znakówPromptu=2908
+17:49:05.282  +31310 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=1313 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:49:05.285  +31313 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=1 znakówPromptu=2908
+17:49:09.679  +35707 ms  MODEL        koniec odpowiedzi (347 znaków, 4401 tokenów)  ms=5711 dostawca=deepseek początek=Stawiałbym na "Steam Deck" w białej wersji limitowanej, tej z ekranem "OLED" - m
+17:49:09.681  +35709 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=347
+17:49:29.722  +55750 ms  MOWA         koniec wypowiedzi  ms=20040
+17:49:29.744  +55772 ms  AUDIO        zwinięte łącze audio tury  ms=0
+17:49:29.746  +55775 ms  SESJA        --- KONIEC TURY e439: odpowiedziano ---
+17:49:29.750          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
