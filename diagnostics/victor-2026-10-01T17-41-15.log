@@ -716,3 +716,42 @@
 18:01:56.288  +20280 ms  AUDIO        zwinięte łącze audio tury  ms=1
 18:01:56.293  +20285 ms  SESJA        --- KONIEC TURY e7eb: odpowiedziano ---
 18:01:56.300          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:01:56.358          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:01:56.938          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:02:13.902          ms  PRZYCISK     wciśnięto  numer=1
+18:02:14.171          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+18:02:14.435          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:02:14.993          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=810
+18:02:15.132      +1 ms  SESJA        --- TURA 7e9b ---  źródło=OKULARY
+18:02:15.135      +5 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:02:20.143   +5012 ms  NASŁUCH      koniec  ms=5012 odłożone=tłumaczenie na żywo zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=5.2000003 próbek=8 gotowyPoMs=437
+18:02:20.152   +5022 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+18:02:22.475   +7345 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.9935 pakietów=300 rozkodowanych=300 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 1054 2327 1789 2 1 1 2 1 2 2 ciszaNaKońcuOkien=0
+18:02:24.773   +9642 ms  TRANSKRYPCJA z nagrania okularów  ms=2289 droga=Nasłuch telefonu
+18:02:24.788   +9657 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5993 jestMs=1800 tło=1 szczyt=5133 ile razy=3860.8
+18:02:24.793   +9662 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=tłumaczenie na żywo
+18:02:24.796   +9665 ms  SESJA        pytanie  tekst=tłumaczenie na żywo wymuszonyObraz=false
+18:02:24.807   +9676 ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+18:03:01.911  +46781 ms  PRZYCISK     wciśnięto  numer=1
+18:03:02.040  +46909 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+18:03:02.420  +47292 ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:03:02.428  +47297 ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=przycisk na okularach
+18:03:05.040  +49910 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=151
+18:03:06.928  +51797 ms  WAKE         wybudzenie z DŹWIĘKU - okulary nadają, choć nic nie zamawialiśmy  pakietów=50 wOknieMs=2000
+18:03:07.444  +52314 ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:03:07.518  +52387 ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=73 ms=1488
+18:03:07.576      +0 ms  SESJA        --- TURA 751b ---  źródło=OKULARY
+18:03:07.579      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:03:13.949   +6373 ms  NASŁUCH      koniec  ms=6373 odłożone=now zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=5.56 próbek=18 gotowyPoMs=306
+18:03:13.958   +6383 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=121
+18:03:16.810   +9235 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.9535 pakietów=398 rozkodowanych=398 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=1 1 1 1 41 1 0 0 1 2155 2478 76 1 1 0 0 ciszaNaKońcuOkien=2
+18:03:20.603  +13027 ms  TRANSKRYPCJA z nagrania okularów  ms=3784 droga=Nasłuch telefonu
+18:03:20.624  +13048 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7953 jestMs=1720 tło=1 szczyt=5803 ile razy=5250.5
+18:03:20.632  +13056 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=now
+18:03:20.633  +13057 ms  SESJA        pytanie  tekst=now wymuszonyObraz=false
+18:03:20.672  +13096 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:03:21.606  +14031 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:03:21.691  +14115 ms  KONTEKST     zebrany  ms=63 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+18:03:21.706  +14130 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=4257
+18:03:21.767  +14191 ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+18:03:21.973  +14397 ms  SESJA        --- KONIEC TURY 751b: BEZ ODPOWIEDZI (stan Idle, powód: dotknięcie zauszników) ---
