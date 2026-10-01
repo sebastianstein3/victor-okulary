@@ -597,3 +597,38 @@
 17:57:55.959  +26722 ms  AUDIO        zwinięte łącze audio tury  ms=1
 17:57:55.964  +26728 ms  SESJA        --- KONIEC TURY f786: odpowiedziano ---
 17:57:55.975          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:57:56.038          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:57:59.820          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:57:59.915          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:59:25.672          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+17:59:26.295          ms  PRZYCISK     wciśnięto  numer=1
+17:59:26.703          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+17:59:26.809          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:59:27.027          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=8 ms=316
+17:59:27.257      +1 ms  SESJA        --- TURA e468 ---  źródło=OKULARY
+17:59:27.260      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+17:59:32.235   +4979 ms  NASŁUCH      koniec  ms=4978 odłożone=ile kosztuje najtańszy iphone 16 w polsce zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.88 próbek=13 gotowyPoMs=400
+17:59:32.250   +4994 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=8
+17:59:33.368   +6112 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.5535 pakietów=278 rozkodowanych=278 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 1 1562 1799 1001 539 565 400 280 0 0 0 ciszaNaKońcuOkien=3
+17:59:37.111   +9855 ms  TRANSKRYPCJA z nagrania okularów  ms=3739 droga=Nasłuch telefonu
+17:59:37.128   +9873 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5553 jestMs=3160 tło=17 szczyt=5431 ile razy=307.2
+17:59:37.135   +9879 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=ile kosztuje najtańszy iphone 16 w polsce
+17:59:37.136   +9880 ms  SESJA        pytanie  tekst=ile kosztuje najtańszy iphone 16 w polsce wymuszonyObraz=false
+17:59:37.173   +9917 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:59:38.237  +10981 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:59:38.249  +10993 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:59:38.827  +11571 ms  KONTEKST     zebrany  ms=554 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+17:59:38.870  +11614 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=6105
+17:59:39.370  +12114 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=498 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:59:39.393  +12137 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=6105
+17:59:44.247  +16992 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:59:44.908  +17653 ms  MODEL        koniec odpowiedzi (278 znaków, 5468 tokenów)  ms=6039 dostawca=deepseek początek=Najtańszy jest iPhone 16 w wersji 128 gigabajtów — w polskich sklepach chodzi os
+17:59:44.920  +17665 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=278
+17:59:59.988  +32732 ms  MOWA         koniec wypowiedzi  ms=15060
+18:00:00.039  +32783 ms  AUDIO        zwinięte łącze audio tury  ms=1
+18:00:00.045  +32789 ms  SESJA        --- KONIEC TURY e468: odpowiedziano ---
+18:00:00.056          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
