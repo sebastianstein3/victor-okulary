@@ -270,3 +270,93 @@
 17:49:29.744  +55772 ms  AUDIO        zwinięte łącze audio tury  ms=0
 17:49:29.746  +55775 ms  SESJA        --- KONIEC TURY e439: odpowiedziano ---
 17:49:29.750          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:49:29.813          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:49:30.472          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:49:44.262          ms  PRZYCISK     wciśnięto  numer=1
+17:49:44.587          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+17:49:44.771          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:49:44.965          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=12 ms=376
+17:49:45.052      +0 ms  SESJA        --- TURA 9f6c ---  źródło=OKULARY
+17:49:45.053      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+17:49:48.917   +3865 ms  NASŁUCH      koniec  ms=3864 odłożone=zeskanuj ten kod produktu zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=7.4800005 próbek=11 gotowyPoMs=349
+17:49:49.121   +4069 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=12
+17:49:49.466   +4414 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.4135 pakietów=221 rozkodowanych=221 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=4 18 11 602 3509 1251 1573 1 4 ciszaNaKońcuOkien=0
+17:49:50.699   +5647 ms  TRANSKRYPCJA z nagrania okularów  ms=1232 droga=Nasłuch telefonu
+17:49:50.704   +5652 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4413 jestMs=1760 tło=3 szczyt=10825 ile razy=3221.7
+17:49:50.706   +5654 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zeskanuj ten kod produktu
+17:49:50.707   +5655 ms  SESJA        pytanie  tekst=zeskanuj ten kod produktu wymuszonyObraz=false
+17:49:50.714   +5662 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:49:50.726   +5674 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:49:50.728   +5676 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:49:50.733   +5681 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+17:49:52.136   +7084 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:49:52.138   +7086 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:49:52.176   +7124 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1442
+17:49:56.733  +11682 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:49:59.200  +14148 ms  ZDJĘCIE      próba 0: miniatura  bajtów=26197 jpeg=true kompletny=true
+17:49:59.214  +14162 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_85CE0E24A6BA
+17:50:00.384  +15332 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+17:50:30.412  +45360 ms  BLE          okulary zgłaszają pliki i tryb importu  zdjęć=7 filmów=3 nagrań=0 tylkoHotspot=true
+17:50:40.444  +55392 ms  BŁĄD         Hotspot okularów: nie dołączyłem  sieć=W610T_85CE0E24A6BA ms=41231 powód=Okulary nie wystawiły sieci "W610T_85CE0E24A6BA" albo telefon jej nie przyjął. Zdejmij okulary i załóż ponownie.
+17:50:40.448  +55396 ms  BLE          Wi-Fi Direct pomijam - okulary przyjmują import tylko przez hotspot
+17:50:40.451  +55399 ms  BLE          internet wrócił po sieci okularów  ms=2
+17:50:40.453  +55401 ms  ZDJĘCIE      Wi-Fi Direct nie oddał oryginału  ms=41240
+17:50:40.454  +55402 ms  ZDJĘCIE      zostaję przy miniaturze - dzielnik NIE ma tu zastosowania  oryginałDoszedł=false bajtówMiniatury=26197
+17:50:40.458  +55406 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=0 pełnaRozdzielczość=false
+17:50:40.943  +55891 ms  KONTEKST     zebrany  ms=72 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+17:50:40.955  +55903 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=4292
+17:50:41.489  +56437 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=533 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:50:41.492  +56440 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=4292
+17:50:46.063  +61011 ms  MODEL        koniec odpowiedzi (331 znaków, 4944 tokenów)  ms=5108 dostawca=deepseek początek=Tamto zdjęcie dotarło do mnie tylko jako miniatura, więc kreski się zlały i kodu
+17:50:46.067  +61015 ms  AKCJA        model zlecił akcje  akcje=TAKE_PHOTO znakówOdpowiedzi=302
+17:51:01.378  +76326 ms  SESJA        pytanie  tekst=zeskanuj ten kod produktu wymuszonyObraz=true
+17:51:01.384  +76332 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false wymuszone=true zNagrania=false
+17:51:01.387  +76335 ms  AUDIO        zwinięte łącze audio tury  ms=0
+17:51:01.610  +76558 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:51:01.610  +76558 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:51:01.614  +76562 ms  BLE          Podgląd na żywo: podnoszę
+17:51:01.734  +76682 ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=true
+17:51:01.738  +76686 ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:51:02.905  +77853 ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+17:51:07.613  +82562 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:51:09.402  +84350 ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+17:51:09.404  +84352 ms  BLE          Podgląd: pełna odpowiedź serwera  treść=RTSP/1.0 200 OK / CSeq: 1 / Content-Type: application/sdp / Cache-Control: no-cache / Server: Hisilicon RTSP Streaming Media Server/1.0.0 / Content-Length: 345 /  / v=0 / o=- 1 1 IN IP4 127.0.0.1 / s=Test / a=type:broadcast / t=0 0 / c=IN IP4 0.0.0.0 / m=video 0 RTP/AVP 96 / a=rtpmap:96 H264/90000 / a=decode_buf=300 / a=control:track0 / m=audio 0 RTP/AVP 97 / a=rtpmap:97 mpeg4-generic/8000/1 / a=fmtp:97 profile-level-id=1; mode=AAC-hbr; config=1588; sizeLength=13; indexlength=3; indexdeltalength=3 / a=control:track1 / 
+17:51:09.405  +84354 ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=7791
+17:51:09.643  +84591 ms  BLE          Klatki: dekoder uruchomiony  maxBok=800
+17:51:09.660  +84608 ms  BLE          Podgląd: opis sesji przeczytany  ścieżek=2 kodeki=[H264, MPEG4-GENERIC]
+17:51:09.729  +84677 ms  BLE          Podgląd: strumień ruszył  sesja=82838485868788898A8B8C8D8E8F90 typŁadunku=96
+17:51:09.765  +84713 ms  BLE          Podgląd: obraz płynie  pakietów=1 jednostek=2 odrzuconych=0 parametryObrazu=true
+17:51:10.551  +85500 ms  BLE          Klatki: PIERWSZA KLATKA WYJĘTA  zeStrumienia=1600x1200 oddana=800x600 bajtów=31417 krok=2
+17:51:10.640  +85588 ms  ZDJĘCIE      litery ze strumienia zamiast miniatury  bajtów=94859 ms=9026
+17:51:10.642  +85590 ms  BLE          Klatki: dekoder zatrzymany  wyjętych=4 pominiętych=0
+17:51:10.699  +85647 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=94859 źródło=strumień pełnaRozdzielczość=true
+17:51:10.734  +85682 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+17:51:15.741  +90689 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=false ms=5006
+17:51:15.743  +90691 ms  ZDJĘCIE      próba 1: droga producenta  jakość=5 proszono=5
+17:51:20.748  +95696 ms  ZDJĘCIE      próba 1: notify o gotowym zdjęciu  przyszło=false ms=5002
+17:51:20.750  +95698 ms  ZDJĘCIE      próba 1c: powtórka na bezpiecznej jakości  byłaJakość=5 jestJakość=2
+17:51:25.757 +100705 ms  ZDJĘCIE      próba 1c: notify o gotowym zdjęciu  przyszło=false
+17:51:25.759 +100707 ms  ZDJĘCIE      próba 2: komenda zdjęcia AI
+17:51:27.196 +102144 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+17:51:27.197 +102145 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+17:51:40.178 +115126 ms  ZDJĘCIE      próba 2: miniatura  notify=true bajtów=27630 jpeg=true kompletny=true
+17:51:40.182 +115130 ms  ZDJĘCIE      pomijam Wi-Fi Direct - ostatnia próba zawiodła  sekundTemu=59
+17:51:40.187 +115135 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=1 pełnaRozdzielczość=false
+17:51:40.561 +115509 ms  KONTEKST     zebrany  ms=66 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+17:51:40.576 +115524 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=1 znakówPromptu=4315
+17:51:41.546 +116494 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=971 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:51:41.550 +116498 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=1 znakówPromptu=4315
+17:51:45.742 +120690 ms  MODEL        koniec odpowiedzi (477 znaków, 5761 tokenów)  ms=5167 dostawca=deepseek początek=Widzę kod kreskowy i cyfry pod nim, więc spróbujmy jeszcze raz. Odczytuję po kol
+17:51:45.745 +120693 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=477
+17:52:10.789 +145737 ms  MOWA         koniec wypowiedzi  ms=25043
+17:52:10.813 +145761 ms  AUDIO        zwinięte łącze audio tury  ms=0
+17:52:10.816 +145764 ms  SESJA        --- KONIEC TURY 9f6c: odpowiedziano ---
+17:52:10.820          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
