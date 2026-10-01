@@ -133,3 +133,47 @@
 17:45:41.856  +17905 ms  AUDIO        zwinięte łącze audio tury  ms=0
 17:45:41.858  +17907 ms  SESJA        --- KONIEC TURY 9e63: odpowiedziano ---
 17:45:41.885          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+17:45:41.980          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+17:45:42.522          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+17:45:54.030          ms  PRZYCISK     wciśnięto  numer=1
+17:45:54.225          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+17:45:54.543          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+17:45:54.740          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=513
+17:45:54.826      +1 ms  SESJA        --- TURA d2f4 ---  źródło=OKULARY
+17:45:54.827      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+17:45:59.357   +4532 ms  NASŁUCH      koniec  ms=4532 odłożone=opowiedz mi długą historię o smoku zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=6.2799997 próbek=9 gotowyPoMs=350
+17:45:59.569   +4744 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+17:46:00.167   +5342 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.1535 pakietów=258 rozkodowanych=258 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=3 1 1 0 2736 1927 1868 834 51 0 0 ciszaNaKońcuOkien=2
+17:46:01.331   +6507 ms  TRANSKRYPCJA z nagrania okularów  ms=1162 droga=Nasłuch telefonu
+17:46:01.336   +6511 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5153 jestMs=2560 tło=1 szczyt=8352 ile razy=4510.5
+17:46:01.338   +6513 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=opowiedz mi długą historię o smoku
+17:46:01.339   +6514 ms  SESJA        pytanie  tekst=opowiedz mi długą historię o smoku wymuszonyObraz=false
+17:46:01.346   +6521 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+17:46:01.355   +6530 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+17:46:01.357   +6532 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=true
+17:46:01.806   +6981 ms  KONTEKST     zebrany  ms=443 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+17:46:01.818   +6993 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2690
+17:46:02.128   +7303 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=310 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+17:46:02.131   +7306 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=2690
+17:46:07.365  +12540 ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 1 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): W610T_A6BA / Mikrofon okularów jest dostępny dla rozmowy.
+17:46:09.049  +14224 ms  MODEL        koniec odpowiedzi (1223 znaków, 4320 tokenów)  ms=7232 dostawca=deepseek początek=Smok nazywał się Złoty Kieł i mieszkał w jaskini pod Toruniem, o której nikt nie
+17:46:09.052  +14227 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=1223
+17:46:18.648  +23824 ms  BLE          głośność okularów  muzyka=16 rozmowa=14 system=10 kanałPrzycisków=2
+17:46:19.274  +24449 ms  BLE          głośność okularów  muzyka=16 rozmowa=13 system=10 kanałPrzycisków=2
+17:46:23.028  +28203 ms  BLE          głośność okularów  muzyka=16 rozmowa=12 system=10 kanałPrzycisków=2
+17:46:23.746  +28921 ms  BLE          głośność okularów  muzyka=16 rozmowa=11 system=10 kanałPrzycisków=2
+17:46:38.507  +43682 ms  BLE          głośność okularów  muzyka=16 rozmowa=10 system=10 kanałPrzycisków=2
+17:46:39.194  +44369 ms  BLE          głośność okularów  muzyka=16 rozmowa=9 system=10 kanałPrzycisków=2
+17:46:39.766  +44941 ms  BLE          głośność okularów  muzyka=16 rozmowa=8 system=10 kanałPrzycisków=2
+17:46:40.360  +45535 ms  BLE          głośność okularów  muzyka=16 rozmowa=7 system=10 kanałPrzycisków=2
+17:46:40.945  +46120 ms  BLE          głośność okularów  muzyka=16 rozmowa=6 system=10 kanałPrzycisków=2
+17:46:42.014  +47189 ms  BLE          głośność okularów  muzyka=16 rozmowa=7 system=10 kanałPrzycisków=2
+17:46:46.283  +51459 ms  BLE          głośność okularów  muzyka=16 rozmowa=8 system=10 kanałPrzycisków=2
+17:47:12.218  +77393 ms  MOWA         koniec wypowiedzi  ms=63165
+17:47:12.241  +77416 ms  AUDIO        zwinięte łącze audio tury  ms=1
+17:47:12.243  +77418 ms  SESJA        --- KONIEC TURY d2f4: odpowiedziano ---
+17:47:12.247          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
