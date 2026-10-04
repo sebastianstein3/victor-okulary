@@ -46,3 +46,73 @@
 18:22:44.826  +19265 ms  MOWA         koniec wypowiedzi  ms=9663
 18:22:44.849  +19289 ms  SESJA        --- KONIEC TURY 5607: odpowiedziano ---
 18:22:44.853          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:22:44.994          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:22:45.583          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:22:46.660          ms  PRZYCISK     wciśnięto  numer=1
+18:22:46.840          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:22:47.164          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:22:47.190          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=348
+18:22:47.234      +0 ms  SESJA        --- TURA 74be ---  źródło=OKULARY
+18:22:47.235      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:22:52.346   +5112 ms  NASŁUCH      koniec  ms=5112 odłożone=ile kosztuje najtańszy iphone 16 w polsce zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=11 gotowyPoMs=351
+18:22:52.559   +5326 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+18:22:52.971   +5737 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.5135 pakietów=276 rozkodowanych=276 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 3 1036 1376 917 973 545 909 11 1 1 0 ciszaNaKońcuOkien=1
+18:22:54.205   +6971 ms  TRANSKRYPCJA z nagrania okularów  ms=1232 droga=Nasłuch telefonu
+18:22:54.210   +6976 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5513 jestMs=3340 tło=4 szczyt=3675 ile razy=756.3
+18:22:54.212   +6979 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=ile kosztuje najtańszy iphone 16 w polsce
+18:22:54.213   +6979 ms  SESJA        pytanie  tekst=ile kosztuje najtańszy iphone 16 w polsce wymuszonyObraz=false
+18:22:54.222   +6988 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+18:22:54.233   +6999 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:22:54.693   +7459 ms  KONTEKST     zebrany  ms=455 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+18:22:54.704   +7470 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2333
+18:22:56.167   +8933 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1464
+18:22:56.560   +9326 ms  MODEL        zużycie tokenów  wejście=3368 odpowiedź=143 razem=3511 limit=3000 koniec=STOP
+18:22:56.562   +9328 ms  MODEL        model szukał w internecie  zapytań=2 zapytanie=iphone 16 128gb cena ceneo źródeł=4
+18:22:56.565   +9331 ms  MODEL        koniec odpowiedzi (438 znaków, 3511 tokenów)  ms=1862 dostawca=gemini początek=W polskich sklepach internetowych i porównywarkach cenowych najtańszy iPhone 16 
+18:22:56.568   +9334 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=438
+18:23:17.032  +29798 ms  MOWA         koniec wypowiedzi  ms=20463
+18:23:17.048  +29814 ms  SESJA        --- KONIEC TURY 74be: odpowiedziano ---
+18:23:17.075          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:23:17.173          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:23:17.762          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:23:35.791          ms  BLE          ROZŁĄCZONO  świadome=false
+18:23:43.801          ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+18:23:53.914          ms  BLE          ROZŁĄCZONO  świadome=false
+18:24:13.216          ms  BLE          ROZŁĄCZONO  świadome=false
+18:24:20.732          ms  BLE          POŁĄCZONO  noweŁącze=true
+18:24:20.736          ms  BLE          powitanie okularów - start
+18:24:20.736          ms  BLE          okulary wróciły - mówię o tym
+18:24:20.739          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+18:24:21.029          ms  BLE          okulary zgłaszają pliki i tryb importu  zdjęć=11 filmów=3 nagrań=1 tylkoHotspot=true
+18:24:21.072          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:24:22.246          ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=po połączeniu limitMs=10000
+18:24:22.850          ms  BLE          POŁĄCZONO  noweŁącze=false
+18:24:23.415          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:24:25.742          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+18:24:32.338          ms  AUDIO        tryb multimediów nie wstał w limicie  poMs=10000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 0 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): brak / Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu.
+18:24:45.424          ms  PRZYCISK     wciśnięto  numer=1
+18:24:45.602          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+18:24:45.935          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:24:46.151          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=547
+18:24:46.242      +0 ms  SESJA        --- TURA 58a0 ---  źródło=OKULARY
+18:24:46.243      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:24:50.356   +4114 ms  NASŁUCH      koniec  ms=4114 odłożone=opowiedz mi żart zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.5199995 próbek=10 gotowyPoMs=358
+18:24:50.543   +4301 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+18:24:50.886   +4644 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.7335 pakietów=237 rozkodowanych=237 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 0 0 288 2145 750 0 0 0 ciszaNaKońcuOkien=3
+18:24:53.008   +6766 ms  TRANSKRYPCJA z nagrania okularów  ms=2120 droga=Nasłuch telefonu
+18:24:53.012   +6770 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4733 jestMs=1420 tło=0 szczyt=7302 ile razy=16039.6
+18:24:53.014   +6772 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=opowiedz mi żart
+18:24:53.016   +6774 ms  SESJA        pytanie  tekst=opowiedz mi żart wymuszonyObraz=false
+18:24:53.023   +6781 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+18:24:53.033   +6791 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+18:24:53.033   +6791 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+18:24:53.439   +7198 ms  KONTEKST     zebrany  ms=401 pamięć=false kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+18:24:53.452   +7210 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2350
+18:24:54.234   +7992 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=782
+18:24:54.294   +8052 ms  MODEL        zużycie tokenów  wejście=3374 odpowiedź=18 razem=3392 limit=3000 koniec=STOP
+18:24:54.298   +8056 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+18:24:54.303   +8061 ms  MODEL        koniec odpowiedzi (61 znaków, 3392 tokenów)  ms=851 dostawca=gemini początek=Dlaczego programiści nie lubią natury? Bo ma za dużo robaków.
+18:24:54.305   +8063 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=61
+18:24:58.076  +11834 ms  MOWA         koniec wypowiedzi  ms=3764
+18:24:58.088  +11846 ms  SESJA        --- KONIEC TURY 58a0: odpowiedziano ---
+18:24:58.091          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
