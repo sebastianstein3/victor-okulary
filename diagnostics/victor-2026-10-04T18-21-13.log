@@ -399,3 +399,47 @@
 18:32:10.924  +25897 ms  MOWA         koniec wypowiedzi  ms=7160
 18:32:10.942  +25915 ms  SESJA        --- KONIEC TURY 5565: odpowiedziano ---
 18:32:10.944          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:32:11.058          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:32:11.625          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:33:53.604          ms  PRZYCISK     wciśnięto  numer=1
+18:33:53.928          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+18:33:54.111          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:33:54.248          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=14 ms=318
+18:33:54.300      +0 ms  SESJA        --- TURA 060e ---  źródło=OKULARY
+18:33:54.301      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:33:58.737   +4437 ms  NASŁUCH      koniec  ms=4437 odłożone=co jest pod tym kodem kreskowym zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=11 gotowyPoMs=292
+18:33:58.885   +4585 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+18:33:59.503   +5203 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.8735 pakietów=244 rozkodowanych=244 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 47 3 2996 1771 1395 86 0 0 ciszaNaKońcuOkien=2
+18:34:00.667   +6367 ms  TRANSKRYPCJA z nagrania okularów  ms=1162 droga=Bez transkrypcji - nagranie do modelu
+18:34:00.673   +6373 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4873 jestMs=2100 tło=1 szczyt=7757 ile razy=7604.4
+18:34:00.675   +6375 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co jest pod tym kodem kreskowym
+18:34:00.677   +6377 ms  SESJA        pytanie  tekst=co jest pod tym kodem kreskowym wymuszonyObraz=false
+18:34:00.684   +6384 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false kod=true wymuszone=false zNagrania=false
+18:34:00.694   +6394 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:34:00.702   +6402 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+18:34:02.161   +7861 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+18:34:02.164   +7864 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+18:34:02.212   +7912 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1506
+18:34:05.686  +11386 ms  ZDJĘCIE      próba 0: miniatura  bajtów=24620 jpeg=true kompletny=true
+18:34:05.702  +11403 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=24620 źródło=migawka pełnaRozdzielczość=false
+18:34:05.707  +11407 ms  ZDJĘCIE      próba 0: komenda zdjęcia AI  jakość=5
+18:34:07.202  +12903 ms  ZDJĘCIE      okulary zgłosiły gotowe zdjęcie  tryb=1 opisz=false powtórka=false
+18:34:07.205  +12905 ms  ZDJĘCIE      zgłoszenie pominięte - to odpowiedź na naszą komendę  trwaNasze=true poNaszejMigawce=true
+18:34:07.245  +12945 ms  ZDJĘCIE      próba 0: notify o gotowym zdjęciu  przyszło=true ms=1537
+18:34:10.762  +16462 ms  ZDJĘCIE      próba 0: miniatura  bajtów=24069 jpeg=true kompletny=true
+18:34:10.765  +16465 ms  BLE          Hotspot okularów: podnoszę łącze  sieć=W610T_85CE0E24A6BA
+18:34:11.927  +17627 ms  BLE          Hotspot okularów: odpowiedź na komendę  błąd=1 stan=0
+18:34:21.758  +27458 ms  BLE          Hotspot okularów: gotowe  ms=10993
+18:34:22.336  +28036 ms  BLE          internet wrócił po sieci okularów  ms=9
+18:34:22.355  +28055 ms  ZDJĘCIE      pobrany oryginał to INNE zdjęcie niż właśnie zrobione - odrzucam  różnica=31 próg=14 porównanaCzęść=1.0 plik=20260922214839800.JPG (plików: 11)
+18:34:22.358  +28058 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=1 pełnaRozdzielczość=false źródło=migawka
+18:34:22.414  +28115 ms  BLE          okulary zgłaszają błąd P2P  kod=255
+18:34:28.295  +33996 ms  KONTEKST     zebrany  ms=5672 pamięć=true kalendarz=true poczta=true pogoda=false lokalizacja=false limitCzasu=false
+18:34:28.306  +34006 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=1 znakówPromptu=10049
+18:34:30.030  +35730 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1725
+18:34:30.050  +35751 ms  MODEL        zużycie tokenów  wejście=7172 odpowiedź=72 razem=7244 limit=3000 koniec=STOP
+18:34:30.055  +35755 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+18:34:30.061  +35761 ms  MODEL        koniec odpowiedzi (251 znaków, 7244 tokenów)  ms=1756 dostawca=gemini początek=Widzę kod QR, ale miniatura jest w niskiej rozdzielczości i kreski zlewają się z
+18:34:30.064  +35764 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=251
+18:34:36.638  +42338 ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+18:34:36.751  +42451 ms  SESJA        --- KONIEC TURY 060e: BEZ ODPOWIEDZI (stan Idle, powód: dotknięcie zauszników) ---
