@@ -1445,3 +1445,66 @@
 18:03:08.320  +22191 ms  MOWA         koniec wypowiedzi  ms=10834
 18:03:08.360  +22231 ms  SESJA        --- KONIEC TURY fa97: odpowiedziano ---
 18:03:08.372          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:03:08.571          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:03:09.164          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:03:11.039          ms  PRZYCISK     wciśnięto  numer=1
+18:03:11.308          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:03:11.547          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:03:11.609          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=298
+18:03:11.657      +0 ms  SESJA        --- TURA 021f ---  źródło=OKULARY
+18:03:11.658      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:03:15.496   +3841 ms  NASŁUCH      koniec  ms=3839 odłożone=wyszukaj w internecie zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=7 gotowyPoMs=319
+18:03:15.603   +3946 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+18:03:16.689   +5033 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.2535 pakietów=213 rozkodowanych=213 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=7 4 0 1940 2728 2163 0 3709 1912 ciszaNaKońcuOkien=0
+18:03:19.281   +7624 ms  TRANSKRYPCJA z nagrania okularów  ms=2582 droga=Nasłuch telefonu
+18:03:19.296   +7639 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4253 jestMs=2980 tło=10 szczyt=10822 ile razy=1054.6
+18:03:19.302   +7645 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=wyszukaj w internecie
+18:03:19.305   +7648 ms  SESJA        pytanie  tekst=wyszukaj w internecie wymuszonyObraz=false
+18:03:19.321   +7665 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:03:19.330   +7673 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:03:19.853   +8196 ms  KONTEKST     zebrany  ms=517 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+18:03:19.888   +8232 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2268
+18:03:20.323   +8667 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=435 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+18:03:20.339   +8683 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=2268
+18:03:24.316  +12659 ms  MODEL        koniec odpowiedzi (297 znaków, 4009 tokenów)  ms=4430 dostawca=deepseek początek=Nie mam pod ręką prognozy dla Sugajna — bezpośrednie wyniki wyszukiwania do mnie
+18:03:24.342  +12685 ms  AKCJA        model zlecił akcje  akcje=WEB_SEARCH znakówOdpowiedzi=245
+18:03:36.680  +25023 ms  MOWA         koniec wypowiedzi  ms=12330
+18:03:36.889  +25232 ms  SESJA        --- KONIEC TURY 021f: odpowiedziano ---
+18:03:36.897          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:03:37.004          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:03:37.458          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+18:03:37.474          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:03:37.544          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:03:38.183          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:04:07.709          ms  PRZYCISK     wciśnięto  numer=1
+18:04:07.895          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+18:04:08.222          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:04:08.311          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=411
+18:04:08.417      +1 ms  SESJA        --- TURA 5fe8 ---  źródło=OKULARY
+18:04:08.421      +5 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:04:14.850   +6434 ms  NASŁUCH      koniec  ms=6434 odłożone=sam poszukaj w sieci jaka jest ta pogoda i mi ją podaj zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=15 gotowyPoMs=536
+18:04:14.951   +6535 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+18:04:17.050   +8635 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.967 pakietów=349 rozkodowanych=348 odrzuconych=1 przesunięcie=6 ramka=-1 obwiednia=0 0 3 17 3885 2632 510 1543 676 2946 1661 867 2 11 ciszaNaKońcuOkien=0
+18:04:20.646  +12230 ms  TRANSKRYPCJA z nagrania okularów  ms=3585 droga=Nasłuch telefonu
+18:04:20.663  +12247 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6967 jestMs=4220 tło=13 szczyt=10991 ile razy=799.1
+18:04:20.668  +12252 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=sam poszukaj w sieci jaka jest ta pogoda i mi ją podaj
+18:04:20.671  +12255 ms  SESJA        pytanie  tekst=sam poszukaj w sieci jaka jest ta pogoda i mi ją podaj wymuszonyObraz=false
+18:04:20.685  +12269 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:04:20.696  +12280 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:04:21.093  +12677 ms  KONTEKST     zebrany  ms=391 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+18:04:21.130  +12714 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2602
+18:04:21.660  +13244 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=529 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+18:04:21.680  +13264 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=2602
+18:04:25.964  +17549 ms  MODEL        koniec odpowiedzi (607 znaków, 4250 tokenów)  ms=4836 dostawca=deepseek początek=Nie mam realnego podglądu wyników wyszukiwania - one lądują w przeglądarce na Tw
+18:04:25.979  +17563 ms  AKCJA        model zlecił akcje  akcje=WEB_SEARCH znakówOdpowiedzi=555
+18:04:53.534  +45119 ms  MOWA         koniec wypowiedzi  ms=27550
+18:04:53.607  +45191 ms  SESJA        --- KONIEC TURY 5fe8: odpowiedziano ---
+18:04:53.617          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
