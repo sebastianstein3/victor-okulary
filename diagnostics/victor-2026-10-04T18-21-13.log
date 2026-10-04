@@ -349,3 +349,53 @@
 18:31:08.712  +55059 ms  MOWA         koniec wypowiedzi  ms=11108
 18:31:08.729  +55076 ms  SESJA        --- KONIEC TURY 1c0f: odpowiedziano ---
 18:31:08.732          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:31:08.863          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:31:09.437          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:31:11.552          ms  PRZYCISK     wciśnięto  numer=1
+18:31:11.838          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+18:31:12.057          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:31:12.210          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=371
+18:31:12.277      +0 ms  SESJA        --- TURA a832 ---  źródło=OKULARY
+18:31:12.279      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:31:20.912   +8635 ms  NASŁUCH      koniec  ms=8634 zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=21 gotowyPoMs=408
+18:31:21.064   +8787 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+18:31:22.076   +9799 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1335 pakietów=457 rozkodowanych=456 odrzuconych=1 przesunięcie=6 ramka=-1 obwiednia=0 2 3722 3054 1 1675 4196 6736 3630 2924 905 1768 2330 1489 1892 1165 844 348 765 ciszaNaKońcuOkien=0
+18:31:27.723  +15446 ms  TRANSKRYPCJA z nagrania okularów  ms=5646 droga=Nasłuch telefonu
+18:31:27.733  +15456 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=9133 jestMs=7120 tło=375 szczyt=14850 ile razy=39.5
+18:31:27.740  +15463 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=683564 B wymuszonyObraz=false
+18:31:27.743  +15466 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=true
+18:31:27.765  +15488 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:31:30.418  +18141 ms  KONTEKST     zebrany  ms=2645 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:31:30.426  +18149 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=8867
+18:31:32.265  +19988 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1838
+18:31:32.494  +20217 ms  MODEL        zużycie tokenów  wejście=5950 odpowiedź=65 razem=6015 limit=3000 koniec=STOP
+18:31:32.496  +20220 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+18:31:32.498  +20221 ms  MODEL        koniec odpowiedzi (211 znaków, 6015 tokenów)  ms=2072 dostawca=gemini początek=Wygląda na to, że w podanym przez Ciebie numerze wkradła się literówka lub pomył
+18:31:32.500  +20223 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=211
+18:31:43.422  +31145 ms  MOWA         koniec wypowiedzi  ms=10922
+18:31:43.438  +31162 ms  SESJA        --- KONIEC TURY a832: odpowiedziano ---
+18:31:43.441          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:31:43.485          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:31:44.121          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:31:44.330          ms  PRZYCISK     wciśnięto  numer=1
+18:31:44.839          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:31:45.027      +0 ms  SESJA        --- TURA 5565 ---  źródło=OKULARY
+18:31:45.029      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:31:53.980   +8953 ms  NASŁUCH      koniec  ms=8953 zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=23 gotowyPoMs=291
+18:31:54.121   +9094 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:31:55.246  +10219 ms  NASŁUCH      nagranie z okularów  jest=true sekund=8.6535 pakietów=433 rozkodowanych=433 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=1 0 0 3880 1482 2272 2018 1232 516 570 1169 1600 1308 1173 511 465 52 1 ciszaNaKońcuOkien=0
+18:32:00.290  +15263 ms  TRANSKRYPCJA z nagrania okularów  ms=5042 droga=Bez transkrypcji - nagranie do modelu
+18:32:00.296  +15270 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=8653 jestMs=6340 tło=234 szczyt=8218 ile razy=34.9
+18:32:00.301  +15274 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=608684 B wymuszonyObraz=false
+18:32:00.304  +15277 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=true
+18:32:00.315  +15288 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:32:01.628  +16601 ms  KONTEKST     zebrany  ms=1306 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:32:01.638  +16611 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=10108
+18:32:03.754  +18727 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2116
+18:32:03.756  +18729 ms  MODEL        zużycie tokenów  wejście=6322 odpowiedź=44 razem=6366 limit=3000 koniec=STOP
+18:32:03.758  +18731 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+18:32:03.761  +18734 ms  MODEL        koniec odpowiedzi (133 znaków, 6366 tokenów)  ms=2124 dostawca=gemini początek=Nie dosłyszałem nagrania, dobiegł mnie tylko szum bez wyraźnego pytania. Powtórz
+18:32:03.763  +18736 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=133
+18:32:10.924  +25897 ms  MOWA         koniec wypowiedzi  ms=7160
+18:32:10.942  +25915 ms  SESJA        --- KONIEC TURY 5565: odpowiedziano ---
+18:32:10.944          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
