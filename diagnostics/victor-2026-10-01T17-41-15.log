@@ -755,3 +755,693 @@
 18:03:21.706  +14130 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=4257
 18:03:21.767  +14191 ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
 18:03:21.973  +14397 ms  SESJA        --- KONIEC TURY 751b: BEZ ODPOWIEDZI (stan Idle, powód: dotknięcie zauszników) ---
+18:03:22.477          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:03:45.088          ms  PRZYCISK     wciśnięto  numer=1
+18:03:45.291          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:03:45.597          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:03:45.686          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=386
+18:03:45.755      +3 ms  SESJA        --- TURA 5ccc ---  źródło=OKULARY
+18:03:45.763      +9 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:03:54.435   +8680 ms  NASŁUCH      koniec  ms=8680 zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=8.799999 próbek=14 gotowyPoMs=663
+18:03:54.454   +8699 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+18:03:55.990  +10235 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1935 pakietów=460 rozkodowanych=460 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 22 0 0 0 0 0 0 0 0 0 0 2 5 0 0 0 0 ciszaNaKońcuOkien=4
+18:03:56.887  +11132 ms  TRANSKRYPCJA z nagrania okularów  ms=892 droga=Nasłuch telefonu
+18:03:56.893  +11138 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=9193 jestMs=840 tło=0 szczyt=107 ile razy=1929.3
+18:03:56.896  +11141 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=80684 B wymuszonyObraz=false
+18:03:56.898  +11143 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=true
+18:03:56.903  +11148 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:03:58.721  +12966 ms  KONTEKST     zebrany  ms=1810 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+18:03:58.733  +12979 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=10520
+18:03:59.548  +13793 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=814 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+18:03:59.558  +13804 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=10520
+18:04:01.728  +15974 ms  MODEL        koniec odpowiedzi (135 znaków, 6939 tokenów)  ms=2995 dostawca=deepseek początek=Nie dosłyszałem nagrania — doszedł mnie tylko szum, bez wyraźnego pytania. Powtó
+18:04:01.736  +15981 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=135
+18:04:10.184  +24430 ms  MOWA         koniec wypowiedzi  ms=8443
+18:04:10.210  +24455 ms  SESJA        --- KONIEC TURY 5ccc: odpowiedziano ---
+18:04:10.212          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:04:10.298          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:04:40.164          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+18:04:44.975          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:05:05.620          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=przycisk w panelu
+18:05:05.625          ms  NASŁUCH      tłumaczenie ze słuchu: brak przekładu  fragment=filipek troszkę śmierdzi
+18:05:08.756          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+18:05:11.838          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:05:20.294          ms  NASŁUCH      tłumaczenie ze słuchu: pusty nasłuch  powód=cisza zRzędu=1
+18:05:27.405          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=przycisk w panelu
+18:05:30.693          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=en na=pl
+18:05:38.405          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=what do you think about police messages przekład=Co myślisz o wiadomościach policyjnych
+18:05:41.563          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:05:49.852          ms  NASŁUCH      tłumaczenie ze słuchu: pusty nasłuch  powód=cisza zRzędu=1
+18:05:52.070          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=zmiana języków
+18:05:52.101          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=pl na=en
+18:05:55.651          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:06:02.161          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=lubisz jeść ziemniaki w kolorze słońca przekład=You like eating potatoes in the color of the sun
+18:06:06.090          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:06:14.343          ms  NASŁUCH      tłumaczenie ze słuchu: pusty nasłuch  powód=cisza zRzędu=1
+18:06:18.733          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=mały filipek śmierdzi kasztanem przekład=Little Filipek stinks chestnut
+18:06:21.171          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:06:22.872          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=zmiana języków
+18:06:22.965          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=en na=pl
+18:06:26.162          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:06:34.484          ms  NASŁUCH      tłumaczenie ze słuchu: pusty nasłuch  powód=cisza zRzędu=1
+18:06:41.502          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=Can You Feel the Love Tonight przekład=Czy możesz dziś czuć miłość
+18:06:44.651          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:06:52.901          ms  NASŁUCH      tłumaczenie ze słuchu: pusty nasłuch  powód=cisza zRzędu=1
+18:07:02.070          ms  NASŁUCH      tłumaczenie ze słuchu: pusty nasłuch  powód=cisza zRzędu=2
+18:07:05.514          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=eat at the top loser przekład=jeść na najwyższym przegranym
+18:07:08.011          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:07:12.200          ms  PRZYCISK     wciśnięto  numer=1
+18:07:12.702          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:07:12.703          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=przycisk na okularach
+18:07:12.873          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+18:07:15.885          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=158
+18:07:17.192          ms  WAKE         wybudzenie z DŹWIĘKU - okulary nadają, choć nic nie zamawialiśmy  pakietów=50 wOknieMs=2000
+18:07:17.700          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:07:17.738          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=74 ms=1493
+18:07:17.821      +0 ms  SESJA        --- TURA a056 ---  źródło=OKULARY
+18:07:17.823      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:07:24.166   +6345 ms  NASŁUCH      koniec  ms=6345 odłożone=stop zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=15 gotowyPoMs=283
+18:07:24.324   +6503 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=92
+18:07:25.265   +7445 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.9535 pakietów=398 rozkodowanych=398 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 1 0 0 179 0 0 0 0 0 20 4629 3 0 0 2 ciszaNaKońcuOkien=0
+18:07:26.889   +9068 ms  TRANSKRYPCJA z nagrania okularów  ms=1622 droga=Bez transkrypcji - nagranie do modelu
+18:07:26.902   +9081 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7953 jestMs=900 tło=0 szczyt=13457 ile razy=17977.2
+18:07:26.904   +9083 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=stop
+18:07:26.905   +9084 ms  SESJA        pytanie  tekst=stop wymuszonyObraz=false
+18:08:00.701  +42880 ms  BLE          ROZŁĄCZONO  świadome=false
+18:08:08.779  +50958 ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+18:08:15.231  +57410 ms  BLE          POŁĄCZONO  noweŁącze=true
+18:08:15.234  +57413 ms  BLE          okulary wróciły - mówię o tym
+18:08:15.234  +57413 ms  BLE          powitanie okularów - start
+18:08:15.259  +57438 ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+18:08:15.423  +57602 ms  BLE          okulary zgłaszają pliki i tryb importu  zdjęć=11 filmów=3 nagrań=0 tylkoHotspot=true
+18:08:15.426  +57605 ms  BLE          głośność okularów  muzyka=16 rozmowa=15 system=10 kanałPrzycisków=3
+18:08:15.515  +57694 ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:08:17.338  +59517 ms  BLE          POŁĄCZONO  noweŁącze=false
+18:08:17.543  +59722 ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:08:20.253  +62432 ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+18:08:48.075  +90254 ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+18:09:00.341 +102520 ms  BLE          ROZŁĄCZONO  świadome=false
+18:09:18.437 +120616 ms  BLE          ROZŁĄCZONO  świadome=false
+18:09:26.771 +128951 ms  BLE          ROZŁĄCZONO  świadome=false
+18:09:36.742 +138921 ms  BLE          POŁĄCZONO  noweŁącze=true
+18:09:36.745 +138924 ms  BLE          powitanie okularów - start
+18:09:36.759 +138938 ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+18:09:36.778 +138957 ms  BLE          okulary wróciły - mówię o tym
+18:09:37.013 +139192 ms  BLE          okulary zgłaszają pliki i tryb importu  zdjęć=11 filmów=3 nagrań=0 tylkoHotspot=true
+18:09:37.044 +139223 ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:09:38.793 +140972 ms  BLE          POŁĄCZONO  noweŁącze=false
+18:09:41.752 +143931 ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+18:10:04.828 +167007 ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=alert proaktywny limitMs=6000
+18:10:09.125 +171304 ms  AUDIO        tryb multimediów wstał na żądanie  poMs=4295
+18:10:14.620 +176799 ms  MOWA         alert wypowiedziany  rodzaj=SUNSET okularyPołączone=true kanałMultimediów=true
+18:10:15.302 +177481 ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:13:03.584 +345764 ms  BLE          ROZŁĄCZONO  świadome=false
+18:13:10.291 +352470 ms  BLE          ROZŁĄCZONO  świadome=false
+18:14:04.152 +406331 ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+18:16:30.278 +552457 ms  BLE          ROZŁĄCZONO  świadome=false
+18:17:12.263 +594442 ms  BLE          ROZŁĄCZONO  świadome=false
+18:29:36.253 +1338432 ms  BLE          ROZŁĄCZONO  świadome=false
+18:44:39.154 +2241334 ms  BLE          ROZŁĄCZONO  świadome=false
+18:49:39.253 +2541432 ms  BLE          ROZŁĄCZONO  świadome=false
+19:00:24.619 +3186799 ms  BLE          ROZŁĄCZONO  świadome=false
+19:00:44.006 +3206186 ms  BLE          ROZŁĄCZONO  świadome=false
+19:00:52.160 +3214340 ms  BLE          ROZŁĄCZONO  świadome=false
+19:22:11.880 +4494059 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+19:23:51.242 +4593422 ms  BLE          ROZŁĄCZONO  świadome=false
+19:54:31.962 +6434142 ms  BLE          ROZŁĄCZONO  świadome=false
+19:54:40.067 +6442246 ms  BLE          ROZŁĄCZONO  świadome=false
+19:58:25.078 +6667258 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+19:58:28.168 +6670347 ms  BLE          ROZŁĄCZONO  świadome=false
+20:01:03.332 +6825512 ms  BLE          ROZŁĄCZONO  świadome=false
+20:01:22.711 +6844891 ms  BLE          ROZŁĄCZONO  świadome=false
+20:01:30.856 +6853035 ms  BLE          ROZŁĄCZONO  świadome=false
+20:01:50.201 +6872380 ms  BLE          ROZŁĄCZONO  świadome=false
+20:01:58.345 +6880525 ms  BLE          ROZŁĄCZONO  świadome=false
+20:02:22.536 +6904715 ms  BLE          ROZŁĄCZONO  świadome=false
+20:02:41.973 +6924153 ms  BLE          ROZŁĄCZONO  świadome=false
+20:03:01.368 +6943548 ms  BLE          ROZŁĄCZONO  świadome=false
+20:03:20.760 +6962940 ms  BLE          ROZŁĄCZONO  świadome=false
+20:03:28.907 +6971087 ms  BLE          ROZŁĄCZONO  świadome=false
+20:03:48.304 +6990484 ms  BLE          ROZŁĄCZONO  świadome=false
+20:04:01.229 +7003408 ms  BLE          ROZŁĄCZONO  świadome=false
+20:39:56.439 +9158618 ms  BLE          ROZŁĄCZONO  świadome=false
+20:50:03.179 +9765359 ms  BLE          ROZŁĄCZONO  świadome=false
+20:50:12.178 +9774358 ms  BLE          ROZŁĄCZONO  świadome=false
+21:11:00.195 +11022375 ms  BLE          ROZŁĄCZONO  świadome=false
+21:21:08.238 +11630424 ms  BLE          ROZŁĄCZONO  świadome=false
+21:22:08.178 +11690357 ms  BLE          ROZŁĄCZONO  świadome=false
+21:34:56.996 +12459175 ms  BLE          ROZŁĄCZONO  świadome=false
+22:01:01.572 +14023751 ms  BLE          ROZŁĄCZONO  świadome=false
+22:01:09.667 +14031846 ms  BLE          ROZŁĄCZONO  świadome=false
+22:01:30.148 +14052328 ms  BLE          ROZŁĄCZONO  świadome=false
+22:13:36.140 +14778319 ms  BLE          ROZŁĄCZONO  świadome=false
+22:58:01.128 +17443308 ms  BLE          ROZŁĄCZONO  świadome=false
+23:01:48.450 +17670630 ms  BLE          ROZŁĄCZONO  świadome=false
+23:02:07.828 +17690007 ms  BLE          ROZŁĄCZONO  świadome=false
+23:02:16.000 +17698179 ms  BLE          ROZŁĄCZONO  świadome=false
+23:02:35.395 +17717574 ms  BLE          ROZŁĄCZONO  świadome=false
+23:02:54.783 +17736963 ms  BLE          ROZŁĄCZONO  świadome=false
+23:03:06.926 +17749105 ms  BLE          ROZŁĄCZONO  świadome=false
+23:03:26.331 +17768511 ms  BLE          ROZŁĄCZONO  świadome=false
+23:03:45.724 +17787903 ms  BLE          ROZŁĄCZONO  świadome=false
+23:03:53.902 +17796082 ms  BLE          ROZŁĄCZONO  świadome=false
+23:04:13.310 +17815489 ms  BLE          ROZŁĄCZONO  świadome=false
+23:04:32.712 +17834891 ms  BLE          ROZŁĄCZONO  świadome=false
+23:04:44.854 +17847034 ms  BLE          ROZŁĄCZONO  świadome=false
+23:05:04.256 +17866436 ms  BLE          ROZŁĄCZONO  świadome=false
+23:05:23.638 +17885817 ms  BLE          ROZŁĄCZONO  świadome=false
+23:05:31.818 +17893998 ms  BLE          ROZŁĄCZONO  świadome=false
+23:53:52.707 +20794887 ms  BLE          ROZŁĄCZONO  świadome=false
+23:56:07.088 +20929268 ms  BLE          ROZŁĄCZONO  świadome=false
+00:00:07.091 +21169270 ms  BLE          ROZŁĄCZONO  świadome=false
+00:17:28.683 +22210862 ms  BLE          ROZŁĄCZONO  świadome=false
+00:19:08.084 +22310263 ms  BLE          ROZŁĄCZONO  świadome=false
+00:22:22.307 +22504487 ms  BLE          ROZŁĄCZONO  świadome=false
+00:34:49.441 +23251621 ms  BLE          ROZŁĄCZONO  świadome=false
+01:17:22.198 +25804377 ms  BLE          ROZŁĄCZONO  świadome=false
+01:17:34.272 +25816451 ms  BLE          ROZŁĄCZONO  świadome=false
+01:17:53.612 +25835791 ms  BLE          ROZŁĄCZONO  świadome=false
+01:34:28.007 +26830186 ms  BLE          ROZŁĄCZONO  świadome=false
+01:46:05.967 +27528146 ms  BLE          ROZŁĄCZONO  świadome=false
+02:17:49.155 +29431334 ms  BLE          ROZŁĄCZONO  świadome=false
+02:18:14.384 +29456563 ms  BLE          ROZŁĄCZONO  świadome=false
+02:18:26.487 +29468666 ms  BLE          ROZŁĄCZONO  świadome=false
+02:18:45.877 +29488058 ms  BLE          ROZŁĄCZONO  świadome=false
+02:19:05.231 +29507410 ms  BLE          ROZŁĄCZONO  świadome=false
+02:19:13.280 +29515459 ms  BLE          ROZŁĄCZONO  świadome=false
+02:19:32.575 +29534754 ms  BLE          ROZŁĄCZONO  świadome=false
+02:19:51.949 +29554128 ms  BLE          ROZŁĄCZONO  świadome=false
+02:20:04.030 +29566210 ms  BLE          ROZŁĄCZONO  świadome=false
+02:20:23.326 +29585506 ms  BLE          ROZŁĄCZONO  świadome=false
+02:20:42.655 +29604834 ms  BLE          ROZŁĄCZONO  świadome=false
+02:20:50.724 +29612903 ms  BLE          ROZŁĄCZONO  świadome=false
+02:21:10.052 +29632231 ms  BLE          ROZŁĄCZONO  świadome=false
+02:21:29.368 +29651547 ms  BLE          ROZŁĄCZONO  świadome=false
+02:21:41.441 +29663621 ms  BLE          ROZŁĄCZONO  świadome=false
+02:22:00.751 +29682930 ms  BLE          ROZŁĄCZONO  świadome=false
+02:22:20.121 +29702301 ms  BLE          ROZŁĄCZONO  świadome=false
+02:22:28.211 +29710391 ms  BLE          ROZŁĄCZONO  świadome=false
+02:22:47.494 +29729673 ms  BLE          ROZŁĄCZONO  świadome=false
+02:23:06.818 +29748999 ms  BLE          ROZŁĄCZONO  świadome=false
+02:23:18.905 +29761084 ms  BLE          ROZŁĄCZONO  świadome=false
+03:12:09.965 +32692144 ms  BLE          ROZŁĄCZONO  świadome=false
+03:32:57.534 +33939714 ms  BLE          ROZŁĄCZONO  świadome=false
+03:33:06.956 +33949135 ms  BLE          ROZŁĄCZONO  świadome=false
+03:35:14.936 +34077115 ms  BLE          ROZŁĄCZONO  świadome=false
+03:44:41.925 +34644105 ms  BLE          ROZŁĄCZONO  świadome=false
+03:45:48.934 +34711114 ms  BLE          ROZŁĄCZONO  świadome=false
+03:46:41.981 +34764160 ms  BLE          ROZŁĄCZONO  świadome=false
+03:49:29.146 +34931326 ms  BLE          ROZŁĄCZONO  świadome=false
+03:49:37.291 +34939470 ms  BLE          ROZŁĄCZONO  świadome=false
+04:00:45.865 +35608045 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+04:00:50.059 +35612238 ms  BLE          ROZŁĄCZONO  świadome=false
+04:02:21.902 +35704081 ms  BLE          ROZŁĄCZONO  świadome=false
+04:02:34.151 +35716330 ms  BLE          ROZŁĄCZONO  świadome=false
+04:03:36.736 +35778916 ms  BLE          ROZŁĄCZONO  świadome=false
+04:05:58.912 +35921091 ms  BLE          ROZŁĄCZONO  świadome=false
+04:06:22.019 +35944199 ms  BLE          ROZŁĄCZONO  świadome=false
+04:08:08.109 +36050289 ms  BLE          ROZŁĄCZONO  świadome=false
+04:09:47.474 +36149653 ms  BLE          ROZŁĄCZONO  świadome=false
+04:10:29.291 +36191471 ms  BLE          ROZŁĄCZONO  świadome=false
+04:11:52.011 +36274191 ms  BLE          ROZŁĄCZONO  świadome=false
+04:23:20.260 +36962439 ms  BLE          ROZŁĄCZONO  świadome=false
+04:23:28.419 +36970598 ms  BLE          ROZŁĄCZONO  świadome=false
+04:24:41.879 +37044058 ms  BLE          ROZŁĄCZONO  świadome=false
+04:25:23.253 +37085433 ms  BLE          ROZŁĄCZONO  świadome=false
+04:26:44.919 +37167098 ms  BLE          ROZŁĄCZONO  świadome=false
+04:55:15.628 +38877808 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+04:55:26.480 +38888659 ms  BLE          ROZŁĄCZONO  świadome=false
+05:20:25.906 +40388085 ms  BLE          ROZŁĄCZONO  świadome=false
+05:24:40.925 +40643104 ms  BLE          ROZŁĄCZONO  świadome=false
+05:32:56.199 +41138378 ms  BLE          ROZŁĄCZONO  świadome=false
+05:41:42.022 +41664203 ms  BLE          ROZŁĄCZONO  świadome=false
+05:51:39.882 +42262062 ms  BLE          ROZŁĄCZONO  świadome=false
+06:13:39.822 +43582001 ms  BLE          ROZŁĄCZONO  świadome=false
+06:43:30.116 +45372296 ms  BLE          ROZŁĄCZONO  świadome=false
+06:43:38.282 +45380462 ms  BLE          ROZŁĄCZONO  świadome=false
+06:43:57.670 +45399850 ms  BLE          ROZŁĄCZONO  świadome=false
+07:14:35.365 +47237544 ms  BLE          ROZŁĄCZONO  świadome=false
+07:24:39.320 +47841499 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+07:24:43.510 +47845690 ms  BLE          ROZŁĄCZONO  świadome=false
+07:26:12.277 +47934457 ms  BLE          ROZŁĄCZONO  świadome=false
+07:31:33.743 +48255922 ms  BLE          ROZŁĄCZONO  świadome=false
+07:32:53.841 +48336020 ms  BLE          ROZŁĄCZONO  świadome=false
+07:42:36.979 +48919158 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+07:42:44.299 +48926479 ms  BLE          ROZŁĄCZONO  świadome=false
+07:45:14.989 +49077168 ms  BLE          ROZŁĄCZONO  świadome=false
+07:46:16.790 +49138970 ms  BLE          ROZŁĄCZONO  świadome=false
+07:54:48.654 +49650833 ms  BLE          ROZŁĄCZONO  świadome=false
+07:55:08.005 +49670185 ms  BLE          ROZŁĄCZONO  świadome=false
+07:56:17.835 +49740015 ms  BLE          ROZŁĄCZONO  świadome=false
+07:59:15.830 +49918010 ms  BLE          ROZŁĄCZONO  świadome=false
+08:15:52.810 +50914989 ms  BLE          ROZŁĄCZONO  świadome=false
+08:19:46.793 +51148972 ms  BLE          ROZŁĄCZONO  świadome=false
+08:37:57.809 +52239989 ms  BLE          ROZŁĄCZONO  świadome=false
+08:43:25.780 +52567959 ms  BLE          ROZŁĄCZONO  świadome=false
+08:43:34.720 +52576899 ms  BLE          ROZŁĄCZONO  świadome=false
+09:04:53.788 +53855968 ms  BLE          ROZŁĄCZONO  świadome=false
+09:14:06.769 +54408949 ms  BLE          ROZŁĄCZONO  świadome=false
+09:22:32.782 +54914962 ms  BLE          ROZŁĄCZONO  świadome=false
+09:32:41.371 +55523551 ms  BLE          ROZŁĄCZONO  świadome=false
+10:15:34.730 +58096909 ms  BLE          ROZŁĄCZONO  świadome=false
+10:26:51.679 +58773858 ms  BLE          ROZŁĄCZONO  świadome=false
+10:33:13.587 +59155766 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+10:33:27.554 +59169734 ms  BLE          ROZŁĄCZONO  świadome=false
+10:33:48.753 +59190932 ms  BLE          ROZŁĄCZONO  świadome=false
+10:35:59.748 +59321927 ms  BLE          ROZŁĄCZONO  świadome=false
+11:00:49.319 +60811499 ms  BLE          ROZŁĄCZONO  świadome=false
+11:46:14.519 +63536699 ms  BLE          ROZŁĄCZONO  świadome=false
+11:55:35.715 +64097895 ms  BLE          ROZŁĄCZONO  świadome=false
+12:26:43.093 +65965272 ms  BLE          ROZŁĄCZONO  świadome=false
+12:27:02.561 +65984741 ms  BLE          ROZŁĄCZONO  świadome=false
+12:27:14.687 +65996866 ms  BLE          ROZŁĄCZONO  świadome=false
+12:27:33.999 +66016179 ms  BLE          ROZŁĄCZONO  świadome=false
+12:27:53.382 +66035562 ms  BLE          ROZŁĄCZONO  świadome=false
+12:28:01.529 +66043708 ms  BLE          ROZŁĄCZONO  świadome=false
+12:28:20.918 +66063098 ms  BLE          ROZŁĄCZONO  świadome=false
+12:28:40.305 +66082485 ms  BLE          ROZŁĄCZONO  świadome=false
+12:28:52.455 +66094636 ms  BLE          ROZŁĄCZONO  świadome=false
+12:29:11.848 +66114028 ms  BLE          ROZŁĄCZONO  świadome=false
+12:29:31.222 +66133402 ms  BLE          ROZŁĄCZONO  świadome=false
+12:29:39.358 +66141537 ms  BLE          ROZŁĄCZONO  świadome=false
+12:35:29.622 +66491801 ms  BLE          ROZŁĄCZONO  świadome=false
+12:53:29.637 +67571816 ms  BLE          ROZŁĄCZONO  świadome=false
+13:04:49.677 +68251856 ms  BLE          ROZŁĄCZONO  świadome=false
+13:05:09.167 +68271346 ms  BLE          ROZŁĄCZONO  świadome=false
+13:13:38.660 +68780839 ms  BLE          ROZŁĄCZONO  świadome=false
+13:18:01.632 +69043811 ms  BLE          ROZŁĄCZONO  świadome=false
+13:38:31.820 +70273999 ms  BLE          ROZŁĄCZONO  świadome=false
+13:40:29.622 +70391802 ms  BLE          ROZŁĄCZONO  świadome=false
+13:57:59.617 +71441796 ms  BLE          ROZŁĄCZONO  świadome=false
+14:21:03.280 +72825459 ms  BLE          ROZŁĄCZONO  świadome=false
+14:21:22.643 +72844823 ms  BLE          ROZŁĄCZONO  świadome=false
+14:21:30.719 +72852898 ms  BLE          ROZŁĄCZONO  świadome=false
+14:32:14.265 +73496445 ms  BLE          ROZŁĄCZONO  świadome=false
+14:40:40.528 +74002708 ms  BLE          ROZŁĄCZONO  świadome=false
+14:40:52.701 +74014880 ms  BLE          ROZŁĄCZONO  świadome=false
+14:57:02.577 +74984756 ms  BLE          ROZŁĄCZONO  świadome=false
+15:38:51.561 +77493740 ms  BLE          ROZŁĄCZONO  świadome=false
+15:52:36.781 +78318961 ms  BLE          ROZŁĄCZONO  świadome=false
+15:52:56.205 +78338386 ms  BLE          ROZŁĄCZONO  świadome=false
+15:54:39.531 +78441710 ms  BLE          ROZŁĄCZONO  świadome=false
+15:56:48.317 +78570496 ms  BLE          ROZŁĄCZONO  świadome=false
+15:59:28.494 +78730674 ms  BLE          ROZŁĄCZONO  świadome=false
+16:01:15.407 +78837586 ms  BLE          ROZŁĄCZONO  świadome=false
+16:01:53.772 +78875951 ms  BLE          ROZŁĄCZONO  świadome=false
+16:04:58.491 +79060670 ms  BLE          ROZŁĄCZONO  świadome=false
+16:12:16.486 +79498665 ms  BLE          ROZŁĄCZONO  świadome=false
+16:15:57.507 +79719686 ms  BLE          ROZŁĄCZONO  świadome=false
+16:23:53.476 +80195656 ms  BLE          ROZŁĄCZONO  świadome=false
+16:32:33.527 +80715706 ms  BLE          ROZŁĄCZONO  świadome=false
+16:33:34.036 +80776215 ms  BLE          ROZŁĄCZONO  świadome=false
+16:35:28.558 +80890737 ms  BLE          ROZŁĄCZONO  świadome=false
+16:41:19.771 +81241951 ms  BLE          ROZŁĄCZONO  świadome=false
+16:41:20.004 +81242183 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+16:41:20.059 +81242238 ms  AKCJA        odpowiadam z katalogu, bez modelu  temat=PERSONAS
+16:41:20.093 +81242272 ms  SESJA        --- KONIEC TURY a056: odpowiedziano ---
+16:41:31.925          ms  BLE          ROZŁĄCZONO  świadome=false
+16:45:25.535          ms  BLE          ROZŁĄCZONO  świadome=false
+17:09:05.575          ms  BLE          ROZŁĄCZONO  świadome=false
+17:09:13.671          ms  BLE          ROZŁĄCZONO  świadome=false
+17:09:32.992          ms  BLE          ROZŁĄCZONO  świadome=false
+17:10:15.087          ms  BLE          ROZŁĄCZONO  świadome=false
+17:10:50.296          ms  BLE          ROZŁĄCZONO  świadome=false
+17:23:49.491          ms  BLE          ROZŁĄCZONO  świadome=false
+17:35:58.661          ms  BLE          ROZŁĄCZONO  świadome=false
+17:38:31.490          ms  BLE          ROZŁĄCZONO  świadome=false
+17:52:36.037          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=SUNSET
+17:52:45.499          ms  BLE          ROZŁĄCZONO  świadome=false
+18:10:45.032          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=SUNSET
+18:10:55.784          ms  BLE          ROZŁĄCZONO  świadome=false
+18:23:28.486          ms  BLE          ROZŁĄCZONO  świadome=false
+19:11:27.351          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+19:11:34.096          ms  BLE          ROZŁĄCZONO  świadome=false
+19:11:53.628          ms  BLE          ROZŁĄCZONO  świadome=false
+19:12:01.735          ms  BLE          ROZŁĄCZONO  świadome=false
+19:12:21.037          ms  BLE          ROZŁĄCZONO  świadome=false
+19:12:40.319          ms  BLE          ROZŁĄCZONO  świadome=false
+19:12:52.402          ms  BLE          ROZŁĄCZONO  świadome=false
+19:15:49.308          ms  BLE          ROZŁĄCZONO  świadome=false
+20:03:41.312          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+20:03:45.489          ms  BLE          ROZŁĄCZONO  świadome=false
+20:15:31.400          ms  BLE          ROZŁĄCZONO  świadome=false
+20:50:21.771          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+21:13:01.923          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+21:13:07.040          ms  BLE          ROZŁĄCZONO  świadome=false
+21:13:26.499          ms  BLE          ROZŁĄCZONO  świadome=false
+21:13:38.620          ms  BLE          ROZŁĄCZONO  świadome=false
+21:13:57.981          ms  BLE          ROZŁĄCZONO  świadome=false
+21:14:17.401          ms  BLE          ROZŁĄCZONO  świadome=false
+21:14:25.519          ms  BLE          ROZŁĄCZONO  świadome=false
+21:14:44.900          ms  BLE          ROZŁĄCZONO  świadome=false
+21:15:04.275          ms  BLE          ROZŁĄCZONO  świadome=false
+21:15:16.421          ms  BLE          ROZŁĄCZONO  świadome=false
+21:15:35.801          ms  BLE          ROZŁĄCZONO  świadome=false
+21:15:55.217          ms  BLE          ROZŁĄCZONO  świadome=false
+21:16:03.353          ms  BLE          ROZŁĄCZONO  świadome=false
+21:16:22.752          ms  BLE          ROZŁĄCZONO  świadome=false
+21:16:42.133          ms  BLE          ROZŁĄCZONO  świadome=false
+21:16:54.278          ms  BLE          ROZŁĄCZONO  świadome=false
+21:17:13.656          ms  BLE          ROZŁĄCZONO  świadome=false
+21:17:33.051          ms  BLE          ROZŁĄCZONO  świadome=false
+21:17:41.179          ms  BLE          ROZŁĄCZONO  świadome=false
+21:18:00.557          ms  BLE          ROZŁĄCZONO  świadome=false
+21:18:19.943          ms  BLE          ROZŁĄCZONO  świadome=false
+21:18:32.060          ms  BLE          ROZŁĄCZONO  świadome=false
+21:18:51.449          ms  BLE          ROZŁĄCZONO  świadome=false
+21:19:10.826          ms  BLE          ROZŁĄCZONO  świadome=false
+21:19:18.955          ms  BLE          ROZŁĄCZONO  świadome=false
+21:19:38.326          ms  BLE          ROZŁĄCZONO  świadome=false
+21:19:57.712          ms  BLE          ROZŁĄCZONO  świadome=false
+21:20:09.828          ms  BLE          ROZŁĄCZONO  świadome=false
+21:20:29.219          ms  BLE          ROZŁĄCZONO  świadome=false
+21:20:48.598          ms  BLE          ROZŁĄCZONO  świadome=false
+21:20:56.741          ms  BLE          ROZŁĄCZONO  świadome=false
+21:21:16.139          ms  BLE          ROZŁĄCZONO  świadome=false
+21:21:35.539          ms  BLE          ROZŁĄCZONO  świadome=false
+21:21:47.673          ms  BLE          ROZŁĄCZONO  świadome=false
+21:22:07.081          ms  BLE          ROZŁĄCZONO  świadome=false
+21:22:26.470          ms  BLE          ROZŁĄCZONO  świadome=false
+21:22:34.596          ms  BLE          ROZŁĄCZONO  świadome=false
+21:22:53.971          ms  BLE          ROZŁĄCZONO  świadome=false
+21:23:13.357          ms  BLE          ROZŁĄCZONO  świadome=false
+21:23:25.496          ms  BLE          ROZŁĄCZONO  świadome=false
+21:23:44.885          ms  BLE          ROZŁĄCZONO  świadome=false
+21:24:04.270          ms  BLE          ROZŁĄCZONO  świadome=false
+21:24:12.396          ms  BLE          ROZŁĄCZONO  świadome=false
+21:24:31.776          ms  BLE          ROZŁĄCZONO  świadome=false
+21:24:51.155          ms  BLE          ROZŁĄCZONO  świadome=false
+21:25:03.287          ms  BLE          ROZŁĄCZONO  świadome=false
+21:25:22.658          ms  BLE          ROZŁĄCZONO  świadome=false
+21:25:42.045          ms  BLE          ROZŁĄCZONO  świadome=false
+21:25:50.204          ms  BLE          ROZŁĄCZONO  świadome=false
+21:26:09.568          ms  BLE          ROZŁĄCZONO  świadome=false
+21:26:28.957          ms  BLE          ROZŁĄCZONO  świadome=false
+21:26:41.088          ms  BLE          ROZŁĄCZONO  świadome=false
+21:27:00.477          ms  BLE          ROZŁĄCZONO  świadome=false
+21:27:19.852          ms  BLE          ROZŁĄCZONO  świadome=false
+21:27:27.994          ms  BLE          ROZŁĄCZONO  świadome=false
+21:27:47.377          ms  BLE          ROZŁĄCZONO  świadome=false
+21:28:06.755          ms  BLE          ROZŁĄCZONO  świadome=false
+21:28:18.889          ms  BLE          ROZŁĄCZONO  świadome=false
+21:28:38.256          ms  BLE          ROZŁĄCZONO  świadome=false
+21:28:57.650          ms  BLE          ROZŁĄCZONO  świadome=false
+21:29:05.801          ms  BLE          ROZŁĄCZONO  świadome=false
+21:29:25.195          ms  BLE          ROZŁĄCZONO  świadome=false
+21:29:44.575          ms  BLE          ROZŁĄCZONO  świadome=false
+21:29:56.744          ms  BLE          ROZŁĄCZONO  świadome=false
+21:30:16.120          ms  BLE          ROZŁĄCZONO  świadome=false
+21:30:36.347          ms  BLE          ROZŁĄCZONO  świadome=false
+21:45:06.883          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+21:45:11.244          ms  BLE          ROZŁĄCZONO  świadome=false
+23:13:02.802          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+23:13:10.336          ms  BLE          ROZŁĄCZONO  świadome=false
+00:00:12.719          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+00:05:20.256          ms  BLE          ROZŁĄCZONO  świadome=false
+00:17:59.245          ms  BLE          ROZŁĄCZONO  świadome=false
+01:30:37.259          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+01:30:38.507          ms  BLE          ROZŁĄCZONO  świadome=false
+01:30:58.047          ms  BLE          ROZŁĄCZONO  świadome=false
+01:31:06.131          ms  BLE          ROZŁĄCZONO  świadome=false
+01:31:25.416          ms  BLE          ROZŁĄCZONO  świadome=false
+01:31:44.706          ms  BLE          ROZŁĄCZONO  świadome=false
+01:31:56.797          ms  BLE          ROZŁĄCZONO  świadome=false
+01:32:16.109          ms  BLE          ROZŁĄCZONO  świadome=false
+01:32:35.397          ms  BLE          ROZŁĄCZONO  świadome=false
+01:32:43.479          ms  BLE          ROZŁĄCZONO  świadome=false
+01:33:02.771          ms  BLE          ROZŁĄCZONO  świadome=false
+01:33:22.045          ms  BLE          ROZŁĄCZONO  świadome=false
+01:33:34.127          ms  BLE          ROZŁĄCZONO  świadome=false
+01:33:53.535          ms  BLE          ROZŁĄCZONO  świadome=false
+01:34:12.924          ms  BLE          ROZŁĄCZONO  świadome=false
+01:34:21.067          ms  BLE          ROZŁĄCZONO  świadome=false
+01:34:40.419          ms  BLE          ROZŁĄCZONO  świadome=false
+01:34:59.804          ms  BLE          ROZŁĄCZONO  świadome=false
+01:35:11.940          ms  BLE          ROZŁĄCZONO  świadome=false
+01:39:32.220          ms  BLE          ROZŁĄCZONO  świadome=false
+02:10:42.817          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+02:23:02.223          ms  BLE          ROZŁĄCZONO  świadome=false
+02:33:32.199          ms  BLE          ROZŁĄCZONO  świadome=false
+02:47:33.638          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+03:26:53.682          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+03:27:03.307          ms  BLE          ROZŁĄCZONO  świadome=false
+03:27:32.147          ms  BLE          ROZŁĄCZONO  świadome=false
+03:33:22.156          ms  BLE          ROZŁĄCZONO  świadome=false
+04:00:29.894          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+04:18:05.126          ms  BLE          ROZŁĄCZONO  świadome=false
+04:28:06.121          ms  BLE          ROZŁĄCZONO  świadome=false
+04:38:00.136          ms  BLE          ROZŁĄCZONO  świadome=false
+05:26:44.102          ms  BLE          ROZŁĄCZONO  świadome=false
+05:27:37.553          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+05:27:49.697          ms  BLE          ROZŁĄCZONO  świadome=false
+05:28:25.661          ms  BLE          ROZŁĄCZONO  świadome=false
+05:34:23.063          ms  BLE          ROZŁĄCZONO  świadome=false
+06:03:47.559          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+06:03:58.436          ms  BLE          ROZŁĄCZONO  świadome=false
+06:04:06.579          ms  BLE          ROZŁĄCZONO  świadome=false
+06:04:25.950          ms  BLE          ROZŁĄCZONO  świadome=false
+06:38:48.471          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+06:38:56.272          ms  BLE          ROZŁĄCZONO  świadome=false
+06:41:27.034          ms  BLE          ROZŁĄCZONO  świadome=false
+07:31:49.334          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+07:31:56.011          ms  BLE          ROZŁĄCZONO  świadome=false
+07:39:45.338          ms  BLE          ROZŁĄCZONO  świadome=false
+07:39:53.465          ms  BLE          ROZŁĄCZONO  świadome=false
+08:25:37.977          ms  BLE          ROZŁĄCZONO  świadome=false
+09:32:25.603          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+09:32:32.942          ms  BLE          ROZŁĄCZONO  świadome=false
+09:40:08.969          ms  BLE          ROZŁĄCZONO  świadome=false
+09:40:28.355          ms  BLE          ROZŁĄCZONO  świadome=false
+09:58:00.938          ms  BLE          ROZŁĄCZONO  świadome=false
+10:18:00.954          ms  BLE          ROZŁĄCZONO  świadome=false
+11:33:33.869          ms  BLE          ROZŁĄCZONO  świadome=false
+12:57:32.200          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+12:57:37.839          ms  BLE          ROZŁĄCZONO  świadome=false
+13:21:33.841          ms  BLE          ROZŁĄCZONO  świadome=false
+13:40:33.740          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+13:40:46.690          ms  BLE          ROZŁĄCZONO  świadome=false
+13:41:06.120          ms  BLE          ROZŁĄCZONO  świadome=false
+13:41:14.261          ms  BLE          ROZŁĄCZONO  świadome=false
+13:41:33.637          ms  BLE          ROZŁĄCZONO  świadome=false
+13:41:53.038          ms  BLE          ROZŁĄCZONO  świadome=false
+13:42:05.199          ms  BLE          ROZŁĄCZONO  świadome=false
+13:42:24.577          ms  BLE          ROZŁĄCZONO  świadome=false
+13:42:43.957          ms  BLE          ROZŁĄCZONO  świadome=false
+13:42:52.093          ms  BLE          ROZŁĄCZONO  świadome=false
+13:43:11.482          ms  BLE          ROZŁĄCZONO  świadome=false
+13:43:30.857          ms  BLE          ROZŁĄCZONO  świadome=false
+13:43:43.014          ms  BLE          ROZŁĄCZONO  świadome=false
+13:44:02.404          ms  BLE          ROZŁĄCZONO  świadome=false
+13:44:21.816          ms  BLE          ROZŁĄCZONO  świadome=false
+13:44:29.960          ms  BLE          ROZŁĄCZONO  świadome=false
+13:44:49.341          ms  BLE          ROZŁĄCZONO  świadome=false
+13:45:08.720          ms  BLE          ROZŁĄCZONO  świadome=false
+13:45:20.865          ms  BLE          ROZŁĄCZONO  świadome=false
+13:45:40.238          ms  BLE          ROZŁĄCZONO  świadome=false
+13:45:59.595          ms  BLE          ROZŁĄCZONO  świadome=false
+13:46:07.728          ms  BLE          ROZŁĄCZONO  świadome=false
+13:46:27.097          ms  BLE          ROZŁĄCZONO  świadome=false
+13:46:46.480          ms  BLE          ROZŁĄCZONO  świadome=false
+13:46:58.641          ms  BLE          ROZŁĄCZONO  świadome=false
+13:47:18.041          ms  BLE          ROZŁĄCZONO  świadome=false
+13:47:37.421          ms  BLE          ROZŁĄCZONO  świadome=false
+13:47:45.569          ms  BLE          ROZŁĄCZONO  świadome=false
+13:48:04.950          ms  BLE          ROZŁĄCZONO  świadome=false
+13:48:24.334          ms  BLE          ROZŁĄCZONO  świadome=false
+13:48:36.481          ms  BLE          ROZŁĄCZONO  świadome=false
+13:48:55.857          ms  BLE          ROZŁĄCZONO  świadome=false
+13:49:15.249          ms  BLE          ROZŁĄCZONO  świadome=false
+13:49:23.400          ms  BLE          ROZŁĄCZONO  świadome=false
+13:49:42.799          ms  BLE          ROZŁĄCZONO  świadome=false
+13:50:02.186          ms  BLE          ROZŁĄCZONO  świadome=false
+13:50:14.318          ms  BLE          ROZŁĄCZONO  świadome=false
+13:50:33.703          ms  BLE          ROZŁĄCZONO  świadome=false
+13:50:53.079          ms  BLE          ROZŁĄCZONO  świadome=false
+13:51:01.208          ms  BLE          ROZŁĄCZONO  świadome=false
+13:51:20.599          ms  BLE          ROZŁĄCZONO  świadome=false
+13:51:40.008          ms  BLE          ROZŁĄCZONO  świadome=false
+13:51:52.171          ms  BLE          ROZŁĄCZONO  świadome=false
+13:52:11.541          ms  BLE          ROZŁĄCZONO  świadome=false
+13:52:30.921          ms  BLE          ROZŁĄCZONO  świadome=false
+13:52:39.062          ms  BLE          ROZŁĄCZONO  świadome=false
+13:52:58.466          ms  BLE          ROZŁĄCZONO  świadome=false
+13:53:17.865          ms  BLE          ROZŁĄCZONO  świadome=false
+13:53:29.998          ms  BLE          ROZŁĄCZONO  świadome=false
+13:53:49.371          ms  BLE          ROZŁĄCZONO  świadome=false
+13:54:08.743          ms  BLE          ROZŁĄCZONO  świadome=false
+13:54:16.871          ms  BLE          ROZŁĄCZONO  świadome=false
+13:54:36.259          ms  BLE          ROZŁĄCZONO  świadome=false
+13:54:55.653          ms  BLE          ROZŁĄCZONO  świadome=false
+13:55:07.776          ms  BLE          ROZŁĄCZONO  świadome=false
+13:55:27.155          ms  BLE          ROZŁĄCZONO  świadome=false
+13:55:46.526          ms  BLE          ROZŁĄCZONO  świadome=false
+13:55:54.657          ms  BLE          ROZŁĄCZONO  świadome=false
+13:56:14.025          ms  BLE          ROZŁĄCZONO  świadome=false
+13:56:33.399          ms  BLE          ROZŁĄCZONO  świadome=false
+13:56:45.542          ms  BLE          ROZŁĄCZONO  świadome=false
+13:57:04.944          ms  BLE          ROZŁĄCZONO  świadome=false
+13:57:24.308          ms  BLE          ROZŁĄCZONO  świadome=false
+13:57:32.436          ms  BLE          ROZŁĄCZONO  świadome=false
+13:57:51.833          ms  BLE          ROZŁĄCZONO  świadome=false
+14:37:37.774          ms  BLE          ROZŁĄCZONO  świadome=false
+15:37:08.746          ms  BLE          ROZŁĄCZONO  świadome=false
+15:57:55.681          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+16:56:32.521          ms  BLE          ROZŁĄCZONO  świadome=false
+18:08:51.782          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+18:08:51.802          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=SUNSET
+18:09:00.645          ms  BLE          ROZŁĄCZONO  świadome=false
+18:16:29.691          ms  BLE          ROZŁĄCZONO  świadome=false
+19:23:43.472          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+19:23:48.625          ms  BLE          ROZŁĄCZONO  świadome=false
+19:58:04.175          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+19:58:15.999          ms  BLE          ROZŁĄCZONO  świadome=false
+19:58:28.219          ms  BLE          ROZŁĄCZONO  świadome=false
+19:58:47.686          ms  BLE          ROZŁĄCZONO  świadome=false
+19:59:07.038          ms  BLE          ROZŁĄCZONO  świadome=false
+19:59:15.123          ms  BLE          ROZŁĄCZONO  świadome=false
+20:02:43.713          ms  BLE          ROZŁĄCZONO  świadome=false
+21:00:35.566          ms  BLE          ROZŁĄCZONO  świadome=false
+21:05:29.495          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+21:05:40.566          ms  BLE          ROZŁĄCZONO  świadome=false
+21:59:04.520          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+22:03:10.540          ms  BLE          ROZŁĄCZONO  świadome=false
+22:40:51.641          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+22:55:33.486          ms  BLE          ROZŁĄCZONO  świadome=false
+23:11:22.494          ms  BLE          ROZŁĄCZONO  świadome=false
+00:00:03.734          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+00:05:11.477          ms  BLE          ROZŁĄCZONO  świadome=false
+00:54:26.400          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+00:54:34.427          ms  BLE          ROZŁĄCZONO  świadome=false
+01:34:12.616          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+01:34:12.696          ms  BLE          ROZŁĄCZONO  świadome=false
+01:35:23.821          ms  BLE          ROZŁĄCZONO  świadome=false
+01:38:42.699          ms  BLE          ROZŁĄCZONO  świadome=false
+01:39:23.795          ms  BLE          ROZŁĄCZONO  świadome=false
+01:59:25.696          ms  BLE          ROZŁĄCZONO  świadome=false
+01:59:45.072          ms  BLE          ROZŁĄCZONO  świadome=false
+01:59:57.165          ms  BLE          ROZŁĄCZONO  świadome=false
+02:00:16.548          ms  BLE          ROZŁĄCZONO  świadome=false
+02:00:35.912          ms  BLE          ROZŁĄCZONO  świadome=false
+02:00:44.053          ms  BLE          ROZŁĄCZONO  świadome=false
+02:01:03.420          ms  BLE          ROZŁĄCZONO  świadome=false
+02:01:22.749          ms  BLE          ROZŁĄCZONO  świadome=false
+02:01:34.885          ms  BLE          ROZŁĄCZONO  świadome=false
+02:01:54.261          ms  BLE          ROZŁĄCZONO  świadome=false
+02:02:13.668          ms  BLE          ROZŁĄCZONO  świadome=false
+02:02:21.806          ms  BLE          ROZŁĄCZONO  świadome=false
+02:35:05.761          ms  BLE          ROZŁĄCZONO  świadome=false
+03:54:28.686          ms  BLE          ROZŁĄCZONO  świadome=false
+04:39:32.040          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+04:39:37.664          ms  BLE          ROZŁĄCZONO  świadome=false
+05:18:05.641          ms  BLE          ROZŁĄCZONO  świadome=false
+05:27:08.169          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+05:27:25.445          ms  BLE          ROZŁĄCZONO  świadome=false
+05:27:33.565          ms  BLE          ROZŁĄCZONO  świadome=false
+05:38:05.128          ms  BLE          ROZŁĄCZONO  świadome=false
+06:06:51.276          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+06:06:55.637          ms  BLE          ROZŁĄCZONO  świadome=false
+06:12:36.614          ms  BLE          ROZŁĄCZONO  świadome=false
+06:47:27.025          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+06:47:36.209          ms  BLE          ROZŁĄCZONO  świadome=false
+06:47:55.573          ms  BLE          ROZŁĄCZONO  świadome=false
+06:48:05.617          ms  BLE          ROZŁĄCZONO  świadome=false
+07:48:11.372          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+07:48:15.354          ms  BLE          ROZŁĄCZONO  świadome=false
+07:48:34.721          ms  BLE          ROZŁĄCZONO  świadome=false
+08:04:02.206          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+08:04:07.545          ms  BLE          ROZŁĄCZONO  świadome=false
+09:43:20.506          ms  BLE          ROZŁĄCZONO  świadome=false
+09:48:39.017          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+09:48:56.305          ms  BLE          ROZŁĄCZONO  świadome=false
+09:49:04.462          ms  BLE          ROZŁĄCZONO  świadome=false
+10:03:37.182          ms  BLE          ROZŁĄCZONO  świadome=false
+10:38:05.483          ms  BLE          ROZŁĄCZONO  świadome=false
+10:59:07.323          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+10:59:15.467          ms  BLE          ROZŁĄCZONO  świadome=false
+11:51:12.432          ms  BLE          ROZŁĄCZONO  świadome=false
+11:51:44.109          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+11:52:33.748          ms  BLE          ROZŁĄCZONO  świadome=false
+11:52:42.476          ms  BLE          ROZŁĄCZONO  świadome=false
+11:53:03.373          ms  BLE          ROZŁĄCZONO  świadome=false
+11:56:03.426          ms  BLE          ROZŁĄCZONO  świadome=false
+12:17:12.410          ms  BLE          ROZŁĄCZONO  świadome=false
+12:19:19.681          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+12:19:35.956          ms  BLE          ROZŁĄCZONO  świadome=false
+12:19:55.445          ms  BLE          ROZŁĄCZONO  świadome=false
+12:20:03.595          ms  BLE          ROZŁĄCZONO  świadome=false
+12:20:22.981          ms  BLE          ROZŁĄCZONO  świadome=false
+12:20:42.363          ms  BLE          ROZŁĄCZONO  świadome=false
+12:20:54.495          ms  BLE          ROZŁĄCZONO  świadome=false
+12:21:13.888          ms  BLE          ROZŁĄCZONO  świadome=false
+12:21:33.250          ms  BLE          ROZŁĄCZONO  świadome=false
+12:21:41.380          ms  BLE          ROZŁĄCZONO  świadome=false
+12:22:00.786          ms  BLE          ROZŁĄCZONO  świadome=false
+12:22:20.166          ms  BLE          ROZŁĄCZONO  świadome=false
+12:49:27.180          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+12:49:32.961          ms  BLE          ROZŁĄCZONO  świadome=false
+13:14:41.375          ms  BLE          ROZŁĄCZONO  świadome=false
+13:19:20.730          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=AIR_QUALITY
+13:21:56.410          ms  BLE          ROZŁĄCZONO  świadome=false
+13:29:26.412          ms  BLE          ROZŁĄCZONO  świadome=false
+14:08:41.358          ms  BLE          ROZŁĄCZONO  świadome=false
+14:20:16.192          ms  BLE          ROZŁĄCZONO  świadome=false
+14:20:28.344          ms  BLE          ROZŁĄCZONO  świadome=false
+15:05:13.146          ms  BLE          ROZŁĄCZONO  świadome=false
+15:25:03.316          ms  BLE          ROZŁĄCZONO  świadome=false
+15:32:24.885          ms  BLE          ROZŁĄCZONO  świadome=false
+15:52:28.025          ms  BLE          ROZŁĄCZONO  świadome=false
+16:02:32.698          ms  BLE          ROZŁĄCZONO  świadome=false
+16:32:02.247          ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=GOOD_VISIBILITY
+16:32:04.048      +1 ms  SESJA        --- TURA 3f63 ---  źródło=TEXT_INPUT
+16:32:04.053      +6 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+16:32:04.094     +47 ms  AKCJA        odpowiadam z katalogu, bez modelu  temat=PERSONAS
+16:32:08.307   +4264 ms  BLE          ROZŁĄCZONO  świadome=false
+16:32:29.265  +25218 ms  BLE          ROZŁĄCZONO  świadome=false
+17:07:11.223 +2107177 ms  BLE          ROZŁĄCZONO  świadome=false
+17:10:35.242 +2311196 ms  BLE          ROZŁĄCZONO  świadome=false
+17:46:10.209 +4446162 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=SUNSET
+17:46:17.999 +4453953 ms  BLE          ROZŁĄCZONO  świadome=false
+17:48:22.308 +4578262 ms  BLE          ROZŁĄCZONO  świadome=false
+17:49:43.304 +4659258 ms  BLE          ROZŁĄCZONO  świadome=false
+18:02:30.779 +5426732 ms  MOWA         alert pominięty - okulary niepołączone  rodzaj=SUNSET
+18:02:33.145 +5429098 ms  BLE          POŁĄCZONO  noweŁącze=true
+18:02:33.151 +5429104 ms  BLE          okulary wróciły - mówię o tym
+18:02:33.152 +5429105 ms  BLE          powitanie okularów - start
+18:02:33.163 +5429117 ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+18:02:33.417 +5429370 ms  BLE          okulary zgłaszają pliki i tryb importu  zdjęć=11 filmów=3 nagrań=0 tylkoHotspot=true
+18:02:33.466 +5429419 ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:02:35.288 +5431241 ms  BLE          POŁĄCZONO  noweŁącze=false
+18:02:36.163 +5432117 ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:02:38.164 +5434117 ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+18:02:44.506 +5440459 ms  PRZYCISK     wciśnięto  numer=1
+18:02:44.714 +5440667 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+18:02:45.019 +5440972 ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:02:45.543 +5441496 ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=24 ms=827
+18:02:46.139      +9 ms  SESJA        --- TURA fa97 ---  źródło=OKULARY
+18:02:46.140     +10 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:02:50.167   +4037 ms  NASŁUCH      koniec  ms=4037 odłożone=jaka jest temperatura w sugajnie zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=7 gotowyPoMs=722
+18:02:50.241   +4111 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=24
+18:02:51.367   +5237 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.4535 pakietów=273 rozkodowanych=273 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=17 0 0 13 1812 456 1019 1732 591 0 0 ciszaNaKońcuOkien=2
+18:02:54.078   +7948 ms  TRANSKRYPCJA z nagrania okularów  ms=2709 droga=Nasłuch telefonu
+18:02:54.090   +7960 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5453 jestMs=2800 tło=1 szczyt=5085 ile razy=4331.6
+18:02:54.091   +7962 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jaka jest temperatura w sugajnie
+18:02:54.092   +7962 ms  SESJA        pytanie  tekst=jaka jest temperatura w sugajnie wymuszonyObraz=false
+18:02:54.101   +7971 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false wymuszone=false zNagrania=false
+18:02:54.111   +7981 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:02:54.528   +8398 ms  KONTEKST     zebrany  ms=408 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+18:02:54.567   +8437 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2193
+18:02:55.058   +8928 ms  MODEL        dostawca zawiódł  dostawca=gemini model=gemini-3.5-flash-lite poMs=492 powód=Model odmówił odpowiedzi. Sprawdź ustawienia dostawcy AI. komunikat=Gemini odrzuciło zapytanie jako błędne. (HTTP 400: {
+  "error": {
+    "code": 400,
+    "message": "Request contains an invalid argument.",
+    "status": "INVALI
+18:02:55.061   +8931 ms  MODEL        wysyłam pytanie  dostawca=deepseek model=deepseek-flash próba=2 zdjęć=0 znakówPromptu=2193
+18:02:57.467  +11337 ms  MODEL        koniec odpowiedzi (199 znaków, 3746 tokenów)  ms=2901 dostawca=deepseek początek=Mam pod ręką prognozę tylko dla Torunia, a Sugajno to inna miejscowość, więc nie
+18:02:57.480  +11350 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=199
+18:03:08.320  +22191 ms  MOWA         koniec wypowiedzi  ms=10834
+18:03:08.360  +22231 ms  SESJA        --- KONIEC TURY fa97: odpowiedziano ---
+18:03:08.372          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
