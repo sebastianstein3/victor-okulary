@@ -196,3 +196,109 @@
 18:25:58.608  +12300 ms  MOWA         koniec wypowiedzi  ms=4749
 18:25:58.627  +12319 ms  SESJA        --- KONIEC TURY b3b3: odpowiedziano ---
 18:25:58.630          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+18:25:58.810          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:25:59.445          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:25:59.802          ms  PRZYCISK     wciśnięto  numer=1
+18:26:00.309          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:26:00.539      +0 ms  SESJA        --- TURA fae0 ---  źródło=OKULARY
+18:26:00.540      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:26:03.825   +3286 ms  NASŁUCH      koniec  ms=3286 odłożone=tłumaczenie na żywo zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=6 gotowyPoMs=303
+18:26:03.993   +3454 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+18:26:04.210   +3671 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.3135 pakietów=166 rozkodowanych=166 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 2 1222 958 639 1 1 ciszaNaKońcuOkien=0
+18:26:06.333   +5794 ms  TRANSKRYPCJA z nagrania okularów  ms=2122 droga=Nasłuch telefonu
+18:26:06.337   +5798 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3313 jestMs=1680 tło=1 szczyt=3755 ile razy=2389.8
+18:26:06.340   +5801 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=tłumaczenie na żywo
+18:26:06.341   +5802 ms  SESJA        pytanie  tekst=tłumaczenie na żywo wymuszonyObraz=false
+18:26:06.347   +5808 ms  SESJA        --- KONIEC TURY fae0: tłumaczenie ze słuchu ---
+18:26:06.352          ms  NASŁUCH      tłumaczenie ze słuchu: start  z=en na=pl zTury=true
+18:26:06.354          ms  NASŁUCH      tłumaczenie ze słuchu: tura włączająca skończona  ms=1 zdążyła=true
+18:26:08.583          ms  NASŁUCH      tłumaczenie ze słuchu: zapowiedź  ms=2228 powiedziane=true
+18:26:09.433          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:26:15.146          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=tell me something boy przekład=powiedz mi coś chłopca
+18:26:17.624          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:26:21.983          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=are you happy in this modern world przekład=jesteś szczęśliwy w tym nowoczesnym świecie
+18:26:25.632          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:26:28.205          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=or do you need more przekład=lub potrzebujesz więcej
+18:26:30.988          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:26:34.677          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=is this something else you're searching for przekład=Czy to coś innego szukasz
+18:26:37.512          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:26:39.340          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=hello there przekład=Witaj tam
+18:26:41.484          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:26:44.689          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=what's your favorite food przekład=Jakie jest twoje ulubione jedzenie
+18:26:48.045          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:26:51.813          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=are you stupid or not przekład=jesteś głupi, czy nie
+18:26:57.441          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=about this news now przekład=O tej wiadomości teraz
+18:27:00.099          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:27:04.723          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=I'm really happy przekład=Jestem naprawdę szczęśliwy
+18:27:10.236          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=your mother is a s*** przekład=Twoja matka jest s ***
+18:27:12.795          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:27:18.227          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=it doesn't matter guys przekład=Nie ma znaczenia facetów
+18:27:20.894          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:27:27.033          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=your socks are really stinky przekład=Twoje skarpetki są naprawdę śmierdzące
+18:27:30.657          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:27:33.988          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=AI is s*** przekład=Ai jest s ***
+18:27:36.414          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:27:41.130          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=she had s*** s*** przekład=Ona miała s *** ***
+18:27:43.757          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:27:45.416          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=s*** przekład=s ***
+18:27:47.216          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:27:55.510          ms  NASŁUCH      tłumaczenie ze słuchu: pusty nasłuch  powód=cisza zRzędu=1 ms=9053
+18:28:00.893          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=Sunday morning przekład=Niedzielny poranek
+18:28:03.193          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:28:06.586          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=you are pretty dumb przekład=jesteś dość głupi
+18:28:09.091          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:28:11.115          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=stop przekład=zatrzymać się
+18:28:16.432          ms  NASŁUCH      tłumaczenie ze słuchu  usłyszane=welcome to Montana przekład=Witamy w Montanie
+18:28:18.856          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=true mówię=false
+18:28:22.416          ms  PRZYCISK     wciśnięto  numer=1
+18:28:22.925          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:28:22.926          ms  NASŁUCH      tłumaczenie ze słuchu: koniec  powód=przycisk na okularach
+18:28:23.070          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=6
+18:28:25.028          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+18:29:18.704          ms  PRZYCISK     wciśnięto  numer=1
+18:29:18.897          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+18:29:19.228          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:29:19.299          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=399
+18:29:19.382      +0 ms  SESJA        --- TURA 8864 ---  źródło=OKULARY
+18:29:19.383      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:29:24.240   +4858 ms  NASŁUCH      koniec  ms=4858 odłożone=zeskanuj ten kod kreskowy zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=8 gotowyPoMs=600
+18:29:24.379   +4997 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+18:29:24.810   +5428 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.3535 pakietów=268 rozkodowanych=268 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 1 10 311 2213 1114 1355 1 0 1 0 ciszaNaKońcuOkien=1
+18:29:26.009   +6628 ms  TRANSKRYPCJA z nagrania okularów  ms=1197 droga=Nasłuch telefonu
+18:29:26.016   +6634 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5353 jestMs=1900 tło=1 szczyt=5363 ile razy=4833.9
+18:29:26.018   +6636 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=zeskanuj ten kod kreskowy
+18:29:26.020   +6638 ms  SESJA        pytanie  tekst=zeskanuj ten kod kreskowy wymuszonyObraz=false
+18:29:26.032   +6650 ms  AKCJA        gest wywołany głosem  gest=SCAN_QR
+18:29:26.033   +6651 ms  PRZYCISK     akcja z przycisku  akcja=SCAN_QR kliknięć=1
+18:29:26.034   +6653 ms  SESJA        pytanie  tekst=Odczytaj kod ze zdjęcia - kreskowy albo QR - i powiedz krótko, co to za produkt albo co jest w kodzie zapisane. wymuszonyObraz=true
+18:29:26.039   +6657 ms  ZDJĘCIE      robię zdjęcie  okularyGotowe=true wzorzecWidzenia=false kod=true wymuszone=true zNagrania=false
+18:29:26.059   +6678 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+18:29:26.063   +6681 ms  BLE          Podgląd na żywo: podnoszę
+18:29:26.166   +6784 ms  BLE          nieobsługiwana ramka notify  typ=0x11 ramka=BC 73 08 00 02 7F 11 09 B4 00 00 00 00 00 sztuk=1 pierwsza=true
+18:29:27.352   +7971 ms  BLE          Podgląd na żywo: odpowiedź na komendę  błąd=1 stan=0
+18:29:37.721  +18339 ms  BLE          Podgląd na żywo: serwer RTSP odpowiada  adres=rtsp://192.168.31.1:8554/ch0 port=8554 odpowiedź=RTSP/1.0 200 OK media=m=video 0 RTP/AVP 96 | a=rtpmap:96 H264/90000 | m=audio 0 RTP/AVP 97 | a=rtpmap:97 mpeg4-generic/8000/1
+18:29:37.722  +18340 ms  BLE          Podgląd: pełna odpowiedź serwera  treść=RTSP/1.0 200 OK / CSeq: 1 / Content-Type: application/sdp / Cache-Control: no-cache / Server: Hisilicon RTSP Streaming Media Server/1.0.0 / Content-Length: 345 /  / v=0 / o=- 1 1 IN IP4 127.0.0.1 / s=Test / a=type:broadcast / t=0 0 / c=IN IP4 0.0.0.0 / m=video 0 RTP/AVP 96 / a=rtpmap:96 H264/90000 / a=decode_buf=300 / a=control:track0 / m=audio 0 RTP/AVP 97 / a=rtpmap:97 mpeg4-generic/8000/1 / a=fmtp:97 profile-level-id=1; mode=AAC-hbr; config=1588; sizeLength=13; indexlength=3; indexdeltalength=3 / a=control:track1 / 
+18:29:37.723  +18341 ms  BLE          Podgląd na żywo: gotowe  adres=rtsp://192.168.31.1:8554/ch0 ms=11660
+18:29:37.932  +18551 ms  BLE          Klatki: dekoder uruchomiony  maxBok=800
+18:29:37.952  +18570 ms  BLE          Podgląd: opis sesji przeczytany  ścieżek=2 kodeki=[H264, MPEG4-GENERIC]
+18:29:38.009  +18627 ms  BLE          Podgląd: strumień ruszył  sesja=82838485868788898A8B8C8D8E8F90 typŁadunku=96
+18:29:38.105  +18723 ms  BLE          Podgląd: obraz płynie  pakietów=1 jednostek=2 odrzuconych=0 parametryObrazu=true
+18:29:38.857  +19475 ms  BLE          Klatki: PIERWSZA KLATKA WYJĘTA  zeStrumienia=1600x1200 oddana=800x600 bajtów=67139 krok=2
+18:29:38.914  +19532 ms  ZDJĘCIE      litery ze strumienia zamiast miniatury  bajtów=172701 ms=12851
+18:29:43.971  +24589 ms  BLE          Podgląd: obraz płynie  pakietów=300 jednostek=185 odrzuconych=0 parametryObrazu=true
+18:29:45.083  +25701 ms  ZDJĘCIE      strumień bez kodu  klatek=38 ms=6142
+18:29:45.090  +25708 ms  BLE          Klatki: dekoder zatrzymany  wyjętych=153 pominiętych=0
+18:29:45.148  +25766 ms  ZDJĘCIE      przechwycone  sztuk=1 bajtów=178726 źródło=strumień pełnaRozdzielczość=true
+18:29:45.161  +25779 ms  ZDJĘCIE      pytanie o kod, ale ŻADNEGO nie odczytano  zdjęć=1 pełnaRozdzielczość=true źródło=strumień
+18:29:45.814  +26432 ms  ZDJĘCIE      kod produktu odczytany z cyfr  kod=5411188138051 skąd=cyfry pod kodem (OCR)
+18:29:46.230  +26848 ms  ZDJĘCIE      produkt rozpoznany z kodu  kod=5411188138051 opis=Natur mit Kokosnuss, alpro, 400g. Zawiera soję. 100 g: 54 kcal, 3,9 g białka, 2,3 g węglowodanów, 2,9 g tłuszczu.
+18:29:46.538  +27157 ms  KONTEKST     zebrany  ms=39 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+18:29:46.551  +27170 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=1 znakówPromptu=3500
+18:29:48.985  +29603 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2434
+18:29:49.162  +29780 ms  MODEL        zużycie tokenów  wejście=4870 odpowiedź=47 razem=4917 limit=3000 koniec=STOP
+18:29:49.165  +29783 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+18:29:49.170  +29788 ms  MODEL        koniec odpowiedzi (145 znaków, 4917 tokenów)  ms=2619 dostawca=gemini początek=To jest jogurt "Natur mit Kokosnuss" marki Alpro o pojemności czterystu gramów. 
+18:29:49.172  +29790 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=145
+18:29:58.440  +39058 ms  MOWA         koniec wypowiedzi  ms=9267
+18:29:58.464  +39082 ms  SESJA        --- KONIEC TURY 8864: odpowiedziano ---
+18:29:58.466          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
