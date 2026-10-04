@@ -1,0 +1,48 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1), bieg 153, 0d93bdb
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów przy starcie: true
+# fraza wybudzenia w okularach: true
+# ograniczenie myślenia: true
+# źródło zdjęcia: full (dzielnik 1)
+18:21:13.979          ms  SESJA        start sesji
+18:21:49.906          ms  BLE          ROZŁĄCZONO  świadome=false
+18:21:58.791          ms  BLE          POŁĄCZONO  noweŁącze=true
+18:21:58.795          ms  BLE          powitanie okularów - start
+18:21:58.811          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+18:21:58.989          ms  BLE          okulary zgłaszają pliki i tryb importu  zdjęć=11 filmów=3 nagrań=0 tylkoHotspot=true
+18:21:58.991          ms  BLE          głośność okularów  muzyka=16 rozmowa=15 system=10 kanałPrzycisków=3
+18:21:59.094          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+18:22:00.974          ms  BLE          POŁĄCZONO  noweŁącze=false
+18:22:03.813          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+18:22:24.617          ms  PRZYCISK     wciśnięto  numer=1
+18:22:24.880          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+18:22:25.147          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+18:22:25.485          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=18 ms=603
+18:22:25.561      +0 ms  SESJA        --- TURA 5607 ---  źródło=OKULARY
+18:22:25.562      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+18:22:30.763   +5202 ms  NASŁUCH      koniec  ms=5202 odłożone=jaka będzie pogoda w bodrum w turcji w ten weekend zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=15 gotowyPoMs=338
+18:22:31.008   +5448 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=18
+18:22:31.470   +5909 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.9135 pakietów=296 rozkodowanych=296 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=2 3 0 101 2681 981 426 122 407 237 3 1 ciszaNaKońcuOkien=0
+18:22:32.885   +7324 ms  TRANSKRYPCJA z nagrania okularów  ms=1414
+18:22:32.919   +7358 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5913 jestMs=1760 tło=4 szczyt=8292 ile razy=1809.9
+18:22:32.921   +7360 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jaka będzie pogoda w bodrum w turcji w ten weekend
+18:22:32.922   +7361 ms  SESJA        pytanie  tekst=jaka będzie pogoda w bodrum w turcji w ten weekend wymuszonyObraz=false
+18:22:32.934   +7373 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+18:22:32.985   +7424 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+18:22:32.986   +7425 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+18:22:33.806   +8245 ms  KONTEKST     zebrany  ms=500 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+18:22:33.822   +8261 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1981
+18:22:34.352   +8791 ms  MODEL        Gemini odrzucił zapytanie - ponawiam bez ograniczenia myślenia  model=gemini-3.5-flash-lite ograniczenieMyślenia=true wyszukiwarka=true odpowiedź={ "error": { "code": 400, "message": "Request contains an invalid argument.", "status": "INVALID_ARGUMENT" } }
+18:22:35.076   +9515 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1255
+18:22:35.141   +9580 ms  MODEL        zużycie tokenów  wejście=3251 odpowiedź=47 razem=3298 limit=3000 koniec=STOP
+18:22:35.142   +9581 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+18:22:35.153   +9592 ms  MODEL        koniec odpowiedzi (165 znaków, 3298 tokenów)  ms=1332 dostawca=gemini początek=Mam pod ręką prognozę tylko dla Torunia, więc dla Bodrum musiałbym sprawdzić oso
+18:22:35.155   +9594 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=165
+18:22:38.991  +13430 ms  AUDIO        tryb multimediów wstał  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 0 / Odtwarzanie (A2DP): W610T_A6BA / Rozmowa (SCO/HFP): brak / Okulary odtwarzają dźwięk, ale NIE wystawiają mikrofonu jako zestawu rozmownego - pytania pójdą z mikrofonu telefonu.
+18:22:44.826  +19265 ms  MOWA         koniec wypowiedzi  ms=9663
+18:22:44.849  +19289 ms  SESJA        --- KONIEC TURY 5607: odpowiedziano ---
+18:22:44.853          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
