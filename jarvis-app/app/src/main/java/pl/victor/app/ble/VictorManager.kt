@@ -1945,11 +1945,19 @@ class VictorManager private constructor(context: Context) {
             kotlinx.coroutines.withTimeoutOrNull(CLASSIC_AUDIO_IDLE_WAIT_MS) {
                 router.isRoutedToBluetooth.first { !it }
             } ?: return@launch
-            delay(CLASSIC_AUDIO_IDLE_SETTLE_MS)
-            if (!isConnected() || router.hasA2dpOutput()) return@launch
-            if (router.isRoutedToBluetooth.value) return@launch
-            lastClassicAudioRequestAtMs = System.currentTimeMillis()
-            ensureClassicAudio(reason, CLASSIC_AUDIO_IDLE_TIMEOUT_MS)
+            // DWIE PRÓBY. Dziennik z biegu 153: tuż po ponownym połączeniu
+            // telefon nie widział okularów ani jako odtwarzacza, ani jako
+            // zestawu rozmownego - klasyczny Bluetooth wracał wolniej niż BLE i
+            // pierwsza prośba (10 s) trafiła w próżnię. Druga, chwilę później,
+            // ma już do czego się podłączyć.
+            repeat(CLASSIC_AUDIO_IDLE_ATTEMPTS) { próba ->
+                if (próba > 0) delay(CLASSIC_AUDIO_IDLE_RETRY_MS)
+                delay(CLASSIC_AUDIO_IDLE_SETTLE_MS)
+                if (!isConnected() || router.hasA2dpOutput()) return@launch
+                if (router.isRoutedToBluetooth.value) return@launch
+                lastClassicAudioRequestAtMs = System.currentTimeMillis()
+                if (ensureClassicAudio(reason, CLASSIC_AUDIO_IDLE_TIMEOUT_MS)) return@launch
+            }
         }
     }
 
@@ -4881,6 +4889,11 @@ class VictorManager private constructor(context: Context) {
 
         /** Limit na wstanie A2DP w spokoju - w dzienniku wstał po 4,3 s. */
         private const val CLASSIC_AUDIO_IDLE_TIMEOUT_MS = 10_000L
+
+        private const val CLASSIC_AUDIO_IDLE_ATTEMPTS = 2
+
+        /** Przerwa między próbami - na powrót klasycznego Bluetootha po połączeniu. */
+        private const val CLASSIC_AUDIO_IDLE_RETRY_MS = 15_000L
 
         /**
          * Ile wciśnięć zmieści się w buforze, zanim kolektor je odbierze.

@@ -180,6 +180,35 @@ class QRScanner {
         return scanSync(bitmap)
     }
 
+    /**
+     * Skan ŚRODKA kadru - tam, gdzie człowiek trzyma kod, na który patrzy.
+     *
+     * Dziennik z biegu 153: 38 klatek 1600x1200 ze strumienia, ML Kit nie
+     * odczytał kresek ani razu, a rozpoznawanie tekstu przeczytało cyfry pod
+     * nimi. Kod z 20-30 cm zajmuje w szerokim kadrze okularów ułamek obrazu,
+     * a kompresja strumienia rozmywa pojedyncze kreski. Wycinek środka
+     * powiększony do pełnego rozmiaru daje dekoderowi kilka razy więcej
+     * pikseli na kreskę niż cała klatka.
+     *
+     * @param część jaki ułamek szerokości i wysokości wyciąć ze środka
+     */
+    fun scanCenterSync(imageBytes: ByteArray, część: Float = ŚRODEK_KADRU): List<ScannedCode> {
+        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+            ?: return emptyList()
+        val w = (bitmap.width * część).toInt()
+        val h = (bitmap.height * część).toInt()
+        if (w <= 0 || h <= 0) return emptyList()
+        val wycinek = try {
+            Bitmap.createBitmap(bitmap, (bitmap.width - w) / 2, (bitmap.height - h) / 2, w, h)
+        } catch (e: Throwable) {
+            Log.w(tag, "Nie udało się wyciąć środka kadru: ${e.message}")
+            return emptyList()
+        }
+        // Powiększenie robi scanSync - według tego samego planu co dla
+        // każdego małego obrazu (patrz BarcodeAttempts).
+        return scanSync(wycinek)
+    }
+
     private fun formatName(format: Int): String = when (format) {
         Barcode.FORMAT_QR_CODE -> "QR_CODE"
         Barcode.FORMAT_EAN_13 -> "EAN_13"
@@ -236,3 +265,6 @@ data class ScannedCode(
         else -> rawValue
     }
 }
+
+/** Jaki ułamek kadru wycina [QRScanner.scanCenterSync]. */
+private const val ŚRODEK_KADRU = 0.5f

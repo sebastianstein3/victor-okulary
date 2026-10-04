@@ -133,19 +133,63 @@ object MetaCommands {
      * (to tłumaczy NAPIS z kamery) - te dwie rzeczy już raz się pomyliły.
      */
     fun startsEarTranslation(text: String): Boolean {
-        // GRZECZNOŚĆ NIE MOŻE ZMIENIAĆ KOMENDY.
-        //
-        // Dziennik z 30 września: "a możesz włączyć tłumaczenie na żywo" nie
-        // pasowało do żadnego wzorca, poszło do modelu, a model odpowiedział,
-        // że takiej funkcji nie ma. Wzorzec zostaje "cała wypowiedź", ale bez
-        // wstępu i dopisku, które nic nie zmieniają.
-        val bare = text.lowercase().replace(',', ' ').replace(Regex("\\s+"), " ")
+        val bare = earBare(text)
+        return EAR_TRANSLATION_START_REGEX.matches(bare) || earTranslationLanguages(text) != null
+    }
+
+    /**
+     * Języki podane w samej komendzie: "tłumacz z polskiego na angielski".
+     *
+     * Dziennik z biegu 153: to zdanie poszło do modelu, który odpowiedział
+     * "podaj mi tekst po polsku" - a człowiek chciał włączyć tryb, i to od
+     * razu z tymi językami, bez przestawiania ich w Ustawieniach. Wzorzec
+     * obejmuje CAŁĄ wypowiedź, więc "przetłumacz 'dzień dobry' na angielski"
+     * (jednorazowe tłumaczenie) dalej idzie do modelu.
+     *
+     * @return para (z, na) w kodach języków albo `null`, gdy to nie ta komenda
+     *   albo któregoś języka nie znamy
+     */
+    fun earTranslationLanguages(text: String): Pair<String, String>? {
+        val m = EAR_TRANSLATION_WITH_LANGUAGES.matchEntire(earBare(text)) ?: return null
+        val z = languageCode(m.groupValues[1]) ?: return null
+        val na = languageCode(m.groupValues[2]) ?: return null
+        return if (z == na) null else z to na
+    }
+
+    /** Kod języka z polskiej nazwy w dowolnym przypadku ("polskiego", "angielski"). */
+    fun languageCode(word: String): String? {
+        val w = word.lowercase().trim()
+        return LANGUAGE_STEMS.firstOrNull { (stem, _) -> w.startsWith(stem) }?.second
+    }
+
+    // GRZECZNOŚĆ NIE MOŻE ZMIENIAĆ KOMENDY.
+    //
+    // Dziennik z 30 września: "a możesz włączyć tłumaczenie na żywo" nie
+    // pasowało do żadnego wzorca, poszło do modelu, a model odpowiedział,
+    // że takiej funkcji nie ma. Wzorzec zostaje "cała wypowiedź", ale bez
+    // wstępu i dopisku, które nic nie zmieniają.
+    private fun earBare(text: String): String =
+        text.lowercase().replace(',', ' ').replace(Regex("\\s+"), " ")
             .trim().trimEnd('.', '!', '?')
             .replace(EAR_POLITE_PREFIX, "")
             .replace(EAR_POLITE_SUFFIX, "")
             .trim()
-        return EAR_TRANSLATION_START_REGEX.matches(bare)
-    }
+
+    private val EAR_TRANSLATION_WITH_LANGUAGES = Regex(
+        """^(?:(?:w[lł][aą]cz(?:y[cć])?|uruchom(?:i[cć])?)\s+)?t[lł]umacz(?:enie|a)?""" +
+            """(?:\s+(?:na\s+[zż]ywo|ze\s+s[lł]uchu))?\s+ze?\s+(\S+)\s+na\s+(\S+)""" +
+            """(?:\s+(?:na\s+[zż]ywo|ze\s+s[lł]uchu))?$"""
+    )
+
+    /** Rdzenie polskich nazw języków - pasują do każdej odmiany. */
+    private val LANGUAGE_STEMS = listOf(
+        "pols" to "pl", "angiel" to "en", "niemie" to "de", "francu" to "fr",
+        "hiszpa" to "es", "włos" to "it", "wlos" to "it", "portugal" to "pt",
+        "rosyj" to "ru", "ukrai" to "uk", "japo" to "ja", "korea" to "ko",
+        "chiń" to "zh", "chin" to "zh", "arab" to "ar", "czes" to "cs",
+        "słowac" to "sk", "slowac" to "sk", "holend" to "nl", "niderl" to "nl",
+        "szwedz" to "sv"
+    )
 
     private val EAR_POLITE_PREFIX = Regex(
         """^(a\s+|no\s+|to\s+)?((czy\s+)?(mo[zż]esz|m[oó]g[lł]by[sś]|mo[zż]na)\s+)?(prosz[eę]\s+)?"""

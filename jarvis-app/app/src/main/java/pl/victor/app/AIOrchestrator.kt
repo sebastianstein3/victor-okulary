@@ -682,6 +682,19 @@ class AIOrchestrator(
                 force = force
             )
         }
+        // Pytanie o INNE miejsce niż w ustawieniach - prognoza z ustawień tylko
+        // by przeszkadzała, patrz WeatherContext.innaMiejscowość.
+        if (!force) {
+            pl.victor.app.proactive.WeatherContext.innaMiejscowość(question, place)?.let { other ->
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.KONTEKST, "pogoda dla innego miejsca - każę szukać",
+                        mapOf("miejsce" to other, "zUstawień" to place)
+                    )
+                }
+                return pl.victor.app.proactive.WeatherContext.otherPlaceNote(other, place)
+            }
+        }
         return try {
             val service = pl.victor.app.proactive.WeatherService(apiKey)
             val geo = service.geocode(place) ?: return null
@@ -5110,7 +5123,13 @@ class AIOrchestrator(
         // na tekście usłyszanym już po włączeniu.
         if (pl.victor.app.conversation.MetaCommands.startsEarTranslation(text)) {
             Log.i(TAG, "Komenda tłumaczenia ze słuchu: \"$text\"")
-            if (_earTranslation.value) {
+            val języki = pl.victor.app.conversation.MetaCommands.earTranslationLanguages(text)
+            if (języki != null) {
+                // Języki z komendy wygrywają z Ustawieniami - i zostają w
+                // nich, tak jak po zmianie w panelu.
+                setEarTranslationLanguages(języki.first, języki.second)
+                if (!_earTranslation.value) startEarTranslation()
+            } else if (_earTranslation.value) {
                 stopEarTranslation("powtórzona komenda głosowa")
             } else {
                 startEarTranslation()
@@ -5751,7 +5770,9 @@ class AIOrchestrator(
         // szans (patrz [scanStreamForCode]), a migawka daje jedną miniaturę.
         val forCode = pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)
         if (!glassesManager.wifiDirectKnownBroken && !forCode) return null
-        if (!pl.victor.app.ai.VisionDetail.needsDetail(textQuestion)) return null
+        // "co jest pod tym kodem kreskowym" łapie isAboutCode, ale nie
+        // needsDetail - i w biegu 153 szło przez to migawką, z miniaturą.
+        if (!forCode && !pl.victor.app.ai.VisionDetail.needsDetail(textQuestion)) return null
 
         _state.value = OrchestratorState.Capturing(
             progress = 1,
@@ -5814,6 +5835,7 @@ class AIOrchestrator(
         var last = first
         var klatek = 1
         var seen = glassesManager.liveFrameCount()
+        var ostatniOcr = 0L
         _state.value = OrchestratorState.Capturing(
             progress = 1,
             total = 1,
@@ -5833,6 +5855,33 @@ class AIOrchestrator(
                     mapOf("klatek" to klatek, "ms" to (System.currentTimeMillis() - startedAt))
                 )
                 return frame
+            }
+            // Co druga klatka - środek kadru w powiększeniu, patrz scanCenterSync.
+            if (klatek % 2 == 0 && qrScanner.scanCenterSync(frame).isNotEmpty()) {
+                diag.event(
+                    DiagFormat.Phase.ZDJĘCIE, "kod znaleziony w strumieniu - środek kadru",
+                    mapOf("klatek" to klatek, "ms" to (System.currentTimeMillis() - startedAt))
+                )
+                return frame
+            }
+            // CYFRY POD KRESKAMI TEŻ SĄ KODEM.
+            //
+            // W biegu 153 to one, odczytane z ostatniej klatki, rozpoznały
+            // produkt (Alpro), gdy kreski nie wyszły z żadnej z 38. Rozpoznanie
+            // tekstu jest wolniejsze, więc najwyżej raz na [CODE_STREAM_OCR_MS].
+            val teraz = System.currentTimeMillis()
+            if (teraz - ostatniOcr >= CODE_STREAM_OCR_MS) {
+                ostatniOcr = teraz
+                val cyfry = runCatching { ocrReader.readBytes(frame) }.getOrNull()
+                    ?.takeIf { it.isSuccess }
+                    ?.let { pl.victor.app.vision.EanFromText.find(it.fullText) }
+                if (cyfry != null) {
+                    diag.event(
+                        DiagFormat.Phase.ZDJĘCIE, "cyfry kodu odczytane ze strumienia",
+                        mapOf("kod" to cyfry, "klatek" to klatek, "ms" to (teraz - startedAt))
+                    )
+                    return frame
+                }
             }
         }
         diag.event(
@@ -6219,6 +6268,9 @@ class AIOrchestrator(
         private const val CODE_STREAM_SCAN_MS = 6_000L
 
         private const val CODE_STREAM_POLL_MS = 150L
+
+        /** Jak często w skanie strumienia czytać cyfry pod kodem. */
+        private const val CODE_STREAM_OCR_MS = 1_200L
 
         /** Okno, w którym ramka "ucisz" jest echem naszej komendy odtwarzania. */
         private const val PLAYBACK_ECHO_WINDOW_MS = 1_500L

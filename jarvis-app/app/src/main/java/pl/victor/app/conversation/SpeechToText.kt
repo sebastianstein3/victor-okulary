@@ -544,6 +544,14 @@ class SpeechToText(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, partial)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
+            // BEZ GWIAZDEK W MIEJSCE SŁÓW.
+            //
+            // Dziennik z biegu 153: tłumaczenie ze słuchu dostawało "s***" i
+            // czytało na głos "s gwiazdka gwiazdka gwiazdka". Asystent ma
+            // przekazać, co padło - ocenzurowany tekst nie da się ani
+            // przetłumaczyć, ani zrozumieć. Klucz jako tekst, bo stała w SDK
+            // jest dopiero od Androida 13; starsze systemy go pomijają.
+            putExtra(EXTRA_MASK_OFFENSIVE_WORDS, false)
             // NIE USTAWIAMY OKIEN CISZY. TO NIE JEST NIEDOPATRZENIE.
             //
             // Krótka historia, bo inaczej ktoś (ja) doda je tu po raz trzeci.
@@ -600,6 +608,9 @@ class SpeechToText(private val context: Context) {
     }
 
     companion object {
+        /** RecognizerIntent.EXTRA_MASK_OFFENSIVE_WORDS (Android 13+) - patrz intent(). */
+        private const val EXTRA_MASK_OFFENSIVE_WORDS = "android.speech.extra.MASK_OFFENSIVE_WORDS"
+
         private const val TAG = "SpeechToText"
 
         /**

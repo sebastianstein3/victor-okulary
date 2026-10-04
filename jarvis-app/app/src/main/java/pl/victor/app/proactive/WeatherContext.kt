@@ -47,6 +47,69 @@ object WeatherContext {
      * polecenie "sprawdź w internecie" wydane modelowi bez internetu kończy się
      * zmyśloną prognozą.
      */
+    /**
+     * Miejsce INNE niż miejscowość z ustawień, o które pyta człowiek - albo `null`.
+     *
+     * ## Po co, skoro jest [scopeNote]
+     * Dziennik z biegu 153: "jaka będzie pogoda w Bodrum w Turcji w ten
+     * weekend" - Gemini z działającą wyszukiwarką (o iPhone'a w następnym
+     * pytaniu szukał) odpowiedział "mam prognozę tylko dla Torunia". Zdanie
+     * "jeśli pytanie dotyczy innego miejsca, wyszukaj" przegrywało z
+     * kilkunastoma linijkami gotowych danych dla Torunia tuż obok. Skoro
+     * wiemy, że pytanie jest o inne miejsce, prognozy z ustawień w ogóle nie
+     * doklejamy - zamiast niej idzie polecenie, żeby szukać.
+     *
+     * Rozpoznanie jest proste: słowo po "w", "we", "dla", "nad" albo "na",
+     * które nie jest określeniem czasu ani miejsca bez nazwy ("w domu", "na
+     * dworze") i nie zaczyna się tak jak miejscowość z ustawień ("w Toruniu").
+     */
+    fun innaMiejscowość(question: String, homeCity: String): String? {
+        val home = homeCity.lowercase().trim().take(HOME_STEM)
+        for (m in PLACE_AFTER_PREPOSITION.findAll(question.lowercase())) {
+            val word = m.groupValues[1]
+            if (word.length < 3 || word in NOT_A_PLACE) continue
+            if (NOT_A_PLACE_PREFIXES.any { word.startsWith(it) }) continue
+            if (home.isNotEmpty() && word.startsWith(home)) continue
+            return word
+        }
+        return null
+    }
+
+    /** Zamiast prognozy z ustawień - gdy pytanie jest o [place], patrz [innaMiejscowość]. */
+    fun otherPlaceNote(place: String, homeCity: String): String =
+        "=== POGODA ===\n" +
+            "Pytanie dotyczy miejsca \"$place\", a aplikacja ma prognozę tylko dla " +
+            "$homeCity - dlatego jej tu nie ma. WYSZUKAJ w internecie aktualną " +
+            "prognozę dla \"$place\" i podaj ją konkretnie: temperatury, opady, wiatr. " +
+            "Nie mów o prognozie dla $homeCity. Jeśli nie masz wyszukiwarki, powiedz " +
+            "wprost, że pogody dla tego miejsca teraz nie sprawdzisz."
+
+    private const val HOME_STEM = 4
+
+    private val PLACE_AFTER_PREPOSITION =
+        Regex("""(?:^|\s)(?:w|we|dla|nad|na)\s+([a-ząćęłńóśźż]+)""")
+
+    /** Słowa po przyimku, które NIE są nazwą miejsca. */
+    private val NOT_A_PLACE = setOf(
+        "ten", "tym", "tę", "te", "ta", "tej", "tych", "ciągu", "nocy", "dzień", "dzien",
+        "dni", "domu", "pracy", "mieście", "miescie", "okolicy", "okolicach", "pobliżu",
+        "poblizu", "dworze", "zewnątrz", "zewnatrz", "polu", "jutro", "dziś", "dzis",
+        "dzisiaj", "teraz", "rano", "wieczór", "wieczor", "noc", "południe", "poludnie",
+        "weekend", "weekendzie", "tydzień", "tydzien", "tygodniu", "przyszłym", "przyszlym",
+        "przyszły", "przyszly", "najbliższy", "najblizszy", "najbliższym", "najblizszym",
+        "najbliższe", "najblizsze", "sobotę", "sobote", "niedzielę", "niedziele",
+        "poniedziałek", "poniedzialek", "wtorek", "środę", "srode", "czwartek", "piątek",
+        "piatek", "spacer", "rower", "basen", "plażę", "plaze", "zakupy", "trening",
+        "godzinę", "godzine", "godzinach", "chwilę", "chwile", "moim", "mojej", "naszym",
+        "naszej", "twoim", "twojej", "całym", "calym", "całej", "calej", "miasto"
+    )
+
+    /** Początki słów, które nie są nazwą miejsca (miesiące, pory). */
+    private val NOT_A_PLACE_PREFIXES = listOf(
+        "stycz", "lut", "marc", "kwiet", "maj", "czerw", "lip", "sierp", "wrze",
+        "październ", "pazdziern", "listopad", "grud", "godzin", "minut", "następn", "nastepn"
+    )
+
     fun scopeNote(city: String): String =
         "Ta prognoza dotyczy WYŁĄCZNIE miejscowości $city, ustawionej w aplikacji. " +
             "Jeśli pytanie dotyczy innego miejsca (innego miasta albo kraju), NIE " +
