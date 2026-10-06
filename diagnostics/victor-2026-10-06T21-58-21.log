@@ -1,0 +1,47 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1), bieg 154, 3cc44dd
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów przy starcie: true
+# fraza wybudzenia w okularach: true
+# ograniczenie myślenia: true
+# źródło zdjęcia: full (dzielnik 1)
+21:58:21.381          ms  SESJA        start sesji
+21:58:51.858          ms  BLE          POŁĄCZONO  noweŁącze=true
+21:58:51.864          ms  BLE          powitanie okularów - start
+21:58:51.879          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+21:58:52.222          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:58:54.057          ms  BLE          POŁĄCZONO  noweŁącze=false
+21:58:56.780          ms  PRZYCISK     wciśnięto  numer=1
+21:58:56.874          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+21:58:57.080          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:58:57.305          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:58:57.670          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=589
+21:58:57.765      +0 ms  SESJA        --- TURA 1025 ---  źródło=OKULARY
+21:58:57.766      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:59:01.981   +4216 ms  NASŁUCH      koniec  ms=4216 odłożone=jaka jest pogoda w warszawie zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.64 próbek=9 gotowyPoMs=310
+21:59:02.251   +4487 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:59:02.828   +5063 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.9535 pakietów=248 rozkodowanych=248 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 0 17 2081 619 855 0 0 0 ciszaNaKońcuOkien=3
+21:59:05.316   +7552 ms  TRANSKRYPCJA z nagrania okularów  ms=2486
+21:59:05.352   +7588 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4953 jestMs=2020 tło=0 szczyt=4894 ile razy=50550.1
+21:59:05.355   +7590 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jaka jest pogoda w warszawie
+21:59:05.356   +7591 ms  SESJA        pytanie  tekst=jaka jest pogoda w warszawie wymuszonyObraz=false
+21:59:05.369   +7605 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+21:59:05.425   +7660 ms  AUDIO        proszę okulary o włączenie trybu multimediów  powód=brak A2DP przed odpowiedzią
+21:59:05.426   +7661 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+21:59:05.851   +8086 ms  KONTEKST     pogoda dla innego miejsca - każę szukać  miejsce=warszawie zUstawień=Toruń, PL
+21:59:05.898   +8133 ms  KONTEKST     zebrany  ms=122 pamięć=true kalendarz=false poczta=false pogoda=true lokalizacja=false limitCzasu=false
+21:59:05.914   +8149 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1193
+21:59:06.504   +8739 ms  MODEL        Gemini odrzucił zapytanie - ponawiam bez ograniczenia myślenia  model=gemini-3.5-flash-lite ograniczenieMyślenia=true wyszukiwarka=true odpowiedź={ "error": { "code": 400, "message": "Request contains an invalid argument.", "status": "INVALID_ARGUMENT" } }
+21:59:07.779  +10014 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1865
+21:59:07.991  +10226 ms  MODEL        zużycie tokenów  wejście=2897 odpowiedź=52 razem=2949 limit=3000 koniec=STOP
+21:59:07.992  +10228 ms  MODEL        model szukał w internecie  zapytań=1 zapytanie=pogoda Warszawa źródeł=1
+21:59:08.007  +10243 ms  MODEL        koniec odpowiedzi (142 znaków, 2949 tokenów)  ms=2093 dostawca=gemini początek=W Warszawie jest duże zachmurzenie, a temperatura odczuwalna wynosi piętnaście s
+21:59:08.013  +10248 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=142
+21:59:09.456  +11691 ms  BLE          głośność okularów  muzyka=16 rozmowa=15 system=10 kanałPrzycisków=1
+21:59:11.438  +13673 ms  AUDIO        tryb multimediów wstał  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 0 / Odtwarzanie (A2DP): W610T_A6BA / Rozmowa (SCO/HFP): brak / Okulary odtwarzają dźwięk, ale NIE wystawiają mikrofonu jako zestawu rozmownego - pytania pójdą z mikrofonu telefonu.
+21:59:16.106  +18341 ms  MOWA         koniec wypowiedzi  ms=8082
+21:59:16.162  +18397 ms  SESJA        --- KONIEC TURY 1025: odpowiedziano ---
+21:59:16.165          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
