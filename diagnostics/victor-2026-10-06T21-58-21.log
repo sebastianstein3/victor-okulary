@@ -409,3 +409,83 @@ Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Blu
 22:14:25.625  +25205 ms  MOWA         koniec wypowiedzi  ms=10377
 22:14:25.646  +25226 ms  SESJA        --- KONIEC TURY 3b8c: odpowiedziano ---
 22:14:25.649          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:14:25.742          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:14:27.125          ms  PRZYCISK     wciśnięto  numer=1
+22:14:27.395          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+22:14:27.633          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:14:27.768          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=13 ms=371
+22:14:27.835      +1 ms  SESJA        --- TURA 7ade ---  źródło=OKULARY
+22:14:27.837      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:14:32.256   +4421 ms  NASŁUCH      koniec  ms=4421 odłożone=co znajduje się w tym zamku zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=9 gotowyPoMs=281
+22:14:32.398   +4563 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=13
+22:14:32.763   +4929 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.8735 pakietów=244 rozkodowanych=244 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 3 0 1 1346 2118 1513 16 4 1 ciszaNaKońcuOkien=0
+22:14:35.040   +7205 ms  TRANSKRYPCJA z nagrania okularów  ms=2275 droga=Nasłuch telefonu
+22:14:35.045   +7211 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4873 jestMs=1900 tło=0 szczyt=5697 ile razy=6923.8
+22:14:35.048   +7213 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=co znajduje się w tym zamku
+22:14:35.049   +7215 ms  SESJA        pytanie  tekst=co znajduje się w tym zamku wymuszonyObraz=false
+22:14:35.057   +7223 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+22:14:35.066   +7232 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:14:36.595   +8760 ms  KONTEKST     zebrany  ms=1522 pamięć=false kalendarz=true poczta=true pogoda=false lokalizacja=false limitCzasu=false
+22:14:36.605   +8770 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=6959
+22:14:38.129  +10294 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1525
+22:14:38.421  +10586 ms  MODEL        zużycie tokenów  wejście=5423 odpowiedź=73 razem=5496 limit=3000 koniec=STOP
+22:14:38.423  +10588 ms  MODEL        model szukał w internecie  zapytań=1 zapytanie=Zamek Świętego Piotra w Bodrum wnętrze muzeum muzeum archeologii podwodnej źródeł=2
+22:14:38.425  +10590 ms  MODEL        koniec odpowiedzi (180 znaków, 5496 tokenów)  ms=1821 dostawca=gemini początek=W środku tego zamku znajduje się Muzeum Archeologii Podwodnej. Możesz tam zobacz
+22:14:38.428  +10593 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=180
+22:14:48.042  +20208 ms  MOWA         koniec wypowiedzi  ms=9613
+22:14:48.062  +20227 ms  SESJA        --- KONIEC TURY 7ade: odpowiedziano ---
+22:14:48.065          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:14:48.149          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:14:48.724          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+22:14:51.278          ms  PRZYCISK     wciśnięto  numer=1
+22:14:51.519          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+22:14:51.791          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:14:51.924          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=403
+22:14:51.977      +0 ms  SESJA        --- TURA d5c0 ---  źródło=OKULARY
+22:14:51.979      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:14:57.043   +5066 ms  NASŁUCH      koniec  ms=5066 odłożone=gdzie w okolicy można zjeść coś taniego i dobrego zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=10 gotowyPoMs=284
+22:14:57.187   +5211 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+22:14:57.737   +5760 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.5335 pakietów=277 rozkodowanych=277 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 137 26 2307 1903 1598 958 1790 730 1 0 1 ciszaNaKońcuOkien=0
+22:14:58.946   +6969 ms  TRANSKRYPCJA z nagrania okularów  ms=1207 droga=Nasłuch telefonu
+22:14:58.952   +6975 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5533 jestMs=3420 tło=151 szczyt=5767 ile razy=38.1
+22:14:58.955   +6978 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=gdzie w okolicy można zjeść coś taniego i dobrego
+22:14:58.957   +6980 ms  SESJA        pytanie  tekst=gdzie w okolicy można zjeść coś taniego i dobrego wymuszonyObraz=false
+22:14:58.964   +6987 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+22:14:58.973   +6996 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:15:00.407   +8430 ms  KONTEKST     zebrany  ms=1428 pamięć=true kalendarz=true poczta=true pogoda=false lokalizacja=false limitCzasu=false
+22:15:00.417   +8440 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=7529
+22:15:01.985  +10008 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1569
+22:15:02.328  +10351 ms  MODEL        zużycie tokenów  wejście=5602 odpowiedź=92 razem=5694 limit=3000 koniec=STOP
+22:15:02.329  +10352 ms  MODEL        model szukał w internecie  zapytań=2 zapytanie=tanie i dobre jedzenie Torun źródeł=3
+22:15:02.331  +10354 ms  MODEL        koniec odpowiedzi (226 znaków, 5694 tokenów)  ms=1915 dostawca=gemini początek=W Toruniu możesz zjeść smacznie i niedrogo na przykład w barze mlecznym "Pod Ark
+22:15:02.333  +10356 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=226
+22:15:14.300  +22323 ms  MOWA         koniec wypowiedzi  ms=11966
+22:15:14.318  +22341 ms  SESJA        --- KONIEC TURY d5c0: odpowiedziano ---
+22:15:14.321          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:15:14.404          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:15:14.414          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+22:15:17.075          ms  PRZYCISK     wciśnięto  numer=1
+22:15:17.279          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+22:15:17.585          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:15:17.614          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=334
+22:15:17.661      +0 ms  SESJA        --- TURA b7b2 ---  źródło=OKULARY
+22:15:17.662      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:15:23.988   +6327 ms  NASŁUCH      koniec  ms=6327 odłożone=helence miałem na myśli okolice tego zamku ze zdjęcia zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=14 gotowyPoMs=278
+22:15:24.120   +6459 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+22:15:24.870   +7209 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.7135 pakietów=336 rozkodowanych=336 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=7 185 8 1326 1007 635 1446 909 1164 618 2 0 0 1 ciszaNaKońcuOkien=0
+22:15:26.242   +8582 ms  TRANSKRYPCJA z nagrania okularów  ms=1370 droga=Nasłuch telefonu
+22:15:26.249   +8588 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6713 jestMs=4000 tło=27 szczyt=4779 ile razy=174.6
+22:15:26.252   +8591 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=helence miałem na myśli okolice tego zamku ze zdjęcia
+22:15:26.253   +8592 ms  SESJA        pytanie  tekst=helence miałem na myśli okolice tego zamku ze zdjęcia wymuszonyObraz=false
+22:15:26.261   +8600 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+22:15:26.273   +8612 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:15:27.733  +10072 ms  KONTEKST     zebrany  ms=1453 pamięć=true kalendarz=true poczta=true pogoda=false lokalizacja=false limitCzasu=false
+22:15:27.742  +10081 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=7625
+22:15:28.506  +10845 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=764
+22:15:28.747  +11086 ms  MODEL        zużycie tokenów  wejście=5642 odpowiedź=60 razem=5702 limit=3000 koniec=STOP
+22:15:28.749  +11088 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+22:15:28.755  +11094 ms  MODEL        koniec odpowiedzi (199 znaków, 5702 tokenów)  ms=1013 dostawca=gemini początek=W okolicy zamku w Bodrum znajdziesz sporo klimatycznych miejsc. Polecam na przyk
+22:15:28.757  +11096 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=199
+22:15:39.422  +21761 ms  MOWA         koniec wypowiedzi  ms=10664
+22:15:39.456  +21795 ms  SESJA        --- KONIEC TURY b7b2: odpowiedziano ---
+22:15:39.459          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
