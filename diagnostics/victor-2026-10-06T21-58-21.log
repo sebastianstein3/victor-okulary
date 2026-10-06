@@ -489,3 +489,82 @@ Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Blu
 22:15:39.422  +21761 ms  MOWA         koniec wypowiedzi  ms=10664
 22:15:39.456  +21795 ms  SESJA        --- KONIEC TURY b7b2: odpowiedziano ---
 22:15:39.459          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:15:39.543          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:15:40.116          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+22:15:42.014          ms  PRZYCISK     wciśnięto  numer=1
+22:15:42.272          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+22:15:42.519          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:15:42.662          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=13 ms=388
+22:15:42.718      +0 ms  SESJA        --- TURA 438f ---  źródło=OKULARY
+22:15:42.719      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:15:46.525   +3807 ms  NASŁUCH      koniec  ms=3807 odłożone=jakie są ceny w tych restauracjach zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.04 próbek=8 gotowyPoMs=249
+22:15:46.679   +3961 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=13
+22:15:47.184   +4466 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.2535 pakietów=213 rozkodowanych=213 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 6 0 1272 1004 1072 96 0 0 ciszaNaKońcuOkien=2
+22:15:49.560   +6842 ms  TRANSKRYPCJA z nagrania okularów  ms=2374 droga=Nasłuch telefonu
+22:15:49.565   +6848 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4253 jestMs=2180 tło=1 szczyt=4332 ile razy=4077.4
+22:15:49.568   +6850 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=jakie są ceny w tych restauracjach
+22:15:49.570   +6852 ms  SESJA        pytanie  tekst=jakie są ceny w tych restauracjach wymuszonyObraz=false
+22:15:49.577   +6860 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+22:15:49.588   +6870 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:15:50.983   +8265 ms  KONTEKST     zebrany  ms=1389 pamięć=false kalendarz=true poczta=true pogoda=false lokalizacja=false limitCzasu=false
+22:15:50.994   +8277 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=7371
+22:15:53.195  +10477 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2201
+22:15:53.650  +10932 ms  MODEL        zużycie tokenów  wejście=5567 odpowiedź=122 razem=5689 limit=3000 koniec=STOP
+22:15:53.652  +10934 ms  MODEL        model szukał w internecie  zapytań=2 zapytanie=Orfoz Bodrum prices menu źródeł=5
+22:15:53.654  +10936 ms  MODEL        koniec odpowiedzi (282 znaków, 5689 tokenów)  ms=2660 dostawca=gemini początek="Orfoz" to ekskluzywna restauracja rybna z wyższej półki, gdzie ceny są dość wys
+22:15:53.656  +10938 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=282
+22:16:08.217  +25499 ms  MOWA         koniec wypowiedzi  ms=14560
+22:16:08.230  +25512 ms  SESJA        --- KONIEC TURY 438f: odpowiedziano ---
+22:16:08.250          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:16:08.310          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:16:08.894          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+22:16:11.134          ms  PRZYCISK     wciśnięto  numer=1
+22:16:11.409          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+22:16:11.642          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:16:11.781          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=369
+22:16:11.837      +0 ms  SESJA        --- TURA 38bf ---  źródło=OKULARY
+22:16:11.839      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:16:16.266   +4429 ms  NASŁUCH      koniec  ms=4429 odłożone=a jak wychodzą te ceny w przeliczeniu na złotówki zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.28 próbek=10 gotowyPoMs=287
+22:16:16.405   +4568 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+22:16:16.861   +5024 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.9335 pakietów=247 rozkodowanych=247 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 2 1273 1097 689 661 156 9 1 0 ciszaNaKońcuOkien=1
+22:16:18.132   +6295 ms  TRANSKRYPCJA z nagrania okularów  ms=1270 droga=Nasłuch telefonu
+22:16:18.137   +6300 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4933 jestMs=2460 tło=4 szczyt=2752 ile razy=650.9
+22:16:18.139   +6302 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=a jak wychodzą te ceny w przeliczeniu na złotówki
+22:16:18.140   +6303 ms  SESJA        pytanie  tekst=a jak wychodzą te ceny w przeliczeniu na złotówki wymuszonyObraz=false
+22:16:18.147   +6311 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+22:16:18.158   +6321 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:16:19.680   +7843 ms  KONTEKST     zebrany  ms=1515 pamięć=true kalendarz=true poczta=true pogoda=false lokalizacja=false limitCzasu=false
+22:16:19.690   +7853 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=7468
+22:16:21.348   +9511 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1659
+22:16:21.498   +9661 ms  MODEL        zużycie tokenów  wejście=5598 odpowiedź=89 razem=5687 limit=3000 koniec=STOP
+22:16:21.502   +9666 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+22:16:21.510   +9673 ms  MODEL        koniec odpowiedzi (291 znaków, 5687 tokenów)  ms=1821 dostawca=gemini początek=Przy obecnym kursie liry, który wynosi około osiem groszy, przystawki w "Kaleiçi
+22:16:21.513   +9676 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=291
+22:16:37.037  +25200 ms  MOWA         koniec wypowiedzi  ms=15523
+22:16:37.057  +25220 ms  SESJA        --- KONIEC TURY 38bf: odpowiedziano ---
+22:16:37.060          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:16:37.171          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:16:37.715          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+22:16:38.193          ms  PRZYCISK     wciśnięto  numer=1
+22:16:38.699          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+22:16:38.898      +0 ms  SESJA        --- TURA ef73 ---  źródło=OKULARY
+22:16:38.899      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:16:45.244   +6346 ms  NASŁUCH      koniec  ms=6346 odłożone=w takim razie podaj mi przykładowe ceny w złotówkach w tym airfoss zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=12 gotowyPoMs=233
+22:16:45.382   +6484 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+22:16:46.071   +7174 ms  NASŁUCH      nagranie z okularów  jest=true sekund=6.3535 pakietów=318 rozkodowanych=318 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=1 3 650 2770 1970 762 851 596 829 175 0 1 0 ciszaNaKońcuOkien=1
+22:16:49.766  +10868 ms  TRANSKRYPCJA z nagrania okularów  ms=3693 droga=Nasłuch telefonu
+22:16:49.775  +10877 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=6353 jestMs=3920 tło=36 szczyt=6389 ile razy=177.4
+22:16:49.777  +10880 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=w takim razie podaj mi przykładowe ceny w złotówkach w tym a
+22:16:49.779  +10881 ms  SESJA        pytanie  tekst=w takim razie podaj mi przykładowe ceny w złotówkach w tym airfoss wymuszonyObraz=false
+22:16:49.786  +10888 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+22:16:49.796  +10898 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+22:16:51.143  +12245 ms  KONTEKST     zebrany  ms=1341 pamięć=true kalendarz=true poczta=true pogoda=false lokalizacja=false limitCzasu=false
+22:16:51.153  +12255 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=8275
+22:16:51.861  +12963 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=709
+22:16:52.129  +13231 ms  MODEL        zużycie tokenów  wejście=5845 odpowiedź=76 razem=5921 limit=3000 koniec=STOP
+22:16:52.131  +13233 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+22:16:52.137  +13239 ms  MODEL        koniec odpowiedzi (258 znaków, 5921 tokenów)  ms=985 dostawca=gemini początek=Chodzi Ci o restaurację "Orfoz", bo w systemie zapisało się to jako airfoss. W t
+22:16:52.139  +13241 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=258
+22:17:05.144  +26247 ms  MOWA         koniec wypowiedzi  ms=13004
+22:17:05.163  +26265 ms  SESJA        --- KONIEC TURY ef73: odpowiedziano ---
+22:17:05.166          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
