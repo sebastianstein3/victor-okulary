@@ -30,7 +30,9 @@ class WeatherOtherPlaceTest {
             "jaka będzie pogoda w przyszłym tygodniu",
             "czy w sobotę będzie ciepło",
             "pogoda w ciągu dnia w mieście",
-            "czy będzie śnieg w grudniu"
+            "czy będzie śnieg w grudniu",
+            "opisz, co widać na tym zdjęciu, jeśli jest na nim tekst",
+            "włącz jakąś fajną muzykę na youtubie"
         ).forEach { assertNull(it, WeatherContext.innaMiejscowość(it, "Toruń")) }
     }
 

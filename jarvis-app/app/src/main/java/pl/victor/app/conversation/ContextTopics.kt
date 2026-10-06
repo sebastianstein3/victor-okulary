@@ -40,11 +40,17 @@ class ContextTopics(
      */
     fun dokleić(temat: String, pytanieOTemat: Boolean, wymuszone: Boolean = false): Boolean {
         val teraz = clock()
+        // WYMUSZONE NIE OTWIERA TEMATU - nawet gdy tekst pasuje do wzorca.
+        //
+        // Dziennik z biegu 154: tura z nagraniem dostaje wymuszone konteksty,
+        // a jej tekst (polecenie dla modelu) wymienia "pogodę" i "temperatury".
+        // Temat pogody otwierał się więc na pięć minut i następne pytanie -
+        // "włącz muzykę na youtubie" - dostawało blok pogodowy.
+        if (wymuszone) return true
         if (pytanieOTemat) {
             lastMention[temat] = teraz
             return true
         }
-        if (wymuszone) return true
         val ostatnio = lastMention[temat] ?: return false
         if (teraz - ostatnio <= ttlMs) return true
         lastMention.remove(temat)

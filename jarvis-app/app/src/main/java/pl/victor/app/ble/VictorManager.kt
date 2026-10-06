@@ -1941,7 +1941,11 @@ class VictorManager private constructor(context: Context) {
         classicAudioIdleJob?.cancel()
         classicAudioIdleJob = scope.launch {
             val router = pl.victor.app.audio.BluetoothAudioRouter.getInstance(appContext)
-            if (router.hasA2dpOutput()) return@launch
+            // BEZ SPRAWDZANIA OD RAZU. Dziennik z biegu 154: po ponownych
+            // połączeniach o 22:08 i 22:12 nie poszła ani jedna prośba -
+            // telefon w chwili powrotu BLE wciąż pokazywał stare łącze A2DP,
+            // które zaraz potem znikało. Sprawdzamy dopiero po chwili.
+            delay(CLASSIC_AUDIO_FIRST_CHECK_MS)
             kotlinx.coroutines.withTimeoutOrNull(CLASSIC_AUDIO_IDLE_WAIT_MS) {
                 router.isRoutedToBluetooth.first { !it }
             } ?: return@launch
@@ -1953,7 +1957,20 @@ class VictorManager private constructor(context: Context) {
             repeat(CLASSIC_AUDIO_IDLE_ATTEMPTS) { próba ->
                 if (próba > 0) delay(CLASSIC_AUDIO_IDLE_RETRY_MS)
                 delay(CLASSIC_AUDIO_IDLE_SETTLE_MS)
-                if (!isConnected() || router.hasA2dpOutput()) return@launch
+                if (!isConnected()) return@launch
+                if (router.hasA2dpOutput()) {
+                    // Stoi teraz - ale po powrocie BLE potrafi zaraz zniknąć,
+                    // więc sprawdzamy jeszcze raz przy następnej próbie.
+                    if (próba < CLASSIC_AUDIO_IDLE_ATTEMPTS - 1) return@repeat
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                            "tryb multimediów stoi - nie proszę",
+                            mapOf("powód" to reason)
+                        )
+                    }
+                    return@launch
+                }
                 if (router.isRoutedToBluetooth.value) return@launch
                 lastClassicAudioRequestAtMs = System.currentTimeMillis()
                 if (ensureClassicAudio(reason, CLASSIC_AUDIO_IDLE_TIMEOUT_MS)) return@launch
@@ -4891,6 +4908,9 @@ class VictorManager private constructor(context: Context) {
         private const val CLASSIC_AUDIO_IDLE_TIMEOUT_MS = 10_000L
 
         private const val CLASSIC_AUDIO_IDLE_ATTEMPTS = 2
+
+        /** Odczekanie przed pierwszym sprawdzeniem A2DP - patrz [requestClassicAudioWhenIdle]. */
+        private const val CLASSIC_AUDIO_FIRST_CHECK_MS = 4_000L
 
         /** Przerwa między próbami - na powrót klasycznego Bluetootha po połączeniu. */
         private const val CLASSIC_AUDIO_IDLE_RETRY_MS = 15_000L

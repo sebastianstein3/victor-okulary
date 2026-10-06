@@ -101,7 +101,9 @@ object WeatherContext {
         "poniedziałek", "poniedzialek", "wtorek", "środę", "srode", "czwartek", "piątek",
         "piatek", "spacer", "rower", "basen", "plażę", "plaze", "zakupy", "trening",
         "godzinę", "godzine", "godzinach", "chwilę", "chwile", "moim", "mojej", "naszym",
-        "naszej", "twoim", "twojej", "całym", "calym", "całej", "calej", "miasto"
+        "naszej", "twoim", "twojej", "całym", "calym", "całej", "calej", "miasto",
+        "nim", "niej", "nich", "niego", "nią", "nia", "tobie", "mnie", "sobie",
+        "telefonie", "zdjęciu", "zdjeciu", "youtubie", "spotify", "internecie", "zewnątrz"
     )
 
     /** Początki słów, które nie są nazwą miejsca (miesiące, pory). */

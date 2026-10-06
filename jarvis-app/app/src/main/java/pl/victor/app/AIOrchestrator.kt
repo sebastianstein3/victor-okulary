@@ -684,7 +684,10 @@ class AIOrchestrator(
         }
         // Pytanie o INNE miejsce niż w ustawieniach - prognoza z ustawień tylko
         // by przeszkadzała, patrz WeatherContext.innaMiejscowość.
-        if (!force) {
+        // Tylko przy pytaniu WPROST o pogodę. Pytanie dopowiadające ("a jutro?")
+        // dostaje prognozę z tematu otwartego wcześniej - i wtedy "na youtubie"
+        // albo "na nim" nie jest żadnym miejscem (dziennik z biegu 154).
+        if (!force && pl.victor.app.proactive.WeatherContext.isAboutWeather(question)) {
             pl.victor.app.proactive.WeatherContext.innaMiejscowość(question, place)?.let { other ->
                 runCatching {
                     diag.event(
@@ -5015,10 +5018,14 @@ class AIOrchestrator(
                             mapOf("ms" to (System.currentTimeMillis() - teardownStartedAt))
                         )
                     }
-                    // Tura szła profilem rozmowy, bo A2DP nie było. Gdy SCO
-                    // zejdzie, poprosimy o A2DP w spokoju - inaczej każda
-                    // następna tura znowu bierze SCO (patrz VictorManager).
-                    glassesManager.requestClassicAudioWhenIdle("po turze przez profil rozmowy")
+                }
+                // Tura szła bez A2DP. Gdy SCO zejdzie (jeśli w ogóle stało),
+                // poprosimy o A2DP w spokoju - inaczej każda następna tura
+                // znowu idzie gorszą drogą (patrz VictorManager). Także bez
+                // SCO: w biegu 154 telefon nie widział okularów jako
+                // urządzenia audio WCALE i prośba po turze nie szła.
+                if (glassesManager.isConnected() && !audio.canSpeakOverMedia()) {
+                    glassesManager.requestClassicAudioWhenIdle("po turze bez trybu multimediów")
                 }
                 wakeLock.release(LOCK_TURN)
                 resumeWakeWordMic()

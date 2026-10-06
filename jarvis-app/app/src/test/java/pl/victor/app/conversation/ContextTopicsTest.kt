@@ -43,6 +43,15 @@ class ContextTopicsTest {
     }
 
     @Test
+    fun `wymuszenie nie otwiera tematu nawet gdy tekst pasuje do wzorca`() {
+        // Polecenie dla nagrania wymienia "pogodę" - dziennik z biegu 154.
+        assertTrue(tematy.dokleić("pogoda", pytanieOTemat = true, wymuszone = true))
+        teraz += 1_000
+        assertFalse("muzyka po turze z nagraniem nie może dostać pogody",
+            tematy.dokleić("pogoda", pytanieOTemat = false))
+    }
+
+    @Test
     fun `nowy temat czysci wszystko`() {
         tematy.dokleić("notatki", pytanieOTemat = true)
         tematy.clear()

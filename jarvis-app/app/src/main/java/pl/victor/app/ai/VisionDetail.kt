@@ -79,7 +79,10 @@ object VisionDetail {
      * Stąd wymóg, żeby przed nim stało słowo zaczynające się od "kod".
      */
     private val CODE_REGEX = Regex(
-        """kod[a-ząćęłńóśźż]*\s+(kresk|pask|ean|produkt)"""
+        """kod[a-ząćęłńóśźż]*\s+(kresk|pask|ean|produkt)|""" +
+            // "sprawdź ten produkt w bazie" - dziennik z biegu 154: bez obrazu
+            // model odpowiadał "nie dostałem numeru kodu z Twojego zdjęcia".
+            """(sprawd[zź]|wyszukaj|poszukaj|znajd[zź])\s+(ten\s+|to\s+)?produkt|produkt\w*\s+w\s+bazie"""
     )
 
     /**

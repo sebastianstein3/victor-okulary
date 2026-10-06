@@ -84,4 +84,11 @@ class VisionDetailTest {
         assertTrue(VisionDetail.needsDetail("Przeczytaj mi instrukcję"))
         assertTrue(VisionDetail.needsDetail("Jakie są litery na tabliczce?"))
     }
+
+    @Test
+    fun `sprawdzenie produktu w bazie to pytanie o kod`() {
+        assertTrue(VisionDetail.isAboutCode("sprawdź ten produkt w bazie"))
+        assertTrue(VisionDetail.isAboutCode("znajdź ten produkt"))
+        assertFalse(VisionDetail.isAboutCode("jakie produkty są tanie w biedronce"))
+    }
 }
