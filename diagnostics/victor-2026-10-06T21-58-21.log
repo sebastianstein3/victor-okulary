@@ -257,3 +257,55 @@
 22:08:57.446  +17301 ms  SESJA        --- KONIEC TURY 552c: odpowiedziano ---
 22:08:57.482          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
 22:08:57.491          ms  AUDIO        tryb multimediów NIE wstał mimo prośby  poMs=6000 jakTelefonWidziOkulary=Tryb audio telefonu: zwykły, trzymanych łączy: 0 / Odtwarzanie (A2DP): brak / Rozmowa (SCO/HFP): brak / Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu.
+22:08:57.558          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:08:59.632          ms  SESJA        PRZERWANO turę  powód=dotknięcie zauszników
+22:08:59.654          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:08:59.810          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:09:08.403          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=false profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): brak
+Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu. strumieńBLE=false
+22:09:08.431      +0 ms  SESJA        --- TURA dd62 ---  źródło=TELEFON
+22:09:08.432      +1 ms  NASŁUCH      start  strumieńBLE=false sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:09:13.945   +5514 ms  NASŁUCH      koniec  ms=5514 telefonUsłyszał=lubisz masło zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.64 próbek=17 gotowyPoMs=417
+22:09:13.948   +5517 ms  NASŁUCH      nagranie z okularów  jest=false
+22:09:13.949   +5518 ms  SESJA        pytanie  tekst=lubisz masło wymuszonyObraz=false
+22:09:13.958   +5527 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+22:09:14.112   +5681 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+22:09:16.064   +7633 ms  KONTEKST     zebrany  ms=1936 pamięć=false kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+22:09:16.076   +7645 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=7182
+22:09:16.861   +8430 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=785
+22:09:16.952   +8521 ms  MODEL        zużycie tokenów  wejście=5603 odpowiedź=23 razem=5626 limit=3000 koniec=STOP
+22:09:16.954   +8524 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+22:09:16.961   +8530 ms  MODEL        koniec odpowiedzi (80 znaków, 5626 tokenów)  ms=885 dostawca=gemini początek=Masło masz zapisaną w notatkach z dwudziestego piątego września, więc chyba tak.
+22:09:16.963   +8532 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=80
+22:09:21.746  +13315 ms  MOWA         koniec wypowiedzi  ms=4782
+22:09:21.759  +13328 ms  SESJA        --- KONIEC TURY dd62: odpowiedziano ---
+22:09:21.762          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+22:09:21.860          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+22:09:22.451          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+22:10:04.537          ms  BLE          ROZŁĄCZONO  świadome=false
+22:10:10.626          ms  BLE          ROZŁĄCZONO  świadome=false
+22:10:12.577          ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+22:10:29.897          ms  BLE          ROZŁĄCZONO  świadome=false
+22:10:33.510          ms  AUDIO        proszono o mikrofon okularów, ale profil rozmowy nie wstał  mikrofonWZestawie=false profil=Tryb audio telefonu: zwykły, trzymanych łączy: 0
+Odtwarzanie (A2DP): brak
+Rozmowa (SCO/HFP): brak
+Telefon nie widzi okularów jako urządzenia audio. Sparuj je w ustawieniach Bluetooth telefonu. strumieńBLE=false
+22:10:33.572      +0 ms  SESJA        --- TURA 8ffd ---  źródło=TELEFON
+22:10:33.573      +1 ms  NASŁUCH      start  strumieńBLE=false sco=false mikrofonBT=false ustawienieMikOkularów=true
+22:10:37.978   +4407 ms  BLE          ROZŁĄCZONO  świadome=false
+22:10:40.162   +6590 ms  NASŁUCH      koniec  ms=6590 telefonUsłyszał=próba mikrofonu zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=10 gotowyPoMs=799
+22:10:40.164   +6592 ms  NASŁUCH      nagranie z okularów  jest=false
+22:10:40.165   +6594 ms  SESJA        pytanie  tekst=próba mikrofonu wymuszonyObraz=false
+22:10:40.178   +6606 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+22:10:40.326   +6754 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+22:10:40.404   +6832 ms  KONTEKST     zebrany  ms=71 pamięć=false kalendarz=false poczta=false pogoda=false lokalizacja=false limitCzasu=false
+22:10:40.421   +6849 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2070
+22:10:41.376   +7804 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=955
+22:10:41.402   +7830 ms  MODEL        zużycie tokenów  wejście=3220 odpowiedź=28 razem=3248 limit=3000 koniec=STOP
+22:10:41.404   +7832 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+22:10:41.436   +7864 ms  MODEL        koniec odpowiedzi (80 znaków, 3248 tokenów)  ms=1015 dostawca=gemini początek=Słyszę Cię głośno i wyraźnie, mikrofon działa bez zarzutu. W czym mogę Ci pomóc?
+22:10:41.440   +7868 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=80
+22:10:46.920  +13348 ms  MOWA         koniec wypowiedzi  ms=5479
+22:10:46.947  +13375 ms  SESJA        --- KONIEC TURY 8ffd: odpowiedziano ---
