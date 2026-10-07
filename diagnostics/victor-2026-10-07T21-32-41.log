@@ -518,3 +518,79 @@
 21:44:22.440  +15752 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=85
 21:44:24.008  +17320 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
 21:44:24.139  +17451 ms  SESJA        --- KONIEC TURY db10: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+21:44:24.885          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:44:34.964          ms  PRZYCISK     wciśnięto  numer=1
+21:44:35.098          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=3
+21:44:35.472          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:44:35.512          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=19 ms=412
+21:44:35.564      +0 ms  SESJA        --- TURA 52a2 ---  źródło=OKULARY
+21:44:35.566      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:44:44.231   +8667 ms  NASŁUCH      koniec  ms=8667 zebrałTelefonZamiastOkularów=false mikrofon=MIKROFON NIE RUSZYŁ - ani jednej próbki próbek=0
+21:44:44.368   +8804 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=19
+21:44:45.396   +9832 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1135 pakietów=456 rozkodowanych=456 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=1 5 10 1 1985 821 645 547 0 1 0 0 0 0 0 0 0 0 0 ciszaNaKońcuOkien=9
+21:44:46.298  +10734 ms  AUDIO        hałas wokół  tłoDb=-70
+21:44:46.921  +11357 ms  TRANSKRYPCJA z nagrania okularów  ms=1523 droga=Bez transkrypcji - nagranie do modelu
+21:44:46.927  +11363 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=9113 jestMs=2380 tło=0 szczyt=5573 ile razy=9338.6
+21:44:46.931  +11367 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=228524 B wymuszonyObraz=false
+21:44:46.935  +11371 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=true
+21:44:46.943  +11379 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:44:48.177  +12613 ms  KONTEKST     zebrany  ms=1227 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:44:48.184  +12620 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=11362
+21:44:49.637  +14073 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1453
+21:44:49.728  +14164 ms  MODEL        zużycie tokenów  wejście=7111 odpowiedź=28 razem=7139 limit=3000 koniec=STOP
+21:44:49.730  +14166 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+21:44:49.733  +14169 ms  MODEL        koniec odpowiedzi (79 znaków, 7139 tokenów)  ms=1549 dostawca=gemini początek=Nie dosłyszałem Twojego pytania z nagrania, słyszę tylko szum. Powtórz, proszę.
+21:44:49.735  +14171 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=79
+21:44:51.203  +15639 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+21:44:51.328  +15764 ms  SESJA        --- KONIEC TURY 52a2: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+21:44:52.061          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:44:55.848          ms  PRZYCISK     wciśnięto  numer=1
+21:44:56.070          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+21:44:56.368          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:44:56.409          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=20 ms=337
+21:44:56.468      +0 ms  SESJA        --- TURA f4db ---  źródło=OKULARY
+21:44:56.469      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:45:05.127   +8659 ms  NASŁUCH      koniec  ms=8659 zebrałTelefonZamiastOkularów=false mikrofon=MIKROFON NIE RUSZYŁ - ani jednej próbki próbek=0
+21:45:05.264   +8796 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=20
+21:45:06.208   +9740 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.1535 pakietów=458 rozkodowanych=458 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 39 2183 702 1141 1 1 0 0 0 0 0 0 0 1 0 0 1 ciszaNaKońcuOkien=0
+21:45:07.000  +10533 ms  AUDIO        hałas wokół  tłoDb=-69
+21:45:08.766  +12298 ms  TRANSKRYPCJA z nagrania okularów  ms=2557 droga=Bez transkrypcji - nagranie do modelu
+21:45:08.772  +12304 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=9153 jestMs=2000 tło=0 szczyt=4414 ile razy=5957.9
+21:45:08.776  +12308 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=192044 B wymuszonyObraz=false
+21:45:08.779  +12311 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=true
+21:45:08.788  +12320 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:45:10.139  +13671 ms  KONTEKST     zebrany  ms=1345 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:45:10.149  +13681 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=11950
+21:45:11.549  +15081 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1401
+21:45:11.559  +15091 ms  MODEL        zużycie tokenów  wejście=7283 odpowiedź=30 razem=7313 limit=3000 koniec=STOP
+21:45:11.563  +15095 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+21:45:11.573  +15105 ms  MODEL        koniec odpowiedzi (85 znaków, 7313 tokenów)  ms=1425 dostawca=gemini początek=Nie dosłyszałem Twojego pytania z nagrania, dobiegł mnie tylko szum. Powtórz, pr
+21:45:11.575  +15107 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=85
+21:45:12.939  +16471 ms  SESJA        PRZERWANO turę  powód=żądanie użytkownika
+21:45:12.949  +16481 ms  SESJA        --- KONIEC TURY f4db: BEZ ODPOWIEDZI (stan Idle, powód: żądanie użytkownika) ---
+21:45:13.801          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:45:30.718          ms  PRZYCISK     wciśnięto  numer=1
+21:45:30.946          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:45:31.222          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:45:31.266          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=318
+21:45:31.320      +1 ms  SESJA        --- TURA 3a4a ---  źródło=OKULARY
+21:45:31.321      +3 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:45:39.985   +8666 ms  NASŁUCH      koniec  ms=8666 zebrałTelefonZamiastOkularów=false mikrofon=MIKROFON NIE RUSZYŁ - ani jednej próbki próbek=0
+21:45:40.122   +8803 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:45:41.285   +9966 ms  NASŁUCH      nagranie z okularów  jest=true sekund=9.0735 pakietów=454 rozkodowanych=454 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=1 6 55 2110 1041 1354 0 0 0 0 11 0 0 966 2292 1621 1198 828 609 ciszaNaKońcuOkien=0
+21:45:42.050  +10731 ms  AUDIO        hałas wokół  tłoDb=-70
+21:45:42.624  +11305 ms  TRANSKRYPCJA z nagrania okularów  ms=1338 droga=Bez transkrypcji - nagranie do modelu
+21:45:42.631  +11312 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=9073 jestMs=7940 tło=1 szczyt=6674 ile razy=5585.1
+21:45:42.635  +11316 ms  SESJA        pytanie  tekst=W załączonym nagraniu użytkownik zadaje pytanie. Wysłuchaj go i odpowiedz na nie. Nie transkrybuj nagrania i nie opisuj, nagranie=762284 B wymuszonyObraz=false
+21:45:42.638  +11319 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=true
+21:45:42.648  +11329 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:45:43.915  +12596 ms  KONTEKST     zebrany  ms=1252 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+21:45:43.924  +12605 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=12400
+21:45:45.450  +14132 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1527
+21:45:45.466  +14147 ms  MODEL        zużycie tokenów  wejście=7568 odpowiedź=30 razem=7598 limit=3000 koniec=STOP
+21:45:45.469  +14150 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+21:45:45.480  +14161 ms  MODEL        koniec odpowiedzi (85 znaków, 7598 tokenów)  ms=1557 dostawca=gemini początek=Nie dosłyszałem Twojego pytania z nagrania, dobiegł mnie tylko szum. Powtórz, pr
+21:45:45.482  +14163 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=85
+21:45:50.521  +19202 ms  MOWA         koniec wypowiedzi  ms=5038
+21:45:50.745  +19426 ms  SESJA        --- KONIEC TURY 3a4a: odpowiedziano ---
+21:45:50.752          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
