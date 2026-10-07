@@ -102,3 +102,69 @@
 21:36:31.075  +33133 ms  MOWA         koniec wypowiedzi  ms=18696
 21:36:31.100  +33158 ms  SESJA        --- KONIEC TURY 27c6: odpowiedziano ---
 21:36:31.103          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:36:31.175          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:36:31.801          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:36:37.099          ms  PRZYCISK     wciśnięto  numer=1
+21:36:37.328          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:36:37.610          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:36:37.802          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=472
+21:36:37.859      +1 ms  SESJA        --- TURA 695a ---  źródło=OKULARY
+21:36:37.860      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:36:41.029   +3171 ms  NASŁUCH      koniec  ms=3171 odłożone=włącz przewodnika zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.88 próbek=7 gotowyPoMs=299
+21:36:41.222   +3364 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:36:41.485   +3627 ms  NASŁUCH      nagranie z okularów  jest=true sekund=3.7135 pakietów=186 rozkodowanych=186 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=3 2 6 803 1601 533 1 1 ciszaNaKońcuOkien=0
+21:36:42.031   +4173 ms  AUDIO        hałas wokół  tłoDb=-65
+21:36:42.527   +4669 ms  TRANSKRYPCJA z nagrania okularów  ms=1039 droga=Nasłuch telefonu
+21:36:42.530   +4672 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=3713 jestMs=1640 tło=1 szczyt=4500 ile razy=3400.3
+21:36:42.532   +4674 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=włącz przewodnika
+21:36:42.532   +4674 ms  SESJA        pytanie  tekst=włącz przewodnika wymuszonyObraz=false
+21:36:42.536   +4678 ms  KONTEKST     przewodnik: start
+21:36:42.537   +4679 ms  SESJA        --- KONIEC TURY 695a: przewodnik ---
+21:36:43.046          ms  KONTEKST     przewodnik: szukam w okolicy  znalezionych=2
+21:36:46.842          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:36:48.875          ms  KONTEKST     przewodnik: mówię  miejsce=Kościół Matki Bożej Królowej Polski w Toruniu m=325
+21:37:01.984          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:37:22.115          ms  PRZYCISK     wciśnięto  numer=1
+21:37:22.305          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+21:37:22.641          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:37:22.703          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=17 ms=396
+21:37:22.755      +1 ms  SESJA        --- TURA aa50 ---  źródło=OKULARY
+21:37:22.756      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:37:29.845   +7091 ms  NASŁUCH      koniec  ms=7091 odłożone=przypomnij mi żebym kupił mleko gdy będę w biedronce zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=11 gotowyPoMs=647
+21:37:30.048   +7294 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=17
+21:37:30.866   +8112 ms  AUDIO        hałas wokół  tłoDb=-62
+21:37:30.963   +8209 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.5335 pakietów=377 rozkodowanych=377 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=5 0 7 0 0 0 126 1726 1159 1920 874 813 1 1 0 1 ciszaNaKońcuOkien=0
+21:37:34.141  +11387 ms  TRANSKRYPCJA z nagrania okularów  ms=3176 droga=Nasłuch telefonu
+21:37:34.149  +11395 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7533 jestMs=3100 tło=1 szczyt=6797 ile razy=6627.4
+21:37:34.152  +11398 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=przypomnij mi żebym kupił mleko gdy będę w biedronce
+21:37:34.153  +11399 ms  SESJA        pytanie  tekst=przypomnij mi żebym kupił mleko gdy będę w biedronce wymuszonyObraz=false
+21:37:34.204  +11451 ms  SESJA        --- KONIEC TURY aa50: odpowiedziano ---
+21:37:34.206          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:37:34.303          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:37:37.454          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:37:44.186          ms  PRZYCISK     wciśnięto  numer=1
+21:37:44.416          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:37:44.698          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:37:44.873          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=15 ms=455
+21:37:44.917      +1 ms  SESJA        --- TURA b326 ---  źródło=OKULARY
+21:37:44.919      +2 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:37:49.982   +5065 ms  NASŁUCH      koniec  ms=5065 odłożone=w tym miejscu jest mój dom zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=10 gotowyPoMs=463
+21:37:50.165   +5248 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=15
+21:37:50.630   +5713 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.5735 pakietów=279 rozkodowanych=279 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 0 2 2 810 1783 2096 87 0 0 0 0 ciszaNaKońcuOkien=4
+21:37:50.972   +6055 ms  AUDIO        hałas wokół  tłoDb=-62
+21:37:51.688   +6771 ms  TRANSKRYPCJA z nagrania okularów  ms=1056 droga=Nasłuch telefonu
+21:37:51.693   +6776 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5573 jestMs=1940 tło=0 szczyt=5234 ile razy=5439.3
+21:37:51.695   +6778 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=w tym miejscu jest mój dom
+21:37:51.696   +6779 ms  SESJA        pytanie  tekst=w tym miejscu jest mój dom wymuszonyObraz=false
+21:37:51.704   +6787 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+21:37:51.713   +6796 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:37:55.273  +10356 ms  KONTEKST     zebrany  ms=3554 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+21:37:55.288  +10371 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=2309
+21:37:56.039  +11122 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=752
+21:37:56.144  +11227 ms  MODEL        zużycie tokenów  wejście=3433 odpowiedź=24 razem=3457 limit=3000 koniec=STOP
+21:37:56.147  +11230 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+21:37:56.153  +11236 ms  MODEL        koniec odpowiedzi (75 znaków, 3457 tokenów)  ms=866 dostawca=gemini początek=To świetnie, że jesteś w domu. Daj znać, jeśli będziesz czegoś potrzebować.
+21:37:56.155  +11238 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=75
+21:38:00.657  +15740 ms  MOWA         koniec wypowiedzi  ms=4501
+21:38:00.681  +15764 ms  SESJA        --- KONIEC TURY b326: odpowiedziano ---
+21:38:00.684          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
