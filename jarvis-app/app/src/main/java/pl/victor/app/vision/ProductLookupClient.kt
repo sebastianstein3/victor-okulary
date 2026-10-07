@@ -28,7 +28,10 @@ class ProductLookupClient(
     private val tag = "ProductLookup"
 
     /** @return zdanie o produkcie albo `null` - gdy nie ma go w bazie lub sieć milczy. */
-    suspend fun describe(barcode: String): String? = withContext(Dispatchers.IO) {
+    suspend fun describe(barcode: String): String? = info(barcode)?.opis
+
+    /** Opis i dane do sprawdzenia diety - jedno zapytanie, patrz [ProductLookup.info]. */
+    suspend fun info(barcode: String): ProductLookup.Info? = withContext(Dispatchers.IO) {
         withTimeoutOrNull(TIMEOUT_MS) {
             runCatching {
                 val request = Request.Builder()
@@ -40,7 +43,7 @@ class ProductLookupClient(
                     .build()
                 http.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) return@runCatching null
-                    ProductLookup.describe(response.body?.string().orEmpty())
+                    ProductLookup.info(response.body?.string().orEmpty())
                 }
             }.onFailure { Log.w(tag, "Nie udało się odpytać bazy produktów", it) }
                 .getOrNull()

@@ -337,6 +337,8 @@ fun SettingsScreen(
                     onManageGoogleAccount = { onRequestGoogleSignIn() }
                 )
                 HorizontalDivider()
+                MessagesSection()
+                HorizontalDivider()
                 ProactiveAlertsSection()
                 DailyBriefingSection()
                 HorizontalDivider()

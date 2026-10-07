@@ -82,6 +82,7 @@ class ActionExecutor(private val context: Context) {
                 // lista tu trafi; gałąź istnieje, bo Kotlin wymaga wyczerpania when.
                 is Action.TakePhoto ->
                     ActionResult.Failed("Zdjęcie obsługiwane poza ActionExecutor")
+                is Action.ReplyMessage -> replyMessage(action)
             }
         } catch (e: Exception) {
             Log.e(tag, "Failed to execute ${action.type}", e)
@@ -90,6 +91,24 @@ class ActionExecutor(private val context: Context) {
     }
 
     // === Komunikacja ===
+
+    /**
+     * Odpowiedź przez pole "Odpowiedz" z powiadomienia - patrz
+     * [pl.victor.app.messages.MessageInbox]. Jedyna akcja komunikacji, która
+     * naprawdę WYSYŁA, więc komunikat mówi wprost, co się stało.
+     */
+    private fun replyMessage(action: Action.ReplyMessage): ActionResult {
+        val adresat = pl.victor.app.messages.MessageInbox.adresat(action.to)
+            ?: return ActionResult.Failed(
+                if (action.to == null) "nie mam żadnej wiadomości, na którą mógłbym odpowiedzieć"
+                else "nie widzę wiadomości od ${action.to}"
+            )
+        return when (val w = pl.victor.app.messages.MessageInbox.odpowiedz(context, adresat, action.body)) {
+            is pl.victor.app.messages.MessageInbox.Wynik.Wysłane ->
+                ActionResult.Success("Wysłane do ${adresat.nadawca}.")
+            is pl.victor.app.messages.MessageInbox.Wynik.Błąd -> ActionResult.Failed(w.powód)
+        }
+    }
 
     private fun sendSms(action: Action.SendSms): ActionResult {
         val intent = Intent(Intent.ACTION_SENDTO).apply {

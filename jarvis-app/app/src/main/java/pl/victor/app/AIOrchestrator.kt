@@ -651,6 +651,101 @@ class AIOrchestrator(
      * Wymaga klucza OpenWeatherMap i lokalizacji z ustawień; bez nich po prostu
      * nic nie dokleja, zamiast wywracać odpowiedź.
      */
+    /**
+     * Ostatnie wiadomości z powiadomień - gdy pytanie ich dotyczy albo przed
+     * chwilą jakąś przeczytaliśmy ("odpowiedz jej grzecznie, że...").
+     * Lokalne, bez sieci: nic nie dokłada do czasu odpowiedzi.
+     */
+    private fun buildMessagesContext(question: String, force: Boolean): String? {
+        if (!settings.isMessageReadingEnabled()) return null
+        val ostatnie = pl.victor.app.messages.MessageInbox.ostatnie(5)
+        val dotyczy = pl.victor.app.messages.MessagesPrompt.dotyczyWiadomości(question)
+        if (!openContextTopics.dokleić(
+                TOPIC_MESSAGES,
+                pytanieOTemat = dotyczy,
+                wymuszone = force && ostatnie.isNotEmpty()
+            )
+        ) {
+            return null
+        }
+        return pl.victor.app.messages.MessagesPrompt.dlaModelu(ostatnie)
+    }
+
+    /**
+     * Czyta nowe wiadomości w okularach - tylko w okularach (głośnik telefonu
+     * czytający cudze SMS-y na głos to nie jest funkcja, tylko wpadka) i
+     * tylko wtedy, gdy nikomu nie wchodzi w słowo.
+     */
+    private fun startMessageAnnouncements() {
+        scope.launch {
+            pl.victor.app.messages.MessageInbox.nowe.collect { m ->
+                bezpiecznie("ogłoszenie wiadomości") {
+                    if (!settings.isMessageReadingEnabled()) return@bezpiecznie
+                    if (!glassesManager.isConnected()) return@bezpiecznie
+                    val doKiedy = System.currentTimeMillis() + MESSAGE_WAIT_MS
+                    while (!ciszaWTle() && System.currentTimeMillis() < doKiedy) delay(MESSAGE_POLL_MS)
+                    if (!ciszaWTle()) {
+                        runCatching {
+                            diag.event(DiagFormat.Phase.MOWA, "wiadomość nieprzeczytana - cały czas zajęte",
+                                mapOf("od" to m.nadawca))
+                        }
+                        return@bezpiecznie
+                    }
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.MOWA, "czytam wiadomość",
+                            mapOf("aplikacja" to m.aplikacja, "odpowiedź" to m.możnaOdpowiedzieć)
+                        )
+                    }
+                    // Temat otwarty: "odpowiedz jej, że..." za chwilę dostanie
+                    // listę wiadomości, także przez model.
+                    openContextTopics.dokleić(TOPIC_MESSAGES, pytanieOTemat = true)
+                    audio.speakAndAwait(
+                        pl.victor.app.messages.MessagesPrompt.ogłoszenie(m, settings.isMessageContentRead()),
+                        language = settings.getResponseLanguage()
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Położenie dla modelu - patrz [pl.victor.app.proactive.NearbyQuestion].
+     *
+     * Temat zostaje otwarty jak pogoda czy kalendarz: po "gdzie tu zjeść"
+     * pytanie "a ile tam kosztuje obiad" dalej dotyczy tego samego miejsca.
+     */
+    private suspend fun buildLocationContext(question: String, hasPhoto: Boolean): String? {
+        val oOkolicę = pl.victor.app.proactive.NearbyQuestion.dotyczyOkolicy(question)
+        val cel = when {
+            pl.victor.app.proactive.NearbyQuestion.jestPrzewodnikiem(question) ->
+                pl.victor.app.proactive.LocationContext.Cel.PRZEWODNIK
+            oOkolicę -> pl.victor.app.proactive.LocationContext.Cel.OKOLICA
+            hasPhoto -> pl.victor.app.proactive.LocationContext.Cel.ZDJĘCIE
+            else -> null
+        }
+        val otwarty = openContextTopics.dokleić(TOPIC_LOCATION, pytanieOTemat = oOkolicę)
+        val naprawdęCel = cel ?: if (otwarty) pl.victor.app.proactive.LocationContext.Cel.OKOLICA else return null
+        val opis = pl.victor.app.proactive.LocationContext.buildPromptContext(context, naprawdęCel)
+        if (opis != null) {
+            Log.i(TAG, "Doklejam kontekst lokalizacji ($naprawdęCel)")
+            return opis
+        }
+        if (!oOkolicę) return null
+        // Pytanie o okolicę, a położenia nie ma - model ma to powiedzieć, a
+        // nie zgadywać miasta z ustawień.
+        val powód = if (!pl.victor.app.proactive.LocationContext.maZgodę(context)) {
+            "aplikacja nie ma zgody na lokalizację (Ustawienia telefonu → Aplikacje → V.I.C.T.O.R. → Uprawnienia)"
+        } else {
+            "telefon nie zna teraz położenia (GPS wyłączony albo brak sygnału)"
+        }
+        runCatching {
+            diag.event(DiagFormat.Phase.KONTEKST, "pytanie o okolicę bez położenia", mapOf("powód" to powód))
+        }
+        return "=== GDZIE JEST UŻYTKOWNIK ===\nNIE WIADOMO: $powód. Powiedz to krótko i " +
+            "poproś o nazwę miejsca albo ulicy - nie zgaduj miasta."
+    }
+
     private suspend fun buildWeatherContext(question: String, force: Boolean = false): String? {
         // `force` obchodzi bramkę słów kluczowych - używa go briefing, który
         // ma zebrać wszystko, o co użytkownik poprosił w ustawieniach, a nie
@@ -673,7 +768,13 @@ class AIOrchestrator(
                 force = force
             )
         }
-        val place = settings.getWeatherLocation()
+        // POGODA TAM, GDZIE JESTEŚ, a nie tam, gdzie mieszkasz. Miasto z
+        // ustawień zostaje na wypadek braku GPS. Tylko ostatnia znana pozycja,
+        // bez czekania na pomiar - pogoda nie zmienia się co sto metrów.
+        val tutaj = runCatching {
+            pl.victor.app.proactive.LocationContext.tutaj(context)
+        }.getOrNull()?.takeIf { it.miasto != null }
+        val place = tutaj?.miasto ?: settings.getWeatherLocation()
         if (place.isBlank()) {
             Log.d(TAG, "Pytanie o pogodę, ale brak ustawionej lokalizacji")
             return missingContext(
@@ -700,9 +801,14 @@ class AIOrchestrator(
         }
         return try {
             val service = pl.victor.app.proactive.WeatherService(apiKey)
-            val geo = service.geocode(place) ?: return null
-            val forecast = service.getForecast(geo.lat, geo.lon)
-            val air = runCatching { service.getAirQuality(geo.lat, geo.lon) }.getOrNull()
+            val (lat, lon) = if (tutaj != null) {
+                tutaj.lat to tutaj.lon
+            } else {
+                val geo = service.geocode(place) ?: return null
+                geo.lat to geo.lon
+            }
+            val forecast = service.getForecast(lat, lon)
+            val air = runCatching { service.getAirQuality(lat, lon) }.getOrNull()
             pl.victor.app.proactive.WeatherContext.buildPromptContext(forecast, air)
                 ?.also { Log.i(TAG, "Doklejam prognozę pogody dla $place") }
         } catch (e: Exception) {
@@ -1046,6 +1152,9 @@ class AIOrchestrator(
         scope.launch {
             audio.speaking.collect { mówi -> mediaButtons.setSpeaking(mówi) }
         }
+
+        // Wiadomości z powiadomień - patrz pl.victor.app.messages.
+        startMessageAnnouncements()
 
         // === ROZŁĄCZENIE MA BYĆ SŁYSZALNE ===
         //
@@ -1568,6 +1677,25 @@ class AIOrchestrator(
     @Volatile
     private var earListenErrorCode: Int? = null
     private var earJob: kotlinx.coroutines.Job? = null
+    /** Czy można teraz mówić bez wchodzenia w słowo - dla trybów działających w tle. */
+    private fun ciszaWTle(): Boolean {
+        val st = _state.value
+        val bezTury = st is OrchestratorState.Idle || st is OrchestratorState.Completed ||
+            st is OrchestratorState.Error
+        return bezTury && !audio.speaking.value && !_earTranslation.value
+    }
+
+    /** Tryb przewodnika - patrz [pl.victor.app.features.GuideMode]. */
+    val guide by lazy {
+        pl.victor.app.features.GuideMode(
+            context = context,
+            scope = scope,
+            mów = { tekst -> audio.speakAndAwait(tekst, language = settings.getResponseLanguage()) },
+            wolno = { ciszaWTle() },
+            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.KONTEKST, co, pola) } }
+        )
+    }
+
     private val _earTranslation = kotlinx.coroutines.flow.MutableStateFlow(false)
 
     /** Czy trwa tryb tłumaczenia ze słuchu - do pokazania w interfejsie. */
@@ -3362,6 +3490,24 @@ class AIOrchestrator(
                 return
             }
 
+            // ODPOWIEDŹ NA WIADOMOŚĆ PODYKTOWANA DOSŁOWNIE - bez modelu.
+            //
+            // "Odpowiedz jej, że będę za dziesięć minut" ma iść pewnie i od
+            // razu, z treścią dokładnie taką, jak padła. Odpowiedzi do ułożenia
+            // ("grzecznie", "po angielsku") parser oddaje modelowi, który ma
+            // listę wiadomości i znacznik reply_message.
+            if (pl.victor.app.messages.MessageInbox.ostatnie(1).isNotEmpty()) {
+                pl.victor.app.messages.MessageReplyParser.parse(textQuestion)?.let { odp ->
+                    Log.i(TAG, "Warstwa 0: odpowiedź na wiadomość")
+                    diag.event(
+                        DiagFormat.Phase.AKCJA, "odpowiedź na wiadomość - dosłownie, bez modelu",
+                        mapOf("do" to (odp.adresat ?: "ostatnia"), "znaków" to odp.treść.length)
+                    )
+                    handleActions(listOf(Action.ReplyMessage(odp.adresat, odp.treść)), textQuestion)
+                    return
+                }
+            }
+
             // WIEDZA O SOBIE - z katalogu, bez pytania modelu.
             //
             // Model nie wie, jakie persony ma aplikacja, bo lista nigdy do
@@ -4005,6 +4151,7 @@ class AIOrchestrator(
                 // płatki" a "płatki owsiane, 500 g, zawiera gluten". Nie
                 // kosztuje przy tym ani jednego tokenu modelu.
                 var productContext: String? = null
+                var dietContext: String? = null
                 // UPC TEŻ JEST KODEM PRODUKTU - I BYŁ TU POMIJANY.
                 //
                 // Filtr przepuszczał wyłącznie EAN_13 i EAN_8. UPC-A to ten sam
@@ -4072,8 +4219,21 @@ class AIOrchestrator(
                 } else if (productCode != null) {
                     val doWyszukania =
                         pl.victor.app.vision.ProductCode.znormalizuj(productCode.rawValue)
-                    productLookup.describe(doWyszukania)?.let { described ->
+                    productLookup.info(doWyszukania)?.let { info ->
+                        val described = info.opis
                         productContext = described
+                        // Dieta - lokalnie, na danych, które już są: zero
+                        // dodatkowego czasu odpowiedzi. Patrz DietCheck.
+                        val ostrzeżenia = pl.victor.app.vision.DietCheck.ostrzeżenia(
+                            info, settings.getFacts().map { it.text }
+                        )
+                        dietContext = pl.victor.app.vision.DietCheck.dlaModelu(ostrzeżenia)
+                        if (ostrzeżenia.isNotEmpty()) {
+                            diag.event(
+                                DiagFormat.Phase.ZDJĘCIE, "produkt kłóci się z dietą",
+                                mapOf("ostrzeżenia" to ostrzeżenia.joinToString(" | ").take(200))
+                            )
+                        }
                         diag.event(
                             DiagFormat.Phase.ZDJĘCIE, "produkt rozpoznany z kodu",
                             mapOf("kod" to productCode.rawValue, "opis" to described)
@@ -4191,6 +4351,7 @@ class AIOrchestrator(
                 // znika sam, gdy tura ma transkrypcję.
                 val audioTurn = audioQuestion != null
                 val notesContext = buildNotesContext(textQuestion, force = audioTurn)
+                val messagesContext = buildMessagesContext(textQuestion, force = audioTurn)
 
                 // Fakty o użytkowniku idą do modelu ZAWSZE, bez bramki słów
                 // kluczowych - inaczej asystent, który wie, jak masz na imię,
@@ -4220,17 +4381,12 @@ class AIOrchestrator(
                     async { runCatching { buildGmailContext(textQuestion, audioTurn) }.getOrNull() }
                 val weatherDeferred =
                     async { runCatching { buildWeatherContext(textQuestion, audioTurn) }.getOrNull() }
-                // Gdzie jesteśmy - tylko przy pytaniach ZE ZDJĘCIEM. Model
-                // patrzący na sam obraz widzi "kościół"; ten sam obraz plus
-                // "Rzym, okolice Piazza Navona" pozwala powiedzieć, KTÓRY.
+                // Gdzie jesteśmy - przy pytaniach ZE ZDJĘCIEM (model widzi
+                // "kościół", a z położeniem wie, KTÓRY) i przy pytaniach O
+                // OKOLICĘ ("gdzie tu zjeść", "co ciekawego w pobliżu"). Patrz
+                // buildLocationContext.
                 val locationDeferred = async {
-                    if (photos.isEmpty()) {
-                        null
-                    } else {
-                        runCatching {
-                            pl.victor.app.proactive.LocationContext.buildPromptContext(context)
-                        }.getOrNull()?.also { Log.i(TAG, "Doklejam kontekst lokalizacji") }
-                    }
+                    runCatching { buildLocationContext(textQuestion, photos.isNotEmpty()) }.getOrNull()
                 }
                 val translationDeferred =
                     async { runCatching { translateOcrIfRequested(textQuestion, ocrContext) }.getOrNull() }
@@ -4325,6 +4481,10 @@ class AIOrchestrator(
                         append(gmailContext)
                         append("\n\n")
                     }
+                    if (messagesContext != null) {
+                        append(messagesContext)
+                        append("\n\n")
+                    }
                     if (notesContext != null) {
                         append(notesContext)
                         append("\n\n")
@@ -4346,9 +4506,12 @@ class AIOrchestrator(
                         append(described)
                         append(" To są dane z bazy produktów, pewniejsze niż odczyt z ")
                         append("opakowania - jeśli pytanie dotyczy tego produktu, ")
-                        append("odpowiedz na ich podstawie.")
+                        append("odpowiedz na ich podstawie. Jeśli pyta o cenę albo gdzie ")
+                        append("kupić taniej - wyszukaj aktualne ceny tego produktu (nazwa, ")
+                        append("marka, gramatura) w polskich sklepach i podaj konkretne kwoty.")
                         append("\n\n")
                     }
+                    dietContext?.let { append(it).append("\n\n") }
                     // CO APLIKACJA ZROBIŁA Z KODEM - ŻEBY MODEL NIE ZGADYWAŁ.
                     //
                     // Z dziennika z 23 września: "kod zasłonięty", "kod
@@ -5128,6 +5291,27 @@ class AIOrchestrator(
         // tłumaczenie" nie ma w żadnym z nich - o wyjściu z trybu rozstrzyga
         // [pl.victor.app.translation.EarTranslation.toKoniec] wewnątrz pętli,
         // na tekście usłyszanym już po włączeniu.
+        // Tryb przewodnika - lokalnie, bez modelu, z tego samego powodu co
+        // tłumaczenie: zapytany o czynność model odpowiada na nią słowami.
+        pl.victor.app.conversation.MetaCommands.guideCommand(text)?.let { włącz ->
+            if (włącz) {
+                if (guide.aktywny.value) {
+                    audio.speak("Przewodnik już działa.", language = settings.getResponseLanguage())
+                } else {
+                    audio.speak(
+                        "Włączam przewodnika. Będę mówił o miejscach, które mijasz.",
+                        language = settings.getResponseLanguage()
+                    )
+                    guide.start()
+                }
+            } else {
+                guide.stop("komenda głosowa")
+                audio.speak("Wyłączam przewodnika.", language = settings.getResponseLanguage())
+            }
+            runCatching { diag.endTurn("przewodnik") }
+            return true
+        }
+
         if (pl.victor.app.conversation.MetaCommands.startsEarTranslation(text)) {
             Log.i(TAG, "Komenda tłumaczenia ze słuchu: \"$text\"")
             val języki = pl.victor.app.conversation.MetaCommands.earTranslationLanguages(text)
@@ -5343,8 +5527,22 @@ class AIOrchestrator(
      * Wydzielona wyłącznie po to, żeby bramka potwierdzeń została dokładnie tym,
      * czym była - jednym ciągiem warunków bez korutyn w środku.
      */
-    private fun handlePreparedActions(actions: List<Action>) {
+    private fun handlePreparedActions(prepared: List<Action>) {
         val mode = ActionMode.fromName(settings.getActionMode())
+        // Odpowiedź na wiadomość: ustalamy adresata PRZED pytaniem, żeby
+        // "Wysłać?" mówiło, do kogo i gdzie naprawdę pójdzie.
+        val actions = prepared.map { a ->
+            if (a is Action.ReplyMessage && a.resolvedName == null) {
+                pl.victor.app.messages.MessageInbox.adresat(a.to)
+                    ?.let { m -> a.copy(resolvedName = "${m.nadawca}, ${m.aplikacja}") } ?: a
+            } else {
+                a
+            }
+        }
+        // Wysłanie wiadomości jest nieodwracalne - pytamy niezależnie od trybu
+        // akcji, chyba że użytkownik wyłączył to w ustawieniach.
+        val replyConfirm = settings.isMessageReplyConfirmed() &&
+            actions.any { it is Action.ReplyMessage && it.resolvedName != null }
         Log.d(TAG, "Action mode: $mode")
 
         // W trybie DIRECT - sprawdź czy akcja wymaga potwierdzenia.
@@ -5355,7 +5553,7 @@ class AIOrchestrator(
         // potwierdzeniem - skoro formularza już nie ma, pytanie musi paść tutaj.
         val calendarViaApi = actions.any { it is Action.CreateCalendarEvent } &&
             directActionExecutor.canWriteCalendarDirectly()
-        if (mode == ActionMode.DIRECT || calendarViaApi) {
+        if (mode == ActionMode.DIRECT || calendarViaApi || replyConfirm) {
             // POTWIERDZENIE MUSI OBJĄĆ KAŻDĄ AKCJĘ Z LISTY, NIE TYLKO PIERWSZĄ.
             //
             // Niżej `executeActionsList(actions)` wykonuje CAŁĄ listę. Pytanie o
@@ -5365,7 +5563,19 @@ class AIOrchestrator(
             // miejsce w całym przeglądzie, które mogło zrobić coś
             // nieodwracalnego bez zgody.
             val required = actions.mapNotNull {
-                directActionExecutor.canExecuteDirect(it) as? ActionConfirmation.Required
+                if (it is Action.ReplyMessage) {
+                    if (replyConfirm && it.resolvedName != null) {
+                        ActionConfirmation.Required(
+                            title = "Wysłać odpowiedź?",
+                            message = "Do: ${it.resolvedName}. Treść: ${it.body}",
+                            confirmText = "📤 Wyślij"
+                        )
+                    } else {
+                        null
+                    }
+                } else {
+                    directActionExecutor.canExecuteDirect(it) as? ActionConfirmation.Required
+                }
             }
             if (required.isNotEmpty()) {
                 val single = required.singleOrNull()
@@ -6169,6 +6379,12 @@ class AIOrchestrator(
         private const val TOPIC_WEATHER = "pogoda"
         private const val TOPIC_MAIL = "poczta"
         private const val TOPIC_NOTES = "notatki"
+        private const val TOPIC_LOCATION = "położenie"
+        private const val TOPIC_MESSAGES = "wiadomości"
+
+        /** Ile wiadomość może czekać, aż skończy się tura albo inna wypowiedź. */
+        private const val MESSAGE_WAIT_MS = 2 * 60_000L
+        private const val MESSAGE_POLL_MS = 500L
 
         /**
          * Wspólny prompt systemowy dla trybów dostępności.

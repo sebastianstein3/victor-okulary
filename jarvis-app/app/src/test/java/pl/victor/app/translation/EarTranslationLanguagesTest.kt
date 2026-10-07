@@ -42,3 +42,15 @@ class EarTranslationLanguagesTest {
         assertNull(MetaCommands.earTranslationLanguages("tłumaczenie na żywo"))
     }
 }
+
+class GuideCommandTest {
+    @org.junit.Test
+    fun `wlaczanie i wylaczanie przewodnika`() {
+        org.junit.Assert.assertEquals(true, MetaCommands.guideCommand("włącz przewodnika"))
+        org.junit.Assert.assertEquals(true, MetaCommands.guideCommand("Tryb przewodnika."))
+        org.junit.Assert.assertEquals(true, MetaCommands.guideCommand("oprowadź mnie po okolicy"))
+        org.junit.Assert.assertEquals(false, MetaCommands.guideCommand("wyłącz przewodnika"))
+        org.junit.Assert.assertEquals(false, MetaCommands.guideCommand("koniec trybu przewodnika"))
+        org.junit.Assert.assertNull(MetaCommands.guideCommand("kto był przewodnikiem tej wycieczki"))
+    }
+}

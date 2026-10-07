@@ -53,6 +53,23 @@ sealed class Action {
     }
 
     /**
+     * Odpowiedź na wiadomość z powiadomienia - WYSYŁA naprawdę, w tej samej
+     * aplikacji i rozmowie (patrz [pl.victor.app.messages.MessageInbox]).
+     *
+     * @param to imię nadawcy albo `null` = ostatnia wiadomość
+     * @param resolvedName nadawca i aplikacja ustalone przed potwierdzeniem,
+     *   żeby pytanie "Wysłać?" mówiło, DO KOGO naprawdę pójdzie
+     */
+    data class ReplyMessage(
+        val to: String?,
+        val body: String,
+        val resolvedName: String? = null
+    ) : Action() {
+        override val type = ActionType.REPLY_MESSAGE
+        override val description = "Odpowiedz ${resolvedName ?: to ?: "na ostatnią wiadomość"}: \"$body\""
+    }
+
+    /**
      * Otwarcie CUDZEJ aplikacji z gotowym zadaniem.
      *
      * Adresy głębokie tych aplikacji są niepewne, więc wykonanie polega na
@@ -272,7 +289,8 @@ enum class ActionType {
     SEND_WHATSAPP,
     APP_TASK,
     READ_TEXT, DESCRIBE_SCENE, START_NAVIGATION, STOP_ACCESSIBILITY,
-    TAKE_PHOTO
+    TAKE_PHOTO,
+    REPLY_MESSAGE
 }
 
 enum class SkipDirection { NEXT, PREVIOUS }

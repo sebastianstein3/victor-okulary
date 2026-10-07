@@ -32,7 +32,7 @@ object ProductLookup {
     fun urlFor(barcode: String): String =
         "https://world.openfoodfacts.org/api/v2/product/$barcode.json" +
             "?fields=product_name,product_name_pl,brands,quantity,allergens_tags," +
-            "ingredients_text_pl,nutriments"
+            "traces_tags,ingredients_analysis_tags,ingredients_text_pl,nutriments"
 
     /**
      * Sprząta gramaturę z opakowania, zanim pójdzie na głos.
@@ -53,6 +53,34 @@ object ProductLookup {
      *
      * Nazwę bierzemy polską, gdy jest - to jest cały sens przy obcym produkcie.
      */
+    /**
+     * Opis plus surowe dane do sprawdzenia diety ([DietCheck]).
+     *
+     * Osobno od [describe], bo dieta potrzebuje KLUCZY alergenów ("gluten",
+     * "milk"), a nie ich polskich nazw w zdaniu - i śladów, które w opisie
+     * nie występują wcale.
+     */
+    data class Info(
+        val opis: String,
+        val alergeny: Set<String>,
+        val ślady: Set<String>,
+        val analiza: Set<String>,
+        val cukry100g: Double?
+    )
+
+    fun info(json: String): Info? {
+        val opis = describe(json) ?: return null
+        val product = runCatching {
+            JsonParser.parseString(json).asJsonObject.getAsJsonObject("product")
+        }.getOrNull() ?: return null
+        fun tagi(klucz: String): Set<String> =
+            product.getAsJsonArray(klucz)?.mapNotNull { e ->
+                runCatching { e.asString }.getOrNull()?.substringAfter(':')?.trim()
+            }?.filter { it.isNotEmpty() }?.toSet().orEmpty()
+        val cukry = product.getAsJsonObject("nutriments")?.numberOrNull("sugars_100g")
+        return Info(opis, tagi("allergens_tags"), tagi("traces_tags"), tagi("ingredients_analysis_tags"), cukry)
+    }
+
     fun describe(json: String): String? {
         val root = runCatching { JsonParser.parseString(json).asJsonObject }.getOrNull()
             ?: return null

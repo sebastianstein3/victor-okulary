@@ -62,6 +62,18 @@ object CommandCatalog {
             )
         ),
         CommandInfo(
+            ActionType.REPLY_MESSAGE, CommandGroup.COMMUNICATION, "Odpowiedz na wiadomość",
+            "Asystent czyta w okularach wiadomości z WhatsAppa, SMS-ów i Messengera, " +
+                "a Ty odpowiadasz głosem. Odpowiedź idzie w tej samej rozmowie, po " +
+                "potwierdzeniu \"tak\". Włączasz w Ustawieniach → Wiadomości.",
+            listOf(
+                "Odpowiedz jej, że będę za dziesięć minut",
+                "Odpisz Tomkowi: jasne, do zobaczenia",
+                "Odpowiedz Ani grzecznie, że dziś nie dam rady",
+                "Co pisała Ania?"
+            )
+        ),
+        CommandInfo(
             ActionType.APP_TASK, CommandGroup.COMMUNICATION, "Zadanie w innej aplikacji",
             "Otwiera Jakdojade, Shazama, Ubera, Bolta albo Yanosika z gotowym " +
                 "zadaniem. Gdy aplikacja nie przyjmie zadania, otwiera się " +

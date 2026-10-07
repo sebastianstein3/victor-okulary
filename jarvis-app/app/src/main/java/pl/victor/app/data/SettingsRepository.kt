@@ -313,6 +313,38 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_EAR_TRANSLATION_SPOKEN, spoken).apply()
     }
 
+    // === Wiadomości z powiadomień (czytanie i odpowiadanie głosem) ===
+
+    /** Czytać przychodzące wiadomości w okularach - domyślnie WYŁĄCZONE (prywatność). */
+    fun isMessageReadingEnabled(): Boolean = prefs.getBoolean(KEY_MESSAGES_READ, false)
+
+    fun setMessageReadingEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_MESSAGES_READ, enabled).apply()
+    }
+
+    /** Czytać treść, czy tylko "SMS od Ani". */
+    fun isMessageContentRead(): Boolean = prefs.getBoolean(KEY_MESSAGES_CONTENT, true)
+
+    fun setMessageContentRead(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_MESSAGES_CONTENT, enabled).apply()
+    }
+
+    /** Pytać "Wysłać?" przed odpowiedzią - domyślnie TAK: wiadomości nie da się cofnąć. */
+    fun isMessageReplyConfirmed(): Boolean = prefs.getBoolean(KEY_MESSAGES_CONFIRM, true)
+
+    fun setMessageReplyConfirmed(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_MESSAGES_CONFIRM, enabled).apply()
+    }
+
+    /** Pakiety aplikacji, których wiadomości czytamy. */
+    fun getMessageApps(): Set<String> =
+        prefs.getStringSet(KEY_MESSAGES_APPS, null)?.toSet()
+            ?: pl.victor.app.messages.MessagingApps.domyślne()
+
+    fun setMessageApps(apps: Set<String>) {
+        prefs.edit().putStringSet(KEY_MESSAGES_APPS, apps).apply()
+    }
+
     // === Konto Google - Calendar + Gmail, jedno logowanie (v1.2, rozszerzone) ===
 
     /** Nazwa klucza zostaje z czasów gdy dotyczyła tylko kalendarza - flaga już nie. */
@@ -1173,6 +1205,10 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_FROM = "ear_translation_from"
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
+        private const val KEY_MESSAGES_READ = "messages_read"
+        private const val KEY_MESSAGES_CONTENT = "messages_content"
+        private const val KEY_MESSAGES_CONFIRM = "messages_confirm"
+        private const val KEY_MESSAGES_APPS = "messages_apps"
         private const val KEY_GCAL_CONNECTED = "gcal_connected"
         private const val KEY_CAPTURE_MODE = "capture_mode"
         private const val KEY_AUTO_DEGRADE_CAPTURE = "auto_degrade_capture"

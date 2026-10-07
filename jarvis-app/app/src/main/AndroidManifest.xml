@@ -289,6 +289,19 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice|microphone" />
 
+        <!-- Czytanie wiadomości z komunikatorów i odpowiadanie głosem. System
+             uruchamia ją dopiero po zgodzie "Dostęp do powiadomień" (Ustawienia
+             aplikacji → Wiadomości). -->
+        <service
+            android:name=".messages.NotificationReaderService"
+            android:exported="true"
+            android:label="V.I.C.T.O.R. - czytanie wiadomości"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".localmodel.LocalModelDownloadService"
             android:exported="false"

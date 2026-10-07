@@ -1029,6 +1029,9 @@ class SmartActionDetector {
             "send_whatsapp" -> params["to"]?.let { to ->
                 Action.SendWhatsApp(to = to, body = params["body"] ?: "")
             }
+            "reply_message" -> params["body"]?.takeIf { it.isNotBlank() }?.let { body ->
+                Action.ReplyMessage(to = params["to"]?.takeIf { it.isNotBlank() }, body = body)
+            }
             "make_call" -> params["to"]?.let { Action.MakeCall(to = it) }
             "send_email" -> params["to"]?.let { to ->
                 Action.SendEmail(
@@ -1348,6 +1351,12 @@ Dostępne typy i klucze:
 - send_whatsapp: to (numer lub imię), body (treść). UWAGA: to tylko OTWIERA
   rozmowę z wpisaną wiadomością - wysłanie zatwierdza człowiek. Nie mów, że
   wiadomość została wysłana.
+- reply_message: to (imię nadawcy z sekcji OSTATNIE WIADOMOŚCI; pomiń, gdy
+  chodzi o ostatnią wiadomość), body (treść odpowiedzi tak, jak napisałby ją
+  użytkownik, w pierwszej osobie). WYSYŁA odpowiedź w tej samej aplikacji, z
+  której przyszła wiadomość (WhatsApp, SMS, Messenger), po potwierdzeniu.
+  Używaj zawsze, gdy prośba brzmi "odpowiedz", "odpisz" na wiadomość - nie
+  używaj do tego send_sms ani send_whatsapp.
 - make_call: to (numer lub imię)
 - send_email: to (adres), subject (temat), body (treść)
 - play_music: query (czego szukać)

@@ -156,6 +156,29 @@ object MetaCommands {
         return if (z == na) null else z to na
     }
 
+    /**
+     * Tryb przewodnika: `true` = włącz, `false` = wyłącz, `null` = to nie ta komenda.
+     *
+     * Cała wypowiedź, jak przy tłumaczeniu - "kto był przewodnikiem tej
+     * wycieczki" ma iść do modelu, a nie włączać tryb.
+     */
+    fun guideCommand(text: String): Boolean? {
+        val bare = earBare(text)
+        return when {
+            GUIDE_STOP.matches(bare) -> false
+            GUIDE_START.matches(bare) -> true
+            else -> null
+        }
+    }
+
+    private val GUIDE_START = Regex(
+        """^((w[lł][aą]cz(y[cć])?|uruchom(i[cć])?|start(uj)?)\s+)?(tryb\s+)?przewodnik(a)?(\s+po\s+okolicy)?$|""" +
+            """^oprowad[zź]\s+mnie(\s+po\s+okolicy)?$|^b[aą]d[zź]\s+moim\s+przewodnikiem$"""
+    )
+    private val GUIDE_STOP = Regex(
+        """^(wy[lł][aą]cz(y[cć])?|zatrzymaj|zako[nń]cz|koniec|stop)\s+(trybu?\s+)?przewodnik(a|iem)?$"""
+    )
+
     /** Kod języka z polskiej nazwy w dowolnym przypadku ("polskiego", "angielski"). */
     fun languageCode(word: String): String? {
         val w = word.lowercase().trim()

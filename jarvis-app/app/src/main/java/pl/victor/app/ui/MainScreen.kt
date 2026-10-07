@@ -387,6 +387,18 @@ private fun IdleContent(
         Text("🌍 Tłumaczenie na żywo")
     }
 
+    // === Przewodnik po okolicy ===
+    // Ten sam tryb co "włącz przewodnika" głosem - patrz features.GuideMode.
+    Spacer(modifier = Modifier.height(12.dp))
+    val guide = remember { pl.victor.app.VictorApplication.get().orchestrator.guide }
+    val guideOn by guide.aktywny.collectAsState()
+    androidx.compose.material3.OutlinedButton(
+        onClick = { if (guide.aktywny.value) guide.stop("przycisk w aplikacji") else guide.start() },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(if (guideOn) "🧭 Przewodnik mówi - wyłącz" else "🧭 Przewodnik po okolicy")
+    }
+
     // === Notatki ===
     Spacer(modifier = Modifier.height(12.dp))
     androidx.compose.material3.OutlinedButton(
