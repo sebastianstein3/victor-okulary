@@ -46,3 +46,59 @@
 21:35:20.685  +20606 ms  MOWA         koniec wypowiedzi  ms=8980
 21:35:20.725  +20646 ms  SESJA        --- KONIEC TURY 10bb: odpowiedziano ---
 21:35:20.729          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:35:20.847          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:35:21.259          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:35:31.639          ms  PRZYCISK     wciśnięto  numer=1
+21:35:31.775          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=2
+21:35:32.159          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:35:32.318          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=23 ms=542
+21:35:32.416      +0 ms  SESJA        --- TURA baa9 ---  źródło=OKULARY
+21:35:32.417      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:35:36.927   +4511 ms  NASŁUCH      koniec  ms=4511 odłożone=gdzie tu mogę coś zjeść zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.88 próbek=7 gotowyPoMs=605
+21:35:37.192   +4776 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=23
+21:35:37.605   +5189 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.1735 pakietów=259 rozkodowanych=259 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=40 8 0 97 858 1780 1184 1 0 0 0 ciszaNaKońcuOkien=3
+21:35:38.010   +5594 ms  AUDIO        hałas wokół  tłoDb=-67
+21:35:38.808   +6392 ms  TRANSKRYPCJA z nagrania okularów  ms=1201 droga=Nasłuch telefonu
+21:35:38.811   +6395 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5173 jestMs=1620 tło=0 szczyt=3369 ile razy=34804.3
+21:35:38.812   +6397 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=gdzie tu mogę coś zjeść
+21:35:38.813   +6397 ms  SESJA        pytanie  tekst=gdzie tu mogę coś zjeść wymuszonyObraz=false
+21:35:38.824   +6408 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+21:35:38.833   +6417 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:35:39.198   +6782 ms  KONTEKST     zebrany  ms=358 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+21:35:39.209   +6793 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1725
+21:35:41.385   +8969 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=2177
+21:35:41.632   +9216 ms  MODEL        zużycie tokenów  wejście=3250 odpowiedź=81 razem=3331 limit=3000 koniec=STOP
+21:35:41.633   +9217 ms  MODEL        model szukał w internecie  zapytań=2 zapytanie=bar, restauracja Rubinkowo Toruń Rydygiera źródeł=2
+21:35:41.634   +9218 ms  MODEL        koniec odpowiedzi (211 znaków, 3331 tokenów)  ms=2426 dostawca=gemini początek=W pobliżu ulicy Rydygiera znajdziesz na przykład pizzerię "Lucky Luciano" albo r
+21:35:41.637   +9221 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=211
+21:35:54.885  +22470 ms  MOWA         koniec wypowiedzi  ms=13247
+21:35:54.908  +22492 ms  SESJA        --- KONIEC TURY baa9: odpowiedziano ---
+21:35:54.911          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:35:55.023          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:35:55.624          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:35:57.320          ms  PRZYCISK     wciśnięto  numer=1
+21:35:57.510          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=5
+21:35:57.826          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:35:57.851          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=16 ms=340
+21:35:57.942      +0 ms  SESJA        --- TURA 27c6 ---  źródło=OKULARY
+21:35:57.943      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:36:04.978   +7036 ms  NASŁUCH      koniec  ms=7036 odłożone=a sprawdź proszę opinie tych restauracji czy warto do nich iść w googlu zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=17 gotowyPoMs=219
+21:36:05.196   +7255 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=16
+21:36:05.925   +7983 ms  AUDIO        hałas wokół  tłoDb=-62
+21:36:06.027   +8085 ms  NASŁUCH      nagranie z okularów  jest=true sekund=7.4735 pakietów=374 rozkodowanych=374 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=1 4 5 2199 2034 1264 789 1139 1411 1675 658 574 541 1 1 ciszaNaKońcuOkien=0
+21:36:10.361  +12419 ms  TRANSKRYPCJA z nagrania okularów  ms=4332 droga=Nasłuch telefonu
+21:36:10.369  +12427 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=7473 jestMs=5320 tło=90 szczyt=6712 ile razy=73.9
+21:36:10.372  +12431 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=a sprawdź proszę opinie tych restauracji czy warto do nich i
+21:36:10.374  +12432 ms  SESJA        pytanie  tekst=a sprawdź proszę opinie tych restauracji czy warto do nich iść w googlu wymuszonyObraz=false
+21:36:10.383  +12441 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+21:36:10.395  +12453 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:36:10.476  +12534 ms  KONTEKST     zebrany  ms=75 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+21:36:10.485  +12543 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1724
+21:36:12.002  +14060 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1517
+21:36:12.361  +14419 ms  MODEL        zużycie tokenów  wejście=3250 odpowiedź=106 razem=3356 limit=3000 koniec=STOP
+21:36:12.368  +14426 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+21:36:12.375  +14433 ms  MODEL        koniec odpowiedzi (366 znaków, 3356 tokenów)  ms=1890 dostawca=gemini początek=Wszystkie trzy miejsca mają dobre opinie i zdecydowanie warto do nich zajrzeć. P
+21:36:12.378  +14436 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=366
+21:36:31.075  +33133 ms  MOWA         koniec wypowiedzi  ms=18696
+21:36:31.100  +33158 ms  SESJA        --- KONIEC TURY 27c6: odpowiedziano ---
+21:36:31.103          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
