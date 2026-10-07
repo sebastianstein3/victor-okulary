@@ -640,73 +640,18 @@ class AIOrchestrator(
             ?.also { Log.i(TAG, "Doklejam ${events.size} wydarzeń z kalendarza") }
     }
 
-    /**
-     * Prognoza pogody jako kontekst dla modelu.
-     *
-     * Do tej pory pogoda żyła wyłącznie w alertach w tle: aplikacja sprawdzała
-     * ją co jakiś czas i wysyłała powiadomienie, gdy coś było nie tak. Zapytana
-     * wprost - "jaka jest pogoda?" - odpowiadała z pamięci modelu, czyli
-     * ZMYŚLAŁA. Teraz pytania o pogodę dostają prawdziwe dane.
-     *
-     * Wymaga klucza OpenWeatherMap i lokalizacji z ustawień; bez nich po prostu
-     * nic nie dokleja, zamiast wywracać odpowiedź.
-     */
-    /**
-     * Ostatnie wiadomości z powiadomień - gdy pytanie ich dotyczy albo przed
-     * chwilą jakąś przeczytaliśmy ("odpowiedz jej grzecznie, że...").
-     * Lokalne, bez sieci: nic nie dokłada do czasu odpowiedzi.
-     */
-    private fun buildMessagesContext(question: String, force: Boolean): String? {
-        if (!settings.isMessageReadingEnabled()) return null
-        val ostatnie = pl.victor.app.messages.MessageInbox.ostatnie(5)
-        val dotyczy = pl.victor.app.messages.MessagesPrompt.dotyczyWiadomości(question)
-        if (!openContextTopics.dokleić(
-                TOPIC_MESSAGES,
-                pytanieOTemat = dotyczy,
-                wymuszone = force && ostatnie.isNotEmpty()
-            )
-        ) {
-            return null
-        }
-        return pl.victor.app.messages.MessagesPrompt.dlaModelu(ostatnie)
-    }
-
-    /**
-     * Czyta nowe wiadomości w okularach - tylko w okularach (głośnik telefonu
-     * czytający cudze SMS-y na głos to nie jest funkcja, tylko wpadka) i
-     * tylko wtedy, gdy nikomu nie wchodzi w słowo.
-     */
-    private fun startMessageAnnouncements() {
-        scope.launch {
-            pl.victor.app.messages.MessageInbox.nowe.collect { m ->
-                bezpiecznie("ogłoszenie wiadomości") {
-                    if (!settings.isMessageReadingEnabled()) return@bezpiecznie
-                    if (!glassesManager.isConnected()) return@bezpiecznie
-                    val doKiedy = System.currentTimeMillis() + MESSAGE_WAIT_MS
-                    while (!ciszaWTle() && System.currentTimeMillis() < doKiedy) delay(MESSAGE_POLL_MS)
-                    if (!ciszaWTle()) {
-                        runCatching {
-                            diag.event(DiagFormat.Phase.MOWA, "wiadomość nieprzeczytana - cały czas zajęte",
-                                mapOf("od" to m.nadawca))
-                        }
-                        return@bezpiecznie
-                    }
-                    runCatching {
-                        diag.event(
-                            DiagFormat.Phase.MOWA, "czytam wiadomość",
-                            mapOf("aplikacja" to m.aplikacja, "odpowiedź" to m.możnaOdpowiedzieć)
-                        )
-                    }
-                    // Temat otwarty: "odpowiedz jej, że..." za chwilę dostanie
-                    // listę wiadomości, także przez model.
-                    openContextTopics.dokleić(TOPIC_MESSAGES, pytanieOTemat = true)
-                    audio.speakAndAwait(
-                        pl.victor.app.messages.MessagesPrompt.ogłoszenie(m, settings.isMessageContentRead()),
-                        language = settings.getResponseLanguage()
-                    )
-                }
-            }
-        }
+    /** Wiadomości z powiadomień - patrz [pl.victor.app.messages.MessageAnnouncer]. */
+    private val messages by lazy {
+        pl.victor.app.messages.MessageAnnouncer(
+            scope = scope,
+            settings = settings,
+            tematy = openContextTopics,
+            okulary = { glassesManager.isConnected() },
+            cisza = { ciszaWTle() },
+            mów = { tekst -> audio.speakAndAwait(tekst, language = settings.getResponseLanguage()) },
+            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.MOWA, co, pola) } },
+            bezpiecznie = { co, blok -> bezpiecznie(co, blok) }
+        )
     }
 
     /**
@@ -746,6 +691,17 @@ class AIOrchestrator(
             "poproś o nazwę miejsca albo ulicy - nie zgaduj miasta."
     }
 
+    /**
+     * Prognoza pogody jako kontekst dla modelu.
+     *
+     * Do tej pory pogoda żyła wyłącznie w alertach w tle: aplikacja sprawdzała
+     * ją co jakiś czas i wysyłała powiadomienie, gdy coś było nie tak. Zapytana
+     * wprost - "jaka jest pogoda?" - odpowiadała z pamięci modelu, czyli
+     * ZMYŚLAŁA. Teraz pytania o pogodę dostają prawdziwe dane.
+     *
+     * Wymaga klucza OpenWeatherMap i lokalizacji z ustawień; bez nich po prostu
+     * nic nie dokleja, zamiast wywracać odpowiedź.
+     */
     private suspend fun buildWeatherContext(question: String, force: Boolean = false): String? {
         // `force` obchodzi bramkę słów kluczowych - używa go briefing, który
         // ma zebrać wszystko, o co użytkownik poprosił w ustawieniach, a nie
@@ -1154,7 +1110,7 @@ class AIOrchestrator(
         }
 
         // Wiadomości z powiadomień - patrz pl.victor.app.messages.
-        startMessageAnnouncements()
+        messages.start()
 
         // Przypomnienia w miejscach przeżywają restart aplikacji - pilnowanie
         // wraca samo, jeśli jest czego pilnować.
@@ -1777,100 +1733,29 @@ class AIOrchestrator(
         )
     }
 
-    /**
-     * Przypomnienia w miejscach, zapis domu i pracy - warstwa 0, bez modelu.
-     *
-     * @return `true`, gdy zdanie było jedną z tych komend i zostało obsłużone
-     */
-    private fun handlePlaceReminderCommand(text: String): Boolean {
-        val logic = pl.victor.app.features.reminders.PlaceReminderLogic
-        val język = settings.getResponseLanguage()
-        logic.zapisDomuLubPracy(text)?.let { nazwa ->
-            scope.launch {
-                val pozycja = pl.victor.app.proactive.LocationContext.currentPosition(context)
-                val odp = if (pozycja == null) {
-                    "Nie znam teraz położenia - sprawdź, czy lokalizacja jest włączona."
-                } else {
-                    settings.savePlace(nazwa, pozycja.first, pozycja.second, System.currentTimeMillis())
-                    if (nazwa == logic.DOM) "Zapamiętałem, gdzie jest dom." else "Zapamiętałem, gdzie jest praca."
-                }
-                audio.speak(odp, language = język)
+    /** Komendy przypomnień w miejscach - patrz [pl.victor.app.features.reminders.PlaceReminderCommands]. */
+    private val placeReminderCommands by lazy {
+        pl.victor.app.features.reminders.PlaceReminderCommands(
+            context = context,
+            scope = scope,
+            settings = settings,
+            reminders = placeReminders,
+            odpowiedz = { odp ->
+                audio.speak(odp, language = settings.getResponseLanguage())
                 _state.value = OrchestratorState.Completed(odp)
             }
-            return true
-        }
-        logic.prośba(text)?.let { prośba ->
-            val r = placeReminders.dodaj(prośba)
-            val brakMiejsca = (r.cel as? pl.victor.app.features.reminders.Cel.Zapisane)
-                ?.takeIf { settings.getPlace(it.nazwa) == null }
-            val odp = logic.potwierdzenie(r) + if (brakMiejsca != null) {
-                val gdzie = if (brakMiejsca.nazwa == logic.DOM) "w domu, powiedz: tu jest mój dom" else "w pracy, powiedz: tu pracuję"
-                " Nie wiem jeszcze, gdzie to jest - gdy będziesz $gdzie."
-            } else {
-                ""
-            }
-            audio.speak(odp, language = język)
-            _state.value = OrchestratorState.Completed(odp)
-            return true
-        }
-        if (logic.czyLista(text)) {
-            val lista = placeReminders.lista.value
-            val odp = if (lista.isEmpty()) {
-                "Nie masz przypomnień związanych z miejscem."
-            } else {
-                "Przypomnienia: " + lista.joinToString(". ") { "${it.co} - przy: ${it.gdzie}" } + "."
-            }
-            audio.speak(odp, language = język)
-            _state.value = OrchestratorState.Completed(odp)
-            return true
-        }
-        if (logic.czyUsuńWszystkie(text)) {
-            placeReminders.usuńWszystkie()
-            audio.speak("Usunąłem przypomnienia związane z miejscem.", language = język)
-            _state.value = OrchestratorState.Completed("Usunięte")
-            return true
-        }
-        return false
+        )
     }
 
-    /** Tryb krok po kroku - patrz [pl.victor.app.features.StepMode]. */
-    val steps = pl.victor.app.features.StepMode()
-
-    /** Rozpisuje zadanie na kroki (model) i podaje pierwszy. */
-    private fun startSteps(zadanie: String) {
-        scope.launch {
-            val język = settings.getResponseLanguage()
-            audio.speak("Chwila, rozpisuję to na kroki.", language = język)
-            val odp = askModelPlain(pl.victor.app.features.StepLogic.polecenie(zadanie))
-            val kroki = odp?.let { pl.victor.app.features.StepLogic.kroki(it) }.orEmpty()
-            runCatching {
-                diag.event(DiagFormat.Phase.AKCJA, "krok po kroku: start", mapOf("kroków" to kroki.size))
-            }
-            if (kroki.isEmpty()) {
-                audio.speakAndAwait("Nie udało mi się rozpisać tego na kroki. Spróbuj zapytać inaczej.", language = język)
-                return@launch
-            }
-            steps.start(zadanie, kroki)
-            audio.speakAndAwait(
-                "Mam ${kroki.size} kroków. Klik - dalej, dwa kliki - pytanie, trzy - powtórz, cztery - koniec. " +
-                    steps.bieżący(),
-                language = język
-            )
-        }
-    }
-
-    /** Komenda trybu krok po kroku - z przycisku albo głosem. */
-    private fun stepCommand(k: pl.victor.app.features.StepLogic.Komenda) {
-        val tekst = when (k) {
-            pl.victor.app.features.StepLogic.Komenda.DALEJ -> steps.dalej()
-            pl.victor.app.features.StepLogic.Komenda.POWTÓRZ -> steps.bieżący()
-            pl.victor.app.features.StepLogic.Komenda.WSTECZ -> steps.wstecz()
-            pl.victor.app.features.StepLogic.Komenda.KONIEC -> {
-                steps.stop()
-                "Kończę instrukcję."
-            }
-        } ?: return
-        audio.speak(tekst, language = settings.getResponseLanguage())
+    /** Tryb krok po kroku - patrz [pl.victor.app.features.StepController]. */
+    val steps by lazy {
+        pl.victor.app.features.StepController(
+            scope = scope,
+            mów = { tekst -> audio.speak(tekst, language = settings.getResponseLanguage()) },
+            mówIczekaj = { tekst -> audio.speakAndAwait(tekst, language = settings.getResponseLanguage()) },
+            model = { polecenie -> askModelPlain(polecenie) },
+            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.AKCJA, co, pola) } }
+        )
     }
 
     /** Tryb przewodnika - patrz [pl.victor.app.features.GuideMode]. */
@@ -2934,6 +2819,10 @@ class AIOrchestrator(
                         "gotowyPoMs" to mic?.readyMs
                     )
                 )
+                // PYTANIE O KOD: strumień rusza JUŻ TERAZ, nie po przepisaniu
+                // nagrania i zebraniu kontekstów - podniesienie trwa 8-25 s
+                // i to jest największa pozycja w czasie takiej tury.
+                heard?.let { warmUpStreamForCode(it) }
                 // Mikrofon jest teraz wolny, a model dopiero myśli - pół
                 // sekundy pomiaru gwaru nie kosztuje czasu odpowiedzi.
                 if (settings.isNoiseAdaptiveVolume()) {
@@ -3620,7 +3509,7 @@ class AIOrchestrator(
             }
             if (k != null) {
                 glassesManager.stopGlassesListening()
-                stepCommand(k)
+                steps.komenda(k)
                 return
             }
             if (action == ButtonAction.LOOK_AND_DESCRIBE) {
@@ -4042,7 +3931,7 @@ class AIOrchestrator(
             // PRZYPOMNIENIA W MIEJSCACH ("przypomnij mi kupić mleko, gdy będę w
             // Biedronce") - przed pamięcią miejsca, bo "tu jest mój dom" to
             // też zapis miejsca, tyle że pod nazwą.
-            if (textIsQuestion && handlePlaceReminderCommand(textQuestion)) return
+            if (textIsQuestion && placeReminderCommands.obsłuż(textQuestion)) return
 
             if (textIsQuestion) {
                 pl.victor.app.memory.PlaceMemory.saveRequest(textQuestion)?.let { name ->
@@ -4295,7 +4184,7 @@ class AIOrchestrator(
                 // Warunek jest celowo wąski - tylko gdy strumień już chodzi.
                 // Podnoszenie go pod jedno pytanie kosztuje circa 12 s i o tym
                 // ma decydować tryb, a nie ta gałąź.
-                val streamFrame = if (useVision && glassesManager.isLiveVisionRunning) {
+                val streamFrame = if (useVision && glassesManager.isLiveVisionRunning && codeStreamWarmup == null) {
                     val wantsText = pl.victor.app.ai.VisionDetail.needsDetail(textQuestion)
                     glassesManager.liveFrame(detail = wantsText)?.also { frame ->
                         diag.event(
@@ -4718,7 +4607,7 @@ class AIOrchestrator(
                 // znika sam, gdy tura ma transkrypcję.
                 val audioTurn = audioQuestion != null
                 val notesContext = buildNotesContext(textQuestion, force = audioTurn)
-                val messagesContext = buildMessagesContext(textQuestion, force = audioTurn)
+                val messagesContext = messages.kontekst(textQuestion, wymuszone = audioTurn)
 
                 // Fakty o użytkowniku idą do modelu ZAWSZE, bez bramki słów
                 // kluczowych - inaczej asystent, który wie, jak masz na imię,
@@ -4852,7 +4741,7 @@ class AIOrchestrator(
                         append(messagesContext)
                         append("\n\n")
                     }
-                    steps.stan.value?.let { append(pl.victor.app.features.StepLogic.kontekst(it)).append("\n") }
+                    steps.kontekst()?.let { append(it).append("\n") }
                     if (notesContext != null) {
                         append(notesContext)
                         append("\n\n")
@@ -5662,15 +5551,7 @@ class AIOrchestrator(
         // Tryb przewodnika - lokalnie, bez modelu, z tego samego powodu co
         // tłumaczenie: zapytany o czynność model odpowiada na nią słowami.
         // KROK PO KROKU - start i sterowanie głosem.
-        if (steps.aktywny) {
-            pl.victor.app.features.StepLogic.komenda(text)?.let { k ->
-                stepCommand(k)
-                runCatching { diag.endTurn("krok po kroku") }
-                return true
-            }
-        }
-        pl.victor.app.features.StepLogic.prośba(text)?.let { zadanie ->
-            startSteps(zadanie)
+        if (steps.głosem(text)) {
             runCatching { diag.endTurn("krok po kroku") }
             return true
         }
@@ -6374,9 +6255,34 @@ class AIOrchestrator(
      * Strumień jest po wszystkim gaszony: podniesiony pod jedno pytanie i
      * zostawiony trzymałby łącze oraz baterię okularów bez powodu.
      */
+    /** Strumień podnoszony z wyprzedzeniem pod pytanie o kod - patrz [warmUpStreamForCode]. */
+    @Volatile
+    private var codeStreamWarmup: kotlinx.coroutines.Deferred<Boolean>? = null
+
+    /**
+     * Zaczyna podnosić strumień, gdy z samego nasłuchu wiadomo, że pytanie
+     * dotyczy kodu. Odbiera go [streamFrameForText] (i on go gasi); gdy tura
+     * po strumień nie sięgnie, gasimy go sami po [CODE_WARMUP_MAX_MS].
+     */
+    private fun warmUpStreamForCode(heard: String) {
+        if (!pl.victor.app.ai.VisionDetail.isAboutCode(heard)) return
+        if (codeStreamWarmup != null || glassesManager.isLiveVisionRunning) return
+        if (!glassesManager.isConnected()) return
+        val warm = scope.async { glassesManager.startLiveVision() }
+        codeStreamWarmup = warm
+        runCatching { diag.event(DiagFormat.Phase.ZDJĘCIE, "strumień pod kod rusza z wyprzedzeniem") }
+        scope.launch {
+            delay(CODE_WARMUP_MAX_MS)
+            if (codeStreamWarmup === warm) {
+                codeStreamWarmup = null
+                if (warm.await()) glassesManager.stopLiveVision()
+            }
+        }
+    }
+
     private suspend fun streamFrameForText(useVision: Boolean, textQuestion: String): ByteArray? {
         if (!useVision) return null
-        if (glassesManager.isLiveVisionRunning) return null
+        if (glassesManager.isLiveVisionRunning && codeStreamWarmup == null) return null
         // KOD IDZIE STRUMIENIEM OD RAZU, nie dopiero po zatrzaśniętym
         // bezpieczniku. Dziennik z biegu 152: pierwsza próba szła migawką -
         // miniatura bez kodu, potem 41 s nieudanego dołączania do sieci
@@ -6384,6 +6290,14 @@ class AIOrchestrator(
         // dziewięciu sekundach. Do kodu potrzeba pełnej rozdzielczości i kilku
         // szans (patrz [scanStreamForCode]), a migawka daje jedną miniaturę.
         val forCode = pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)
+        // Ostateczne pytanie jednak nie o kod - strumień z wyprzedzeniem
+        // gasimy od razu, żeby nie wisiał przy robieniu zdjęcia.
+        if (!forCode) {
+            codeStreamWarmup?.let { warm ->
+                codeStreamWarmup = null
+                scope.launch { if (warm.await()) glassesManager.stopLiveVision() }
+            }
+        }
         if (!glassesManager.wifiDirectKnownBroken && !forCode) return null
         // "co jest pod tym kodem kreskowym" łapie isAboutCode, ale nie
         // needsDetail - i w biegu 153 szło przez to migawką, z miniaturą.
@@ -6396,7 +6310,8 @@ class AIOrchestrator(
                 "Chwilę to potrwa."
         )
         val startedAt = System.currentTimeMillis()
-        if (!glassesManager.startLiveVision()) {
+        val warm = codeStreamWarmup?.also { codeStreamWarmup = null }
+        if (!(warm?.await() ?: glassesManager.startLiveVision())) {
             // POWÓD, NIE TYLKO CZAS. Pierwszy pomiar z terenu oddał samo
             // "nie wstał ms=1242" i trzeba było szukać przyczyny trzy wiersze
             // wyżej, w zdarzeniu z innej fazy. A przyczyna była jedna i
@@ -6778,11 +6693,6 @@ class AIOrchestrator(
         private const val TOPIC_MAIL = "poczta"
         private const val TOPIC_NOTES = "notatki"
         private const val TOPIC_LOCATION = "położenie"
-        private const val TOPIC_MESSAGES = "wiadomości"
-
-        /** Ile wiadomość może czekać, aż skończy się tura albo inna wypowiedź. */
-        private const val MESSAGE_WAIT_MS = 2 * 60_000L
-        private const val MESSAGE_POLL_MS = 500L
 
         /**
          * Wspólny prompt systemowy dla trybów dostępności.
@@ -6887,6 +6797,9 @@ class AIOrchestrator(
 
         /** Jak często pętla tłumaczenia sprawdza, czy skończyła się Twoja kolej. */
         private const val EAR_TURN_POLL_MS = 200L
+
+        /** Po tylu ms nieodebrany strumień z wyprzedzeniem gaśnie - patrz [warmUpStreamForCode]. */
+        private const val CODE_WARMUP_MAX_MS = 75_000L
 
         /** Jak długo skanować strumień w poszukiwaniu kodu - patrz [scanStreamForCode]. */
         private const val CODE_STREAM_SCAN_MS = 6_000L

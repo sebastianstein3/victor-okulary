@@ -1081,8 +1081,9 @@ private fun AIOptionsSection(
                             "ośmiu razy więcej niż sama odpowiedź - zmierzone na " +
                             "Twoich turach. Wyłączenie myślenia wyraźnie tnie " +
                             "rachunek, ale POGARSZA rozumowanie przy trudniejszych " +
-                            "pytaniach. Gdy API nie przyjmie tej prośby, aplikacja " +
-                            "sama wróci do zwykłego trybu.",
+                            "pytaniach. Gemini 3 nie da się wyłączyć myślenia - " +
+                            "dostaje wtedy najniższy poziom. Gdy API nie przyjmie " +
+                            "tej prośby, aplikacja sama wróci do zwykłego trybu.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

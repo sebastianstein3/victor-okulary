@@ -158,7 +158,11 @@ class GeminiProvider(
             putJsonObject("generationConfig") {
                 put("maxOutputTokens", MAX_OUTPUT_TOKENS)
                 if (sendThinkingLimit()) {
-                    putJsonObject("thinkingConfig") { put("thinkingBudget", 0) }
+                    val prośba = ThinkingLimit.dla(model)
+                    putJsonObject("thinkingConfig") {
+                        prośba.budżet?.let { put("thinkingBudget", it) }
+                        prośba.poziom?.let { put("thinkingLevel", it) }
+                    }
                 }
             }
         }
@@ -457,7 +461,7 @@ class GeminiProvider(
     private fun generationConfig(): GeminiGenerationConfig = GeminiGenerationConfig(
         maxOutputTokens = MAX_OUTPUT_TOKENS,
         thinkingConfig = if (sendThinkingLimit()) {
-            GeminiThinkingConfig(thinkingBudget = 0)
+            ThinkingLimit.dla(model).let { GeminiThinkingConfig(thinkingBudget = it.budżet, thinkingLevel = it.poziom) }
         } else {
             null
         }
@@ -896,7 +900,9 @@ private class RepairedRequestRetry : Exception("Powtórka bez odrzuconej częśc
  */
 @Serializable
 data class GeminiThinkingConfig(
-    val thinkingBudget: Int? = null
+    val thinkingBudget: Int? = null,
+    /** Dla rodziny 3.x - patrz [ThinkingLimit]. */
+    val thinkingLevel: String? = null
 )
 
 @Serializable
