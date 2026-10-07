@@ -63,6 +63,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <!-- Pobieranie modelu lokalnego (~560MB) w tle - patrz LocalModelDownloadService. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
@@ -293,7 +294,7 @@
         <service
             android:name=".ble.VictorForegroundService"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice|microphone" />
+            android:foregroundServiceType="connectedDevice|microphone|location" />
 
         <!-- Czytanie wiadomości z komunikatorów i odpowiadanie głosem. System
              uruchamia ją dopiero po zgodzie "Dostęp do powiadomień" (Ustawienia

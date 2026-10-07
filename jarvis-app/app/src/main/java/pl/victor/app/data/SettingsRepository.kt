@@ -313,6 +313,13 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_EAR_TRANSLATION_SPOKEN, spoken).apply()
     }
 
+    /** Głośniej w hałasie - patrz [pl.victor.app.audio.AmbientNoise]. */
+    fun isNoiseAdaptiveVolume(): Boolean = prefs.getBoolean(KEY_NOISE_VOLUME, true)
+
+    fun setNoiseAdaptiveVolume(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_NOISE_VOLUME, enabled).apply()
+    }
+
     // === Wiadomości z powiadomień (czytanie i odpowiadanie głosem) ===
 
     /** Czytać przychodzące wiadomości w okularach - domyślnie WYŁĄCZONE (prywatność). */
@@ -1205,6 +1212,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_FROM = "ear_translation_from"
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
+        private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"
         private const val KEY_MESSAGES_READ = "messages_read"
         private const val KEY_MESSAGES_CONTENT = "messages_content"
         private const val KEY_MESSAGES_CONFIRM = "messages_confirm"

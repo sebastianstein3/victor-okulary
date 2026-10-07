@@ -1156,6 +1156,11 @@ class AIOrchestrator(
         // Wiadomości z powiadomień - patrz pl.victor.app.messages.
         startMessageAnnouncements()
 
+        // Przypomnienia w miejscach przeżywają restart aplikacji - pilnowanie
+        // wraca samo, jeśli jest czego pilnować.
+        scope.launch { placeReminders.pilnuj() }
+        audio.noiseAdaptiveVolume = settings.isNoiseAdaptiveVolume()
+
         // === ROZŁĄCZENIE MA BYĆ SŁYSZALNE ===
         //
         // VictorManager radzi sobie z zerwanym łączem sam: wznawia je w
@@ -1757,6 +1762,115 @@ class AIOrchestrator(
                 language = settings.getResponseLanguage()
             )
         }
+    }
+
+    /** Przypomnienia związane z miejscem - patrz [pl.victor.app.features.reminders.PlaceReminders]. */
+    val placeReminders by lazy {
+        pl.victor.app.features.reminders.PlaceReminders(
+            context = context,
+            scope = scope,
+            mów = { tekst -> audio.speakAndAwait(tekst, language = settings.getResponseLanguage()) },
+            wolno = { ciszaWTle() },
+            okulary = { glassesManager.isConnected() },
+            miejsce = { nazwa -> settings.getPlace(nazwa) },
+            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.KONTEKST, co, pola) } }
+        )
+    }
+
+    /**
+     * Przypomnienia w miejscach, zapis domu i pracy - warstwa 0, bez modelu.
+     *
+     * @return `true`, gdy zdanie było jedną z tych komend i zostało obsłużone
+     */
+    private fun handlePlaceReminderCommand(text: String): Boolean {
+        val logic = pl.victor.app.features.reminders.PlaceReminderLogic
+        val język = settings.getResponseLanguage()
+        logic.zapisDomuLubPracy(text)?.let { nazwa ->
+            scope.launch {
+                val pozycja = pl.victor.app.proactive.LocationContext.currentPosition(context)
+                val odp = if (pozycja == null) {
+                    "Nie znam teraz położenia - sprawdź, czy lokalizacja jest włączona."
+                } else {
+                    settings.savePlace(nazwa, pozycja.first, pozycja.second, System.currentTimeMillis())
+                    if (nazwa == logic.DOM) "Zapamiętałem, gdzie jest dom." else "Zapamiętałem, gdzie jest praca."
+                }
+                audio.speak(odp, language = język)
+                _state.value = OrchestratorState.Completed(odp)
+            }
+            return true
+        }
+        logic.prośba(text)?.let { prośba ->
+            val r = placeReminders.dodaj(prośba)
+            val brakMiejsca = (r.cel as? pl.victor.app.features.reminders.Cel.Zapisane)
+                ?.takeIf { settings.getPlace(it.nazwa) == null }
+            val odp = logic.potwierdzenie(r) + if (brakMiejsca != null) {
+                val gdzie = if (brakMiejsca.nazwa == logic.DOM) "w domu, powiedz: tu jest mój dom" else "w pracy, powiedz: tu pracuję"
+                " Nie wiem jeszcze, gdzie to jest - gdy będziesz $gdzie."
+            } else {
+                ""
+            }
+            audio.speak(odp, language = język)
+            _state.value = OrchestratorState.Completed(odp)
+            return true
+        }
+        if (logic.czyLista(text)) {
+            val lista = placeReminders.lista.value
+            val odp = if (lista.isEmpty()) {
+                "Nie masz przypomnień związanych z miejscem."
+            } else {
+                "Przypomnienia: " + lista.joinToString(". ") { "${it.co} - przy: ${it.gdzie}" } + "."
+            }
+            audio.speak(odp, language = język)
+            _state.value = OrchestratorState.Completed(odp)
+            return true
+        }
+        if (logic.czyUsuńWszystkie(text)) {
+            placeReminders.usuńWszystkie()
+            audio.speak("Usunąłem przypomnienia związane z miejscem.", language = język)
+            _state.value = OrchestratorState.Completed("Usunięte")
+            return true
+        }
+        return false
+    }
+
+    /** Tryb krok po kroku - patrz [pl.victor.app.features.StepMode]. */
+    val steps = pl.victor.app.features.StepMode()
+
+    /** Rozpisuje zadanie na kroki (model) i podaje pierwszy. */
+    private fun startSteps(zadanie: String) {
+        scope.launch {
+            val język = settings.getResponseLanguage()
+            audio.speak("Chwila, rozpisuję to na kroki.", language = język)
+            val odp = askModelPlain(pl.victor.app.features.StepLogic.polecenie(zadanie))
+            val kroki = odp?.let { pl.victor.app.features.StepLogic.kroki(it) }.orEmpty()
+            runCatching {
+                diag.event(DiagFormat.Phase.AKCJA, "krok po kroku: start", mapOf("kroków" to kroki.size))
+            }
+            if (kroki.isEmpty()) {
+                audio.speakAndAwait("Nie udało mi się rozpisać tego na kroki. Spróbuj zapytać inaczej.", language = język)
+                return@launch
+            }
+            steps.start(zadanie, kroki)
+            audio.speakAndAwait(
+                "Mam ${kroki.size} kroków. Klik - dalej, dwa kliki - pytanie, trzy - powtórz, cztery - koniec. " +
+                    steps.bieżący(),
+                language = język
+            )
+        }
+    }
+
+    /** Komenda trybu krok po kroku - z przycisku albo głosem. */
+    private fun stepCommand(k: pl.victor.app.features.StepLogic.Komenda) {
+        val tekst = when (k) {
+            pl.victor.app.features.StepLogic.Komenda.DALEJ -> steps.dalej()
+            pl.victor.app.features.StepLogic.Komenda.POWTÓRZ -> steps.bieżący()
+            pl.victor.app.features.StepLogic.Komenda.WSTECZ -> steps.wstecz()
+            pl.victor.app.features.StepLogic.Komenda.KONIEC -> {
+                steps.stop()
+                "Kończę instrukcję."
+            }
+        } ?: return
+        audio.speak(tekst, language = settings.getResponseLanguage())
     }
 
     /** Tryb przewodnika - patrz [pl.victor.app.features.GuideMode]. */
@@ -2820,6 +2934,14 @@ class AIOrchestrator(
                         "gotowyPoMs" to mic?.readyMs
                     )
                 )
+                // Mikrofon jest teraz wolny, a model dopiero myśli - pół
+                // sekundy pomiaru gwaru nie kosztuje czasu odpowiedzi.
+                if (settings.isNoiseAdaptiveVolume()) {
+                    scope.launch {
+                        val db = audio.ambientNoise.zmierz()
+                        runCatching { diag.event(DiagFormat.Phase.AUDIO, "hałas wokół", mapOf("tłoDb" to db?.toInt())) }
+                    }
+                }
                 Log.i(TAG, "Nasłuch trwał ${System.currentTimeMillis() - listenStartedAtMs} ms")
                 _state.value = OrchestratorState.Idle
                 // Okulary nadają, dopóki im się tego nie zabroni - i to była
@@ -3485,6 +3607,28 @@ class AIOrchestrator(
         // drugą, równoległą turę pytania, która biła się z pętlą o mikrofon.
         // Każdy gest - jedno, dwa, trzy kliknięcia, także "Hey Lens", który
         // przychodzi tą samą ramką - kończy więc tryb i nic więcej nie robi.
+        // KROK PO KROKU: 1 klik dalej, 2 pytanie (zwykła tura z krokami w
+        // kontekście), 3 powtórz, 4 koniec. Klik włącza okulary w nasłuch -
+        // przy "dalej" i "powtórz" od razu go kończymy, inaczej wybudzenie z
+        // dźwięku odpaliłoby turę z przypadkowym pytaniem.
+        if (steps.aktywny && !_earTranslation.value) {
+            val k = when (action) {
+                ButtonAction.QUICK_QUESTION -> pl.victor.app.features.StepLogic.Komenda.DALEJ
+                ButtonAction.READ_AND_TRANSLATE -> pl.victor.app.features.StepLogic.Komenda.POWTÓRZ
+                ButtonAction.NEW_CONVERSATION -> pl.victor.app.features.StepLogic.Komenda.KONIEC
+                else -> null
+            }
+            if (k != null) {
+                glassesManager.stopGlassesListening()
+                stepCommand(k)
+                return
+            }
+            if (action == ButtonAction.LOOK_AND_DESCRIBE) {
+                startVoiceTurn(fromGlasses = true)
+                return
+            }
+        }
+
         // W ROZMOWIE W DWIE STRONY pojedyncze kliknięcie oddaje głos Tobie;
         // kończy ją każdy inny gest (dwa, trzy kliknięcia, przytrzymanie).
         if (_earTranslation.value && _earTwoWay.value && action == ButtonAction.QUICK_QUESTION) {
@@ -3895,6 +4039,11 @@ class AIOrchestrator(
             // nie ma skąd znać współrzędnych sprzed godziny. Zapamiętanie musi
             // przy tym kosztować jedno zdanie w chwili odchodzenia, więc nie
             // może czekać na obieg przez sieć.
+            // PRZYPOMNIENIA W MIEJSCACH ("przypomnij mi kupić mleko, gdy będę w
+            // Biedronce") - przed pamięcią miejsca, bo "tu jest mój dom" to
+            // też zapis miejsca, tyle że pod nazwą.
+            if (textIsQuestion && handlePlaceReminderCommand(textQuestion)) return
+
             if (textIsQuestion) {
                 pl.victor.app.memory.PlaceMemory.saveRequest(textQuestion)?.let { name ->
                     handlePlaceSave(name)
@@ -4703,6 +4852,7 @@ class AIOrchestrator(
                         append(messagesContext)
                         append("\n\n")
                     }
+                    steps.stan.value?.let { append(pl.victor.app.features.StepLogic.kontekst(it)).append("\n") }
                     if (notesContext != null) {
                         append(notesContext)
                         append("\n\n")
@@ -5511,6 +5661,20 @@ class AIOrchestrator(
         // na tekście usłyszanym już po włączeniu.
         // Tryb przewodnika - lokalnie, bez modelu, z tego samego powodu co
         // tłumaczenie: zapytany o czynność model odpowiada na nią słowami.
+        // KROK PO KROKU - start i sterowanie głosem.
+        if (steps.aktywny) {
+            pl.victor.app.features.StepLogic.komenda(text)?.let { k ->
+                stepCommand(k)
+                runCatching { diag.endTurn("krok po kroku") }
+                return true
+            }
+        }
+        pl.victor.app.features.StepLogic.prośba(text)?.let { zadanie ->
+            startSteps(zadanie)
+            runCatching { diag.endTurn("krok po kroku") }
+            return true
+        }
+
         pl.victor.app.conversation.MetaCommands.meetingCommand(text)?.let { zacznij ->
             if (zacznij) startMeeting() else if (meeting.nagrywa) {
                 stopMeeting()

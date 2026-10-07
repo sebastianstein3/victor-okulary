@@ -99,6 +99,74 @@ class AudioManager(
     init {
         initializeTts()
         setupAudioFocus()
+        // Podbitą na gwar głośność oddajemy dopiero po chwili ciszy - między
+        // zdaniami jednej odpowiedzi silnik na moment przestaje mówić i bez
+        // zwłoki głośność skakałaby w górę i w dół co zdanie.
+        scope.launch {
+            _speaking.collect { mówi ->
+                if (mówi) {
+                    restoreJob?.cancel()
+                } else if (podbicie != null) {
+                    restoreJob?.cancel()
+                    restoreJob = scope.launch {
+                        kotlinx.coroutines.delay(RESTORE_AFTER_MS)
+                        przywróćGłośność()
+                    }
+                }
+            }
+        }
+    }
+
+    // === Głośność wg hałasu ===
+
+    /** Pomiar hałasu - patrz [AmbientNoise]. */
+    val ambientNoise = AmbientNoise(context)
+
+    /** Ustawiane przez orkiestrator z ustawień. */
+    @Volatile
+    var noiseAdaptiveVolume: Boolean = true
+
+    private data class Podbicie(val stream: Int, val było: Int, val ustawione: Int)
+
+    @Volatile
+    private var podbicie: Podbicie? = null
+    private var restoreJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Przed wypowiedzią: w gwarze podnosi głośność strumienia, którym pójdzie
+     * mowa. Nigdy nie ścisza - w zwykłym otoczeniu zostaje to, co ustawił
+     * użytkownik (patrz [NoiseLogic.dodatek]).
+     */
+    private fun podbijGłośnośćWgHałasu() {
+        restoreJob?.cancel()
+        if (!noiseAdaptiveVolume || podbicie != null) return
+        val dodatek = NoiseLogic.dodatek(ambientNoise.aktualnyDb())
+        if (dodatek <= 0f) return
+        val stream = if (bluetoothRouter.isRoutedToBluetooth.value) {
+            android.media.AudioManager.STREAM_VOICE_CALL
+        } else {
+            android.media.AudioManager.STREAM_MUSIC
+        }
+        runCatching {
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            val obecna = am.getStreamVolume(stream)
+            val cel = NoiseLogic.cel(obecna, am.getStreamMaxVolume(stream), dodatek)
+            if (cel > obecna) {
+                am.setStreamVolume(stream, cel, 0)
+                podbicie = Podbicie(stream, obecna, cel)
+                Log.d(tag, "Gwar (${ambientNoise.aktualnyDb()?.toInt()} dB) - głośność $obecna -> $cel")
+            }
+        }.onFailure { Log.w(tag, "Nie udało się podnieść głośności", it) }
+    }
+
+    private fun przywróćGłośność() {
+        val p = podbicie ?: return
+        podbicie = null
+        runCatching {
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            // Użytkownik ruszył głośność w trakcie - jego wybór wygrywa.
+            if (am.getStreamVolume(p.stream) == p.ustawione) am.setStreamVolume(p.stream, p.było, 0)
+        }
     }
 
     /**
@@ -591,6 +659,7 @@ class AudioManager(
         // idzie przez okulary, dźwięk musi mieć USAGE_VOICE_COMMUNICATION,
         // inaczej nie wejdzie w łącze SCO i okulary po prostu milczą.
         runCatching { tts?.setAudioAttributes(bluetoothRouter.ttsAudioAttributes()) }
+        podbijGłośnośćWgHałasu()
 
         val id = utteranceId ?: "victor-${utteranceCounter.incrementAndGet()}"
 
@@ -1192,6 +1261,9 @@ class AudioManager(
     }
 
     companion object {
+        /** Po tylu ms ciszy głośność podbita na gwar wraca do ustawionej. */
+        private const val RESTORE_AFTER_MS = 2_500L
+
         /** Głośność sygnału "teraz mów" w skali ToneGenerator (0-100). */
         private const val CUE_VOLUME = 70
 

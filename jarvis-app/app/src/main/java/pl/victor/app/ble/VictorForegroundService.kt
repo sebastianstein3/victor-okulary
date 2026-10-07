@@ -69,11 +69,17 @@ class VictorForegroundService : Service() {
             // życia usługi - a wystarczy, że użytkownik wróci do aplikacji.
             // Nieudana próba nie rusza stanu: system rzuca wyjątkiem, zanim
             // cokolwiek zmieni, więc usługa zostaje na pierwszym planie jak była.
-            if (!microphoneClaimed) startInForeground(reason, withMicrophone = true)
+            if (!microphoneClaimed) {
+                startInForeground(reason, withMicrophone = true, withLocation = true) ||
+                    startInForeground(reason, withMicrophone = true, withLocation = false)
+            }
             return START_STICKY
         }
-        if (!startInForeground(reason, withMicrophone = true) &&
-            !startInForeground(reason, withMicrophone = false)
+        // Kolejność: z mikrofonem i lokalizacją, z samym mikrofonem, bez obu.
+        // Odmowa lokalizacji (brak zgody) nie może odebrać mikrofonu.
+        if (!startInForeground(reason, withMicrophone = true, withLocation = true) &&
+            !startInForeground(reason, withMicrophone = true, withLocation = false) &&
+            !startInForeground(reason, withMicrophone = false, withLocation = false)
         ) {
             // Obie drogi odmówiły - to ograniczenie systemowe (brak wyjątku na start
             // usługi z tła), nie błąd aplikacji. Kończymy po cichu zamiast wywracać
@@ -91,14 +97,21 @@ class VictorForegroundService : Service() {
      *   frazy przy zgaszonym ekranie, ale możliwy do wzięcia tylko z wierzchu)
      * @return czy się udało
      */
-    private fun startInForeground(reason: String, withMicrophone: Boolean): Boolean {
+    private fun startInForeground(
+        reason: String,
+        withMicrophone: Boolean,
+        withLocation: Boolean = false
+    ): Boolean {
         if (withMicrophone && !canClaimMicrophone()) return false
-        val type = if (withMicrophone) {
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-        } else {
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-        }
+        // LOKALIZACJA W TLE. Bez typu `location` Android uznaje odczyt położenia
+        // przy zablokowanym telefonie za dostęp w tle i go odmawia - przewodnik,
+        // przypomnienia w miejscach i pogoda "tam, gdzie jesteś" działałyby
+        // tylko z włączonym ekranem. Bierzemy go tylko przy zgodzie na
+        // lokalizację; bez niej system rzuciłby wyjątkiem.
+        if (withLocation && !hasLocationPermission()) return false
+        var type = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+        if (withMicrophone) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+        if (withLocation) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
         return try {
             // Wprost API platformy, nie ServiceCompat: trzyargumentowe
             // startForeground istnieje od Androida 10, a niżej typu i tak się nie
@@ -110,7 +123,7 @@ class VictorForegroundService : Service() {
             }
             foregroundStarted = true
             microphoneClaimed = withMicrophone
-            Log.i(TAG, "Usługa na pierwszym planie, mikrofon: $withMicrophone")
+            Log.i(TAG, "Usługa na pierwszym planie, mikrofon: $withMicrophone, lokalizacja: $withLocation")
             true
         } catch (e: Exception) {
             // Android 12+ potrafi odmówić startu z tła, a Android 14+ osobno odmawia
@@ -129,6 +142,12 @@ class VictorForegroundService : Service() {
      * tu do tego, czy ekran jest odblokowany: usługa startuje z aplikacji, więc gdy
      * użytkownik ją widzi, warunek jest spełniony.
      */
+    private fun hasLocationPermission(): Boolean =
+        checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
     private fun canClaimMicrophone(): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
         return runCatching {

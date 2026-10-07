@@ -277,6 +277,8 @@ fun SettingsScreen(
                 )
                 VoiceInstallGuideSection()
                 HorizontalDivider()
+                NoiseVolumeSection()
+                HorizontalDivider()
                 SpeechSection()
             }
 
