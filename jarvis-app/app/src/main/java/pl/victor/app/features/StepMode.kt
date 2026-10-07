@@ -61,8 +61,18 @@ object StepLogic {
     /** "Krok po kroku: jak upiec chleb" -> "jak upiec chleb". */
     fun prośba(tekst: String): String? {
         val t = tekst.trim().trimEnd('.', '?', '!')
-        return START.matchEntire(t)?.groups?.get("co")?.value?.trim()?.takeIf { it.length >= 3 }
+        // "krok po kroku" w dowolnym miejscu zdania - bieg 160: "powiedz mi
+        // krok po kroku jak ugotować jajko" poszło do modelu jak zwykłe pytanie.
+        val m = KROK_PO_KROKU.find(t) ?: return null
+        val reszta = (t.substring(0, m.range.first) + " " + t.substring(m.range.last + 1))
+            .replace(Regex("""\s+"""), " ").trim().trim(',', ':').trim()
+        val zadanie = WSTĘP.replace(reszta, "").trim().trim(',', ':').trim()
+        return zadanie.takeIf { it.length >= 3 }
     }
+
+    /** Samo "krok po kroku" bez zadania - trzeba dopytać, co rozpisać. */
+    fun samoHasło(tekst: String): Boolean =
+        SAMO.matches(tekst.lowercase().trim().trimEnd('.', '?', '!'))
 
     fun komenda(tekst: String): Komenda? {
         val t = tekst.lowercase().trim().trimEnd('.', '!', '?')
@@ -106,12 +116,15 @@ object StepLogic {
 
     const val MAKS_KROKÓW = 15
 
-    private val START = Regex(
-        """^(?:(?:prowad[zź]\s+mnie|poprowad[zź]\s+mnie|tryb|instrukcja|w[lł][aą]cz\s+tryb)\s+)?""" +
-            """krok\s+po\s+kroku[:,]?\s+(?:przez\s+|jak\s+)?(?<co>.+)$""",
+    private val KROK_PO_KROKU = Regex("""(?:w\s+)?(?:trybie\s+)?krok\s+po\s+kroku""", RegexOption.IGNORE_CASE)
+    private val WSTĘP = Regex(
+        """^(?:(?:a\s+)?(?:teraz\s+)?(?:powiedz|wyt[lł]umacz|poka[zż]|opisz|rozpisz|daj|podaj|prowad[zź]|poprowad[zź]|""" +
+            """przeprowad[zź]|wyja[sś]nij|instrukcja|tryb|w[lł][aą]cz\s+tryb)(?:\s+(?:mi|mnie))?""" +
+            """(?:\s+(?:instrukcj[eęa]|przez|o))?[\s,:]+)+""",
         RegexOption.IGNORE_CASE
     )
     private val NUMER = Regex("""^(?:\d{1,2}[.)]|[-•])\s*(?<tresc>.+)$""")
+    private val SAMO = Regex("""^(?:(?:w[lł][aą]cz\s+)?tryb\s+)?krok\s+po\s+kroku$""")
     private val DALEJ = Regex("""^(dalej|nast[eę]pny(\s+krok)?|kolejny(\s+krok)?|zrobione|gotowe|ok\s+dalej)$""")
     private val POWTÓRZ = Regex("""^(powt[oó]rz(\s+krok)?|jeszcze\s+raz|co\s+teraz)$""")
     private val WSTECZ = Regex("""^(wr[oó][cć]|wstecz|poprzedni(\s+krok)?|cofnij)$""")

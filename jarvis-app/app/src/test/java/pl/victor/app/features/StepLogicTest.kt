@@ -9,7 +9,12 @@ class StepLogicTest {
 
     @Test
     fun `prosba i komendy`() {
-        assertEquals("upiec chleb", StepLogic.prośba("Krok po kroku: jak upiec chleb"))
+        assertEquals("jak upiec chleb", StepLogic.prośba("Krok po kroku: jak upiec chleb"))
+        // Bieg 160 - tak to naprawdę zostało powiedziane.
+        assertEquals("jak ugotować jajko na miękko", StepLogic.prośba("powiedz mi krok po kroku jak ugotować jajko na miękko"))
+        assertEquals("jak zmienić koło", StepLogic.prośba("jak zmienić koło krok po kroku"))
+        assertNull(StepLogic.prośba("krok po kroku"))
+        assertTrue(StepLogic.samoHasło("Krok po kroku."))
         assertEquals("składanie szafki z Ikei", StepLogic.prośba("prowadź mnie krok po kroku przez składanie szafki z Ikei"))
         assertNull(StepLogic.prośba("opowiedz mi o krokach milowych"))
         assertEquals(StepLogic.Komenda.DALEJ, StepLogic.komenda("Dalej."))

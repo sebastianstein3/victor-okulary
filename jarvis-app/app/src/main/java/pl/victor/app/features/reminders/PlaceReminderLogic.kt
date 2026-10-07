@@ -12,13 +12,18 @@ import kotlin.math.sqrt
  *
  * @param gdzie jak użytkownik nazwał miejsce ("Biedronce", "domu")
  * @param cel do czego je dopasowujemy - patrz [Cel]
+ * @param odMs nie wcześniej niż ("jutro po 16:00"); 0 = od razu
+ * @param czekaNaWyjście "gdy WRÓCĘ do domu" powiedziane w domu nie może wypaść
+ *   za dwie minuty - najpierw trzeba z tego miejsca wyjść
  */
 data class PlaceReminder(
     val id: Long,
     val co: String,
     val gdzie: String,
     val cel: Cel,
-    val utworzoneMs: Long
+    val utworzoneMs: Long,
+    val odMs: Long = 0L,
+    val czekaNaWyjście: Boolean = false
 )
 
 /**
@@ -37,29 +42,74 @@ sealed class Cel {
 
 object PlaceReminderLogic {
 
-    data class Prośba(val co: String, val gdzie: String)
+    data class Prośba(val co: String, val gdzie: String, val odMs: Long = 0L)
 
     /**
-     * Rozpoznaje prośbę w obu szykach:
-     * "przypomnij mi kupić mleko, gdy będę w Biedronce" i
-     * "gdy będę w aptece, przypomnij mi o lekach".
+     * Rozpoznaje prośbę w trzech szykach:
+     * "przypomnij mi kupić mleko, gdy będę w Biedronce",
+     * "gdy będę w aptece, przypomnij mi o lekach" i
+     * "przypomnij mi, gdy wrócę do domu, żebym wyniósł śmieci".
+     * Czas ("jutro", "po 16:00") jest wycinany i trafia do [Prośba.odMs].
      */
-    fun prośba(tekst: String): Prośba? {
-        val t = tekst.trim().trimEnd('.', '!').replace(Regex("""\s+"""), " ")
+    fun prośba(tekst: String, teraz: java.time.ZonedDateTime = java.time.ZonedDateTime.now()): Prośba? {
+        val surowy = tekst.trim().trimEnd('.', '!').replace(Regex("""\s+"""), " ")
+        if (!surowy.lowercase().startsWith("przypomnij") && !GDZIE_NA_POCZĄTKU.containsMatchIn(surowy)) return null
+        val (t, odMs) = wytnijCzas(surowy, teraz)
+        PRZYPOMNIJ_GDZIE_POTEM_CO.matchEntire(t)?.let { m ->
+            return zbuduj(m.groups["co"]!!.value, m.groups["gdzie"]!!.value, odMs)
+        }
         PRZYPOMNIJ_POTEM_GDZIE.matchEntire(t)?.let { m ->
-            return zbuduj(m.groups["co"]!!.value, m.groups["gdzie"]!!.value)
+            return zbuduj(m.groups["co"]!!.value, m.groups["gdzie"]!!.value, odMs)
         }
         GDZIE_POTEM_PRZYPOMNIJ.matchEntire(t)?.let { m ->
-            return zbuduj(m.groups["co"]!!.value, m.groups["gdzie"]!!.value)
+            return zbuduj(m.groups["co"]!!.value, m.groups["gdzie"]!!.value, odMs)
         }
         return null
     }
 
-    private fun zbuduj(co: String, gdzie: String): Prośba? {
-        val c = co.trim().trim(',').removePrefix("o ").removePrefix("żeby ").removePrefix("że ").trim()
+    /**
+     * "jutro", "pojutrze", "dziś" i "po/od/około 16(:30)" - wycina z tekstu i
+     * zamienia na chwilę, od której przypomnienie może wypaść.
+     */
+    fun wytnijCzas(tekst: String, teraz: java.time.ZonedDateTime): Pair<String, Long> {
+        var t = tekst
+        var dni: Long? = null
+        DZIEŃ.find(t)?.let { m ->
+            dni = when (m.value.lowercase()) {
+                "pojutrze" -> 2L
+                "jutro" -> 1L
+                else -> 0L
+            }
+            t = t.removeRange(m.range)
+        }
+        var godzina: Pair<Int, Int>? = null
+        GODZINA.find(t)?.let { m ->
+            val h = m.groupValues[1].toInt()
+            val min = m.groupValues[2].ifEmpty { "0" }.toInt()
+            if (h in 0..23 && min in 0..59) {
+                godzina = h to min
+                t = t.removeRange(m.range)
+            }
+        }
+        t = t.replace(Regex("""\s+"""), " ").replace(" ,", ",").trim().trim(',').trim()
+        if (dni == null && godzina == null) return t to 0L
+        val dzień = teraz.toLocalDate().plusDays(dni ?: 0L)
+        val (h, min) = godzina ?: (0 to 0)
+        val od = dzień.atTime(h, min).atZone(teraz.zone).toInstant().toEpochMilli()
+        return t to od
+    }
+
+    private fun zbuduj(co: String, gdzie: String, odMs: Long): Prośba? {
+        var c = co.trim().trim(',').trim()
+        // "żebym kupił mleko" -> "żebyś kupił mleko": przypomnienie mówi do
+        // użytkownika, a forma czasownika zostaje ta sama.
+        Regex("""^(?:[zż]ebym|abym)(?!\p{L})""", RegexOption.IGNORE_CASE).find(c)?.let { m ->
+            c = (if (m.value.lowercase().startsWith("a")) "abyś" else "żebyś") + c.substring(m.range.last + 1)
+        }
+        c = c.removePrefix("o ").removePrefix("żeby ").removePrefix("że ").trim()
         val g = gdzie.trim().trim(',').trim()
         if (c.isEmpty() || g.isEmpty()) return null
-        return Prośba(c, g)
+        return Prośba(c, g, odMs)
     }
 
     /** Do czego dopasować miejsce z prośby. */
@@ -83,9 +133,14 @@ object PlaceReminderLogic {
         return s.dropLast(k.length)
     }
 
-    /** "Tu jest mój dom" / "tu pracuję" - zapis domu albo pracy. */
+    /**
+     * "Tu jest mój dom" / "tu pracuję" - zapis domu albo pracy. Także "w tym
+     * miejscu jest mój dom" i "zapisz, że ta lokalizacja to mój dom" - bieg
+     * 160, tak to naprawdę zostało powiedziane.
+     */
     fun zapisDomuLubPracy(tekst: String): String? {
         val t = tekst.lowercase().trim().trimEnd('.', '!')
+            .replace(Regex("""^(?:zapami[eę]taj|zapisz|pami[eę]taj)(?:\s+sobie)?,?\s+(?:[zż]e\s+)?"""), "")
         return when {
             ZAPIS_DOMU.matches(t) -> DOM
             ZAPIS_PRACY.matches(t) -> PRACA
@@ -141,12 +196,24 @@ object PlaceReminderLogic {
     /** Co powiedzieć, gdy przypomnienie wypada. */
     fun komunikat(r: PlaceReminder, nazwaMiejsca: String?): String {
         val gdzie = nazwaMiejsca ?: r.gdzie
-        return "Przypomnienie, bo jesteś przy: $gdzie. ${r.co.replaceFirstChar { it.uppercase() }}."
+        return "Przypomnienie, bo jesteś przy: $gdzie. ${naGłos(r.co)}."
     }
 
-    fun potwierdzenie(r: PlaceReminder): String = when (r.cel) {
-        is Cel.Zapisane -> "Dobrze. Przypomnę, gdy będziesz ${if (r.cel.nazwa == DOM) "w domu" else "w pracy"}: ${r.co}."
-        else -> "Dobrze. Przypomnę, gdy będziesz przy: ${r.gdzie}. ${r.co.replaceFirstChar { it.uppercase() }}."
+    private fun naGłos(co: String): String =
+        if (Regex("""^(żebyś|abyś)(?!\p{L})""").containsMatchIn(co)) "Pamiętaj, $co" else co.replaceFirstChar { it.uppercase() }
+
+    fun potwierdzenie(r: PlaceReminder): String {
+        val kiedy = if (r.odMs > 0) {
+            " Nie wcześniej niż " + java.text.SimpleDateFormat("d.MM 'o' HH:mm", java.util.Locale("pl", "PL"))
+                .format(java.util.Date(r.odMs)) + "."
+        } else {
+            ""
+        }
+        return when (r.cel) {
+            is Cel.Zapisane ->
+                "Dobrze. Przypomnę, gdy będziesz ${if (r.cel.nazwa == DOM) "w domu" else "w pracy"}: ${r.co}.$kiedy"
+            else -> "Dobrze. Przypomnę, gdy będziesz przy: ${r.gdzie}. ${naGłos(r.co)}.$kiedy"
+        }
     }
 
     const val DOM = "Dom"
@@ -164,13 +231,29 @@ object PlaceReminderLogic {
         """^przypomnij\s+mi\s+(?<co>.+?),?\s+(?:gdy|kiedy|jak|jak\s+tylko)\s+$CZASOWNIK_BYCIA\s+$PRZYIMEK\s+(?<gdzie>.+)$""",
         RegexOption.IGNORE_CASE
     )
+    private val PRZYPOMNIJ_GDZIE_POTEM_CO = Regex(
+        """^przypomnij\s+mi,?\s+(?:gdy|kiedy|jak|jak\s+tylko)\s+$CZASOWNIK_BYCIA\s+$PRZYIMEK\s+(?<gdzie>.+?),?\s+""" +
+            """(?<co>(?:[zż]ebym|[zż]eby|abym|aby|[zż]e|o)\s+.+)$""",
+        RegexOption.IGNORE_CASE
+    )
+    private val GDZIE_NA_POCZĄTKU = Regex("""^(?:gdy|kiedy|jak)\s""", RegexOption.IGNORE_CASE)
+    private val DZIEŃ = Regex("""(?<!\p{L})(?:pojutrze|jutro|dzi[sś](?:iaj)?)(?!\p{L})""", RegexOption.IGNORE_CASE)
+    private val GODZINA = Regex(
+        """\b(?:po|od|oko[lł]o|ko[lł]o|o)\s+(?:godzinie\s+)?(\d{1,2})(?:[:.](\d{2}))?\b""",
+        RegexOption.IGNORE_CASE
+    )
     private val GDZIE_POTEM_PRZYPOMNIJ = Regex(
         """^(?:gdy|kiedy|jak|jak\s+tylko)\s+$CZASOWNIK_BYCIA\s+$PRZYIMEK\s+(?<gdzie>.+?),?\s+przypomnij\s+mi\s+(?<co>.+)$""",
         RegexOption.IGNORE_CASE
     )
 
-    private val ZAPIS_DOMU = Regex("""^(zapami[eę]taj,?\s+(?:[zż]e\s+)?)?tu(taj)?\s+(jest\s+)?(m[oó]j\s+)?dom|^tu(taj)?\s+mieszkam$""")
-    private val ZAPIS_PRACY = Regex("""^(zapami[eę]taj,?\s+(?:[zż]e\s+)?)?tu(taj)?\s+(jest\s+)?(moja\s+)?praca$|^tu(taj)?\s+pracuj[eę]$""")
+    private const val TUTAJ = """(?:tu(?:taj)?|w\s+tym\s+miejscu|to\s+miejsce|ta\s+lokalizacja|to)"""
+    private val ZAPIS_DOMU = Regex(
+        """^$TUTAJ\s+(?:to\s+|jest\s+)?(?:m[oó]j\s+)?dom$|^tu(?:taj)?\s+mieszkam$|^mieszkam\s+tu(?:taj)?$"""
+    )
+    private val ZAPIS_PRACY = Regex(
+        """^$TUTAJ\s+(?:to\s+|jest\s+)?(?:moja\s+)?praca$|^tu(?:taj)?\s+pracuj[eę]$|^pracuj[eę]\s+tu(?:taj)?$"""
+    )
     private val LISTA = Regex("""^(jakie\s+mam|poka[zż]|wymie[nń]|przeczytaj)\s+(moje\s+)?przypomnienia(\s+(o|w)\s+miejsc\w*)?$""")
     private val USUŃ = Regex("""^(usu[nń]|skasuj|wyczy[sś][cć])\s+(wszystkie\s+)?przypomnienia(\s+o\s+miejscach)?$""")
 

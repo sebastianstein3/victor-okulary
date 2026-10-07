@@ -36,6 +36,10 @@ class StepController(
             start(it)
             return true
         }
+        if (StepLogic.samoHasło(tekst)) {
+            mów("Powiedz, co mam rozpisać. Na przykład: krok po kroku, jak ugotować jajko na miękko.")
+            return true
+        }
         return false
     }
 

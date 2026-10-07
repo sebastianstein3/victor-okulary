@@ -60,6 +60,9 @@ class MeetingCommandTest {
     fun `start i koniec spotkania`() {
         org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("nagrywaj spotkanie"))
         org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("Notatki ze spotkania."))
+        // Bieg 160 - tak to zostało powiedziane i poszło do modelu.
+        org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("notatka ze spotkania"))
+        org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("zrób notatkę ze spotkania"))
         org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("zacznij nagrywać spotkanie"))
         org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("rób protokół"))
         org.junit.Assert.assertEquals(false, MetaCommands.meetingCommand("zakończ spotkanie"))

@@ -66,16 +66,21 @@ object LocationContext {
      */
     suspend fun tutaj(context: Context, naŚwieżąMs: Long = 0L): Tutaj? = withContext(Dispatchers.IO) {
         var location = lastKnownLocation(context)
-        val wiek = location?.let { System.currentTimeMillis() - it.time } ?: Long.MAX_VALUE
+        val wiek = location?.let { wiekMs(it) } ?: Long.MAX_VALUE
         if (wiek > ŚWIEŻA_MS && naŚwieżąMs > 0) {
             freshLocation(context, naŚwieżąMs)?.let { location = it }
         }
-        val loc = location ?: return@withContext null
-        val age = System.currentTimeMillis() - loc.time
-        if (loc.time > 0 && age > MAX_AGE_MS) {
+        val loc = location ?: run {
+            ostatniPowód = "brak jakiejkolwiek pozycji (świeży pomiar nie przyszedł w ${naŚwieżąMs} ms)"
+            return@withContext null
+        }
+        val age = wiekMs(loc)
+        if (age > MAX_AGE_MS) {
+            ostatniPowód = "ostatnia pozycja sprzed ${age / 60_000} min, świeży pomiar nie przyszedł"
             Log.d(TAG, "Ostatnia pozycja sprzed ${age / 60_000} min - za stara, pomijam")
             return@withContext null
         }
+        ostatniPowód = null
         val adres = adresZPamięci(context, loc.latitude, loc.longitude)
         Tutaj(
             lat = loc.latitude,
@@ -85,6 +90,28 @@ object LocationContext {
             wiekMs = age,
             dokładnośćM = if (loc.hasAccuracy()) loc.accuracy else null
         )
+    }
+
+    /**
+     * Czemu ostatnie [tutaj] nie dało pozycji - do dziennika. Bieg 160: pierwsze
+     * pytanie o okolicę dostało "nie wiem, gdzie jesteś", drugie 30 s później
+     * już adres, a z dziennika nie dało się poznać, co zawiodło.
+     */
+    @Volatile
+    var ostatniPowód: String? = null
+        private set
+
+    /**
+     * Wiek pomiaru z zegara od uruchomienia, nie z `time`: `time` to czas z
+     * satelitów albo sieci i bywa przesunięty względem zegara telefonu.
+     */
+    private fun wiekMs(loc: Location): Long {
+        val nanos = loc.elapsedRealtimeNanos
+        return if (nanos > 0) {
+            (android.os.SystemClock.elapsedRealtimeNanos() - nanos) / 1_000_000
+        } else {
+            System.currentTimeMillis() - loc.time
+        }
     }
 
     /**
@@ -178,11 +205,18 @@ object LocationContext {
         if (!hasLocationPermission(context)) return null
         val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
             ?: return lastKnownLocation(context)
-        val provider = when {
-            manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
-            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ->
-                LocationManager.NETWORK_PROVIDER
-            else -> return lastKnownLocation(context)
+        // WSZYSTKIE włączone źródła naraz, pierwszy pomiar wygrywa. Sam GPS w
+        // mieszkaniu potrafi nie złapać nieba przez minutę, a sieć (Wi-Fi,
+        // maszty) oddaje pozycję w sekundę - z dokładnością do ulicy, czyli
+        // dokładnie taką, jakiej trzeba do "gdzie tu zjeść".
+        val providers = listOf(
+            LocationManager.GPS_PROVIDER,
+            LocationManager.NETWORK_PROVIDER,
+            "fused"
+        ).filter { runCatching { manager.isProviderEnabled(it) }.getOrDefault(false) }
+        if (providers.isEmpty()) {
+            ostatniPowód = "lokalizacja w telefonie wyłączona"
+            return lastKnownLocation(context)
         }
         val fresh = withTimeoutOrNull(timeoutMs) {
             suspendCancellableCoroutine { cont ->
@@ -199,11 +233,14 @@ object LocationContext {
                     override fun onProviderEnabled(p: String) {}
                     override fun onProviderDisabled(p: String) {}
                 }
-                runCatching {
-                    manager.requestLocationUpdates(
-                        provider, 0L, 0f, listener, android.os.Looper.getMainLooper()
-                    )
-                }.onFailure { if (cont.isActive) cont.resume(null) {} }
+                val zarejestrowane = providers.count { provider ->
+                    runCatching {
+                        manager.requestLocationUpdates(
+                            provider, 0L, 0f, listener, android.os.Looper.getMainLooper()
+                        )
+                    }.isSuccess
+                }
+                if (zarejestrowane == 0 && cont.isActive) cont.resume(null) {}
                 cont.invokeOnCancellation { runCatching { manager.removeUpdates(listener) } }
             }
         }
@@ -267,7 +304,7 @@ object LocationContext {
     private const val ŚWIEŻA_MS = 2 * 60_000L
 
     /** Ile pytanie o okolicę może czekać na GPS - mieści się w budżecie kontekstów. */
-    private const val OKOLICA_ŚWIEŻA_MS = 3_500L
+    private const val OKOLICA_ŚWIEŻA_MS = 4_500L
 
     private fun describePlace(context: Context, lat: Double, lon: Double): Pair<String?, String>? {
         if (!Geocoder.isPresent()) return null

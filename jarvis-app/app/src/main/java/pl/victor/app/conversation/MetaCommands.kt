@@ -212,8 +212,8 @@ object MetaCommands {
     }
 
     private val MEETING_START = Regex(
-        """^((nagrywaj|nagraj|zacznij\s+nagrywa[cć]|rozpocznij|w[lł][aą]cz|zacznij|r[oó]b)\s+)?""" +
-            """(nagrywanie\s+)?(spotkanie|notatki\s+ze\s+spotkania|protok[oó][lł](\s+ze\s+spotkania)?)$|""" +
+        """^((nagrywaj|nagraj|zacznij\s+nagrywa[cć]|rozpocznij|w[lł][aą]cz|zacznij|z?r[oó]b)\s+)?""" +
+            """(nagrywanie\s+)?(spotkanie|notatk[aiię]\s+ze\s+spotkania|protok[oó][lł](\s+ze\s+spotkania)?)$|""" +
             """^nagrywaj\s+(to\s+)?spotkanie$"""
     )
     private val MEETING_STOP = Regex(

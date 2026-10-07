@@ -55,12 +55,30 @@ class PlaceReminders(
     private val ostatnieSzukanie = HashMap<Long, Pair<Double, Double>>()
 
     fun dodaj(p: PlaceReminderLogic.Prośba): PlaceReminder {
-        val r = PlaceReminder(System.currentTimeMillis(), p.co, p.gdzie, PlaceReminderLogic.cel(p.gdzie), System.currentTimeMillis())
+        val cel = PlaceReminderLogic.cel(p.gdzie)
+        val r = PlaceReminder(
+            id = System.currentTimeMillis(),
+            co = p.co,
+            gdzie = p.gdzie,
+            cel = cel,
+            utworzoneMs = System.currentTimeMillis(),
+            odMs = p.odMs,
+            // Dom i praca: "gdy wrócę" - najpierw trzeba wyjść.
+            czekaNaWyjście = cel is Cel.Zapisane
+        )
         _lista.value = _lista.value + r
         zapisz()
-        dziennik("przypomnienie w miejscu: dodane", mapOf("gdzie" to p.gdzie, "cel" to r.cel::class.simpleName))
+        dziennik(
+            "przypomnienie w miejscu: dodane",
+            mapOf("gdzie" to p.gdzie, "cel" to r.cel::class.simpleName, "co" to r.co, "odMs" to r.odMs.takeIf { it > 0 })
+        )
         pilnuj()
         return r
+    }
+
+    private fun podmień(r: PlaceReminder) {
+        _lista.value = _lista.value.map { if (it.id == r.id) r else it }
+        zapisz()
     }
 
     fun usuń(id: Long) {
@@ -86,11 +104,25 @@ class PlaceReminders(
 
     private suspend fun sprawdź() {
         val tu = LocationContext.tutaj(context, naŚwieżąMs = GPS_MS) ?: return
+        val teraz = System.currentTimeMillis()
         for (r in _lista.value.toList()) {
+            if (r.odMs > teraz) continue
             val trafienie: String? = when (val cel = r.cel) {
                 is Cel.Zapisane -> miejsce(cel.nazwa)?.let { m ->
                     val d = PlaceReminderLogic.odległośćM(tu.lat, tu.lon, m.latitude, m.longitude)
-                    if (d <= PlaceReminderLogic.PROMIEŃ_ZAPISANE_M) (if (cel.nazwa == PlaceReminderLogic.DOM) "dom" else "praca") else null
+                    // Margines przy wyjściu, żeby GPS pływający w budynku nie
+                    // "wyprowadzał" z domu co pomiar.
+                    if (r.czekaNaWyjście) {
+                        if (d > PlaceReminderLogic.PROMIEŃ_ZAPISANE_M * 2) {
+                            podmień(r.copy(czekaNaWyjście = false))
+                            dziennik("przypomnienie w miejscu: wyszedłeś, czekam na powrót", mapOf("gdzie" to r.gdzie))
+                        }
+                        null
+                    } else if (d <= PlaceReminderLogic.PROMIEŃ_ZAPISANE_M) {
+                        if (cel.nazwa == PlaceReminderLogic.DOM) "dom" else "praca"
+                    } else {
+                        null
+                    }
                 }
                 else -> {
                     val ost = ostatnieSzukanie[r.id]

@@ -48,6 +48,22 @@ object DietCheck {
         return wynik
     }
 
+    /**
+     * Ograniczenia z faktów jako stałe polecenie - także bez kodu produktu.
+     *
+     * Bieg 160: "daj mi informację na temat Nutelli" przy zapisanej alergii na
+     * orzechy - model znał fakt, wyszukał skład i nie połączył jednego z
+     * drugim. Jedno zdanie dla modelu, tylko gdy są fakty o unikaniu.
+     */
+    fun regułaDlaModelu(fakty: List<String>): String? {
+        val unikane = fakty.filter { f -> val l = f.lowercase(); UNIKANIE.any { l.contains(it) } }
+        if (unikane.isEmpty()) return null
+        return "=== DIETA UŻYTKOWNIKA ===\n" + unikane.joinToString("\n") { "- $it" } +
+            "\nGdy rozmowa dotyczy jedzenia, produktu spożywczego, przepisu albo lokalu z " +
+            "jedzeniem i coś się z tym kłóci (np. produkt zawiera orzechy), powiedz to NA " +
+            "POCZĄTKU odpowiedzi jednym zdaniem."
+    }
+
     /** Blok dla modelu - polecenie, żeby ostrzeżenie padło na początku odpowiedzi. */
     fun dlaModelu(ostrzeżenia: List<String>): String? {
         if (ostrzeżenia.isEmpty()) return null

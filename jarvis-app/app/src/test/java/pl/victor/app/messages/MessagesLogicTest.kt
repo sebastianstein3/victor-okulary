@@ -62,4 +62,12 @@ class MessagesLogicTest {
         assertTrue(MessagesPrompt.dotyczyWiadomości("odpowiedz Ani że się spóźnię"))
         assertFalse(MessagesPrompt.dotyczyWiadomości("jaka jest pogoda"))
     }
+
+    @Test
+    fun `odpisz bez tresci`() {
+        assertEquals("inpostu", MessageReplyParser.prośbaBezTreści("podpisz na wiadomość od inpostu"))
+        assertEquals("", MessageReplyParser.prośbaBezTreści("odpisz na tę wiadomość"))
+        assertEquals(null, MessageReplyParser.parse("odpisz na wiadomość od Ani"))
+        assertEquals(null, MessageReplyParser.prośbaBezTreści("odpisz Ani, że będę za 10 minut"))
+    }
 }

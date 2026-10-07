@@ -15,6 +15,9 @@ object MessageReplyParser {
 
     fun parse(tekst: String): Odpowiedź? {
         val t = tekst.trim().trimEnd('.')
+        // "odpisz na wiadomość od Ani" to prośba BEZ treści - inaczej poszłoby
+        // do Ani "Wiadomość od Ani".
+        if (prośbaBezTreści(t) != null) return null
         val m = WZORZEC.matchEntire(t) ?: return null
         val kto = m.groups["kto"]?.value?.trim()
         var treść = m.groups["tresc"]?.value?.trim().orEmpty()
@@ -29,6 +32,23 @@ object MessageReplyParser {
         val adresat = kto?.takeUnless { it.lowercase() in ZAIMKI }
         return Odpowiedź(adresat, treść.replaceFirstChar { it.uppercase() })
     }
+
+    /**
+     * "Odpisz na wiadomość od Ani" - BEZ treści. Bieg 160 ("podpisz na
+     * wiadomość od inpostu" - tak rozpoznawanie usłyszało "odpisz"): poszło do
+     * modelu, który zaczął szukać w poczcie. Zwraca adresata (może być pusty),
+     * `null` gdy to nie ta prośba.
+     */
+    fun prośbaBezTreści(tekst: String): String? {
+        val m = BEZ_TREŚCI.matchEntire(tekst.trim().trimEnd('.', '?', '!')) ?: return null
+        return m.groups["kto"]?.value?.trim().orEmpty()
+    }
+
+    private val BEZ_TREŚCI = Regex(
+        """^(?:p?odpisz|odpowiedz)(?:\s+(?:jej|mu))?\s+na\s+(?:t[eę]\s+|ostatni[aą]\s+)?""" +
+            """(?:wiadomo[sś][cć]|sms(?:a)?|esemes(?:a)?)(?:\s+od\s+(?<kto>.+))?$""",
+        RegexOption.IGNORE_CASE
+    )
 
     private val WZORZEC = Regex(
         """^(?:(?:a\s+)?(?:teraz\s+)?)?(?:odpowiedz|odpisz|napisz\s+w\s+odpowiedzi|odpowiedź)""" +

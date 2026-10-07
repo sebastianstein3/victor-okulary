@@ -22,7 +22,7 @@ object WebSearchPrompt {
         "\n\nINTERNET: masz w tej rozmowie wbudowaną wyszukiwarkę Google. Gdy " +
             "odpowiedź zależy od aktualnych danych - ceny, oferty sklepów, " +
             "pogoda w innym miejscu niż podana wyżej prognoza, wiadomości, " +
-            "wyniki, godziny otwarcia, rozkłady - WYSZUKAJ i odpowiedz z " +
+            "wyniki, godziny otwarcia, rozkłady, opinie i oceny miejsc - WYSZUKAJ i odpowiedz z " +
             "wyników, podając konkrety (kwoty, nazwy sklepów, liczby). Nie " +
             "mów, że nie masz dostępu do internetu ani do aktualnych danych, " +
             "i nie używaj do tego znacznika web_search - on tylko otwiera " +
@@ -36,4 +36,22 @@ object WebSearchPrompt {
             "telefonie, więc proponuj go jedynie wtedy, gdy człowiek chce " +
             "sam przejrzeć wyniki."
     }
+
+    /**
+     * Pytanie, na które odpowiedź z pamięci jest zmyśleniem - opinie, oceny,
+     * "sprawdź w Google". Bieg 160: "sprawdź opinie tych restauracji w googlu"
+     * - model nie szukał ani razu i odpowiedział "wszystkie mają dobre opinie".
+     */
+    fun wymagaSzukania(pytanie: String): Boolean = SZUKAJ.containsMatchIn(pytanie.lowercase())
+
+    /** Dopisek do polecenia, gdy [wymagaSzukania]. */
+    const val WYMUSZENIE: String = "\n\nTO PYTANIE WYMAGA WYSZUKANIA: zanim odpowiesz, " +
+        "wyszukaj w internecie. Nie odpowiadaj z pamięci. Jeśli wyszukiwanie nic nie " +
+        "da, powiedz wprost, że nie znalazłeś - nie wymyślaj ocen ani opinii."
+
+    // Od początku słowa: samo "ocen" siedzi też w "procent".
+    private val SZUKAJ = Regex(
+        """\b(opini|ocen|recenzj|gwiazdk|wygoogluj|wyszukaj)|w\s+googl|""" +
+            """(poszukaj|sprawd[zź]|znajd[zź])\s+w\s+internecie"""
+    )
 }

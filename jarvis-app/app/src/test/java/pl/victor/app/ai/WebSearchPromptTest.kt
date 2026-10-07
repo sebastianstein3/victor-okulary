@@ -67,4 +67,13 @@ class WebSearchPromptTest {
             orch.substring(catchStart, zawiodl).contains("currentCoroutineContext().ensureActive()")
         )
     }
+
+    @Test
+    fun `opinie i google wymuszaja szukanie, procent nie`() {
+        assertTrue(WebSearchPrompt.wymagaSzukania("a sprawdź proszę opinie tych restauracji w googlu"))
+        assertTrue(WebSearchPrompt.wymagaSzukania("jakie ma oceny ta pizzeria"))
+        assertTrue(WebSearchPrompt.wymagaSzukania("sprawdź w internecie godziny otwarcia"))
+        assertTrue(!WebSearchPrompt.wymagaSzukania("ile to jest 20 procent z 50"))
+        assertTrue(!WebSearchPrompt.wymagaSzukania("gdzie tu mogę coś zjeść"))
+    }
 }

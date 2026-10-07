@@ -682,13 +682,17 @@ class AIOrchestrator(
         val powód = if (!pl.victor.app.proactive.LocationContext.maZgodę(context)) {
             "aplikacja nie ma zgody na lokalizację (Ustawienia telefonu → Aplikacje → V.I.C.T.O.R. → Uprawnienia)"
         } else {
-            "telefon nie zna teraz położenia (GPS wyłączony albo brak sygnału)"
+            "telefon nie złapał teraz położenia"
         }
         runCatching {
-            diag.event(DiagFormat.Phase.KONTEKST, "pytanie o okolicę bez położenia", mapOf("powód" to powód))
+            diag.event(
+                DiagFormat.Phase.KONTEKST, "pytanie o okolicę bez położenia",
+                mapOf("powód" to powód, "szczegół" to pl.victor.app.proactive.LocationContext.ostatniPowód)
+            )
         }
-        return "=== GDZIE JEST UŻYTKOWNIK ===\nNIE WIADOMO: $powód. Powiedz to krótko i " +
-            "poproś o nazwę miejsca albo ulicy - nie zgaduj miasta."
+        return "=== GDZIE JEST UŻYTKOWNIK ===\nNIE WIADOMO: $powód. Powiedz krótko, że nie " +
+            "udało się ustalić położenia, i poproś o nazwę miejsca albo ulicy - nie zgaduj miasta " +
+            "i nie twierdź, że GPS jest wyłączony."
     }
 
     /**
@@ -1111,6 +1115,16 @@ class AIOrchestrator(
 
         // Wiadomości z powiadomień - patrz pl.victor.app.messages.
         messages.start()
+        // Po każdej wypowiedzi asystenta chwila na dopytanie, zanim tło
+        // (przewodnik, wiadomości) zabierze głos - patrz [ciszaWTle].
+        scope.launch {
+            audio.speaking.collect { mówi ->
+                if (!mówi) {
+                    val karencja = System.currentTimeMillis() - CISZA_PO_AKTYWNOŚCI_MS + CISZA_PO_MOWIE_MS
+                    if (karencja > ostatniaAktywnośćMs) ostatniaAktywnośćMs = karencja
+                }
+            }
+        }
 
         // Przypomnienia w miejscach przeżywają restart aplikacji - pilnowanie
         // wraca samo, jeśli jest czego pilnować.
@@ -1436,6 +1450,10 @@ class AIOrchestrator(
      */
     private fun pauseWakeWordMic() {
         runCatching { victorApp?.pauseVoskForTurn() }
+        // Spotkanie oddaje mikrofon na czas tury - inaczej pytanie (w tym
+        // "zakończ spotkanie") dostaje ciszę. Bieg 160: po "nagrywaj
+        // spotkanie" każda tura kończyła się "MIKROFON NIE RUSZYŁ".
+        if (meetingHoldsMic()) meeting.wstrzymaj()
     }
 
     private fun resumeWakeWordMic() {
@@ -1443,6 +1461,7 @@ class AIOrchestrator(
         // nie może go stracić na rzecz nasłuchu frazy tylko dlatego, że
         // skończyła się tura, która ten tryb włączyła. Tryb wznawia nasłuch
         // sam, gdy się kończy.
+        if (meetingCreated && !_earTranslation.value) meeting.wznów()
         if (meetingHoldsMic() || _earTranslation.value) return
         runCatching { victorApp?.resumeVoskAfterTurn() }
     }
@@ -1654,8 +1673,17 @@ class AIOrchestrator(
         val st = _state.value
         val bezTury = st is OrchestratorState.Idle || st is OrchestratorState.Completed ||
             st is OrchestratorState.Error
-        return bezTury && !audio.speaking.value && !_earTranslation.value
+        // Sam stan nie wystarcza: między nasłuchem a pytaniem do modelu tura
+        // bywa w stanie Idle. Bieg 160, 21:38:10 - przewodnik wszedł w słowo
+        // w trakcie przepisywania pytania. Stąd karencja od ostatniego gestu.
+        val odGestu = System.currentTimeMillis() - ostatniaAktywnośćMs
+        return bezTury && !audio.speaking.value && !_earTranslation.value &&
+            odGestu > CISZA_PO_AKTYWNOŚCI_MS
     }
+
+    /** Ostatni przycisk albo nasłuch - patrz [ciszaWTle]. */
+    @Volatile
+    private var ostatniaAktywnośćMs = 0L
 
     /** Notatki ze spotkania - patrz [pl.victor.app.features.meeting.MeetingRecorder]. */
     val meeting by lazy {
@@ -1671,7 +1699,12 @@ class AIOrchestrator(
                 )
             },
             podsumuj = { polecenie -> askModelPlain(polecenie) },
-            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.NASŁUCH, co, pola) } }
+            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.NASŁUCH, co, pola) } },
+            // "Zakończ spotkanie" powiedziane do stołu też kończy - nie trzeba
+            // na to tury asystenta.
+            polecenie = { tekst ->
+                if (pl.victor.app.conversation.MetaCommands.meetingCommand(tekst) == false) stopMeeting()
+            }
         )
     }
 
@@ -1694,7 +1727,7 @@ class AIOrchestrator(
             return false
         }
         audio.speak(
-            "Nagrywam spotkanie. Gdy skończycie, powiedz: zakończ spotkanie.",
+            "Nagrywam spotkanie. Gdy skończycie, powiedz: zakończ spotkanie, albo kliknij cztery razy.",
             language = settings.getResponseLanguage()
         )
         return true
@@ -2502,6 +2535,7 @@ class AIOrchestrator(
      *   odtwarzaniem i sygnalizujemy im niepowodzenie)
      */
     private fun startVoiceTurn(fromGlasses: Boolean) {
+        ostatniaAktywnośćMs = System.currentTimeMillis()
         // takeOver: użytkownik właśnie mówi do asystenta, więc jego nowe pytanie
         // jest ważniejsze niż tura, na którą przestał czekać.
         //
@@ -2935,17 +2969,31 @@ class AIOrchestrator(
                 // Płacimy czasem transkrypcji w każdej turze z okularów. To
                 // jest cena funkcji, nie skutek uboczny - i była to świadoma
                 // decyzja, nie moja samowola.
+                // ...ALE NIE W NIESKOŃCZONOŚĆ. Bieg 160: 12 tur z rzędu
+                // przepisanie nagrania okularów trwało 1-4,3 s i nie oddało
+                // tekstu ANI RAZU, a pytanie i tak szło z tekstu telefonu.
+                // Po [GLASSES_TRANSCRIPT_MAX_MISSES] pustych próbach z rzędu,
+                // gdy tekst z telefonu leży, nie przepisujemy - do pierwszej
+                // tury bez tekstu z telefonu albo pierwszego sukcesu.
+                val skipGlassesTranscript = phoneFallback != null &&
+                    glassesTranscriptMisses >= GLASSES_TRANSCRIPT_MAX_MISSES
                 val glassesHeard = when {
                     captured?.hasAudio != true -> null
                     // Kto WYŁĄCZYŁ mikrofon okularów, ten ma dostać stare
                     // zachowanie: gotowy tekst z telefonu bez dopłaty czasowej.
                     !wantsGlassesMic && phoneFallback != null -> null
+                    skipGlassesTranscript -> null
                     else -> captured.pcm?.let { transcribeGlassesAudio(it, languageTagFor(language)) }
+                        .also { wynik ->
+                            glassesTranscriptMisses = if (wynik.isNullOrBlank()) glassesTranscriptMisses + 1 else 0
+                        }
                 }
                 if (captured?.hasAudio == true) {
                     diag.event(
                         DiagFormat.Phase.TRANSKRYPCJA,
-                        if (!wantsGlassesMic && phoneFallback != null) {
+                        if (skipGlassesTranscript) {
+                            "nagrania z okularów NIE przepisuję - ta droga milczy, biorę tekst z telefonu"
+                        } else if (!wantsGlassesMic && phoneFallback != null) {
                             "nagrania z okularów NIE przepisuję - mam tekst z telefonu"
                         } else {
                             "z nagrania okularów"
@@ -3382,6 +3430,10 @@ class AIOrchestrator(
     @Volatile
     private var setAsidePhoneTranscript: String? = null
 
+    /** Puste przepisania nagrania okularów z rzędu - patrz [GLASSES_TRANSCRIPT_MAX_MISSES]. */
+    @Volatile
+    private var glassesTranscriptMisses = 0
+
     /** Pamięć o tym, co już powiedziano o łączu - patrz [ConnectionAnnouncer]. */
     private val announcer = ConnectionAnnouncer()
 
@@ -3456,6 +3508,7 @@ class AIOrchestrator(
 
     private fun handleButtonAction(action: ButtonAction) {
         Log.i(TAG, "Button action: $action")
+        ostatniaAktywnośćMs = System.currentTimeMillis()
         // DO DZIENNIKA, NIE TYLKO DO LOGCATA.
         //
         // Dziennik zapisywał wciśnięcie ramki ("PRZYCISK wciśnięto"), ale NIE
@@ -3511,6 +3564,14 @@ class AIOrchestrator(
             audio.speak("Kończę tłumaczenie.", language = settings.getResponseLanguage())
             return
         }
+        // SPOTKANIE: 4 kliknięcia kończą nagrywanie - działa zawsze, także gdy
+        // głos nie przechodzi.
+        if (meetingHoldsMic() && action == ButtonAction.NEW_CONVERSATION) {
+            glassesManager.stopGlassesListening()
+            stopMeeting()
+            return
+        }
+
         // KROK PO KROKU: 1 klik dalej, 2 pytanie (zwykła tura z krokami w
         // kontekście), 3 powtórz, 4 koniec. Klik włącza okulary w nasłuch -
         // przy "dalej" i "powtórz" od razu go kończymy, inaczej wybudzenie z
@@ -3750,6 +3811,23 @@ class AIOrchestrator(
             // razu, z treścią dokładnie taką, jak padła. Odpowiedzi do ułożenia
             // ("grzecznie", "po angielsku") parser oddaje modelowi, który ma
             // listę wiadomości i znacznik reply_message.
+            pl.victor.app.messages.MessageReplyParser.prośbaBezTreści(textQuestion)?.let { kto ->
+                val m = pl.victor.app.messages.MessageInbox.adresat(kto.ifBlank { null })
+                val speech = when {
+                    !settings.isMessageReadingEnabled() ->
+                        "Czytanie wiadomości jest wyłączone. Włącz je w ustawieniach, w sekcji " +
+                            "Wiadomości, i daj aplikacji dostęp do powiadomień."
+                    m == null && kto.isNotBlank() ->
+                        "Nie mam wiadomości od: $kto, na którą da się odpowiedzieć. Odpowiadać mogę " +
+                            "tylko na SMS-y i komunikatory, nie na powiadomienia z innych aplikacji."
+                    m == null -> "Nie mam teraz żadnej wiadomości, na którą da się odpowiedzieć."
+                    else -> "Co mam odpisać? Powiedz na przykład: odpisz, że będę za dziesięć minut."
+                }
+                runCatching { diag.event(DiagFormat.Phase.AKCJA, "odpowiedź na wiadomość bez treści", mapOf("do" to kto, "jest" to (m != null))) }
+                audio.speak(speech, language = settings.getResponseLanguage())
+                _state.value = OrchestratorState.Completed(speech)
+                return
+            }
             if (pl.victor.app.messages.MessageInbox.ostatnie(1).isNotEmpty()) {
                 pl.victor.app.messages.MessageReplyParser.parse(textQuestion)?.let { odp ->
                     Log.i(TAG, "Warstwa 0: odpowiedź na wiadomość")
@@ -3901,6 +3979,12 @@ class AIOrchestrator(
             // zapisać, a nie stać się tematem rozmowy. Model potrafiłby na to
             // odpowiedzieć "dobrze, zapamiętam" i nie zapisać niczego - a to
             // gorsze niż odmowa, bo użytkownik jest przekonany, że ma notatkę.
+            // PRZYPOMNIENIA W MIEJSCACH ("przypomnij mi kupić mleko, gdy będę w
+            // Biedronce") i zapis domu - PRZED notatkami. Bieg 160: notatki
+            // łapią każde "przypomnij mi..." i "zapisz...", więc wszystkie trzy
+            // prośby o przypomnienie w miejscu skończyły jako zwykłe notatki.
+            if (textIsQuestion && placeReminderCommands.obsłuż(textQuestion)) return
+
             pl.victor.app.notes.Notes.extract(textQuestion)?.let { body ->
                 // Zapis idzie NAJPIERW i zawsze dosłownie. Porządkowanie przez
                 // model jest opcjonalne i może się nie udać - a notatka, która
@@ -3931,10 +4015,6 @@ class AIOrchestrator(
             // nie ma skąd znać współrzędnych sprzed godziny. Zapamiętanie musi
             // przy tym kosztować jedno zdanie w chwili odchodzenia, więc nie
             // może czekać na obieg przez sieć.
-            // PRZYPOMNIENIA W MIEJSCACH ("przypomnij mi kupić mleko, gdy będę w
-            // Biedronce") - przed pamięcią miejsca, bo "tu jest mój dom" to
-            // też zapis miejsca, tyle że pod nazwą.
-            if (textIsQuestion && placeReminderCommands.obsłuż(textQuestion)) return
 
             if (textIsQuestion) {
                 pl.victor.app.memory.PlaceMemory.saveRequest(textQuestion)?.let { name ->
@@ -4563,6 +4643,15 @@ class AIOrchestrator(
                     pl.victor.app.ai.WebSearchPrompt.dlaModelu(
                         maWyszukiwarkę = provider.supportsWebSearch && settings.isWebSearchEnabled()
                     ) +
+                    (
+                        if (provider.supportsWebSearch && settings.isWebSearchEnabled() &&
+                            pl.victor.app.ai.WebSearchPrompt.wymagaSzukania(textQuestion)
+                        ) {
+                            pl.victor.app.ai.WebSearchPrompt.WYMUSZENIE
+                        } else {
+                            ""
+                        }
+                    ) +
                     NOTES_CAPABILITY_PROMPT +
                     PRIVATE_DATA_HONESTY_PROMPT +
                     ENGLISH_QUOTING_PROMPT
@@ -4771,7 +4860,10 @@ class AIOrchestrator(
                         append("marka, gramatura) w polskich sklepach i podaj konkretne kwoty.")
                         append("\n\n")
                     }
-                    dietContext?.let { append(it).append("\n\n") }
+                    (
+                        dietContext
+                            ?: pl.victor.app.vision.DietCheck.regułaDlaModelu(settings.getFacts().map { it.text })
+                        )?.let { append(it).append("\n\n") }
                     // CO APLIKACJA ZROBIŁA Z KODEM - ŻEBY MODEL NIE ZGADYWAŁ.
                     //
                     // Z dziennika z 23 września: "kod zasłonięty", "kod
@@ -6800,6 +6892,15 @@ class AIOrchestrator(
 
         /** Jak często pętla tłumaczenia sprawdza, czy skończyła się Twoja kolej. */
         private const val EAR_TURN_POLL_MS = 200L
+
+        /** Ile po geście lub nasłuchu tło (przewodnik, wiadomości) milczy - patrz [ciszaWTle]. */
+        private const val CISZA_PO_AKTYWNOŚCI_MS = 20_000L
+
+        /** Ile po wypowiedzi asystenta tło milczy - patrz [ciszaWTle]. */
+        private const val CISZA_PO_MOWIE_MS = 8_000L
+
+        /** Po tylu pustych przepisaniach nagrania okularów z rzędu bierzemy od razu tekst z telefonu. */
+        private const val GLASSES_TRANSCRIPT_MAX_MISSES = 3
 
         /** Po tylu ms nieodebrany strumień z wyprzedzeniem gaśnie - patrz [warmUpStreamForCode]. */
         private const val CODE_WARMUP_MAX_MS = 75_000L
