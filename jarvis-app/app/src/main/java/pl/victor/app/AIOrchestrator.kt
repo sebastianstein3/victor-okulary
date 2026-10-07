@@ -3496,28 +3496,6 @@ class AIOrchestrator(
         // drugą, równoległą turę pytania, która biła się z pętlą o mikrofon.
         // Każdy gest - jedno, dwa, trzy kliknięcia, także "Hey Lens", który
         // przychodzi tą samą ramką - kończy więc tryb i nic więcej nie robi.
-        // KROK PO KROKU: 1 klik dalej, 2 pytanie (zwykła tura z krokami w
-        // kontekście), 3 powtórz, 4 koniec. Klik włącza okulary w nasłuch -
-        // przy "dalej" i "powtórz" od razu go kończymy, inaczej wybudzenie z
-        // dźwięku odpaliłoby turę z przypadkowym pytaniem.
-        if (steps.aktywny && !_earTranslation.value) {
-            val k = when (action) {
-                ButtonAction.QUICK_QUESTION -> pl.victor.app.features.StepLogic.Komenda.DALEJ
-                ButtonAction.READ_AND_TRANSLATE -> pl.victor.app.features.StepLogic.Komenda.POWTÓRZ
-                ButtonAction.NEW_CONVERSATION -> pl.victor.app.features.StepLogic.Komenda.KONIEC
-                else -> null
-            }
-            if (k != null) {
-                glassesManager.stopGlassesListening()
-                steps.komenda(k)
-                return
-            }
-            if (action == ButtonAction.LOOK_AND_DESCRIBE) {
-                startVoiceTurn(fromGlasses = true)
-                return
-            }
-        }
-
         // W ROZMOWIE W DWIE STRONY pojedyncze kliknięcie oddaje głos Tobie;
         // kończy ją każdy inny gest (dwa, trzy kliknięcia, przytrzymanie).
         if (_earTranslation.value && _earTwoWay.value && action == ButtonAction.QUICK_QUESTION) {
@@ -3532,6 +3510,31 @@ class AIOrchestrator(
             glassesManager.stopGlassesListening()
             audio.speak("Kończę tłumaczenie.", language = settings.getResponseLanguage())
             return
+        }
+        // KROK PO KROKU: 1 klik dalej, 2 pytanie (zwykła tura z krokami w
+        // kontekście), 3 powtórz, 4 koniec. Klik włącza okulary w nasłuch -
+        // przy "dalej" i "powtórz" od razu go kończymy, inaczej wybudzenie z
+        // dźwięku odpaliłoby turę z przypadkowym pytaniem. Po tłumaczeniu,
+        // bo przycisk ma je kończyć przed czymkolwiek innym.
+        if (steps.aktywny) {
+            val k = if (action == ButtonAction.QUICK_QUESTION) {
+                pl.victor.app.features.StepLogic.Komenda.DALEJ
+            } else if (action == ButtonAction.READ_AND_TRANSLATE) {
+                pl.victor.app.features.StepLogic.Komenda.POWTÓRZ
+            } else if (action == ButtonAction.NEW_CONVERSATION) {
+                pl.victor.app.features.StepLogic.Komenda.KONIEC
+            } else {
+                null
+            }
+            if (k != null) {
+                glassesManager.stopGlassesListening()
+                steps.komenda(k)
+                return
+            }
+            if (action == ButtonAction.LOOK_AND_DESCRIBE) {
+                startVoiceTurn(fromGlasses = true)
+                return
+            }
         }
         when (action) {
             // Pojedyncze kliknięcie = "chcę o coś zapytać", więc SŁUCHAMY, a nie
