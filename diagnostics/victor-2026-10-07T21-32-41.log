@@ -1,0 +1,48 @@
+# V.I.C.T.O.R. - dziennik diagnostyczny
+# telefon: samsung SM-A236B
+# Android: 13 (SDK 33)
+# aplikacja: 0.1.0-alpha-debug (1), bieg 160, a0f17eb
+# dostawca AI: gemini
+# transkrypcja w chmurze: false
+# mikrofon okularów przy starcie: true
+# fraza wybudzenia w okularach: true
+# ograniczenie myślenia: true
+# źródło zdjęcia: full (dzielnik 1)
+21:32:41.684          ms  SESJA        start sesji
+21:34:28.067          ms  BLE          POŁĄCZONO  noweŁącze=true
+21:34:28.078          ms  BLE          powitanie okularów - start
+21:34:28.093          ms  BLE          powitanie okularów - koniec  frazaWybudzenia=true kanałZapisu=true
+21:34:28.365          ms  BLE          okulary zgłaszają pliki i tryb importu  zdjęć=10 filmów=3 nagrań=3 tylkoHotspot=true
+21:34:28.369          ms  BLE          głośność okularów  muzyka=16 rozmowa=15 system=10 kanałPrzycisków=3
+21:34:28.426          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:34:30.165          ms  BLE          POŁĄCZONO  noweŁącze=false
+21:34:33.093          ms  AUDIO        okulary NIE podały swojej części audio  poMs=5000
+21:34:33.606          ms  AUDIO        proszę okulary o tryb multimediów i czekam  powód=po połączeniu limitMs=10000
+21:34:36.386          ms  AUDIO        tryb multimediów wstał na żądanie  poMs=2777
+21:34:59.059          ms  PRZYCISK     wciśnięto  numer=1
+21:34:59.237          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:34:59.575          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:34:59.980          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=21 ms=741
+21:35:00.079      +0 ms  SESJA        --- TURA 10bb ---  źródło=OKULARY
+21:35:00.082      +4 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:35:04.462   +4383 ms  NASŁUCH      koniec  ms=4383 odłożone=gdzie w okolicy mogę coś zjeść zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=9.88 próbek=9 gotowyPoMs=386
+21:35:04.646   +4567 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=21
+21:35:05.435   +5356 ms  AUDIO        hałas wokół  tłoDb=-61
+21:35:06.128   +6049 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.2735 pakietów=264 rozkodowanych=264 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=18 2 31 0 1815 1324 1143 128 2 1 1 ciszaNaKońcuOkien=0
+21:35:09.456   +9377 ms  TRANSKRYPCJA z nagrania okularów  ms=3324
+21:35:09.528   +9450 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5273 jestMs=2180 tło=1 szczyt=4507 ile razy=2965.9
+21:35:09.531   +9453 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=gdzie w okolicy mogę coś zjeść
+21:35:09.533   +9454 ms  SESJA        pytanie  tekst=gdzie w okolicy mogę coś zjeść wymuszonyObraz=false
+21:35:09.606   +9527 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+21:35:09.673   +9594 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:35:10.509  +10430 ms  KONTEKST     pytanie o okolicę bez położenia  powód=telefon nie zna teraz położenia (GPS wyłączony albo brak sygnału)
+21:35:10.582  +10503 ms  KONTEKST     zebrany  ms=185 pamięć=true kalendarz=false poczta=false pogoda=false lokalizacja=true limitCzasu=false
+21:35:10.614  +10535 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=1080
+21:35:11.639  +11560 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1026
+21:35:11.675  +11596 ms  MODEL        zużycie tokenów  wejście=3009 odpowiedź=43 razem=3052 limit=3000 koniec=STOP
+21:35:11.677  +11598 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+21:35:11.689  +11610 ms  MODEL        koniec odpowiedzi (146 znaków, 3052 tokenów)  ms=1076 dostawca=gemini początek=Nie znam Twojej dokładnej lokalizacji, bo GPS jest wyłączony. Podaj mi nazwę uli
+21:35:11.695  +11616 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=146
+21:35:20.685  +20606 ms  MOWA         koniec wypowiedzi  ms=8980
+21:35:20.725  +20646 ms  SESJA        --- KONIEC TURY 10bb: odpowiedziano ---
+21:35:20.729          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
