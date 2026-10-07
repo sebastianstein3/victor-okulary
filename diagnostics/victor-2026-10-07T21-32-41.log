@@ -342,3 +342,59 @@
 21:40:44.216  +18463 ms  MOWA         koniec wypowiedzi  ms=8203
 21:40:44.239  +18485 ms  SESJA        --- KONIEC TURY a229: odpowiedziano ---
 21:40:44.241          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:40:44.393          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:40:44.936          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:41:01.570          ms  PRZYCISK     wciśnięto  numer=1
+21:41:01.836          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=4
+21:41:02.083          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:41:02.240          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=14 ms=402
+21:41:02.301      +0 ms  SESJA        --- TURA aa96 ---  źródło=OKULARY
+21:41:02.302      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:41:07.381   +5080 ms  NASŁUCH      koniec  ms=5080 odłożone=daj mi informację na temat nutelli zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=12 gotowyPoMs=436
+21:41:07.528   +5227 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+21:41:08.104   +5803 ms  NASŁUCH      nagranie z okularów  jest=true sekund=5.5935 pakietów=280 rozkodowanych=280 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=0 7 11 3 2479 1449 1240 301 1308 0 1 0 ciszaNaKońcuOkien=1
+21:41:08.341   +6040 ms  AUDIO        hałas wokół  tłoDb=-67
+21:41:11.371   +9070 ms  TRANSKRYPCJA z nagrania okularów  ms=3266 droga=Nasłuch telefonu
+21:41:11.375   +9074 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=5593 jestMs=2800 tło=4 szczyt=8496 ile razy=1918.4
+21:41:11.377   +9076 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=daj mi informację na temat nutelli
+21:41:11.377   +9077 ms  SESJA        pytanie  tekst=daj mi informację na temat nutelli wymuszonyObraz=false
+21:41:11.384   +9083 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+21:41:11.394   +9093 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:41:12.682  +10381 ms  KONTEKST     zebrany  ms=1282 pamięć=true kalendarz=false poczta=true pogoda=false lokalizacja=false limitCzasu=false
+21:41:12.693  +10392 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=5964
+21:41:14.190  +11889 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=1498
+21:41:14.497  +12196 ms  MODEL        zużycie tokenów  wejście=5102 odpowiedź=89 razem=5191 limit=3000 koniec=STOP
+21:41:14.498  +12197 ms  MODEL        model szukał w internecie  zapytań=1 zapytanie=Nutella skład kalorie informacje źródeł=2
+21:41:14.499  +12199 ms  MODEL        koniec odpowiedzi (243 znaków, 5191 tokenów)  ms=1807 dostawca=gemini początek=Nutella to popularny krem czekoladowo-orzechowy produkowany przez firmę Ferrero.
+21:41:14.502  +12201 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=243
+21:41:29.472  +27171 ms  MOWA         koniec wypowiedzi  ms=14969
+21:41:29.495  +27194 ms  SESJA        --- KONIEC TURY aa96: odpowiedziano ---
+21:41:29.498          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:41:29.553          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:41:30.164          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:41:32.035          ms  PRZYCISK     wciśnięto  numer=1
+21:41:32.312          ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=1
+21:41:32.541          ms  PRZYCISK     akcja z przycisku  akcja=QUICK_QUESTION kliknięć=1
+21:41:32.588          ms  NASŁUCH      dokładam dźwięk sprzed startu nasłuchu  pakietów=14 ms=275
+21:41:32.648      +0 ms  SESJA        --- TURA 1a8b ---  źródło=OKULARY
+21:41:32.649      +1 ms  NASŁUCH      start  strumieńBLE=true sco=false mikrofonBT=false ustawienieMikOkularów=true
+21:41:36.476   +3828 ms  NASŁUCH      koniec  ms=3828 odłożone=notatka ze spotkania zebrałTelefonZamiastOkularów=false mikrofon=mowa wykryta szczytDb=10.0 próbek=13 gotowyPoMs=259
+21:41:36.639   +3991 ms  WAKE         okulary nadają dźwięk, choć żadna tura nie trwa  pakietów=14
+21:41:36.934   +4286 ms  NASŁUCH      nagranie z okularów  jest=true sekund=4.2135 pakietów=211 rozkodowanych=211 odrzuconych=0 przesunięcie=6 ramka=-1 obwiednia=2 148 15 498 1814 2505 3 1 1 ciszaNaKońcuOkien=0
+21:41:37.449   +4801 ms  AUDIO        hałas wokół  tłoDb=-65
+21:41:39.584   +6936 ms  TRANSKRYPCJA z nagrania okularów  ms=2649 droga=Nasłuch telefonu
+21:41:39.586   +6939 ms  NASŁUCH      przycinam nagranie dla modelu  byłoMs=4213 jestMs=1800 tło=1 szczyt=6525 ile razy=3387.7
+21:41:39.589   +6941 ms  TRANSKRYPCJA biorę odłożony tekst z telefonu  tekst=notatka ze spotkania
+21:41:39.589   +6941 ms  SESJA        pytanie  tekst=notatka ze spotkania wymuszonyObraz=false
+21:41:39.596   +6948 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=true wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+21:41:39.605   +6957 ms  AUDIO        mowa przez A2DP - bez profilu rozmowy  a2dp=true scoStoi=false
+21:41:43.093  +10445 ms  KONTEKST     zebrany  ms=3479 pamięć=false kalendarz=true poczta=true pogoda=false lokalizacja=false limitCzasu=false
+21:41:43.103  +10455 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=7527
+21:41:43.885  +11237 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=782
+21:41:44.004  +11356 ms  MODEL        zużycie tokenów  wejście=5734 odpowiedź=39 razem=5773 limit=3000 koniec=STOP
+21:41:44.006  +11358 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+21:41:44.007  +11359 ms  MODEL        koniec odpowiedzi (106 znaków, 5773 tokenów)  ms=904 dostawca=gemini początek=Wygląda na to, że urwałeś zdanie. Dokończ proszę, o jaką notatkę ze spotkania py
+21:41:44.009  +11361 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=106
+21:41:50.391  +17743 ms  MOWA         koniec wypowiedzi  ms=6380
+21:41:50.415  +17767 ms  SESJA        --- KONIEC TURY 1a8b: odpowiedziano ---
+21:41:50.418          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
