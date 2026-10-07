@@ -128,6 +128,9 @@ fun TranslationScreen(onBack: () -> Unit, keepScreenOn: (Boolean) -> Unit) {
     var from by remember { mutableStateOf(settings.getEarTranslationFrom()) }
     var to by remember { mutableStateOf(settings.getEarTranslationTo()) }
     var spoken by remember { mutableStateOf(settings.isEarTranslationSpoken()) }
+    val twoWayRunning by orchestrator.earTwoWay.collectAsState()
+    // Wybór trybu przed startem - w trakcie pokazuje to, co naprawdę działa.
+    var twoWayWanted by remember { mutableStateOf(false) }
 
     // Ekran gaśnie po kilkudziesięciu sekundach - w środku rozmowy z kimś, kto
     // właśnie mówi. Producent trzyma go zapalonym przez cały czas trwania.
@@ -139,8 +142,11 @@ fun TranslationScreen(onBack: () -> Unit, keepScreenOn: (Boolean) -> Unit) {
     val micPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) orchestrator.startEarTranslation()
-        else Toast.makeText(context, "Bez mikrofonu nie ma czego tłumaczyć.", Toast.LENGTH_LONG).show()
+        if (granted) {
+            if (twoWayWanted) orchestrator.startTwoWayTranslation(from) else orchestrator.startEarTranslation()
+        } else {
+            Toast.makeText(context, "Bez mikrofonu nie ma czego tłumaczyć.", Toast.LENGTH_LONG).show()
+        }
     }
 
     fun toggle() {
@@ -151,8 +157,11 @@ fun TranslationScreen(onBack: () -> Unit, keepScreenOn: (Boolean) -> Unit) {
         val granted = ContextCompat.checkSelfPermission(
             context, Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
-        if (granted) orchestrator.startEarTranslation()
-        else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        if (granted) {
+            if (twoWayWanted) orchestrator.startTwoWayTranslation(from) else orchestrator.startEarTranslation()
+        } else {
+            micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     fun setLanguages(newFrom: String, newTo: String) {
@@ -287,6 +296,30 @@ fun TranslationScreen(onBack: () -> Unit, keepScreenOn: (Boolean) -> Unit) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            // === Rozmowa w dwie strony ===
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("🗣️ Rozmowa w dwie strony", fontWeight = FontWeight.Medium)
+                    Text(
+                        "Ty mówisz po polsku (klik na oprawce albo \"Mówię ja\"), przekład czyta " +
+                            "głośnik telefonu.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                androidx.compose.material3.Switch(
+                    checked = if (running) twoWayRunning else twoWayWanted,
+                    enabled = !running,
+                    onCheckedChange = { twoWayWanted = it }
+                )
+            }
+            if (running && twoWayRunning) {
+                OutlinedButton(
+                    onClick = { orchestrator.myTurn(zOkularów = false) },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("🎤 Mówię ja (po polsku)") }
             }
 
             // === Start / Stop ===

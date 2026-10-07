@@ -947,6 +947,71 @@ class AudioManager(
     }
 
     /**
+     * Mówi przez GŁOŚNIK TELEFONU, nawet gdy okulary są połączone.
+     *
+     * Do tłumaczenia rozmowy w dwie strony: przekład tego, co powiedział
+     * użytkownik, ma usłyszeć ROZMÓWCA, a nie on sam w okularach. Syntezator
+     * nie pozwala wybrać urządzenia wyjściowego, więc zapisujemy mowę do
+     * pliku i odtwarzamy ją odtwarzaczem z wybranym głośnikiem telefonu.
+     *
+     * @return `false`, gdy synteza albo odtwarzanie się nie udały
+     */
+    suspend fun speakOnPhoneSpeaker(text: String, language: String): Boolean {
+        val engine = tts ?: return false
+        if (!_ttsReady.value || text.isBlank()) return false
+        val plik = java.io.File(context.cacheDir, "glosnik_${System.currentTimeMillis()}.wav")
+        val id = "victor-file-${utteranceCounter.incrementAndGet()}"
+        val done = CompletableDeferred<Boolean>()
+        pendingUtterances[id] = done
+        applyLanguage(language)
+        val zlecone = runCatching {
+            engine.synthesizeToFile(sanitizeForSpeech(text), android.os.Bundle(), plik, id)
+        }.getOrDefault(TextToSpeech.ERROR)
+        if (zlecone != TextToSpeech.SUCCESS) {
+            pendingUtterances.remove(id)
+            return false
+        }
+        val ok = withTimeoutOrNull(speechTimeoutFor(text)) { done.await() } ?: false
+        pendingUtterances.remove(id)
+        if (!ok || !plik.exists()) return false
+        return try {
+            odtwórzNaGłośniku(plik)
+        } finally {
+            plik.delete()
+        }
+    }
+
+    private suspend fun odtwórzNaGłośniku(plik: java.io.File): Boolean {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        val głośnik = am.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+            .firstOrNull { it.type == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+        val koniec = CompletableDeferred<Boolean>()
+        val player = android.media.MediaPlayer()
+        return try {
+            player.setAudioAttributes(
+                android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            player.setDataSource(plik.absolutePath)
+            player.prepare()
+            if (głośnik != null) player.setPreferredDevice(głośnik)
+            player.setOnCompletionListener { koniec.complete(true) }
+            player.setOnErrorListener { _, _, _ -> koniec.complete(false); true }
+            _speaking.value = true
+            player.start()
+            withTimeoutOrNull(player.duration.toLong() + 3_000L) { koniec.await() } ?: false
+        } catch (e: Exception) {
+            Log.w(tag, "Odtwarzanie na głośniku telefonu nie wyszło", e)
+            false
+        } finally {
+            runCatching { player.release() }
+            if (runCatching { tts?.isSpeaking }.getOrNull() != true) _speaking.value = false
+        }
+    }
+
+    /**
      * Podpina nasłuch zakończenia wypowiedzi. Bez niego [speakAndAwait] nie ma
      * skąd wiedzieć, kiedy silnik faktycznie przestał mówić.
      */

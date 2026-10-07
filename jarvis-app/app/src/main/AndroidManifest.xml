@@ -279,6 +279,12 @@
             android:label="Test skanera QR" />
 
         <activity
+            android:name=".ui.meeting.MeetingActivity"
+            android:exported="false"
+            android:label="Notatki ze spotkania"
+            android:theme="@style/Theme.Victor" />
+
+        <activity
             android:name=".ui.onboarding.OnboardingActivity"
             android:exported="false"
             android:label="Konfiguracja V.I.C.T.O.R."

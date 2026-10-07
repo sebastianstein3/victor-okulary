@@ -1478,8 +1478,19 @@ class AIOrchestrator(
     }
 
     private fun resumeWakeWordMic() {
+        // Tryb, który SAM trzyma mikrofon (spotkanie, tłumaczenie ze słuchu),
+        // nie może go stracić na rzecz nasłuchu frazy tylko dlatego, że
+        // skończyła się tura, która ten tryb włączyła. Tryb wznawia nasłuch
+        // sam, gdy się kończy.
+        if (meetingHoldsMic() || _earTranslation.value) return
         runCatching { victorApp?.resumeVoskAfterTurn() }
     }
+
+    private fun meetingHoldsMic(): Boolean = meetingCreated && meeting.nagrywa
+
+    /** Czy rejestrator spotkań już powstał - żeby samo pytanie go nie tworzyło. */
+    @Volatile
+    private var meetingCreated = false
 
     private fun claimIdle(
         takeOver: Boolean = false,
@@ -1685,6 +1696,69 @@ class AIOrchestrator(
         return bezTury && !audio.speaking.value && !_earTranslation.value
     }
 
+    /** Notatki ze spotkania - patrz [pl.victor.app.features.meeting.MeetingRecorder]. */
+    val meeting by lazy {
+        meetingCreated = true
+        pl.victor.app.features.meeting.MeetingRecorder(
+            context = context,
+            scope = scope,
+            przepisz = { pcm ->
+                speechToText.transcribe(
+                    pcm = pcm,
+                    sampleRate = pl.victor.app.features.meeting.MeetingRecorder.HZ,
+                    languageTag = languageTagFor(settings.getResponseLanguage())
+                )
+            },
+            podsumuj = { polecenie -> askModelPlain(polecenie) },
+            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.NASŁUCH, co, pola) } }
+        )
+    }
+
+    /**
+     * Zaczyna nagrywanie spotkania - z przycisku w aplikacji albo głosem.
+     *
+     * @return `false`, gdy mikrofon jest niedostępny
+     */
+    fun startMeeting(): Boolean {
+        if (meeting.nagrywa) return true
+        // Nasłuch frazy na telefonie trzyma mikrofon - na czas spotkania oddaje go.
+        pauseWakeWordMic()
+        val ok = meeting.start()
+        if (!ok) {
+            resumeWakeWordMic()
+            audio.speak(
+                "Nie mogę nagrywać - mikrofon telefonu jest zajęty albo brakuje zgody na mikrofon.",
+                language = settings.getResponseLanguage()
+            )
+            return false
+        }
+        audio.speak(
+            "Nagrywam spotkanie. Gdy skończycie, powiedz: zakończ spotkanie.",
+            language = settings.getResponseLanguage()
+        )
+        return true
+    }
+
+    /** Kończy nagrywanie, robi podsumowanie, zapisuje je w notatkach i mówi, co wyszło. */
+    fun stopMeeting() {
+        if (!meeting.nagrywa) return
+        scope.launch {
+            audio.speak("Kończę nagrywanie i robię podsumowanie.", language = settings.getResponseLanguage())
+            val m = meeting.stop()
+            resumeWakeWordMic()
+            if (m == null) return@launch
+            m.podsumowanie?.let { p ->
+                val data = java.text.SimpleDateFormat("d.MM HH:mm", java.util.Locale("pl", "PL"))
+                    .format(java.util.Date(m.startMs))
+                settings.addNote("Spotkanie $data\n${p.trim()}")
+            }
+            audio.speakAndAwait(
+                pl.victor.app.features.meeting.MeetingNotes.naGłos(m.podsumowanie, m.linie.size),
+                language = settings.getResponseLanguage()
+            )
+        }
+    }
+
     /** Tryb przewodnika - patrz [pl.victor.app.features.GuideMode]. */
     val guide by lazy {
         pl.victor.app.features.GuideMode(
@@ -1694,6 +1768,111 @@ class AIOrchestrator(
             wolno = { ciszaWTle() },
             dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.KONTEKST, co, pola) } }
         )
+    }
+
+    private val _earTwoWay = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    /** Czy tłumaczenie ze słuchu działa jako rozmowa w dwie strony. */
+    val earTwoWay: kotlinx.coroutines.flow.StateFlow<Boolean> = _earTwoWay
+
+    @Volatile
+    private var mojaKolej = false
+    private var myTurnJob: kotlinx.coroutines.Job? = null
+    @Volatile
+    private var earListenJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Rozmowa w dwie strony z tłumaczem.
+     *
+     * Rozmówcę słucha telefon, a przekład słyszysz w okularach - jak w
+     * zwykłym tłumaczeniu ze słuchu. Gdy chcesz coś powiedzieć, klikasz
+     * przycisk ([myTurn]): mówisz po polsku do okularów, a przekład czyta
+     * GŁOŚNIK TELEFONU, żeby usłyszał go rozmówca.
+     *
+     * @param obcy język rozmówcy albo `null` = z ustawień tłumaczenia
+     */
+    fun startTwoWayTranslation(obcy: String? = null) {
+        val mój = settings.getResponseLanguage()
+        val jegoJęzyk = obcy?.takeIf { it != mój }
+            ?: settings.getEarTranslationFrom().takeIf { it != mój }
+            ?: "en"
+        if (_earTranslation.value) stopEarTranslation("przełączenie na rozmowę")
+        settings.setEarTranslationFrom(jegoJęzyk)
+        settings.setEarTranslationTo(mój)
+        _earTranscript.value = _earTranscript.value.copy(z = jegoJęzyk, na = mój)
+        _earTwoWay.value = true
+        startEarTranslation()
+        if (!_earTranslation.value) _earTwoWay.value = false
+    }
+
+    /**
+     * Moja kolej w rozmowie: słuchamy Ciebie (mikrofon okularów, a bez
+     * okularów - telefonu), tłumaczymy na język rozmówcy i czytamy przez
+     * głośnik telefonu.
+     *
+     * @param zOkularów kliknięcie na oprawce - okulary już nadają dźwięk
+     */
+    fun myTurn(zOkularów: Boolean) {
+        if (!_earTwoWay.value || !_earTranslation.value) return
+        if (myTurnJob?.isActive == true) return
+        myTurnJob = scope.launch {
+            mojaKolej = true
+            earListenJob?.cancel()
+            val mój = settings.getEarTranslationTo()
+            val jegoJęzyk = settings.getEarTranslationFrom()
+            try {
+                diag.event(DiagFormat.Phase.NASŁUCH, "rozmowa: moja kolej", mapOf("zOkularów" to zOkularów))
+                val tekst = if (zOkularów && glassesManager.isConnected()) {
+                    val capture = GlassesVoiceCapture(glassesManager)
+                    if (capture.start()) {
+                        try {
+                            capture.awaitSpeechEnd()
+                        } finally {
+                            glassesManager.stopGlassesListening()
+                        }
+                        capture.stop()?.takeIf { it.hasAudio }?.pcm
+                            ?.let { transcribeGlassesAudio(it, languageTagFor(mój)) }
+                    } else {
+                        null
+                    }
+                } else {
+                    audio.playListeningCue()
+                    conversationalMode.listenOnce(languageTagFor(mój))
+                }?.trim()
+                if (tekst.isNullOrBlank()) {
+                    audio.speakAndAwait("Nie usłyszałem. Kliknij jeszcze raz i mów.", language = mój)
+                    return@launch
+                }
+                if (pl.victor.app.translation.EarTranslation.toKoniec(tekst)) {
+                    stopEarTranslation("koniec rozmowy - moja kolej")
+                    audio.speak("Kończę tłumaczenie rozmowy.", language = mój)
+                    return@launch
+                }
+                val przekład = runCatching { translator.translate(tekst, mój, jegoJęzyk) }.getOrNull()
+                if (przekład.isNullOrBlank() || przekład == tekst) {
+                    audio.speakAndAwait("Nie udało się przetłumaczyć.", language = mój)
+                    return@launch
+                }
+                diag.event(
+                    DiagFormat.Phase.NASŁUCH, "rozmowa: moje zdanie",
+                    mapOf("powiedziane" to tekst.take(60), "przekład" to przekład.take(60))
+                )
+                _earTranscript.value = _earTranscript.value.zSegmentem(
+                    pl.victor.app.translation.TwoWay.mojeZdanie(tekst), przekład, System.currentTimeMillis()
+                )
+                // Telefon zaraz usłyszy własny głośnik - to echo, nie rozmówca.
+                earSession.zapamiętajWłasnąWypowiedź(przekład)
+                if (!audio.speakOnPhoneSpeaker(przekład, language = jegoJęzyk)) {
+                    audio.speakAndAwait(przekład, language = jegoJęzyk)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Moja kolej w rozmowie się nie udała", e)
+            } finally {
+                mojaKolej = false
+            }
+        }
     }
 
     private val _earTranslation = kotlinx.coroutines.flow.MutableStateFlow(false)
@@ -1859,6 +2038,8 @@ class AIOrchestrator(
             )
         }
         _earTranslation.value = false
+        _earTwoWay.value = false
+        myTurnJob?.cancel()
         _earTranscript.value = _earTranscript.value.stop()
         earPartialJob?.cancel()
         earPartialJob = null
@@ -1916,7 +2097,14 @@ class AIOrchestrator(
         val mówić = settings.isEarTranslationSpoken()
         if (mówić) {
             val zapowiedźOd = System.currentTimeMillis()
-            val powiedziane = audio.speakAndAwait("Tłumaczę z $fromName na $toName.", language = to)
+            val zapowiedź = if (_earTwoWay.value) {
+                // W rozmowie zapowiedź mówi, JAK oddać głos - bez tego tryb
+                // dwustronny wygląda jak zwykłe tłumaczenie ze słuchu.
+                pl.victor.app.translation.TwoWay.zapowiedź(fromName)
+            } else {
+                "Tłumaczę z $fromName na $toName."
+            }
+            val powiedziane = audio.speakAndAwait(zapowiedź, language = if (_earTwoWay.value) settings.getResponseLanguage() else to)
             runCatching {
                 diag.event(
                     DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: zapowiedź",
@@ -1938,6 +2126,10 @@ class AIOrchestrator(
             // prawdą, ale należy już do NOWEJ sesji - stara pętla ma wtedy
             // skończyć, a nie słuchać równolegle z nową.
             while (_earTranslation.value && earJob === mójJob) {
+                // Twoja kolej w rozmowie dwustronnej - pętla czeka, aż przekład
+                // Twoich słów wybrzmi z głośnika telefonu.
+                while (mojaKolej && _earTranslation.value) delay(EAR_TURN_POLL_MS)
+                if (!_earTranslation.value || earJob !== mójJob) break
                 val nasłuchOd = System.currentTimeMillis()
                 val usłyszane = try {
                     // STRAŻNIK: jeden nasłuch ma swoje limity (rozpoznawanie,
@@ -1945,8 +2137,24 @@ class AIOrchestrator(
                     // sekund). Gdy mimo to wisi, tryb nie może milczeć do
                     // przycisku - liczymy to jak pusty nasłuch, Z WPISEM.
                     // Pusty tekst zamiast null, żeby odróżnić "nic" od "zawisł".
-                    val wynik = kotlinx.coroutines.withTimeoutOrNull(EAR_LISTEN_MAX_MS) {
-                        earListenOnce(from) ?: ""
+                    // Osobne zadanie, żeby "moja kolej" mogła przerwać nasłuch
+                    // rozmówcy, nie kończąc całego trybu.
+                    val nasłuch = scope.async {
+                        kotlinx.coroutines.withTimeoutOrNull(EAR_LISTEN_MAX_MS) {
+                            earListenOnce(from) ?: ""
+                        }
+                    }
+                    earListenJob = nasłuch
+                    val wynik = try {
+                        nasłuch.await()
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        // Przerwany przez "moją kolej" - to nie koniec trybu.
+                        currentCoroutineContext().ensureActive()
+                        nasłuch.cancel()
+                        continue
+                    } finally {
+                        if (!nasłuch.isCompleted) nasłuch.cancel()
+                        earListenJob = null
                     }
                     if (wynik == null) {
                         earListenError = "nasłuch zawisł na ${EAR_LISTEN_MAX_MS / 1000} s"
@@ -2014,7 +2222,9 @@ class AIOrchestrator(
                         return
                     }
                     zRzędu++
-                    if (zRzędu >= EAR_MAX_PUSTYCH) {
+                    // W rozmowie cisza jest normalna - ktoś myśli, czyta menu.
+                    // Kończy ją przycisk albo "koniec tłumaczenia".
+                    if (zRzędu >= EAR_MAX_PUSTYCH && !_earTwoWay.value) {
                         val komunikat = "Nic nie słyszę po $fromName. Kończę tłumaczenie."
                         noteEarMessage(komunikat)
                         audio.speakAndAwait(komunikat, language = to)
@@ -2105,8 +2315,10 @@ class AIOrchestrator(
                 // Okulary nadają jeszcze chwilę po ostatnim nasłuchu - bez
                 // karencji ten ogon odpalał turę z przypadkowym pytaniem.
                 glassesManager.suspendMicWake(false, graceMs = EAR_MIC_WAKE_GRACE_MS)
-                resumeWakeWordMic()
+                // Najpierw flaga, potem nasłuch: resumeWakeWordMic nie oddaje
+                // mikrofonu, dopóki tłumaczenie trwa.
                 _earTranslation.value = false
+                resumeWakeWordMic()
                 earJob = null
                 earPartialJob?.cancel()
                 earPartialJob = null
@@ -3273,6 +3485,12 @@ class AIOrchestrator(
         // drugą, równoległą turę pytania, która biła się z pętlą o mikrofon.
         // Każdy gest - jedno, dwa, trzy kliknięcia, także "Hey Lens", który
         // przychodzi tą samą ramką - kończy więc tryb i nic więcej nie robi.
+        // W ROZMOWIE W DWIE STRONY pojedyncze kliknięcie oddaje głos Tobie;
+        // kończy ją każdy inny gest (dwa, trzy kliknięcia, przytrzymanie).
+        if (_earTranslation.value && _earTwoWay.value && action == ButtonAction.QUICK_QUESTION) {
+            myTurn(zOkularów = true)
+            return
+        }
         if (_earTranslation.value) {
             stopEarTranslation("przycisk na okularach")
             // Wciśnięcie samo włączyło okulary w nasłuch (tak działa ich
@@ -5293,6 +5511,16 @@ class AIOrchestrator(
         // na tekście usłyszanym już po włączeniu.
         // Tryb przewodnika - lokalnie, bez modelu, z tego samego powodu co
         // tłumaczenie: zapytany o czynność model odpowiada na nią słowami.
+        pl.victor.app.conversation.MetaCommands.meetingCommand(text)?.let { zacznij ->
+            if (zacznij) startMeeting() else if (meeting.nagrywa) {
+                stopMeeting()
+            } else {
+                audio.speak("Nie nagrywam teraz żadnego spotkania.", language = settings.getResponseLanguage())
+            }
+            runCatching { diag.endTurn("notatki ze spotkania") }
+            return true
+        }
+
         pl.victor.app.conversation.MetaCommands.guideCommand(text)?.let { włącz ->
             if (włącz) {
                 if (guide.aktywny.value) {
@@ -5309,6 +5537,12 @@ class AIOrchestrator(
                 audio.speak("Wyłączam przewodnika.", language = settings.getResponseLanguage())
             }
             runCatching { diag.endTurn("przewodnik") }
+            return true
+        }
+
+        pl.victor.app.conversation.MetaCommands.twoWayCommand(text)?.let { język ->
+            startTwoWayTranslation(język.ifBlank { null })
+            runCatching { diag.endTurn("tłumaczenie rozmowy") }
             return true
         }
 
@@ -6486,6 +6720,9 @@ class AIOrchestrator(
          * krócej znaczyłoby wyłączać się w przerwie w rozmowie.
          */
         private const val EAR_MAX_PUSTYCH = 5
+
+        /** Jak często pętla tłumaczenia sprawdza, czy skończyła się Twoja kolej. */
+        private const val EAR_TURN_POLL_MS = 200L
 
         /** Jak długo skanować strumień w poszukiwaniu kodu - patrz [scanStreamForCode]. */
         private const val CODE_STREAM_SCAN_MS = 6_000L

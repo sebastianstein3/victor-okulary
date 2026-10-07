@@ -179,6 +179,48 @@ object MetaCommands {
         """^(wy[lł][aą]cz(y[cć])?|zatrzymaj|zako[nń]cz|koniec|stop)\s+(trybu?\s+)?przewodnik(a|iem)?$"""
     )
 
+    /**
+     * Rozmowa w dwie strony: kod języka rozmówcy, "" = z ustawień, `null` = to
+     * nie ta komenda.
+     *
+     * Sprawdzane PRZED [startsEarTranslation] - "tłumacz rozmowę" pasuje też
+     * do jednostronnego tłumaczenia ze słuchu.
+     */
+    fun twoWayCommand(text: String): String? {
+        val m = TWO_WAY.matchEntire(earBare(text)) ?: return null
+        val słowo = m.groups["jezyk"]?.value ?: return ""
+        return languageCode(słowo) ?: ""
+    }
+
+    private val TWO_WAY = Regex(
+        """^((w[lł][aą]cz|uruchom|zacznij)\s+)?(t[lł]umacz(enie)?\s+rozmow[ęeyay]|tryb\s+rozmowy|""" +
+            """rozmow[aęy]\s+z\s+t[lł]umaczem|t[lł]umacz(enie)?\s+w\s+dwie\s+strony|""" +
+            """pom[oó][zż]\s+mi\s+rozmawia[cć])(\s+(z|ze|po)\s+(?<jezyk>\S+))?$"""
+    )
+
+    /**
+     * Notatki ze spotkania: `true` = zacznij nagrywać, `false` = zakończ,
+     * `null` = to nie ta komenda.
+     */
+    fun meetingCommand(text: String): Boolean? {
+        val bare = earBare(text)
+        return when {
+            MEETING_STOP.matches(bare) -> false
+            MEETING_START.matches(bare) -> true
+            else -> null
+        }
+    }
+
+    private val MEETING_START = Regex(
+        """^((nagrywaj|nagraj|zacznij\s+nagrywa[cć]|rozpocznij|w[lł][aą]cz|zacznij|r[oó]b)\s+)?""" +
+            """(nagrywanie\s+)?(spotkanie|notatki\s+ze\s+spotkania|protok[oó][lł](\s+ze\s+spotkania)?)$|""" +
+            """^nagrywaj\s+(to\s+)?spotkanie$"""
+    )
+    private val MEETING_STOP = Regex(
+        """^(zako[nń]cz|koniec|zatrzymaj|stop|sko[nń]cz|przerwij)\s+(nagrywani[ae]\s+)?""" +
+            """(spotkani[ae]|nagrywani[ae]|protok[oó][lł]u?|notatk[ię]\s+ze\s+spotkania)$"""
+    )
+
     /** Kod języka z polskiej nazwy w dowolnym przypadku ("polskiego", "angielski"). */
     fun languageCode(word: String): String? {
         val w = word.lowercase().trim()

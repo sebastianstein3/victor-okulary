@@ -399,6 +399,17 @@ private fun IdleContent(
         Text(if (guideOn) "🧭 Przewodnik mówi - wyłącz" else "🧭 Przewodnik po okolicy")
     }
 
+    // === Notatki ze spotkania ===
+    Spacer(modifier = Modifier.height(12.dp))
+    androidx.compose.material3.OutlinedButton(
+        onClick = {
+            context.startActivity(Intent(context, pl.victor.app.ui.meeting.MeetingActivity::class.java))
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("🎙️ Notatki ze spotkania")
+    }
+
     // === Notatki ===
     Spacer(modifier = Modifier.height(12.dp))
     androidx.compose.material3.OutlinedButton(

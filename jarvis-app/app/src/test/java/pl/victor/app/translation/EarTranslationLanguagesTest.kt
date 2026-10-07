@@ -54,3 +54,30 @@ class GuideCommandTest {
         org.junit.Assert.assertNull(MetaCommands.guideCommand("kto był przewodnikiem tej wycieczki"))
     }
 }
+
+class MeetingCommandTest {
+    @org.junit.Test
+    fun `start i koniec spotkania`() {
+        org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("nagrywaj spotkanie"))
+        org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("Notatki ze spotkania."))
+        org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("zacznij nagrywać spotkanie"))
+        org.junit.Assert.assertEquals(true, MetaCommands.meetingCommand("rób protokół"))
+        org.junit.Assert.assertEquals(false, MetaCommands.meetingCommand("zakończ spotkanie"))
+        org.junit.Assert.assertEquals(false, MetaCommands.meetingCommand("koniec nagrywania"))
+        org.junit.Assert.assertNull(MetaCommands.meetingCommand("kiedy mam spotkanie"))
+        org.junit.Assert.assertNull(MetaCommands.meetingCommand("przesuń spotkanie na jutro"))
+    }
+}
+
+class TwoWayCommandTest {
+    @org.junit.Test
+    fun `rozmowa w dwie strony`() {
+        org.junit.Assert.assertEquals("", MetaCommands.twoWayCommand("tłumacz rozmowę"))
+        org.junit.Assert.assertEquals("en", MetaCommands.twoWayCommand("tłumacz rozmowę z angielskim"))
+        org.junit.Assert.assertEquals("de", MetaCommands.twoWayCommand("pomóż mi rozmawiać po niemiecku"))
+        org.junit.Assert.assertEquals("", MetaCommands.twoWayCommand("Tryb rozmowy."))
+        org.junit.Assert.assertNull(MetaCommands.twoWayCommand("tłumaczenie na żywo"))
+        org.junit.Assert.assertNull(MetaCommands.twoWayCommand("o czym była ta rozmowa"))
+        org.junit.Assert.assertTrue(pl.victor.app.translation.TwoWay.czyMoje(pl.victor.app.translation.TwoWay.mojeZdanie("a")))
+    }
+}
