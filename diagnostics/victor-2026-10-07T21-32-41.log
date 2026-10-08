@@ -594,3 +594,22 @@
 21:45:50.521  +19202 ms  MOWA         koniec wypowiedzi  ms=5038
 21:45:50.745  +19426 ms  SESJA        --- KONIEC TURY 3a4a: odpowiedziano ---
 21:45:50.752          ms  WAKE         przypominam okularom o frazie wybudzenia  powód=koniec tury
+21:45:50.874          ms  WAKE         okulary odpowiedziały o frazie wybudzenia  żądano=true zgłaszają=true
+21:45:51.556          ms  WAKE         ucisz z okularów pominięte  tłumaczenie=false mówię=false
+21:49:02.233          ms  BLE          ROZŁĄCZONO  świadome=false
+21:49:10.254          ms  BLE          okulary rozłączone dłużej niż karencja - mówię o tym  karencjaMs=8000
+00:37:17.324          ms  KONTEKST     przewodnik: koniec  powód=limit czasu
+17:06:28.753      +1 ms  SESJA        --- TURA ab00 ---  źródło=TEXT_INPUT
+17:06:28.756      +4 ms  SESJA        pytanie  tekst=Przygotuj poranny briefing dla użytkownika. Mówisz na głos, więc pisz tak, jak się mówi: bez list, bez nagłówków, bez zn wymuszonyObraz=false
+17:06:28.808     +56 ms  ZDJĘCIE      bez zdjęcia  okularyGotowe=false wzorzecWidzenia=false kod=false wymuszone=false zNagrania=false
+17:06:29.211    +459 ms  AUDIO        brak A2DP - biorę profil rozmowy  a2dp=false scoStoi=false
+17:06:29.323    +571 ms  KONTEKST     pogoda dla innego miejsca - każę szukać  miejsce=użytkownika zUstawień=Toruń, PL
+17:06:30.548   +1796 ms  KONTEKST     zebrany  ms=1287 pamięć=true kalendarz=true poczta=true pogoda=true lokalizacja=false limitCzasu=false
+17:06:30.562   +1810 ms  MODEL        wysyłam pytanie  dostawca=gemini model=gemini-3.5-flash-lite próba=1 zdjęć=0 znakówPromptu=11076
+17:06:31.410   +2658 ms  MODEL        PIERWSZY FRAGMENT odpowiedzi  ms=848
+17:06:31.649   +2897 ms  MODEL        zużycie tokenów  wejście=7070 odpowiedź=110 razem=7180 limit=3000 koniec=STOP
+17:06:31.651   +2899 ms  MODEL        wyszukiwarka dostępna, model nie szukał  zapytań=0 źródeł=0
+17:06:32.186   +3435 ms  MODEL        koniec odpowiedzi (367 znaków, 7180 tokenów)  ms=1625 dostawca=gemini początek=Masz dzisiaj o siedemnastej trzydzieści warsztat "Rethinking AI with Jev" z John
+17:06:32.192   +3440 ms  AKCJA        model nie zlecił żadnej akcji  znakówOdpowiedzi=367
+17:07:03.636  +34885 ms  MOWA         koniec wypowiedzi  ms=31438
+17:07:03.684  +34933 ms  SESJA        --- KONIEC TURY ab00: odpowiedziano ---
