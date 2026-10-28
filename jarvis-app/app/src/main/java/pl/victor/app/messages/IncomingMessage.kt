@@ -92,6 +92,8 @@ class InboxLogic(private val pamięćMs: Long = PAMIĘĆ_MS, private val maks: I
         }
     }
 
+    fun poKluczu(klucz: String): IncomingMessage? = wiadomości.toList().lastOrNull { it.klucz == klucz }
+
     fun wyczyść() {
         wiadomości.clear()
         znane.clear()

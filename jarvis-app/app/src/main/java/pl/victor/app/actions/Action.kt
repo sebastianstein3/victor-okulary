@@ -63,7 +63,9 @@ sealed class Action {
     data class ReplyMessage(
         val to: String?,
         val body: String,
-        val resolvedName: String? = null
+        val resolvedName: String? = null,
+        /** Klucz konkretnej wiadomości zatwierdzonej w pytaniu "Wysłać?" - odpowiedź idzie do NIEJ, nie do "najnowszej". */
+        val klucz: String? = null
     ) : Action() {
         override val type = ActionType.REPLY_MESSAGE
         override val description = "Odpowiedz ${resolvedName ?: to ?: "na ostatnią wiadomość"}: \"$body\""

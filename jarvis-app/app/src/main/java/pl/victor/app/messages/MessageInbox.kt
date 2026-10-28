@@ -56,6 +56,9 @@ object MessageInbox {
     @Synchronized
     fun adresat(imię: String?): IncomingMessage? = logika.adresat(imię)
 
+    @Synchronized
+    fun poKluczu(klucz: String): IncomingMessage? = logika.poKluczu(klucz)
+
     sealed class Wynik {
         object Wysłane : Wynik()
         data class Błąd(val powód: String) : Wynik()

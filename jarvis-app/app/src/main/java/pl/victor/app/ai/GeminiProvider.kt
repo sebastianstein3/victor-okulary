@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit
  */
 class GeminiProvider(
     private val apiKey: String,
-    val model: String = "gemini-2.5-flash",
+    val model: String = "gemini-3.5-flash-lite",
     /**
      * Czy prosić model, żeby nie rozmyślał przed odpowiedzią.
      *

@@ -70,4 +70,13 @@ class MessagesLogicTest {
         assertEquals(null, MessageReplyParser.parse("odpisz na wiadomość od Ani"))
         assertEquals(null, MessageReplyParser.prośbaBezTreści("odpisz Ani, że będę za 10 minut"))
     }
+
+    @Test
+    fun `zwykle pytania z odpowiedz nie sa odpowiedzia na wiadomosc`() {
+        assertEquals(null, MessageReplyParser.parse("odpowiedz mi szczerze czy to dobry pomysł"))
+        assertEquals(null, MessageReplyParser.parse("odpowiedz na pytanie ile to kosztuje"))
+        assertEquals("Będę za 10 minut", MessageReplyParser.parse("odpowiedz że będę za 10 minut")?.treść)
+        assertEquals("Ania", MessageReplyParser.parse("odpisz Ania że już jadę")?.adresat)
+        assertEquals(null, MessageReplyParser.parse("odpisz jej że już jadę")?.adresat)
+    }
 }

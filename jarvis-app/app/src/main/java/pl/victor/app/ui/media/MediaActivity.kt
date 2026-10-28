@@ -907,66 +907,6 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
         }
     }
 
-    /**
-     * Czy pokazać pytanie o zwolnienie pamięci okularów.
-     *
-     * Osobne potwierdzenie, a nie zwykły przycisk, bo tej operacji może się nie
-     * dać cofnąć - patrz [pl.victor.app.ble.GlassesProtocol.WORK_RELEASE_STORAGE].
-     */
-    private val _askRelease = MutableStateFlow(false)
-    val askRelease: StateFlow<Boolean> = _askRelease.asStateFlow()
-
-    fun askReleaseStorage() {
-        if (_items.value.isEmpty()) {
-            _status.value = "Najpierw wczytaj listę plików."
-            return
-        }
-        _askRelease.value = true
-    }
-
-    fun dismissRelease() {
-        _askRelease.value = false
-    }
-
-    /**
-     * Prosi okulary o zwolnienie pamięci i pokazuje, co się stało z licznikami.
-     *
-     * Wynik opisujemy liczbami, a nie słowem "gotowe": dopóki nie wiadomo, czy
-     * ta komenda kasuje pliki, czy tylko oznacza je jako przeniesione, jedyną
-     * uczciwą odpowiedzią jest pokazanie, ile było i ile jest.
-     */
-    fun releaseStorage() {
-        _askRelease.value = false
-        if (_busy.value) return
-        viewModelScope.launch {
-            _busy.value = true
-            _status.value = "Proszę okulary o zwolnienie pamięci..."
-            try {
-                val (before, after) = manager.releaseGlassesStorage()
-                _status.value = when {
-                    before == null || after == null ->
-                        "Okulary nie podały liczników - nie wiem, czy coś się zmieniło."
-                    after.total < before.total ->
-                        "Pamięć zwolniona: było ${before.total} plików, jest ${after.total}."
-                    else ->
-                        "Liczniki się nie zmieniły (${before.total} plików). " +
-                            "Ta komenda nie zwalnia pamięci na tym egzemplarzu."
-                }
-                // Pliki znikły z okularów, ale ZOSTAJĄ w galerii telefonu -
-                // o to w tej funkcji chodziło. Oznaczamy je tylko jako nieobecne
-                // na sprzęcie.
-                if (after != null && before != null && after.total < before.total) {
-                    archive.rememberGlassesEmptied()
-                    refreshFromArchive()
-                }
-            } catch (e: Exception) {
-                _status.value = "Nie udało się: ${e.message}"
-            } finally {
-                _busy.value = false
-            }
-        }
-    }
-
     fun closePreview() {
         _preview.value = null
     }
@@ -1030,7 +970,6 @@ fun MediaScreen(onBack: () -> Unit) {
     val saving by viewModel.saving.collectAsState()
     val pendingPlayback by viewModel.pendingPlayback.collectAsState()
     val pendingShare by viewModel.pendingShare.collectAsState()
-    val askRelease by viewModel.askRelease.collectAsState()
     val selection by viewModel.selection.collectAsState()
     val filter by viewModel.filter.collectAsState()
     val deletePlan by viewModel.askDelete.collectAsState()
@@ -1131,37 +1070,6 @@ fun MediaScreen(onBack: () -> Unit) {
         )
     }
 
-    if (askRelease) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissRelease() },
-            title = { Text("Zwolnić pamięć okularów?") },
-            text = {
-                // Mówimy wprost, czego NIE wiemy. Komenda pochodzi z aplikacji
-                // producenta, który wysyła ją po każdym imporcie, ale nie da się
-                // z kodu rozstrzygnąć, czy kasuje pliki, czy tylko oznacza je
-                // jako przeniesione. Pierwsze użycie to rozstrzygnie - i lepiej,
-                // żeby stało się to świadomie.
-                Text(
-                    "Ta komenda pochodzi z aplikacji producenta, która wysyła ją " +
-                        "po każdym imporcie. Prawdopodobnie kasuje pliki z okularów " +
-                        "i wtedy NIE DA SIĘ ich odzyskać.\n\n" +
-                        "Najpierw zapisz wszystko w telefonie przyciskiem " +
-                        "\"Zapisz wszystko\".\n\n" +
-                        "Po operacji pokażę liczniki przed i po - to rozstrzygnie, " +
-                        "co ta komenda naprawdę robi."
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.releaseStorage() }) {
-                    Text("Zwolnij")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.dismissRelease() }) { Text("Anuluj") }
-            }
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -1247,15 +1155,6 @@ fun MediaScreen(onBack: () -> Unit) {
                         )
                     }
 
-                    if (saving == null && files.isNotEmpty()) {
-                        OutlinedButton(
-                            onClick = { viewModel.askReleaseStorage() },
-                            enabled = !busy,
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Text("Zwolnij pamięć okularów")
-                        }
-                    }
                     saving?.let { progress ->
                         Column(modifier = Modifier.padding(top = 8.dp)) {
                             LinearProgressIndicator(

@@ -68,4 +68,16 @@ class ConfirmationReplyTest {
         assertEquals(ConfirmationReply.Reply.YES, parse("wyślij"))
         assertEquals(ConfirmationReply.Reply.NO, parse("rezygnuje"))
     }
+
+    @Test
+    fun `scisle potwierdzenie nie lapie polecen`() {
+        assertEquals(ConfirmationReply.Reply.UNCLEAR, ConfirmationReply.parseStrict("zrób zdjęcie"))
+        assertEquals(ConfirmationReply.Reply.UNCLEAR, ConfirmationReply.parseStrict("dodaj mleko"))
+        assertEquals(ConfirmationReply.Reply.UNCLEAR, ConfirmationReply.parseStrict("dobra, opowiedz kawał"))
+        assertEquals(ConfirmationReply.Reply.YES, ConfirmationReply.parseStrict("tak, proszę"))
+        assertEquals(ConfirmationReply.Reply.YES, ConfirmationReply.parseStrict("wyślij"))
+        assertEquals(ConfirmationReply.Reply.NO, ConfirmationReply.parseStrict("nie, dziękuję"))
+        assertEquals(ConfirmationReply.Reply.NO, ConfirmationReply.parseStrict("nie trzeba"))
+        assertEquals(ConfirmationReply.Reply.UNCLEAR, ConfirmationReply.parseStrict("chyba tak"))
+    }
 }

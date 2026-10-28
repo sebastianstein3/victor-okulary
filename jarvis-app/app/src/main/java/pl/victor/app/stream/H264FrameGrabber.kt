@@ -72,6 +72,10 @@ class H264FrameGrabber(
      */
     @Volatile
     var latestJpeg: ByteArray? = null
+
+    /** Kiedy (zegar systemowy) powstała [latestJpeg] - do wykrycia zerwanego strumienia. */
+    @Volatile
+    var latestAtMs: Long = 0L
         private set
 
     /** Wymiary ostatniej klatki - do dziennika. */
@@ -184,6 +188,7 @@ class H264FrameGrabber(
             val yuv = YuvImage(nv21.bytes, ImageFormat.NV21, nv21.width, nv21.height, null)
             yuv.compressToJpeg(Rect(0, 0, nv21.width, nv21.height), quality, out)
             latestJpeg = out.toByteArray()
+            latestAtMs = System.currentTimeMillis()
             latestSize = nv21.width to nv21.height
             latestFingerprint = YuvFrame.fingerprint(nv21)
             val first = grabbed == 0

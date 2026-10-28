@@ -27,11 +27,11 @@ import java.util.concurrent.TimeUnit
  */
 class ClaudeProvider(
     private val apiKey: String,
-    val model: String = "claude-sonnet-4-5"
+    val model: String = "claude-sonnet-5-5"
 ) : AIProvider {
 
     override val id = "claude"
-    override val displayName = "Anthropic Claude Sonnet 4"
+    override val displayName = "Anthropic Claude"
     override val supportsNativeAudio = false
     override val supportsWebSearch = false  // wymaga osobnej integracji
 

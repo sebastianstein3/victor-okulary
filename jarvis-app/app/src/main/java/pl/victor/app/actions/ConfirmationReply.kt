@@ -46,6 +46,30 @@ object ConfirmationReply {
     }
 
     /**
+     * Jak [parse], ale TYLKO gdy cała wypowiedź to słowa zgody/odmowy i
+     * zwykłe dopowiedzenia ("tak, proszę", "dobra, dzięki"). "Zrób zdjęcie" i
+     * "dodaj mleko" zawierają słowa zgody, ale są poleceniami - trafiają do
+     * [Reply.UNCLEAR], czyli idą dalej jako nowa tura.
+     */
+    fun parseStrict(text: String?): Reply {
+        val words = normalize(text ?: return Reply.UNCLEAR)
+        if (words.isEmpty()) return Reply.UNCLEAR
+        val znane = YES_WORDS + NO_WORDS + FILLER +
+            NO_PHRASES.flatMap { it.split(' ') } + HEDGES.flatMap { it.split(' ') }
+        if (!words.all { it in znane }) return Reply.UNCLEAR
+        // Samo "zrób"/"dodaj"/"wyślij" bez dopowiedzenia to początek polecenia.
+        if (words.size == 1 && words[0] in COMMAND_VERBS) return Reply.UNCLEAR
+        return parse(text)
+    }
+
+    private val FILLER = setOf(
+        "to", "prosze", "dzieki", "dziekuje", "bardzo", "na", "pewno", "juz", "teraz",
+        "wszystko", "tak", "sobie", "mi", "wlasnie", "oczywiscie", "wyslij", "jasne"
+    )
+
+    private val COMMAND_VERBS = setOf("rob", "zrob", "dodaj", "wykonaj")
+
+    /**
      * Rozbija na słowa bez znaków przestankowych i bez polskich ogonków.
      *
      * Ogonki lecą, bo rozpoznawanie mowy bywa w tym niekonsekwentne i zwraca raz

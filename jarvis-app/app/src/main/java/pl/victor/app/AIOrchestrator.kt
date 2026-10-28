@@ -3751,8 +3751,19 @@ class AIOrchestrator(
         // Dlatego dopóki potwierdzenie wisi, krótka odpowiedź "tak"/"nie"
         // należy do NIEGO, a nie do modelu. Tylko krótka: całe zdanie to nowe
         // polecenie, a nie odpowiedź na pytanie sprzed chwili.
-        if (textIsQuestion && _pendingActionConfirmation.value != null) {
-            val reply = pl.victor.app.actions.ConfirmationReply.parse(textQuestion)
+        //
+        // DWA OGRANICZENIA (audyt 28.10): potwierdzenie wygasa po
+        // [CONFIRMATION_VOICE_TTL_MS] - wiszące godzinę wysyłało zaległy SMS na
+        // "zrób zdjęcie" - a wypowiedź musi składać się WYŁĄCZNIE ze słów
+        // zgody/odmowy ("dodaj mleko" i "zrób zdjęcie" to polecenia, nie "tak").
+        val pending = _pendingActionConfirmation.value
+        if (pending != null && System.currentTimeMillis() - pending.createdAtMs > CONFIRMATION_VOICE_TTL_MS) {
+            diag.event(DiagFormat.Phase.AKCJA, "potwierdzenie wygasło - głosem już nie przyjmuję")
+        }
+        if (textIsQuestion && pending != null &&
+            System.currentTimeMillis() - pending.createdAtMs <= CONFIRMATION_VOICE_TTL_MS
+        ) {
+            val reply = pl.victor.app.actions.ConfirmationReply.parseStrict(textQuestion)
             val shortEnough = textQuestion.trim().split(Regex("\\s+")).size <= CONFIRMATION_MAX_WORDS
             if (shortEnough &&
                 reply != pl.victor.app.actions.ConfirmationReply.Reply.UNCLEAR
@@ -3828,7 +3839,11 @@ class AIOrchestrator(
                 _state.value = OrchestratorState.Completed(speech)
                 return
             }
-            if (pl.victor.app.messages.MessageInbox.ostatnie(1).isNotEmpty()) {
+            // Skrzynka musi mieć ŚWIEŻĄ wiadomość - leżąca od rana nie jest
+            // powodem, by "odpowiedz mi szczerze..." poszło do kogoś w SMS-ie.
+            if (pl.victor.app.messages.MessageInbox.ostatnie(1)
+                    .any { System.currentTimeMillis() - it.czasMs < MESSAGE_REPLY_FRESH_MS }
+            ) {
                 pl.victor.app.messages.MessageReplyParser.parse(textQuestion)?.let { odp ->
                     Log.i(TAG, "Warstwa 0: odpowiedź na wiadomość")
                     diag.event(
@@ -5908,7 +5923,7 @@ class AIOrchestrator(
         val actions = prepared.map { a ->
             if (a is Action.ReplyMessage && a.resolvedName == null) {
                 pl.victor.app.messages.MessageInbox.adresat(a.to)
-                    ?.let { m -> a.copy(resolvedName = "${m.nadawca}, ${m.aplikacja}") } ?: a
+                    ?.let { m -> a.copy(resolvedName = "${m.nadawca}, ${m.aplikacja}", klucz = m.klucz) } ?: a
             } else {
                 a
             }
@@ -7127,6 +7142,12 @@ class AIOrchestrator(
          */
         private const val CONFIRMATION_MAX_WORDS = 3
 
+        /** Jak stara może być wiadomość, na którą odpowiadamy z warstwy 0. */
+        private const val MESSAGE_REPLY_FRESH_MS = 30 * 60_000L
+
+        /** Jak długo wiszące potwierdzenie przyjmuje "tak"/"nie" z nowej tury głosowej. */
+        private const val CONFIRMATION_VOICE_TTL_MS = 60_000L
+
         private const val PHOTO_ON_DEMAND_QUESTION =
             "Opisz krótko, co widać na tym zdjęciu. Jeśli jest na nim tekst, " +
                 "przeczytaj to, co istotne."
@@ -7195,5 +7216,7 @@ data class PendingActionConfirmation(
     val title: String,
     val message: String,
     val confirmText: String,
-    val cancelText: String
+    val cancelText: String,
+    /** Od kiedy wisi - głosowe "tak" z nowej tury ma ważność tylko chwilę. */
+    val createdAtMs: Long = System.currentTimeMillis()
 )

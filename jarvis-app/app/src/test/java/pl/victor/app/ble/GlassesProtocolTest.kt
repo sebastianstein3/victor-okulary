@@ -605,8 +605,10 @@ class GlassesProtocolTest {
     }
 
     @Test
-    fun `zwolnienie pamieci to 02 01 09`() {
-        assertArrayEquals(byteArrayOf(0x02, 0x01, 0x09), GlassesProtocol.releaseStorage())
+    fun `komenda kasujaca pamiec jest rozpoznawana jako niebezpieczna`() {
+        assertTrue(GlassesProtocol.isDestructive(byteArrayOf(0x02, 0x01, 0x09)))
+        assertTrue(!GlassesProtocol.isDestructive(GlassesProtocol.takePhoto()))
+        assertTrue(!GlassesProtocol.isDestructive(null))
     }
 
     @Test

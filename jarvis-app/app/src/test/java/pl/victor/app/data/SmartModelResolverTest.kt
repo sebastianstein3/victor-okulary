@@ -30,11 +30,11 @@ class SmartModelResolverTest {
     fun `preferred active model returns preferred`() {
         val result = resolver.resolve(
             providerId = "gemini",
-            preferredModelId = "gemini-2.5-flash",
-            availableFromProvider = listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash")
+            preferredModelId = "gemini-3.5-flash-lite",
+            availableFromProvider = listOf("gemini-3.5-flash-lite", "gemini-2.5-pro", "gemini-2.0-flash")
         )
 
-        assertEquals("gemini-2.5-flash", result.modelId)
+        assertEquals("gemini-3.5-flash-lite", result.modelId)
         assertEquals(ModelSource.PREFERRED, result.source)
         assertNull(result.warning)
     }
@@ -43,11 +43,11 @@ class SmartModelResolverTest {
     fun `preferred active model works without provider validation`() {
         val result = resolver.resolve(
             providerId = "gemini",
-            preferredModelId = "gemini-2.5-flash",
+            preferredModelId = "gemini-3.5-flash-lite",
             availableFromProvider = emptyList()  // nie sprawdzono
         )
 
-        assertEquals("gemini-2.5-flash", result.modelId)
+        assertEquals("gemini-3.5-flash-lite", result.modelId)
         assertEquals(ModelSource.PREFERRED, result.source)
         assertNull(result.warning)
     }
@@ -59,7 +59,7 @@ class SmartModelResolverTest {
         val result = resolver.resolve(
             providerId = "gemini",
             preferredModelId = "gemini-1.5-flash",
-            availableFromProvider = listOf("gemini-1.5-flash", "gemini-2.5-flash")
+            availableFromProvider = listOf("gemini-1.5-flash", "gemini-3.5-flash-lite")
         )
 
         // Deprecated ale dostępny - używamy go z warning
@@ -69,7 +69,7 @@ class SmartModelResolverTest {
         assertTrue(result.warning is ModelWarning.Deprecated)
         val warning = result.warning as ModelWarning.Deprecated
         assertEquals("gemini-1.5-flash", warning.oldModelId)
-        assertEquals("gemini-2.5-flash", warning.newModelId)
+        assertEquals("gemini-3.5-flash-lite", warning.newModelId)
     }
 
     // === PRZYPADEK 3: Deprecated i usunięty przez providera → auto-migrate ===
@@ -79,16 +79,16 @@ class SmartModelResolverTest {
         val result = resolver.resolve(
             providerId = "gemini",
             preferredModelId = "gemini-1.5-flash",
-            availableFromProvider = listOf("gemini-2.5-flash", "gemini-2.5-pro")
+            availableFromProvider = listOf("gemini-3.5-flash-lite", "gemini-2.5-pro")
         )
 
         // Provider usunął - automatycznie używamy następcy
-        assertEquals("gemini-2.5-flash", result.modelId)
+        assertEquals("gemini-3.5-flash-lite", result.modelId)
         assertEquals(ModelSource.AUTO_MIGRATED, result.source)
         assertTrue(result.warning is ModelWarning.AutoMigrated)
         val warning = result.warning as ModelWarning.AutoMigrated
         assertEquals("gemini-1.5-flash", warning.oldModelId)
-        assertEquals("gemini-2.5-flash", warning.newModelId)
+        assertEquals("gemini-3.5-flash-lite", warning.newModelId)
     }
 
     @Test
@@ -129,10 +129,10 @@ class SmartModelResolverTest {
         val result = resolver.resolve(
             providerId = "gemini",
             preferredModelId = null,
-            availableFromProvider = listOf("gemini-2.5-flash")
+            availableFromProvider = listOf("gemini-3.5-flash-lite")
         )
 
-        assertEquals("gemini-2.5-flash", result.modelId)
+        assertEquals("gemini-3.5-flash-lite", result.modelId)
         assertEquals(ModelSource.DEFAULT, result.source)
         assertNull(result.warning)
     }
@@ -189,11 +189,11 @@ class SmartModelResolverTest {
     fun `claude preferred and active works`() {
         val result = resolver.resolve(
             providerId = "claude",
-            preferredModelId = "claude-sonnet-4-5",
-            availableFromProvider = listOf("claude-sonnet-4-5", "claude-opus-4-1")
+            preferredModelId = "claude-sonnet-5-5",
+            availableFromProvider = listOf("claude-sonnet-5-5", "claude-opus-5-5")
         )
 
-        assertEquals("claude-sonnet-4-5", result.modelId)
+        assertEquals("claude-sonnet-5-5", result.modelId)
         assertEquals(ModelSource.PREFERRED, result.source)
     }
 
@@ -202,10 +202,10 @@ class SmartModelResolverTest {
         val result = resolver.resolve(
             providerId = "claude",
             preferredModelId = "claude-3-5-sonnet-20241022",
-            availableFromProvider = listOf("claude-sonnet-4-5")  // stary usunięty
+            availableFromProvider = listOf("claude-sonnet-5-5")  // stary usunięty
         )
 
-        assertEquals("claude-sonnet-4-5", result.modelId)
+        assertEquals("claude-sonnet-5-5", result.modelId)
         assertEquals(ModelSource.AUTO_MIGRATED, result.source)
     }
 
@@ -238,14 +238,14 @@ class SmartModelResolverTest {
 
     @Test
     fun `modelId in our registry but not at provider - fallback`() {
-        // gemini-2.5-flash-lite jest w naszym katalogu, ale provider go nie ma
+        // gemini-3.6-flash jest w naszym katalogu (aktywny), ale provider go nie ma
         val result = resolver.resolve(
             providerId = "gemini",
-            preferredModelId = "gemini-2.5-flash-lite",
-            availableFromProvider = listOf("gemini-2.5-flash", "gemini-2.5-pro")
+            preferredModelId = "gemini-3.6-flash",
+            availableFromProvider = listOf("gemini-3.5-flash-lite", "gemini-2.5-pro")
         )
 
-        assertEquals("gemini-2.5-flash", result.modelId)  // fallback do default
+        assertEquals("gemini-3.5-flash-lite", result.modelId)  // fallback do default
         assertEquals(ModelSource.FALLBACK, result.source)
         assertTrue(result.warning is ModelWarning.ModelNotFound)
     }
@@ -309,7 +309,7 @@ class SmartModelResolverTest {
 
     @Test
     fun `ModelRegistry findById returns correct model`() {
-        val model = ModelRegistry.findById("gemini-2.5-flash")
+        val model = ModelRegistry.findById("gemini-3.5-flash-lite")
         assertNotNull(model)
         assertEquals("gemini", model!!.providerId)
         assertFalse(model.deprecated)

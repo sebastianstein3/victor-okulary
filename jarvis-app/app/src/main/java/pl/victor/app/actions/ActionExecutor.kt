@@ -98,7 +98,14 @@ class ActionExecutor(private val context: Context) {
      * naprawdę WYSYŁA, więc komunikat mówi wprost, co się stało.
      */
     private fun replyMessage(action: Action.ReplyMessage): ActionResult {
-        val adresat = pl.victor.app.messages.MessageInbox.adresat(action.to)
+        // Zatwierdzona wiadomość ma pierwszeństwo: między pytaniem "Wysłać?" a
+        // odpowiedzią mógł przyjść SMS od kogoś innego, a "ostatnia" to już nie ta.
+        val adresat = (action.klucz?.let { pl.victor.app.messages.MessageInbox.poKluczu(it) })
+            ?: if (action.klucz != null) {
+                return ActionResult.Failed("wiadomość, na którą miałem odpowiedzieć, już nie jest dostępna")
+            } else {
+                pl.victor.app.messages.MessageInbox.adresat(action.to)
+            }
             ?: return ActionResult.Failed(
                 if (action.to == null) "nie mam żadnej wiadomości, na którą mógłbym odpowiedzieć"
                 else "nie widzę wiadomości od ${action.to}"

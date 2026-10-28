@@ -57,6 +57,21 @@ class AccessibilityService(
 
     private val active = AtomicBoolean(false)
 
+    @Volatile
+    private var sessionStartMs = 0L
+
+    private fun startSession() {
+        sessionStartMs = System.currentTimeMillis()
+        active.set(true)
+    }
+
+    /**
+     * Tryby ciągłe (opis otoczenia, prowadzenie) robią zdjęcie co ~1,5 s i
+     * płacą za każde - bez limitu zapomniany tryb pali tokeny i baterię okularów
+     * do wieczora. Przewodnik po okolicy ma 3 h, te tryby też.
+     */
+    private fun withinLimit(): Boolean = System.currentTimeMillis() - sessionStartMs < MAX_SESSION_MS
+
     /**
      * Prośby o kolejne czytanie - patrz [readTextLoop].
      *
@@ -81,7 +96,7 @@ class AccessibilityService(
         if (_mode.value != AccessibilityMode.OFF) return
         Log.i(tag, "Tryb READ_TEXT włączony")
         _mode.value = AccessibilityMode.READ_TEXT
-        active.set(true)
+        startSession()
         playBeep(BeepType.MODE_CHANGED)
         // MÓWIMY, JAK POPROSIĆ O KOLEJNE CZYTANIE.
         //
@@ -112,7 +127,7 @@ class AccessibilityService(
         if (_mode.value != AccessibilityMode.OFF) return
         Log.i(tag, "Tryb DESCRIBE_SCENE włączony")
         _mode.value = AccessibilityMode.DESCRIBE_SCENE
-        active.set(true)
+        startSession()
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb opisu włączony. Będę Ci mówił co widzisz.", language = "pl")
         resetHealth()
@@ -130,7 +145,7 @@ class AccessibilityService(
         if (_mode.value != AccessibilityMode.OFF) return
         Log.i(tag, "Tryb NAVIGATE włączony")
         _mode.value = AccessibilityMode.NAVIGATE
-        active.set(true)
+        startSession()
         playBeep(BeepType.MODE_CHANGED)
         audio.speak("Tryb nawigacji włączony. Uważaj - będę Cię prowadził.", language = "pl")
         resetHealth()
@@ -513,6 +528,10 @@ class AccessibilityService(
     private suspend fun describeSceneLoop() {
         var describedScene: IntArray? = null
         while (active.get()) {
+            if (!withinLimit()) {
+                disable("limit czasu ${MAX_SESSION_MS / 3_600_000} h")
+                return
+            }
             try {
                 // NIE OPISUJEMY W KÓŁKO TEGO SAMEGO.
                 //
@@ -607,6 +626,10 @@ class AccessibilityService(
     private suspend fun navigateLoop() {
         var warnedScene: IntArray? = null
         while (active.get()) {
+            if (!withinLimit()) {
+                disable("limit czasu ${MAX_SESSION_MS / 3_600_000} h")
+                return
+            }
             try {
                 val sceneNow = glassesManager.liveFingerprint()
                 if (warnedScene != null && !YuvFrame.sceneChanged(warnedScene, sceneNow)) {
@@ -645,12 +668,31 @@ class AccessibilityService(
      * nawet bez patrzenia na ekran.
      */
     private fun playBeep(type: BeepType) {
-        // Tu można użyć ToneGenerator dla systemowych sygnałów
-        // Na razie uproszczone - log + brak dźwięku
         Log.d(tag, "Beep: $type")
+        // Dawniej atrapa - a dokumentacja klasy obiecywała sygnał przy
+        // niebezpieczeństwie. Dla niewidomego to ostatnia linia ostrzeżenia,
+        // gdyby zdanie z modelu spóźniło się albo nie wyszło.
+        val (ton, ms) = when (type) {
+            BeepType.MODE_CHANGED -> android.media.ToneGenerator.TONE_PROP_ACK to 150
+            BeepType.TEXT_DETECTED -> android.media.ToneGenerator.TONE_PROP_BEEP to 120
+            BeepType.NEW_SCENE -> android.media.ToneGenerator.TONE_PROP_PROMPT to 120
+            BeepType.FACE_DETECTED -> android.media.ToneGenerator.TONE_PROP_BEEP2 to 150
+            BeepType.NAVIGATION_ALERT -> android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD to 400
+        }
+        runCatching {
+            val gen = android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 70)
+            gen.startTone(ton, ms)
+            scope.launch {
+                delay(ms + 200L)
+                runCatching { gen.release() }
+            }
+        }
     }
 
     private companion object {
+        /** Maksymalny czas jednej sesji trybu ciągłego. */
+        const val MAX_SESSION_MS = 3 * 60 * 60 * 1000L
+
         /**
          * Co ile nieudanych zdjęć powtarzamy komunikat. Przy trwałej awarii
          * pętla kręci się co kilka sekund - mówienie za każdym razem zamieniłoby

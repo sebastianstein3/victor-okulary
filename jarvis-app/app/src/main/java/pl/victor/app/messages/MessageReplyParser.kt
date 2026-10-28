@@ -30,6 +30,13 @@ object MessageReplyParser {
         treść = treść.removePrefix("że ").removePrefix("ze ").trim()
         if (treść.isEmpty()) return null
         val adresat = kto?.takeUnless { it.lowercase() in ZAIMKI }
+        // "odpowiedz mi szczerze, czy to dobry pomysł" / "odpowiedz na pytanie..."
+        // to zwykłe pytania do asystenta. Prawdziwa odpowiedź na wiadomość ma
+        // wyraźną treść: "że ...", dwukropek albo adresata z imienia.
+        val jawnaTreść = Regex("""^(?:[zż]e|[zż]eby)\s""", RegexOption.IGNORE_CASE).containsMatchIn(m.groups["tresc"]!!.value.trim()) ||
+            t.contains(':') || (kto != null && kto.lowercase() in setOf("że", "ze", "żeby", "zeby"))
+        if (kto != null && kto.lowercase() in ZAIMKI && !jawnaTreść && kto.lowercase() !in setOf("jej", "mu", "im")) return null
+        if (kto == null && !jawnaTreść && Regex("""^(?:odpowiedz|odpisz)\s+(?:mi|mnie|na|szczerze)\b""", RegexOption.IGNORE_CASE).containsMatchIn(t)) return null
         return Odpowiedź(adresat, treść.replaceFirstChar { it.uppercase() })
     }
 
@@ -56,7 +63,10 @@ object MessageReplyParser {
         RegexOption.IGNORE_CASE
     )
 
-    private val ZAIMKI = setOf("jej", "mu", "im", "temu", "tej", "na", "do", "to", "tak", "ze", "że")
+    private val ZAIMKI = setOf(
+        "jej", "mu", "im", "temu", "tej", "na", "do", "to", "tak", "ze", "że",
+        "mi", "mnie", "nam", "nas", "ci", "tobie", "pytanie", "szczerze", "prosze", "proszę"
+    )
 
     private val SPOSÓB = Regex(
         """^(grzecznie|uprzejmie|kr[oó]tko|elegancko|[sś]miesznie|zabawnie|formalnie|po\s+angielsku|""" +

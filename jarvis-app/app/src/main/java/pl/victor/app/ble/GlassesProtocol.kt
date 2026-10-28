@@ -421,9 +421,6 @@ object GlassesProtocol {
 
     fun resetP2p(): ByteArray = command(WORK_RESET_P2P)
 
-    /** Zwalnia pamięć okularów po imporcie - patrz [WORK_RELEASE_STORAGE]. */
-    fun releaseStorage(): ByteArray = command(WORK_RELEASE_STORAGE)
-
     // === Odpowiedź na komendę trybu transferu ===
 
     /**
@@ -679,6 +676,9 @@ object GlassesProtocol {
      * Wyciąga tryb pracy z komendy sterującej `0x02 0x01 <tryb>`.
      * @return tryb albo `null` gdy to nie jest komenda sterująca
      */
+    /** Czy to komenda, która kasuje pliki z okularów (02 01 09) - nigdy jej nie wysyłamy. */
+    fun isDestructive(command: ByteArray?): Boolean = workTypeOf(command) == WORK_RELEASE_STORAGE
+
     fun workTypeOf(command: ByteArray?): Int? {
         if (command == null || command.size < 3) return null
         if (command[0].toInt() != 0x02 || command[1].toInt() != 0x01) return null

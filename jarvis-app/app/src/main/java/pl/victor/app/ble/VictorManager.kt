@@ -2432,6 +2432,16 @@ class VictorManager private constructor(context: Context) {
      * ACTION_GLASSES_CONTROL (65) i ma tylko jeden slot na odpowiedź.
      */
     private fun send(bytes: ByteArray, onResponse: ((Int) -> Unit)? = null) {
+        // TWARDA BLOKADA: komenda 02 01 09 KASUJE pliki z okularów (zmierzone:
+        // 121 zdjęć -> 0) i żadna ścieżka w aplikacji nie ma prawa jej wysłać.
+        if (GlassesProtocol.isDestructive(bytes)) {
+            Log.e(tag, "ZABLOKOWANO komendę kasującą pamięć okularów")
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                "ZABLOKOWANO komendę kasującą pamięć okularów (02 01 09)"
+            )
+            return
+        }
         simulator?.let { sim ->
             _lastCommand.value = sim.handleCommand(bytes)
             onResponse?.invoke(0)
@@ -2865,7 +2875,23 @@ class VictorManager private constructor(context: Context) {
             onEvent = ::streamEvent
         )
         liveVisionSession = session
-        liveVisionJob = scope.launch(Dispatchers.IO) { session.run() }
+        liveVisionJob = scope.launch(Dispatchers.IO) {
+            try {
+                session.run()
+            } finally {
+                // Strumień zakończył się SAM (zerwana sieć, timeout odczytu 10 s) -
+                // bez tego isLiveVisionRunning zostawało prawdą, a liveFrame()
+                // w kółko oddawało ostatnią klatkę. Tryb "prowadź" dla niewidomych
+                // dostawał obraz sprzed minut jako bieżący.
+                if (liveVisionSession === session) {
+                    liveVisionSession = null
+                    frameGrabber?.release()
+                    frameGrabber = null
+                    runCatching { stopLivePreview() }
+                    streamEvent("strumień zakończył się sam - czyszczę stan", emptyMap(), true)
+                }
+            }
+        }
 
         // Czekamy na PIERWSZĄ KLATKĘ, nie na samo zestawienie sesji. Zwrócenie
         // sukcesu wcześniej znaczyłoby, że wołający sięga po obraz, którego
@@ -2923,6 +2949,17 @@ class VictorManager private constructor(context: Context) {
             withTimeoutOrNull(FRAME_SWITCH_TIMEOUT_MS) {
                 while (grabber.grabbed < before + FRAMES_AFTER_SWITCH) delay(FRAME_POLL_MS)
             }
+        }
+        // Klatka starsza niż STALE_FRAME_MS to nie "bieżący obraz" - wolimy
+        // brak klatki niż stary obraz podany jako teraźniejszy.
+        val age = System.currentTimeMillis() - grabber.latestAtMs
+        if (grabber.latestAtMs > 0 && age > STALE_FRAME_MS) {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.ZDJĘCIE,
+                "klatka ze strumienia jest nieświeża - nie podaję",
+                mapOf("wiekMs" to age)
+            )
+            return null
         }
         return grabber.latestJpeg
     }
@@ -3050,47 +3087,6 @@ class VictorManager private constructor(context: Context) {
         val answer = CompletableDeferred<MediaCount?>()
         requestMediaCount { i, v, r -> answer.complete(MediaCount(i, v, r)) }
         return withTimeoutOrNull(timeoutMs) { answer.await() }
-    }
-
-    /**
-     * Prosi okulary o zwolnienie pamięci po imporcie - i MIERZY skutek.
-     *
-     * ## Czemu pomiar jest tu częścią operacji
-     * Bo znaczenie tej komendy jest hipotezą. Wiemy, że producent wysyła ją po
-     * każdym zakończonym imporcie i że przy pełnej pamięci odsyła użytkownika
-     * właśnie do importu - ale nie wiemy, czy kasuje pliki, czy tylko oznacza
-     * je jako zsynchronizowane. Liczniki przed i po rozstrzygają to jednym
-     * użyciem, a bez nich zostalibyśmy z tą samą niewiedzą po każdym kolejnym.
-     *
-     * Komenda NIE jest wysyłana automatycznie po imporcie i nie powinna być,
-     * dopóki pomiar nie powie, co robi: jeśli kasuje, to nieodwracalnie.
-     *
-     * @return liczniki przed i po, do pokazania użytkownikowi
-     */
-    suspend fun releaseGlassesStorage(): Pair<MediaCount?, MediaCount?> {
-        val before = mediaCountNow()
-        diag.event(
-            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
-            "Zwolnienie pamięci: liczniki PRZED",
-            mapOf(
-                "zdjęć" to before?.images,
-                "wideo" to before?.videos,
-                "nagrań" to before?.records
-            )
-        )
-        send(GlassesProtocol.releaseStorage())
-        delay(RELEASE_STORAGE_SETTLE_MS)
-        val after = mediaCountNow()
-        diag.event(
-            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
-            "Zwolnienie pamięci: liczniki PO",
-            mapOf(
-                "zdjęć" to after?.images,
-                "wideo" to after?.videos,
-                "nagrań" to after?.records
-            )
-        )
-        return before to after
     }
 
     /** Prosi okulary o aktualny poziom baterii - odpowiedź wraca jako notify 0x05. */
@@ -5030,7 +5026,6 @@ class VictorManager private constructor(context: Context) {
         private const val MEDIA_COUNT_TIMEOUT_MS = 6_000L
 
         /** Ile dać okularom na wykonanie zwolnienia pamięci przed odczytem. */
-        private const val RELEASE_STORAGE_SETTLE_MS = 3_000L
 
         /** Ile dać okularom na pozbieranie się po resecie łącza. */
         private const val TRANSFER_RESET_SETTLE_MS = 2_000L
@@ -5059,6 +5054,9 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile czekać na klatkę w nowym rozmiarze po zmianie limitu. */
         private const val FRAME_SWITCH_TIMEOUT_MS = 1_000L
+
+        /** Starsza klatka strumienia nie jest podawana jako bieżący obraz. */
+        private const val STALE_FRAME_MS = 3_000L
 
         /** Ile klatek odczekać po zmianie rozmiaru - patrz [liveFrame]. */
         private const val FRAMES_AFTER_SWITCH = 2
