@@ -80,7 +80,7 @@ object DietCheck {
         "milk" to Reguła("MLEKO", listOf("laktoz", "mleko", "mleka", "nabiał", "nabial")),
         "eggs" to Reguła("JAJA", listOf("jaj")),
         "nuts" to Reguła("ORZECHY", listOf("orzech")),
-        "peanuts" to Reguła("ORZESZKI ZIEMNE", listOf("orzeszk", "arachid", "ziemn")),
+        "peanuts" to Reguła("ORZESZKI ZIEMNE", listOf("orzeszk", "arachid", "orzechy ziemn", "orzechów ziemn")),
         "soybeans" to Reguła("SOJĘ", listOf("soj")),
         "fish" to Reguła("RYBY", listOf("ryb")),
         "crustaceans" to Reguła("SKORUPIAKI", listOf("skorupiak", "krewet", "krab")),

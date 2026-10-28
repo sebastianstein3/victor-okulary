@@ -28,6 +28,10 @@ class NotificationReaderService : NotificationListenerService() {
         MessageInbox.ustawPołączenie(false)
     }
 
+    override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        runCatching { MessageInbox.usuń(sbn.key) }
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         runCatching { obsłuż(sbn) }.onFailure { Log.w(TAG, "Nie udało się odczytać powiadomienia", it) }
     }
@@ -48,6 +52,7 @@ class NotificationReaderService : NotificationListenerService() {
         val tekst = (ostatnia?.first ?: extras.getCharSequence(Notification.EXTRA_TEXT))
             ?.toString()?.trim().orEmpty()
         if (tekst.isEmpty() || PODSUMOWANIE.containsMatchIn(tekst.lowercase())) return
+        if (MessageInbox.toNaszaOdpowiedź(tekst)) return
         val tytuł = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
         val grupa = extras.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION, false)
         val rozmowa = extras.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString()

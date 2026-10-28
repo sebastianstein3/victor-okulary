@@ -59,6 +59,33 @@ object MessageInbox {
     @Synchronized
     fun poKluczu(klucz: String): IncomingMessage? = logika.poKluczu(klucz)
 
+    /** Powiadomienie zamknięte (np. odczytane na telefonie) - akcja odpowiedzi jest już nieważna. */
+    @Synchronized
+    internal fun usuń(klucz: String) {
+        akcjeOdpowiedzi.remove(klucz)
+        logika.usuń(klucz)
+    }
+
+    /** Wyłączone czytanie wiadomości - nic z cudzych rozmów nie zostaje w pamięci. */
+    @Synchronized
+    fun wyczyść() {
+        akcjeOdpowiedzi.clear()
+        logika.wyczyść()
+    }
+
+    @Volatile
+    private var ostatniaWysłana: Pair<String, Long>? = null
+
+    /**
+     * Czy to powiadomienie to NASZA przed chwilą wysłana odpowiedź: aplikacje
+     * publikują rozmowę ponownie z naszą wiadomością na końcu, a asystent
+     * ogłaszał ją jako nową i robił z niej cel kolejnej odpowiedzi.
+     */
+    internal fun toNaszaOdpowiedź(tekst: String): Boolean {
+        val (wysłana, kiedy) = ostatniaWysłana ?: return false
+        return System.currentTimeMillis() - kiedy < 2 * 60_000L && wysłana.trim() == tekst.trim()
+    }
+
     sealed class Wynik {
         object Wysłane : Wynik()
         data class Błąd(val powód: String) : Wynik()
@@ -81,6 +108,7 @@ object MessageInbox {
             wejścia.forEach { wyniki.putCharSequence(it.resultKey, treść) }
             RemoteInput.addResultsToIntent(wejścia, intent, wyniki)
             akcja.actionIntent.send(context, 0, intent)
+            ostatniaWysłana = treść to System.currentTimeMillis()
             Wynik.Wysłane
         } catch (e: Exception) {
             // CanceledException: powiadomienie zamknięte, akcja nieważna.

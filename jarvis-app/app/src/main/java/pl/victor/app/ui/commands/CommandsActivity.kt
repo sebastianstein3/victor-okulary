@@ -34,6 +34,7 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -116,6 +117,20 @@ fun CommandsScreen(onBack: () -> Unit) {
                 )
             }
 
+            item {
+                Text(
+                    "🧭 Tryby i funkcje",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+            items(CommandCatalog.MODES) { mode ->
+                InfoCard(mode.name, mode.whatItDoes, mode.examples, needsGlasses = false)
+            }
+
+            item { PlaceRemindersCard() }
+
             CommandCatalog.grouped().forEach { (group, commands) ->
                 item {
                     Text(
@@ -133,25 +148,29 @@ fun CommandsScreen(onBack: () -> Unit) {
     }
 }
 
+@Composable
+private fun CommandCard(info: CommandCatalog.CommandInfo) =
+    InfoCard(info.name, info.whatItDoes, info.examples, info.needsGlasses)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CommandCard(info: CommandCatalog.CommandInfo) {
+private fun InfoCard(name: String, whatItDoes: String, examples: List<String>, needsGlasses: Boolean) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(info.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                if (info.needsGlasses) {
+                Text(name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                if (needsGlasses) {
                     Text("Wymaga okularów", fontSize = 12.sp)
                 }
             }
             Text(
-                info.whatItDoes,
+                whatItDoes,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.size(6.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                info.examples.forEach { example ->
+                examples.forEach { example ->
                     SuggestionChip(
                         onClick = {},
                         label = { Text(example, fontSize = 12.sp) }
@@ -280,6 +299,41 @@ private fun CustomCommandEditor(
                 enabled = canAdd
             ) {
                 Text("Dodaj komendę")
+            }
+        }
+    }
+}
+
+/**
+ * Przypomnienia w miejscach - lista z usuwaniem pojedynczych wpisów. Do tej pory
+ * były dostępne wyłącznie głosem ("usuń wszystkie").
+ */
+@Composable
+private fun PlaceRemindersCard() {
+    val context = LocalContext.current
+    val reminders = remember { (context.applicationContext as VictorApplication).orchestrator.placeReminders }
+    val lista by reminders.lista.collectAsState()
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text("📍 Moje przypomnienia w miejscach", fontWeight = FontWeight.Bold)
+            if (lista.isEmpty()) {
+                Text(
+                    "Brak. Powiedz np. \"Przypomnij mi kupić mleko, gdy będę w Biedronce\".",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            lista.forEach { r ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${r.co} - przy: ${r.gdzie}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { reminders.usuń(r.id) }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Usuń przypomnienie")
+                    }
+                }
             }
         }
     }

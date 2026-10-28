@@ -95,8 +95,11 @@ object PlaceReminderLogic {
         if (dni == null && godzina == null) return t to 0L
         val dzień = teraz.toLocalDate().plusDays(dni ?: 0L)
         val (h, min) = godzina ?: (0 to 0)
-        val od = dzień.atTime(h, min).atZone(teraz.zone).toInstant().toEpochMilli()
-        return t to od
+        var od = dzień.atTime(h, min).atZone(teraz.zone)
+        // Sama godzina bez dnia, a ta godzina dziś już minęła ("po 16" o 17:00)
+        // znaczy jutro - inaczej przypomnienie byłoby aktywne od razu.
+        if (dni == null && godzina != null && od.isBefore(teraz)) od = od.plusDays(1)
+        return t to od.toInstant().toEpochMilli()
     }
 
     private fun zbuduj(co: String, gdzie: String, odMs: Long): Prośba? {
@@ -159,7 +162,9 @@ object PlaceReminderLogic {
         val wokół = "around:$promieńM,$lat,$lon"
         val filtr = when (cel) {
             is Cel.Nazwa -> {
-                val wzór = Regex.escape(cel.tekst).replace("\"", "")
+                // Overpass używa POSIX ERE - Regex.escape() dawało "\Q..\E", którego
+                // ERE nie zna, więc "przy Biedronce" nie trafiało w nic.
+                val wzór = cel.tekst.replace(Regex("""[.^$|?*+()\[\]{}\\"]"""), "").trim()
                 """[~"^(name|brand)$"~"$wzór",i]"""
             }
             is Cel.Rodzaj -> """["${cel.klucz}"~"^(${cel.wartości.joinToString("|")})$"]"""

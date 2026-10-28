@@ -260,11 +260,24 @@ fun NotesScreen(onBack: () -> Unit) {
                     onCancelEdit = { editingIndex = -1 },
                     onSaveEdit = {
                         val text = editDraft.trim()
-                        if (text.isNotBlank()) notes = settings.updateNote(index, text)
+                        // Lista na ekranie mogła się zestarzeć (notatka dodana
+                        // głosem albo podsumowanie spotkania) - indeks wskazywałby
+                        // wtedy INNĄ notatkę. Sprawdzamy po dacie utworzenia.
+                        val aktualne = settings.getNotes()
+                        if (aktualne.getOrNull(index)?.createdAtMs != note.createdAtMs) {
+                            notes = aktualne
+                        } else if (text.isNotBlank()) {
+                            notes = settings.updateNote(index, text)
+                        }
                         editingIndex = -1
                     },
                     onDelete = {
-                        notes = settings.deleteNote(index)
+                        val aktualne = settings.getNotes()
+                        notes = if (aktualne.getOrNull(index)?.createdAtMs == note.createdAtMs) {
+                            settings.deleteNote(index)
+                        } else {
+                            aktualne
+                        }
                         if (editingIndex == index) editingIndex = -1
                     },
                     onSummarize = {

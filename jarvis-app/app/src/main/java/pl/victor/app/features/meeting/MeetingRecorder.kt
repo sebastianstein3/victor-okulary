@@ -50,7 +50,9 @@ class MeetingRecorder(
     private val przepisz: suspend (ByteArray) -> String?,
     private val podsumuj: suspend (String) -> String?,
     private val dziennik: (String, Map<String, Any?>) -> Unit,
-    private val polecenie: (String) -> Unit = {}
+    private val polecenie: (String) -> Unit = {},
+    /** Czy wolno zdjąć pauzę z bezpiecznika - nie, gdy mikrofon należy do tłumaczenia albo tury. */
+    private val wolnoWznowić: () -> Boolean = { true }
 ) {
     sealed class Stan {
         object Bezczynny : Stan()
@@ -67,6 +69,15 @@ class MeetingRecorder(
     val linie: StateFlow<List<MeetingLine>> = _linie.asStateFlow()
 
     val store = MeetingStore(context)
+
+    init {
+        // Spotkanie przerwane w poprzednim uruchomieniu (crash, zabity proces).
+        runCatching { store.odzyskaj() }.getOrDefault(0).takeIf { it > 0 }?.let {
+            dziennik("spotkanie: odzyskano przerwane nagrania", mapOf("ile" to it))
+        }
+    }
+
+    private var ostatniZapisMs = 0L
 
     private var nagrywanie: Job? = null
     private var przepisywanie: Job? = null
@@ -143,6 +154,13 @@ class MeetingRecorder(
                     nieprzepisanych++
                 } else {
                     _linie.value = _linie.value + MeetingLine(odStartu, tekst.replaceFirstChar { it.uppercase() })
+                    val teraz = System.currentTimeMillis()
+                    if (teraz - ostatniZapisMs > ZAPIS_CO_MS) {
+                        ostatniZapisMs = teraz
+                        store.zapiszCzęściowo(
+                            Meeting(startMs.toString(), startMs, teraz, _linie.value, null, nieprzepisanych)
+                        )
+                    }
                     runCatching { polecenie(tekst) }
                 }
             }
@@ -158,7 +176,7 @@ class MeetingRecorder(
                 while (isActive && _stan.value is Stan.Nagrywa) {
                     // Bezpiecznik: tura, która nie oddała mikrofonu (wyjątek,
                     // przerwanie), nie może po cichu zatrzymać spotkania na zawsze.
-                    if (wstrzymane && System.currentTimeMillis() - wstrzymaneOd > MAKS_PAUZA_MS) {
+                    if (wstrzymane && System.currentTimeMillis() - wstrzymaneOd > MAKS_PAUZA_MS && wolnoWznowić()) {
                         wstrzymane = false
                         dziennik("spotkanie: wracam do nagrywania po zbyt długiej pauzie", emptyMap())
                     }
@@ -187,11 +205,13 @@ class MeetingRecorder(
                     przeczytane += n
                     val kawałek = if (n == ramka.size) ramka.copyOf() else ramka.copyOf(n)
                     segmenter.podaj(kawałek)?.let { wypowiedź ->
-                        val koniecMs = przeczytane * 1000 / HZ
+                        // Zegar ścienny, nie liczba próbek: pauzy (tura asystenta)
+                        // nie dodają próbek i znaczniki czasu się rozjeżdżały.
+                        val koniecMs = System.currentTimeMillis() - startMs
                         k.trySend((koniecMs - wypowiedź.size * 1000L / HZ) to wypowiedź)
                     }
                 }
-                segmenter.domknij()?.let { k.trySend((przeczytane * 1000 / HZ) to it) }
+                segmenter.domknij()?.let { k.trySend((System.currentTimeMillis() - startMs) to it) }
             } finally {
                 rec?.let { r ->
                     runCatching { r.stop() }
@@ -233,7 +253,10 @@ class MeetingRecorder(
             podsumowanie = podsumowanie,
             nieprzepisanych = nieprzepisanych
         )
-        withContext(Dispatchers.IO) { store.zapisz(m) }
+        withContext(Dispatchers.IO) {
+            store.zapisz(m)
+            store.usuńCzęściowe(m.id)
+        }
         _stan.value = Stan.Bezczynny
         return m
     }
@@ -241,6 +264,9 @@ class MeetingRecorder(
     companion object {
         const val HZ = 16_000
         private const val MAKS_PAUZA_MS = 120_000L
+
+        /** Jak często zapisujemy stan spotkania w trakcie. */
+        private const val ZAPIS_CO_MS = 15_000L
         private const val TAG = "MeetingRecorder"
     }
 }

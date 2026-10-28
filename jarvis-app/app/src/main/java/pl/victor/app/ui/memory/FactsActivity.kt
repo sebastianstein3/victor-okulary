@@ -151,11 +151,22 @@ fun FactsScreen(onBack: () -> Unit) {
                     onCancelEdit = { editingIndex = -1 },
                     onSaveEdit = {
                         val text = editDraft.trim()
-                        if (text.isNotBlank()) facts = settings.updateFact(index, text)
+                        // Patrz NotesActivity: indeks na zestarzałej liście wskazuje inny wpis.
+                        val aktualne = settings.getFacts()
+                        if (aktualne.getOrNull(index)?.createdAtMs != fact.createdAtMs) {
+                            facts = aktualne
+                        } else if (text.isNotBlank()) {
+                            facts = settings.updateFact(index, text)
+                        }
                         editingIndex = -1
                     },
                     onDelete = {
-                        facts = settings.deleteFact(index)
+                        val aktualne = settings.getFacts()
+                        facts = if (aktualne.getOrNull(index)?.createdAtMs == fact.createdAtMs) {
+                            settings.deleteFact(index)
+                        } else {
+                            aktualne
+                        }
                         if (editingIndex == index) editingIndex = -1
                     }
                 )

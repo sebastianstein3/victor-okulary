@@ -722,7 +722,8 @@ class SettingsRepository private constructor(private val context: Context) {
         if (raw.isBlank()) return emptyList()
         return raw.lines().mapNotNull { line ->
             val parts = line.split(FIELD_SEPARATOR)
-            val text = parts.getOrNull(0)?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val text = parts.getOrNull(0)?.takeIf { it.isNotBlank() }
+                ?.replace(LINE_BREAK_MARK, '\n') ?: return@mapNotNull null
             pl.victor.app.notes.Notes.Note(
                 text = text,
                 createdAtMs = parts.getOrNull(1)?.toLongOrNull() ?: 0L
@@ -732,7 +733,10 @@ class SettingsRepository private constructor(private val context: Context) {
 
     fun setNotes(notes: List<pl.victor.app.notes.Notes.Note>) {
         val raw = notes.joinToString("\n") { note ->
-            listOf(note.text.sanitizeField(), note.createdAtMs.toString())
+            // Podział linii zachowujemy (jako U+2028): podsumowanie spotkania
+            // (TEMAT / USTALENIA / ZADANIA) wpadało do notatek spłaszczone do
+            // jednego wiersza.
+            listOf(note.text.replace("\r", "").replace("\n", LINE_BREAK_MARK.toString()).sanitizeField(), note.createdAtMs.toString())
                 .joinToString(FIELD_SEPARATOR)
         }
         prefs.edit().putString(KEY_NOTES, raw).apply()
@@ -1062,6 +1066,13 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.getBoolean("${KEY_ALERT_SHOWN_PREFIX}$key", false)
 
     fun markAlertShown(key: String) {
+        // Klucze rosły bez końca (jeden na pół godziny) w tym samym szyfrowanym
+        // pliku co klucze API, notatki i fakty - z czasem zwalniały każdy odczyt.
+        // To tylko znaczniki "już wysłano", więc po przekroczeniu limitu czyścimy
+        // je wszystkie; najgorszy skutek to jeden powtórzony alert.
+        if (prefs.all.keys.count { it.startsWith(KEY_ALERT_SHOWN_PREFIX) } > MAX_ALERT_KEYS) {
+            clearAlertCache()
+        }
         prefs.edit().putBoolean("${KEY_ALERT_SHOWN_PREFIX}$key", true).apply()
     }
 
@@ -1238,6 +1249,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_GLASSES_WAKE_WORD = "glasses_wake_word_enabled"
         private const val KEY_GLASSES_MIC = "glasses_mic_sco_enabled"
         private const val KEY_ALERT_SHOWN_PREFIX = "alert_shown_"
+        private const val MAX_ALERT_KEYS = 100
         private const val KEY_ALERTS_SPOKEN = "alerts_spoken"
         private const val KEY_CUSTOM_COMMANDS = "custom_commands"
         private const val KEY_NOTES = "notes"
@@ -1281,6 +1293,8 @@ class SettingsRepository private constructor(private val context: Context) {
         /** Domyślna pora briefingu - przed typowym wyjściem z domu. */
         private const val DEFAULT_BRIEFING_HOUR = 7
         private const val FIELD_SEPARATOR = "|"
+        /** Znak zastępujący podział linii w zapisie notatek (zapis jest linia-po-linii). */
+        private const val LINE_BREAK_MARK = '\u2028'
         private const val KEY_ALERTS_SPOKEN_NO_GLASSES = "alerts_spoken_no_glasses"
         private const val KEY_ONBOARDING_DONE = "onboarding_completed"
         private const val KEY_CAPTURE_COUNT = "capture_count"

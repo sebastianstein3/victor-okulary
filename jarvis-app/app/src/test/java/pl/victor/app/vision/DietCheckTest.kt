@@ -55,4 +55,12 @@ class DietCheckTest {
         assertEquals(setOf("nuts"), i.ślady)
         assertEquals(2.3, i.cukry100g!!, 0.01)
     }
+
+    @Test
+    fun `ziemniaki to nie orzeszki ziemne, a regula dla modelu bierze fakty o unikaniu`() {
+        assertTrue(DietCheck.ostrzeżenia(info(alergeny = setOf("peanuts")), listOf("nie jem ziemniaków")).isEmpty())
+        assertTrue(DietCheck.ostrzeżenia(info(alergeny = setOf("peanuts")), listOf("uczulony na orzechy ziemne")).isNotEmpty())
+        assertNull(DietCheck.regułaDlaModelu(listOf("lubię orzechy")))
+        assertTrue(DietCheck.regułaDlaModelu(listOf("mam alergię na orzechy"))!!.contains("NA POCZĄTKU"))
+    }
 }

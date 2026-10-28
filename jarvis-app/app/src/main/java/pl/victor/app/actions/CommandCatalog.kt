@@ -216,4 +216,54 @@ object CommandCatalog {
             .filter { it.second.isNotEmpty() }
 
     fun byType(type: ActionType): CommandInfo? = ALL.firstOrNull { it.type == type }
+
+    /**
+     * Tryby i funkcje, które nie są pojedynczą akcją ([ActionType]), a trwają albo
+     * mają własną logikę: kroki, spotkanie, przewodnik, przypomnienia w miejscach,
+     * tłumaczenie. Do tej pory istniały wyłącznie jako komendy głosowe, o których
+     * nigdzie nie było mowy (audyt 28.10).
+     */
+    data class ModeInfo(val name: String, val whatItDoes: String, val examples: List<String>)
+
+    val MODES: List<ModeInfo> = listOf(
+        ModeInfo(
+            "Krok po kroku",
+            "Rozpisuje zadanie na kroki i podaje je po jednym. Klik w okularach - dalej, " +
+                "dwa kliki - pytanie o krok, trzy - powtórz, cztery - koniec.",
+            listOf("Krok po kroku, jak ugotować jajko na miękko", "Dalej", "Powtórz", "Koniec instrukcji")
+        ),
+        ModeInfo(
+            "Notatki ze spotkania",
+            "Nagrywa rozmowę mikrofonem telefonu, przepisuje ją i robi notatkę z zadaniami. " +
+                "Kończysz głosem albo czterema kliknięciami. Włączasz też na ekranie Spotkania.",
+            listOf("Nagrywaj spotkanie", "Zakończ spotkanie")
+        ),
+        ModeInfo(
+            "Przewodnik po okolicy",
+            "Idąc, słyszysz o ciekawych miejscach obok (dane z Wikipedii). Działa do 3 godzin.",
+            listOf("Włącz przewodnika", "Oprowadź mnie", "Wyłącz przewodnika")
+        ),
+        ModeInfo(
+            "Przypomnienia w miejscu",
+            "Przypomina, gdy dotrzesz do miejsca: sklepu, apteki, domu albo pracy. " +
+                "Dom i pracę zapisujesz, stojąc tam. Położenie sprawdzam co kilka minut.",
+            listOf(
+                "Przypomnij mi kupić mleko, gdy będę w Biedronce",
+                "Tu jest mój dom",
+                "Jakie mam przypomnienia",
+                "Usuń przypomnienia"
+            )
+        ),
+        ModeInfo(
+            "Tłumaczenie rozmowy w dwie strony",
+            "Rozmówca mówi, a Ty słyszysz przekład w okularach. Gdy chcesz odpowiedzieć - " +
+                "jeden klik albo przycisk w aplikacji; Twój przekład czyta głośnik telefonu.",
+            listOf("Tłumacz rozmowę z angielskim", "Koniec tłumaczenia")
+        ),
+        ModeInfo(
+            "Tłumaczenie ze słuchu",
+            "Tłumaczy na bieżąco to, co słychać wokół, i czyta przekład w okularach.",
+            listOf("Tłumacz po niemiecku", "Koniec tłumaczenia")
+        )
+    )
 }

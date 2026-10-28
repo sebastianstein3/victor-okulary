@@ -44,7 +44,16 @@ class PlaceReminders(
     private val dziennik: (String, Map<String, Any?>) -> Unit,
     private val http: OkHttpClient = OkHttpClient.Builder().callTimeout(10, TimeUnit.SECONDS).build()
 ) {
-    private data class Zapis(val id: Long, val co: String, val gdzie: String, val utworzoneMs: Long)
+    private data class Zapis(
+        val id: Long,
+        val co: String,
+        val gdzie: String,
+        val utworzoneMs: Long,
+        // Po restarcie procesu przypomnienie "jutro po 16" wypadało od razu, a
+        // "gdy wrócę do domu" - w domu, bo te dwa pola nie były zapisywane.
+        val odMs: Long = 0L,
+        val czekaNaWyjście: Boolean = false
+    )
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val gson = Gson()
@@ -130,8 +139,12 @@ class PlaceReminders(
                     if (przesunięcie != null && przesunięcie < PRZESUNIĘCIE_M) {
                         null
                     } else {
-                        ostatnieSzukanie[r.id] = tu.lat to tu.lon
-                        szukaj(cel, tu.lat, tu.lon)
+                        val w = szukaj(cel, tu.lat, tu.lon)
+                        // Pozycję zapamiętujemy dopiero po UDANYM zapytaniu: po
+                        // błędzie 429/timeoucie stojąc w sklepie nie dostałbyś
+                        // przypomnienia, bo "tu już szukaliśmy".
+                        if (w.udane) ostatnieSzukanie[r.id] = tu.lat to tu.lon
+                        w.trafienie
                     }
                 }
             }
@@ -139,9 +152,11 @@ class PlaceReminders(
         }
     }
 
-    private suspend fun szukaj(cel: Cel, lat: Double, lon: Double): String? = withContext(Dispatchers.IO) {
+    private class Szukanie(val udane: Boolean, val trafienie: String?)
+
+    private suspend fun szukaj(cel: Cel, lat: Double, lon: Double): Szukanie = withContext(Dispatchers.IO) {
         val q = PlaceReminderLogic.zapytanieOverpass(cel, lat, lon, PlaceReminderLogic.PROMIEŃ_OBIEKT_M)
-            ?: return@withContext null
+            ?: return@withContext Szukanie(true, null)
         runCatching {
             val req = Request.Builder()
                 .url(OVERPASS)
@@ -149,12 +164,18 @@ class PlaceReminders(
                 .header("User-Agent", "VICTOR-glasses-assistant/0.1 (Android)")
                 .build()
             http.newCall(req).execute().use { r ->
-                if (!r.isSuccessful) return@use null
+                if (!r.isSuccessful) {
+                    Log.w(TAG, "Overpass: HTTP ${r.code}")
+                    return@use Szukanie(false, null)
+                }
                 val obiekty = PlaceReminderLogic.parsujOverpass(r.body?.string().orEmpty())
-                obiekty.minByOrNull { PlaceReminderLogic.odległośćM(lat, lon, it.lat, it.lon) }
-                    ?.let { it.nazwa ?: (cel as? Cel.Rodzaj)?.opis ?: "" }
+                Szukanie(
+                    true,
+                    obiekty.minByOrNull { PlaceReminderLogic.odległośćM(lat, lon, it.lat, it.lon) }
+                        ?.let { it.nazwa ?: (cel as? Cel.Rodzaj)?.opis ?: "" }
+                )
             }
-        }.onFailure { Log.w(TAG, "Overpass nie odpowiedział", it) }.getOrNull()
+        }.onFailure { Log.w(TAG, "Overpass nie odpowiedział", it) }.getOrDefault(Szukanie(false, null))
     }
 
     private suspend fun wypadło(r: PlaceReminder, gdzie: String) {
@@ -193,11 +214,11 @@ class PlaceReminders(
     private fun wczytaj(): List<PlaceReminder> = runCatching {
         val typ = object : TypeToken<List<Zapis>>() {}.type
         val zapisy: List<Zapis> = gson.fromJson(prefs.getString(KLUCZ, "[]"), typ) ?: emptyList()
-        zapisy.map { PlaceReminder(it.id, it.co, it.gdzie, PlaceReminderLogic.cel(it.gdzie), it.utworzoneMs) }
+        zapisy.map { PlaceReminder(it.id, it.co, it.gdzie, PlaceReminderLogic.cel(it.gdzie), it.utworzoneMs, it.odMs, it.czekaNaWyjście) }
     }.getOrDefault(emptyList())
 
     private fun zapisz() {
-        val zapisy = _lista.value.map { Zapis(it.id, it.co, it.gdzie, it.utworzoneMs) }
+        val zapisy = _lista.value.map { Zapis(it.id, it.co, it.gdzie, it.utworzoneMs, it.odMs, it.czekaNaWyjście) }
         prefs.edit().putString(KLUCZ, gson.toJson(zapisy)).apply()
     }
 

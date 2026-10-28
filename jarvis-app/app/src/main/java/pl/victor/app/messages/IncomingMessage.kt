@@ -92,6 +92,10 @@ class InboxLogic(private val pamięćMs: Long = PAMIĘĆ_MS, private val maks: I
         }
     }
 
+    fun usuń(klucz: String) {
+        wiadomości.removeAll { it.klucz == klucz }
+    }
+
     fun poKluczu(klucz: String): IncomingMessage? = wiadomości.toList().lastOrNull { it.klucz == klucz }
 
     fun wyczyść() {

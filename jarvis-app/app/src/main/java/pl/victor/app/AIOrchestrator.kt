@@ -1133,6 +1133,15 @@ class AIOrchestrator(
         // Przypomnienia w miejscach przeżywają restart aplikacji - pilnowanie
         // wraca samo, jeśli jest czego pilnować.
         scope.launch { placeReminders.pilnuj() }
+        // Przypomnienia w miejscach potrzebują usługi w tle (lokalizacja), dopóki
+        // jakieś czekają.
+        scope.launch {
+            placeReminders.lista.collect {
+                pl.victor.app.features.BackgroundFeatures.ustaw(
+                    pl.victor.app.features.BackgroundFeatures.PRZYPOMNIENIA, it.isNotEmpty()
+                )
+            }
+        }
         audio.noiseAdaptiveVolume = settings.isNoiseAdaptiveVolume()
 
         // === ROZŁĄCZENIE MA BYĆ SŁYSZALNE ===
@@ -1346,6 +1355,21 @@ class AIOrchestrator(
             pcm = pcm,
             sourceRate = pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
         )
+        return transcribeSpeechPcm(speechPcm, languageTag)
+    }
+
+    /**
+     * Czy da się przepisać nagranie JAKĄKOLWIEK drogą (chmura, rozpoznawanie na
+     * urządzeniu, Vosk) - sprawdzane przed startem notatek ze spotkania, żeby nie
+     * nagrywać godziny, po której nic się nie przepisze.
+     */
+    fun canTranscribeRecordings(): Boolean =
+        (settings.isCloudTranscriptionEnabled() && !settings.getApiKey("openai").isNullOrBlank()) ||
+            speechToText.isOnDeviceAvailable() ||
+            runCatching { VictorApplication.get().voskWakeWord.isModelReady() }.getOrDefault(false)
+
+    /** Przepisuje PCM 16 kHz mono: chmura -> urządzenie -> Vosk. */
+    private suspend fun transcribeSpeechPcm(speechPcm: ByteArray, languageTag: String): String? {
         val rate = pl.victor.app.audio.PcmResampler.SPEECH_SAMPLE_RATE
 
         transcribeInCloud(speechPcm, languageTag)?.let { return it }
@@ -1695,12 +1719,11 @@ class AIOrchestrator(
         pl.victor.app.features.meeting.MeetingRecorder(
             context = context,
             scope = scope,
+            // Ta sama łańcuszek co pytania z okularów: chmura -> urządzenie -> Vosk.
+            // Samo rozpoznawanie na urządzeniu wymaga Androida 13+ i pakietu języka,
+            // a bez niego spotkanie "nagrywało" bez jednego słowa tekstu.
             przepisz = { pcm ->
-                speechToText.transcribe(
-                    pcm = pcm,
-                    sampleRate = pl.victor.app.features.meeting.MeetingRecorder.HZ,
-                    languageTag = languageTagFor(settings.getResponseLanguage())
-                )
+                transcribeSpeechPcm(pcm, languageTagFor(settings.getResponseLanguage()))
             },
             podsumuj = { polecenie -> askModelPlain(polecenie) },
             dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.NASŁUCH, co, pola) } },
@@ -1708,7 +1731,8 @@ class AIOrchestrator(
             // na to tury asystenta.
             polecenie = { tekst ->
                 if (pl.victor.app.conversation.MetaCommands.meetingCommand(tekst) == false) stopMeeting()
-            }
+            },
+            wolnoWznowić = { !_earTranslation.value }
         )
     }
 
@@ -1719,9 +1743,19 @@ class AIOrchestrator(
      */
     fun startMeeting(): Boolean {
         if (meeting.nagrywa) return true
+        if (!canTranscribeRecordings()) {
+            audio.speak(
+                "Nie mogę nagrywać spotkania: ten telefon nie ma czym przepisać mowy. Włącz " +
+                    "transkrypcję w chmurze w ustawieniach albo pobierz pakiet języka rozpoznawania mowy.",
+                language = settings.getResponseLanguage()
+            )
+            return false
+        }
         // Nasłuch frazy na telefonie trzyma mikrofon - na czas spotkania oddaje go.
         pauseWakeWordMic()
         val ok = meeting.start()
+        // Usługa w tle z mikrofonem - inaczej po zgaszeniu ekranu nagrywa ciszę.
+        pl.victor.app.features.BackgroundFeatures.ustaw(pl.victor.app.features.BackgroundFeatures.SPOTKANIE, ok)
         if (!ok) {
             resumeWakeWordMic()
             audio.speak(
@@ -1739,12 +1773,27 @@ class AIOrchestrator(
 
     /** Kończy nagrywanie, robi podsumowanie, zapisuje je w notatkach i mówi, co wyszło. */
     fun stopMeeting() {
-        if (!meeting.nagrywa) return
+        // Atomowo: "zakończ spotkanie" ze stołu i z tury potrafiło ruszyć
+        // dwa razy i dwa razy ogłosić koniec.
+        if (!meeting.nagrywa || !meetingStopping.compareAndSet(false, true)) return
         scope.launch {
+            try {
+                stopMeetingNow()
+            } finally {
+                meetingStopping.set(false)
+            }
+        }
+    }
+
+    private val meetingStopping = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    private suspend fun stopMeetingNow() {
+        run {
             audio.speak("Kończę nagrywanie i robię podsumowanie.", language = settings.getResponseLanguage())
             val m = meeting.stop()
+            pl.victor.app.features.BackgroundFeatures.ustaw(pl.victor.app.features.BackgroundFeatures.SPOTKANIE, false)
             resumeWakeWordMic()
-            if (m == null) return@launch
+            if (m == null) return
             m.podsumowanie?.let { p ->
                 val data = java.text.SimpleDateFormat("d.MM HH:mm", java.util.Locale("pl", "PL"))
                     .format(java.util.Date(m.startMs))
@@ -1803,7 +1852,16 @@ class AIOrchestrator(
             mów = { tekst -> audio.speakAndAwait(tekst, language = settings.getResponseLanguage()) },
             wolno = { ciszaWTle() },
             dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.KONTEKST, co, pola) } }
-        )
+        ).also { g ->
+            // Przewodnik potrzebuje usługi w tle (lokalizacja przy zgaszonym ekranie).
+            scope.launch {
+                g.aktywny.collect {
+                    pl.victor.app.features.BackgroundFeatures.ustaw(
+                        pl.victor.app.features.BackgroundFeatures.PRZEWODNIK, it
+                    )
+                }
+            }
+        }
     }
 
     private val _earTwoWay = kotlinx.coroutines.flow.MutableStateFlow(false)

@@ -236,6 +236,10 @@ class VictorApplication : Application() {
         appScope.launch {
             settings.wakeWordEnabledFlow.collect { refreshBackgroundService() }
         }
+        // Spotkanie, przewodnik i przypomnienia w miejscach też potrzebują usługi.
+        appScope.launch {
+            pl.victor.app.features.BackgroundFeatures.potrzebne.collect { refreshBackgroundService() }
+        }
         registerUnlockReceiver()
 
         Log.d(TAG, "VictorApplication initialized (HeyCyan SDK + DB + Discovery ready)")
@@ -359,7 +363,8 @@ class VictorApplication : Application() {
         val glassesActive = connectionState == ConnectionState.CONNECTED ||
             connectionState == ConnectionState.READY ||
             connectionState == ConnectionState.CONNECTING
-        if (!glassesActive && !wakeWordOn) {
+        val featuresOn = pl.victor.app.features.BackgroundFeatures.potrzebne.value
+        if (!glassesActive && !wakeWordOn && !featuresOn) {
             VictorForegroundService.stop(this)
             return
         }
@@ -370,7 +375,8 @@ class VictorApplication : Application() {
         val reason = when {
             glassesActive && wakeWordOn -> "Połączony z okularami · nasłuchuję „$phrase”"
             glassesActive -> "Połączony z okularami"
-            else -> "Nasłuchuję słowa „$phrase”"
+            wakeWordOn -> "Nasłuchuję słowa „$phrase”"
+            else -> "Działa: " + pl.victor.app.features.BackgroundFeatures.nazwy().joinToString(", ")
         }
         VictorForegroundService.start(this, reason)
     }

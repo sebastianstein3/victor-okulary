@@ -159,6 +159,16 @@ class AudioManager(
         }.onFailure { Log.w(tag, "Nie udało się podnieść głośności", it) }
     }
 
+    /** Zlecenie mowy nie wyszło - nikt nie zgłosi końca, więc przywrócenie planujemy sami. */
+    private fun planujPrzywróceniePoPorażce() {
+        if (podbicie == null) return
+        restoreJob?.cancel()
+        restoreJob = scope.launch {
+            kotlinx.coroutines.delay(RESTORE_AFTER_MS)
+            przywróćGłośność()
+        }
+    }
+
     private fun przywróćGłośność() {
         val p = podbicie ?: return
         podbicie = null
@@ -692,6 +702,7 @@ class AudioManager(
         val result = tts?.speak(spoken, queueMode, null, id)
         if (result != TextToSpeech.SUCCESS) {
             Log.w(tag, "TTS odmówiło wypowiedzi (kod $result)")
+            planujPrzywróceniePoPorażce()
             return null
         }
         Log.d(tag, "Speaking: ${spoken.take(80)}...")

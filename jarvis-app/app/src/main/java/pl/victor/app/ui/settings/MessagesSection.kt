@@ -80,6 +80,7 @@ internal fun MessagesSection() {
                     onCheckedChange = {
                         enabled = it
                         settings.setMessageReadingEnabled(it)
+                        if (!it) pl.victor.app.messages.MessageInbox.wyczyść()
                     }
                 )
             }
@@ -99,6 +100,21 @@ internal fun MessagesSection() {
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
                 }) { Text("Daj dostęp do powiadomień") }
+                // Android 13+ blokuje ten przełącznik dla aplikacji zainstalowanej
+                // z pliku (nie ze sklepu), dopóki się tego nie odblokuje ręcznie.
+                Text(
+                    "Przełącznik jest wyszarzony? Przy aplikacji zainstalowanej z pliku wejdź w " +
+                        "Informacje o aplikacji, dotknij ⋮ w rogu i wybierz \"Zezwól na ustawienia " +
+                        "z ograniczeniami\", potem wróć tutaj.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedButton(onClick = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            .setData(android.net.Uri.fromParts("package", context.packageName, null))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }) { Text("Informacje o aplikacji") }
             } else {
                 Text("✅ Dostęp do powiadomień jest", style = MaterialTheme.typography.bodySmall)
             }

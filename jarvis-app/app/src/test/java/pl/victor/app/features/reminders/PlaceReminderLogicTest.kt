@@ -81,4 +81,15 @@ class PlaceReminderLogicTest {
         assertEquals("Przypomnienie, bo jesteś przy: Biedronka. Pamiętaj, żebyś kupił mleko.",
             PlaceReminderLogic.komunikat(r, "Biedronka"))
     }
+
+    @Test
+    fun `overpass bez cytowania Q E i godzina bez dnia przechodzi na jutro`() {
+        val q = PlaceReminderLogic.zapytanieOverpass(Cel.Nazwa("Biedronk"), 53.0, 18.6, 70)!!
+        assertTrue(!q.contains("\\Q") && !q.contains("\\E"))
+        assertTrue(q.contains("^(name|brand)$"))
+        val wieczorem = java.time.ZonedDateTime.of(2026, 10, 7, 17, 0, 0, 0, java.time.ZoneId.of("Europe/Warsaw"))
+        val p = PlaceReminderLogic.prośba("przypomnij mi o lekach gdy będę w aptece po 16:00", wieczorem)!!
+        val jutro16 = java.time.ZonedDateTime.of(2026, 10, 8, 16, 0, 0, 0, java.time.ZoneId.of("Europe/Warsaw"))
+        assertEquals(jutro16.toInstant().toEpochMilli(), p.odMs)
+    }
 }
