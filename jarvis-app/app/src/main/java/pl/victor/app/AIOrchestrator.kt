@@ -536,6 +536,10 @@ class AIOrchestrator(
             enableWebSearch = false,
             systemPrompt = PLAIN_TASK_SYSTEM_PROMPT
         ).text.takeIf { it.isNotBlank() }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        // Anulowanie (np. koniec spotkania, przerwana tura) musi lecieć dalej -
+        // połknięte, zamieniało się w "model nic nie odpowiedział".
+        throw e
     } catch (e: Exception) {
         Log.w(TAG, "Pomocnicze pytanie do modelu nie powiodło się", e)
         null
@@ -2464,7 +2468,7 @@ class AIOrchestrator(
      * Teraz sama fraza OTWIERA NASŁUCH, a fraza z pytaniem („okej lens, jaka
      * jest pogoda") oddaje modelowi samo pytanie.
      */
-    private fun handleSpokenText(text: String) {
+    private fun handleSpokenText(text: String): Boolean {
         val configured = listOf(settings.getSelectedWakeWord())
         // BEZ FRAZY I POZA ROZMOWĄ - NIE ODPOWIADAMY.
         //
@@ -2485,7 +2489,7 @@ class AIOrchestrator(
                     mapOf("usłyszane" to text.take(60))
                 )
             }
-            return
+            return false
         }
         if (WakePhrase.isOnlyWakePhrase(text, configured)) {
             diag.event(
@@ -2499,7 +2503,7 @@ class AIOrchestrator(
             // sprzęcie i nie chcę go stawiać na ścieżce, która właśnie zaczęła
             // działać.
             startVoiceTurn(fromGlasses = false)
-            return
+            return true
         }
         val question = WakePhrase.stripLeadingWakePhrase(text, configured)
         if (question != text) {
@@ -2509,6 +2513,7 @@ class AIOrchestrator(
             )
         }
         handleUserTrigger(TriggerSource.VOICE, question)
+        return true
     }
 
     /**
@@ -2589,6 +2594,17 @@ class AIOrchestrator(
         }
         // Przypisujemy do activeTurnJob, bo to ONO rozstrzyga, czy tura żyje
         // (patrz claimIdle) - a przy okazji nasłuch staje się przerywalny.
+        // Zasoby wzięte PRZED głównym try tej tury. Anulowanie w trakcie
+        // negocjacji SCO kończyło korutynę bez finally: mikrofon frazy i
+        // nagrywanie spotkania zostawały wstrzymane, wake lock trzymał do
+        // limitu, a subskrypcja mikrofonu okularów wisiała (audyt 28.10).
+        class Prelude {
+            @Volatile var capture: GlassesVoiceCapture? = null
+            @Volatile var held = false
+            @Volatile var done = false
+            @Volatile var heartbeat = false
+        }
+        val prelude = Prelude()
         activeTurnJob = scope.launch {
             // Strumień z mikrofonu okularów podpinamy JAKO PIERWSZY, przed
             // zestawianiem łącza audio. Producent (Prism Pro) subskrybuje go
@@ -2598,11 +2614,15 @@ class AIOrchestrator(
             var micStreamLive = false
             val glassesCapture =
                 if (fromGlasses && glassesManager.isConnected()) {
-                    GlassesVoiceCapture(glassesManager).also { micStreamLive = it.start() }
+                    GlassesVoiceCapture(glassesManager).also {
+                        prelude.capture = it
+                        micStreamLive = it.start()
+                    }
                 } else {
                     null
                 }
             if (fromGlasses) {
+                prelude.heartbeat = true
                 // Uciszenie okularów to komenda BLE - idzie natychmiast, więc
                 // musi pójść PRZED zestawianiem łącza audio. Za nim czekałoby
                 // na negocjację SCO i okulary grałyby dalej przez ten czas.
@@ -2687,6 +2707,7 @@ class AIOrchestrator(
                     )
                 }
             }
+            prelude.held = held
             val overSco = held && audio.isRoutedToBluetooth()
             // KOMENDA "KONIEC NASŁUCHU AI" SZŁA DWA RAZY NA TURĘ.
             //
@@ -2742,6 +2763,7 @@ class AIOrchestrator(
                     )
                 }
             }
+            prelude.done = true
             try {
                 conversationalMode.onAiStartedSpeaking()
                 _state.value = OrchestratorState.Listening
@@ -3220,6 +3242,19 @@ class AIOrchestrator(
                 // Nazwa jest tu istotna: bez niej ten blok zwalniał blokadę TURY,
                 // która startuje z tego samego miejsca i żyje dłużej niż nasłuch.
                 wakeLock.release(LOCK_LISTENING)
+                resumeWakeWordMic()
+            }
+        }
+        // Anulowanie PRZED głównym try (negocjacja SCO, start strumienia):
+        // sprzątamy to, co prelude zdążył wziąć. Po wejściu w try robi to finally.
+        activeTurnJob?.invokeOnCompletion { cause ->
+            if (cause != null && !prelude.done) {
+                prelude.capture?.detach()
+                if (prelude.heartbeat) runCatching { glassesManager.stopGlassesListening() }
+                runCatching { wakeLock.release(LOCK_LISTENING) }
+                if (prelude.held) {
+                    scope.launch(kotlinx.coroutines.NonCancellable) { audio.endConversationRouting() }
+                }
                 resumeWakeWordMic()
             }
         }
@@ -3790,6 +3825,14 @@ class AIOrchestrator(
         // Muszą być sprawdzone przed detekcją akcji: "bądź Sterna" nie pasuje do
         // żadnego wzorca akcji, więc poleciałoby jako zwykłe pytanie do AI.
         if (textIsQuestion && textQuestion.isNotBlank() && handleMetaCommand(textQuestion)) {
+            // Komenda meta (przewodnik, spotkanie, krok po kroku, tłumaczenie)
+            // kończyła turę bez stanu końcowego: nikt nie uzbrajał ponownie
+            // frazy "Hey Lens" w okularach ani nie wznawiał nasłuchu rozmowy.
+            // Stan zostaje, jeśli komenda sama go ustawiła (tryb, który trzyma
+            // mikrofon - tłumaczenie, spotkanie - pilnuje tego sam).
+            if (_state.value is OrchestratorState.Idle && !_earTranslation.value && !meetingHoldsMic()) {
+                _state.value = OrchestratorState.Completed("")
+            }
             return
         }
 
@@ -3877,6 +3920,36 @@ class AIOrchestrator(
                 audio.speak(speech, language = settings.getResponseLanguage())
                 _state.value = OrchestratorState.Completed(speech)
                 return
+            }
+
+            // PRZYPOMNIENIA W MIEJSCACH ("przypomnij mi kupić mleko, gdy będę w
+            // Biedronce") i zapis domu - PRZED notatkami. Bieg 160: notatki
+            // łapią każde "przypomnij mi..." i "zapisz...", więc wszystkie trzy
+            // prośby o przypomnienie w miejscu skończyły jako zwykłe notatki.
+            if (textIsQuestion && placeReminderCommands.obsłuż(textQuestion)) return
+
+            // (Przeniesione PRZED fakty i notatki - audyt 28.10: prefiks
+            // "zapamiętaj" zamieniał "zapamiętaj, gdzie zaparkowałem" w fakt
+            // "Gdzie zaparkowałem", a "zapisz gdzie..." w notatkę, więc pamięć
+            // miejsca w ogóle nie była osiągalna.)
+            // PAMIĘĆ MIEJSCA - "zapamiętaj, gdzie zaparkowałem" i "gdzie
+            // zaparkowałem".
+            //
+            // W warstwie 0 z tego samego powodu co trasa: model zapytany o to,
+            // gdzie stoi samochód, ODPOWIE - i odpowiedź będzie zmyślona, bo
+            // nie ma skąd znać współrzędnych sprzed godziny. Zapamiętanie musi
+            // przy tym kosztować jedno zdanie w chwili odchodzenia, więc nie
+            // może czekać na obieg przez sieć.
+
+            if (textIsQuestion) {
+                pl.victor.app.memory.PlaceMemory.saveRequest(textQuestion)?.let { name ->
+                    handlePlaceSave(name)
+                    return
+                }
+                pl.victor.app.memory.PlaceMemory.recallRequest(textQuestion)?.let { name ->
+                    handlePlaceRecall(name)
+                    return
+                }
             }
 
             // FAKTY O UŻYTKOWNIKU - przed notatkami, bo granica jest tu prosta i
@@ -3994,12 +4067,6 @@ class AIOrchestrator(
             // zapisać, a nie stać się tematem rozmowy. Model potrafiłby na to
             // odpowiedzieć "dobrze, zapamiętam" i nie zapisać niczego - a to
             // gorsze niż odmowa, bo użytkownik jest przekonany, że ma notatkę.
-            // PRZYPOMNIENIA W MIEJSCACH ("przypomnij mi kupić mleko, gdy będę w
-            // Biedronce") i zapis domu - PRZED notatkami. Bieg 160: notatki
-            // łapią każde "przypomnij mi..." i "zapisz...", więc wszystkie trzy
-            // prośby o przypomnienie w miejscu skończyły jako zwykłe notatki.
-            if (textIsQuestion && placeReminderCommands.obsłuż(textQuestion)) return
-
             pl.victor.app.notes.Notes.extract(textQuestion)?.let { body ->
                 // Zapis idzie NAJPIERW i zawsze dosłownie. Porządkowanie przez
                 // model jest opcjonalne i może się nie udać - a notatka, która
@@ -4020,26 +4087,6 @@ class AIOrchestrator(
                 audio.speak(speech, language = settings.getResponseLanguage())
                 _state.value = OrchestratorState.Completed(speech)
                 return
-            }
-
-            // PAMIĘĆ MIEJSCA - "zapamiętaj, gdzie zaparkowałem" i "gdzie
-            // zaparkowałem".
-            //
-            // W warstwie 0 z tego samego powodu co trasa: model zapytany o to,
-            // gdzie stoi samochód, ODPOWIE - i odpowiedź będzie zmyślona, bo
-            // nie ma skąd znać współrzędnych sprzed godziny. Zapamiętanie musi
-            // przy tym kosztować jedno zdanie w chwili odchodzenia, więc nie
-            // może czekać na obieg przez sieć.
-
-            if (textIsQuestion) {
-                pl.victor.app.memory.PlaceMemory.saveRequest(textQuestion)?.let { name ->
-                    handlePlaceSave(name)
-                    return
-                }
-                pl.victor.app.memory.PlaceMemory.recallRequest(textQuestion)?.let { name ->
-                    handlePlaceRecall(name)
-                    return
-                }
             }
 
             // TRASA - w warstwie 0, nie w zapasowej.
@@ -4182,6 +4229,12 @@ class AIOrchestrator(
             // czasów - czyli ginął dokładnie ten pomiar, dla którego dziennik
             // powstał. Turę zamyka wtedy `finally` powtórki.
             var handedOffToRetry = false
+            // Zasoby brane PRZED głównym try (blokada, mikrofon frazy, łącze
+            // audio) muszą być zwalniane także wtedy, gdy tura zostanie
+            // anulowana w trakcie negocjowania SCO (audyt 28.10) - dlatego try
+            // zaczyna się tutaj, a nie dopiero pod "1. CAPTURE".
+            var audioHeld = false
+            try {
             // Łącze audio do okularów bierzemy na CAŁĄ turę - i na słuchanie, i
             // na mówienie. Zestawienie SCO trwa nawet kilka sekund, więc
             // podnoszenie go osobno pod każdy fragment rwałoby rozmowę.
@@ -4221,7 +4274,7 @@ class AIOrchestrator(
                 // rozmowy nie pozwala A2DP wstać.
                 glassesManager.requestClassicAudio("brak A2DP przed odpowiedzią")
             }
-            val audioHeld = if (canUseMedia) false else audio.beginConversationRouting()
+            audioHeld = if (canUseMedia) false else audio.beginConversationRouting()
 
             // ZWIŃ PROFIL ROZMOWY, ZANIM ZACZNIESZ MÓWIĆ PRZEZ A2DP.
             //
@@ -4255,7 +4308,6 @@ class AIOrchestrator(
                 else "brak A2DP - biorę profil rozmowy",
                 mapOf("a2dp" to canUseMedia, "scoStoi" to audio.isRoutedToBluetooth())
             )
-            try {
                 // 1. CAPTURE - adaptacyjny tryb
                 val provider = getOrCreateProvider()
                 val capabilities = provider.capabilities
@@ -6421,37 +6473,43 @@ class AIOrchestrator(
         )
         val startedAt = System.currentTimeMillis()
         val warm = codeStreamWarmup?.also { codeStreamWarmup = null }
-        if (!(warm?.await() ?: glassesManager.startLiveVision())) {
-            // POWÓD, NIE TYLKO CZAS. Pierwszy pomiar z terenu oddał samo
-            // "nie wstał ms=1242" i trzeba było szukać przyczyny trzy wiersze
-            // wyżej, w zdarzeniu z innej fazy. A przyczyna była jedna i
-            // banalna: wyłączone Wi-Fi w telefonie, które blokuje OBIE drogi
-            // do ostrego obrazu naraz.
-            diag.event(
-                DiagFormat.Phase.ZDJĘCIE, "strumień dla liter nie wstał",
-                mapOf(
-                    "ms" to (System.currentTimeMillis() - startedAt),
-                    "powód" to glassesManager.lastTransferFailure
-                )
-            )
-            return null
-        }
+        // try obejmuje TAKŻE czekanie na start: anulowanie tury w trakcie 8-25 s
+        // podnoszenia strumienia zostawiało go włączonego na stałe (bateria
+        // okularów), bo finally zaczynało się dopiero po udanym starcie.
+        var failedCleanly = false
         return try {
-            glassesManager.liveFrame(detail = true)?.also { frame ->
+            if (!(warm?.await() ?: glassesManager.startLiveVision())) {
+                // POWÓD, NIE TYLKO CZAS. Pierwszy pomiar z terenu oddał samo
+                // "nie wstał ms=1242" i trzeba było szukać przyczyny trzy wiersze
+                // wyżej, w zdarzeniu z innej fazy. A przyczyna była jedna i
+                // banalna: wyłączone Wi-Fi w telefonie, które blokuje OBIE drogi
+                // do ostrego obrazu naraz.
                 diag.event(
-                    DiagFormat.Phase.ZDJĘCIE, "litery ze strumienia zamiast miniatury",
+                    DiagFormat.Phase.ZDJĘCIE, "strumień dla liter nie wstał",
                     mapOf(
-                        "bajtów" to frame.size,
-                        "ms" to (System.currentTimeMillis() - startedAt)
+                        "ms" to (System.currentTimeMillis() - startedAt),
+                        "powód" to glassesManager.lastTransferFailure
                     )
                 )
-            }?.let { frame ->
-                // Skanowanie PRZED zgaszeniem strumienia - po nim nie ma już
-                // skąd brać kolejnych klatek.
-                if (pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)) scanStreamForCode(frame) else frame
+                failedCleanly = true
+                null
+            } else {
+                glassesManager.liveFrame(detail = true)?.also { frame ->
+                    diag.event(
+                        DiagFormat.Phase.ZDJĘCIE, "litery ze strumienia zamiast miniatury",
+                        mapOf(
+                            "bajtów" to frame.size,
+                            "ms" to (System.currentTimeMillis() - startedAt)
+                        )
+                    )
+                }?.let { frame ->
+                    // Skanowanie PRZED zgaszeniem strumienia - po nim nie ma już
+                    // skąd brać kolejnych klatek.
+                    if (pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)) scanStreamForCode(frame) else frame
+                }
             }
         } finally {
-            glassesManager.stopLiveVision()
+            if (!failedCleanly) glassesManager.stopLiveVision()
         }
     }
 

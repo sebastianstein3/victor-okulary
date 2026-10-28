@@ -532,4 +532,15 @@ class NotesTest {
         assertNull(Notes.trailingNoteRequest("zapisz że mam kupić mleko i chleb"))
         assertEquals("Mam kupić mleko i chleb", Notes.extract("zapisz że mam kupić mleko i chleb"))
     }
+
+    @Test
+    fun `przypomnienia z czasem i dodaj obiekt nie sa notatkami`() {
+        assertNull(Notes.extract("przypomnij mi za 10 minut o garnku"))
+        assertNull(Notes.extract("przypomnij mi jutro o siódmej żebym zadzwonił"))
+        assertNull(Notes.extract("dodaj alarm na siódmą"))
+        assertNull(Notes.extract("dodaj kontakt Ania"))
+        assertNull(Notes.extract("dodaj 5 do 7"))
+        assertEquals("Kupić chleb", Notes.extract("przypomnij mi że trzeba kupić chleb")?.replace("Trzeba k", "K"))
+        assertEquals("Mleko, chleb", Notes.extract("dodaj mleko, chleb"))
+    }
 }

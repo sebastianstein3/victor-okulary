@@ -105,6 +105,13 @@ object Notes {
         if (CALENDAR_WORDS.any { lower.contains(it) }) return null
 
         val prefix = PREFIXES.firstOrNull { startsWithPrefix(lower, it) } ?: return null
+        // "Przypomnij mi za 10 minut o garnku", "przypomnij mi jutro o 7" i
+        // "dodaj alarm na 7" to prośby o ALARM, MINUTNIK albo WYDARZENIE - model
+        // ma do nich akcje. Notatka kończyła je słowem "Zapisane" i żadnym
+        // przypomnieniem (audyt 28.10). Goły "dodaj" łapał też "dodaj kontakt".
+        val reminderOrBare = prefix == "dodaj" || prefix.startsWith("przypomnij mi")
+        if (reminderOrBare && (TIMED.containsMatchIn(lower) || OBJECT.containsMatchIn(lower))) return null
+        if (prefix == "dodaj" && trimmed.substring(prefix.length).trimStart { it in SEPARATORS }.firstOrNull()?.isDigit() == true) return null
         val body = stripConjunction(
             trimmed.substring(prefix.length).trimStart { it in SEPARATORS }.trim()
         )
@@ -113,6 +120,13 @@ object Notes {
         if (body.length < MIN_BODY) return null
         return body.replaceFirstChar { it.uppercase() }
     }
+
+    private val TIMED = Regex(
+        """(?<!\p{L})(za\s+\d+|za\s+\p{L}+\s+(minut|godzin|sekund)\p{L}*|za\s+(minutę|godzinę|chwilę|pół)|""" +
+            """o\s+\d{1,2}([:.]\d{2})?|o\s+godzinie|rano|wieczorem|jutro|pojutrze|dzisiaj|dziś|""" +
+            """w\s+(poniedziałek|wtorek|środę|czwartek|piątek|sobotę|niedzielę))(?!\p{L})"""
+    )
+    private val OBJECT = Regex("""(?<!\p{L})(alarm|budzik|timer|minutnik|kontakt|numer|połączenie|zdjęci)\p{L}*""")
 
     /** Krótsza treść to najpewniej przesłyszenie, a nie notatka. */
     private const val MIN_BODY = 3

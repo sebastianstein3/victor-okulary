@@ -32,6 +32,10 @@ object MetaCommands {
     fun detectPersonaSwitchAttempt(text: String): PersonaSwitchAttempt? {
         val name = extractRequestedName(text) ?: return null
         val personaId = resolvePersonaAlias(name)
+        // Samo "przełącz na X" (bez "się") z nieznanym X to najpewniej muzyka,
+        // telewizor albo aplikacja ("przełącz na następny utwór") - nie próba
+        // zmiany persony, więc nie odpowiadamy "nie znam persony".
+        if (personaId == null && PLAIN_SWITCH.containsMatchIn(text.trim().lowercase())) return null
         return if (personaId != null) {
             PersonaSwitchAttempt.Recognized(personaId)
         } else {
@@ -57,11 +61,16 @@ object MetaCommands {
         }?.value
     }
 
+    // Zakotwiczone na początku (z grzecznościowym wstępem): "kawa bądź herbata?"
+    // nie jest komendą zmiany persony.
     private val SWITCH_REGEX = Regex(
-        """(?:b[aą]dź|badz|przel[aą]cz(?:\s+si[eę])?\s+na|zmień\s+osobowo[sś][cć]\s+na|""" +
+        """^(?:(?:prosz[eę]|a\s+teraz|teraz|dobra|ok|hej|victor)[,\s]+)*""" +
+            """(?:b[aą]dź|badz|prze[łl][aą]cz(?:\s+si[eę])?\s+na|zmień\s+osobowo[sś][cć]\s+na|""" +
             """zmien\s+osobowosc\s+na|w[lł][aą]cz\s+personę|włącz\s+osobowość)\s+(.+)""",
         RegexOption.IGNORE_CASE
     )
+
+    private val PLAIN_SWITCH = Regex("""^(?:[^,]*?[,\s]+)?prze[łl][aą]cz\s+na\s""")
 
     private val ALIASES: Map<String, String> = mapOf(
         "asystent" to "default", "asystenta" to "default",
@@ -82,7 +91,7 @@ object MetaCommands {
      * Wykrywa prośbę o wyczyszczenie kontekstu rozmowy - "nowy temat", "zapomnij co
      * mówiliśmy", "wyczyść kontekst".
      */
-    fun detectContextReset(text: String): Boolean = RESET_REGEX.containsMatchIn(text.trim())
+    fun detectContextReset(text: String): Boolean = RESET_REGEX.matches(text.trim().trimEnd('.', '!', '?'))
 
     /**
      * Czy to jest prośba o zakończenie trwającego trybu ciągłego.
@@ -268,10 +277,14 @@ object MetaCommands {
             """^t[lł]umacz\s+mi\s+(na\s+bie[zż][aą]co|wszystko|co\s+s[lł]ysz[eę])$"""
     )
 
+    // `matches` z grzecznościowym wstępem i zakończeniem: "zaproponuj nowy temat na
+    // prezentację" nie kasuje już kontekstu (audyt 28.10).
     private val RESET_REGEX = Regex(
-        """(?:nowy\s+temat|zapomnij\s+(?:co\s+)?(?:m[oó]wili[sś]my|rozmawiali[sś]my)|""" +
+        """(?:(?:prosz[eę]|dobra|ok|a\s+teraz|teraz|hej|victor)[,\s]+)*""" +
+            """(?:nowy\s+temat|zapomnij\s+(?:co\s+)?(?:m[oó]wili[sś]my|rozmawiali[sś]my)|""" +
             """wyczy[sś][cć]\s+(?:kontekst|rozmow[eę]|histori[eę])|""" +
-            """zacznij(?:my)?\s+od\s+nowa|nowa\s+rozmowa)""",
+            """zacznij(?:my)?\s+od\s+nowa|nowa\s+rozmowa)""" +
+            """(?:[,\s]+(?:prosz[eę]|dzi[eę]ki|dzi[eę]kuj[eę]))*""",
         RegexOption.IGNORE_CASE
     )
 }

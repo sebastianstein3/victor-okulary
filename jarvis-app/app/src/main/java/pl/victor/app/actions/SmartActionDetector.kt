@@ -259,7 +259,7 @@ class SmartActionDetector {
             .replace(ASSIST_ON_REGEX, " ")
             .replace(ASSIST_OFF_REGEX, " ")
             .replace(TRANSIT_REGEX, " ")
-        val match = NAV_REGEX.find(navText) ?: return null
+        val match = NAV_REGEX.find(navText.trim()) ?: return null
         val dest = cleanDestination(match.groupValues[2])
         if (dest.isBlank()) return null
         val verb = match.groupValues[1].lowercase()
@@ -395,7 +395,10 @@ class SmartActionDetector {
     )
 
     private val NAV_REGEX = Regex(
-        """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
+        // Zakotwiczone na początku: "napisz Ani SMS: przyjedź do mnie o piątej"
+        // nie jest prośbą o trasę (audyt 28.10).
+        """^(?:(?:prosz[eę]|a\s+teraz|teraz|dobra|ok|hej|victor)[,\s]+)*""" +
+            """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
         RegexOption.IGNORE_CASE
     )
 

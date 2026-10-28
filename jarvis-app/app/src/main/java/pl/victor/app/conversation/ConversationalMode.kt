@@ -7,6 +7,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -37,7 +38,8 @@ class ConversationalMode(
     private val audio: AudioManager,
     private val wakeWord: WakeWordDetector? = null,
     private val speechToText: SpeechToText? = null,
-    private val onUserSpoke: suspend (String) -> Unit,
+    /** @return `true`, gdy z wypowiedzi ruszyła tura (wznowi nasłuch `onAiFinishedSpeaking`); `false` - zignorowana */
+    private val onUserSpoke: suspend (String) -> Boolean,
     private val onActivated: () -> Unit = {},
     private val onDeactivated: () -> Unit = {}
 ) {
@@ -129,6 +131,12 @@ class ConversationalMode(
 
         /** Przerwa przed ponowieniem nasłuchu, gdy nic nie usłyszeliśmy. */
         const val RETRY_DELAY_MS = 100L
+
+        /** Ile najwyżej czekamy, aż asystent dokończy zdanie, zanim zaczniemy słuchać. */
+        const val SPEECH_WAIT_MS = 30_000L
+
+        /** Cisza po końcu mowy, żeby nie złapać ogona. */
+        const val MIN_TAIL_MS = 500L
     }
 
     /**
@@ -155,6 +163,15 @@ class ConversationalMode(
         listenJob?.cancel()
         listenJob = scope.launch {
             if (initialDelayMs > 0) delay(initialDelayMs)
+            // Odpowiedzi warstwy 0 ("Zapisane. Masz teraz 5 notatek.") idą przez
+            // speak() bez czekania, więc stan "skończone" przychodzi, zanim
+            // zdanie wybrzmi - i mikrofon łapał je jako pytanie użytkownika.
+            if (audio.speaking.value) {
+                kotlinx.coroutines.withTimeoutOrNull(SPEECH_WAIT_MS) {
+                    audio.speaking.first { !it }
+                }
+                delay(initialDelayMs.coerceAtLeast(MIN_TAIL_MS))
+            }
             val startedAt = System.currentTimeMillis()
             while (active.get()) {
                 if (startSingleListen()) return@launch
@@ -200,8 +217,11 @@ class ConversationalMode(
 
             // Tura przejmuje stąd. Mikrofon MUSI teraz zamilknąć - patrz
             // uzasadnienie przy [startListening].
-            onUserSpoke(result)
-            return true
+            //
+            // Gdy wypowiedź została ZIGNOROWANA (brak frazy wybudzenia, nikt nie
+            // zwraca się do asystenta), żadna tura nie ruszyła i nikt nie wznowi
+            // nasłuchu - tryb zostawał "włączony", ale głuchy. Wtedy słuchamy dalej.
+            return onUserSpoke(result)
         } catch (e: Exception) {
             Log.e(tag, "Listen error", e)
             // Błąd rozpoznawania nie może zostawić trybu głuchym na stałe:
