@@ -21,7 +21,7 @@ package pl.victor.app.ai
  */
 object GeminiBadRequest {
 
-    enum class Naprawa { BEZ_OGRANICZENIA_MYŚLENIA, BEZ_WYSZUKIWARKI }
+    enum class Naprawa { BEZ_MAP, BEZ_OGRANICZENIA_MYŚLENIA, BEZ_WYSZUKIWARKI }
 
     /**
      * @return co zdjąć z zapytania przed ponowieniem albo `null`, gdy
@@ -31,7 +31,8 @@ object GeminiBadRequest {
         kod: Int,
         odpowiedź: String,
         wysłanoOgraniczenieMyślenia: Boolean,
-        wysłanoWyszukiwarkę: Boolean
+        wysłanoWyszukiwarkę: Boolean,
+        wysłanoMapy: Boolean = false
     ): Naprawa? {
         if (kod != 400) return null
         // Zły klucz to też 400 - ale na niego żadna zmiana zapytania nie pomoże.
@@ -43,6 +44,9 @@ object GeminiBadRequest {
         // dwie powtórki z pełnym audio i obrazami oraz wyższy rachunek (audyt 28.10).
         if (TREŚĆ.containsMatchIn(odpowiedź.lowercase())) return null
         return when {
+            // Mapy zdejmujemy PIERWSZE: to najświeższy dodatek, a jego kształt
+            // (pole narzędzia i konfiguracji) nie był sprawdzony na żywym serwerze.
+            wysłanoMapy -> Naprawa.BEZ_MAP
             wysłanoOgraniczenieMyślenia -> Naprawa.BEZ_OGRANICZENIA_MYŚLENIA
             wysłanoWyszukiwarkę -> Naprawa.BEZ_WYSZUKIWARKI
             else -> null

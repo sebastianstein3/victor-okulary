@@ -64,7 +64,15 @@ object LocationContext {
      *
      * @param naŚwieżąMs ile wolno czekać na świeży pomiar; 0 = wcale
      */
-    suspend fun tutaj(context: Context, naŚwieżąMs: Long = 0L): Tutaj? = withContext(Dispatchers.IO) {
+    /** Ostatnia ustalona pozycja - dla "Map Google" w zapytaniu do modelu. */
+    @Volatile
+    var ostatnia: Tutaj? = null
+        private set
+
+    suspend fun tutaj(context: Context, naŚwieżąMs: Long = 0L): Tutaj? =
+        tutajBezPamięci(context, naŚwieżąMs).also { if (it != null) ostatnia = it }
+
+    private suspend fun tutajBezPamięci(context: Context, naŚwieżąMs: Long = 0L): Tutaj? = withContext(Dispatchers.IO) {
         var location = lastKnownLocation(context)
         val wiek = location?.let { wiekMs(it) } ?: Long.MAX_VALUE
         if (wiek > ŚWIEŻA_MS && naŚwieżąMs > 0) {

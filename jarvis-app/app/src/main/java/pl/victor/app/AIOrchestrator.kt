@@ -664,7 +664,12 @@ class AIOrchestrator(
      * Temat zostaje otwarty jak pogoda czy kalendarz: po "gdzie tu zjeść"
      * pytanie "a ile tam kosztuje obiad" dalej dotyczy tego samego miejsca.
      */
+    /** Pozycja dla Map Google w bieżącej turze - ustawia [buildLocationContext], czyta [buildStream]. */
+    @Volatile
+    private var mapsLocationForTurn: Pair<Double, Double>? = null
+
     private suspend fun buildLocationContext(question: String, hasPhoto: Boolean): String? {
+        mapsLocationForTurn = null
         val oOkolicę = pl.victor.app.proactive.NearbyQuestion.dotyczyOkolicy(question)
         val cel = when {
             pl.victor.app.proactive.NearbyQuestion.jestPrzewodnikiem(question) ->
@@ -678,6 +683,15 @@ class AIOrchestrator(
         val opis = pl.victor.app.proactive.LocationContext.buildPromptContext(context, naprawdęCel)
         if (opis != null) {
             Log.i(TAG, "Doklejam kontekst lokalizacji ($naprawdęCel)")
+            // Pytanie o okolicę: model dostaje też Mapy Google (miejsca, opinie,
+            // godziny otwarcia) z naszą pozycją.
+            if (naprawdęCel != pl.victor.app.proactive.LocationContext.Cel.ZDJĘCIE &&
+                settings.isMapsGroundingEnabled()
+            ) {
+                pl.victor.app.proactive.LocationContext.ostatnia?.let {
+                    mapsLocationForTurn = it.lat to it.lon
+                }
+            }
             return opis
         }
         if (!oOkolicę) return null
@@ -5077,6 +5091,7 @@ class AIOrchestrator(
                     )
                 }
                 fun buildStream(p: AIProvider): kotlinx.coroutines.flow.Flow<pl.victor.app.ai.AIResponseChunk> {
+                    (p as? pl.victor.app.ai.GeminiProvider)?.mapsLocation = mapsLocationForTurn
                     // Prompt mówi "masz wyszukiwarkę Google" wg GŁÓWNEGO dostawcy. Gdy
                     // odpowiada zapasowy bez wyszukiwarki, model dalej to słyszał i
                     // zmyślał "aktualne" ceny - dopisujemy prawdę dla tej próby.

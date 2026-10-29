@@ -279,6 +279,8 @@ fun SettingsScreen(
                 HorizontalDivider()
                 NoiseVolumeSection()
                 HorizontalDivider()
+                MapsGroundingSection()
+                HorizontalDivider()
                 SpeechSection()
             }
 

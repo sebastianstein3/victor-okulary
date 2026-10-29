@@ -50,4 +50,16 @@ class GeminiBadRequestTest {
         assertNull(GeminiBadRequest.naprawa(400, body, true, true))
         assertNull(GeminiBadRequest.naprawa(400, "Request payload size exceeds the limit", true, true))
     }
+
+    @Test
+    fun `mapy zdejmowane pierwsze, potem myslenie, potem wyszukiwarka`() {
+        assertEquals(
+            GeminiBadRequest.Naprawa.BEZ_MAP,
+            GeminiBadRequest.naprawa(400, ogólna, wysłanoOgraniczenieMyślenia = true, wysłanoWyszukiwarkę = true, wysłanoMapy = true)
+        )
+        assertEquals(
+            GeminiBadRequest.Naprawa.BEZ_OGRANICZENIA_MYŚLENIA,
+            GeminiBadRequest.naprawa(400, ogólna, wysłanoOgraniczenieMyślenia = true, wysłanoWyszukiwarkę = true, wysłanoMapy = false)
+        )
+    }
 }

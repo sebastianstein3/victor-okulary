@@ -285,16 +285,16 @@ class GeminiProvider(
         )
         parts.add(GeminiPart(text = prompt.user))
 
-        val tools = if (useSearch(enableWebSearch)) {
-            listOf(GeminiTool(googleSearch = GoogleSearchTool()))
-        } else null
+        val maps = useMaps()
+        val tools = narzędzia(useSearch(enableWebSearch), maps)
         val config = generationConfig()
 
         val request = GeminiRequest(
             contents = listOf(GeminiContent(parts = parts)),
             tools = tools,
             generationConfig = config,
-            systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.system)))
+            systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.system))),
+            toolConfig = toolConfigDlaMap(maps)
         )
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
@@ -313,7 +313,7 @@ class GeminiProvider(
                     // Odmowa dodatku do zapytania jest DO NAPRAWIENIA W LOCIE:
                     // zapamiętujemy ją i powtarzamy zapytanie bez niego,
                     // zamiast oddawać rozmowę dostawcy zapasowemu.
-                    if (noteBadRequest(response.code, errorBody, config.thinkingConfig != null, tools != null)) {
+                    if (noteBadRequest(response.code, errorBody, config.thinkingConfig != null, tools?.any { it.googleSearch != null } == true, maps)) {
                         throw RepairedRequestRetry()
                     }
                     throw AIProviderException(
@@ -493,6 +493,34 @@ class GeminiProvider(
         limitThinking && (thinkingRejectedUntil[model] ?: 0L) < System.currentTimeMillis()
 
     /**
+     * Położenie użytkownika dla "Map Google" (grounding) - ustawiane przez
+     * orkiestrator tylko przy pytaniach o okolicę. `null` = bez map.
+     */
+    @Volatile
+    var mapsLocation: Pair<Double, Double>? = null
+
+    /** Mapy tylko dla rodziny 3.x i nowszych, o ile serwer ich ostatnio nie odrzucił. */
+    private fun useMaps(): Boolean {
+        if (mapsLocation == null) return false
+        val m = model.lowercase().removePrefix("models/")
+        if (!(m.startsWith("gemini-3") || m.startsWith("gemini-4"))) return false
+        return (mapsRejectedUntil[model] ?: 0L) < System.currentTimeMillis()
+    }
+
+    private fun narzędzia(search: Boolean, maps: Boolean): List<GeminiTool>? {
+        val lista = buildList {
+            if (search) add(GeminiTool(googleSearch = GoogleSearchTool()))
+            if (maps) add(GeminiTool(googleMaps = GoogleMapsTool()))
+        }
+        return lista.ifEmpty { null }
+    }
+
+    private fun toolConfigDlaMap(maps: Boolean): GeminiToolConfig? {
+        val (lat, lon) = (if (maps) mapsLocation else null) ?: return null
+        return GeminiToolConfig(RetrievalConfig(LatLng(lat, lon)))
+    }
+
+    /**
      * Czy dołożyć wyszukiwarkę. Po odmowie wyłączamy ją dla modelu tylko na
      * [SEARCH_REJECT_MS] - odmowa bywa przejściowa, a bez wyszukiwarki
      * asystent nie sprawdzi niczego aktualnego.
@@ -511,10 +539,18 @@ class GeminiProvider(
      *
      * @return `true` gdy warto powtórzyć zapytanie bez zdjętej części
      */
-    private fun noteBadRequest(code: Int, body: String, sentThinkingLimit: Boolean, sentSearch: Boolean): Boolean {
+    private fun noteBadRequest(
+        code: Int,
+        body: String,
+        sentThinkingLimit: Boolean,
+        sentSearch: Boolean,
+        sentMaps: Boolean = false
+    ): Boolean {
         if (code != HTTP_BAD_REQUEST) return false
-        val repair = GeminiBadRequest.naprawa(code, body, sentThinkingLimit, sentSearch)
+        val repair = GeminiBadRequest.naprawa(code, body, sentThinkingLimit, sentSearch, sentMaps)
         when (repair) {
+            GeminiBadRequest.Naprawa.BEZ_MAP ->
+                mapsRejectedUntil = mapsRejectedUntil + (model to System.currentTimeMillis() + SEARCH_REJECT_MS)
             GeminiBadRequest.Naprawa.BEZ_OGRANICZENIA_MYŚLENIA ->
                 thinkingRejectedUntil = thinkingRejectedUntil + (model to System.currentTimeMillis() + THINKING_REJECT_MS)
             GeminiBadRequest.Naprawa.BEZ_WYSZUKIWARKI ->
@@ -522,6 +558,7 @@ class GeminiProvider(
             null -> Unit
         }
         val what = when (repair) {
+            GeminiBadRequest.Naprawa.BEZ_MAP -> "Gemini odrzucił zapytanie - ponawiam bez Map Google"
             GeminiBadRequest.Naprawa.BEZ_OGRANICZENIA_MYŚLENIA -> "Gemini odrzucił zapytanie - ponawiam bez ograniczenia myślenia"
             GeminiBadRequest.Naprawa.BEZ_WYSZUKIWARKI -> "Gemini odrzucił zapytanie - ponawiam bez wyszukiwarki"
             null -> "Gemini odrzucił zapytanie - nie ma czego zdjąć"
@@ -533,6 +570,7 @@ class GeminiProvider(
                 what,
                 mapOf(
                     "model" to model,
+                    "mapy" to sentMaps,
                     "ograniczenieMyślenia" to sentThinkingLimit,
                     "wyszukiwarka" to sentSearch,
                     "odpowiedź" to oneLine
@@ -554,6 +592,10 @@ class GeminiProvider(
          * powtarzanie odrzucanej próby kosztowałoby dodatkowy obieg za każdym
          * razem. Per model, bo inny model może je przyjmować.
          */
+        /** Do kiedy nie dokładać Map Google danemu modelowi (po odmowie 400). */
+        @Volatile
+        private var mapsRejectedUntil: Map<String, Long> = emptyMap()
+
         @Volatile
         private var thinkingRejectedUntil: Map<String, Long> = emptyMap()
 
@@ -571,7 +613,7 @@ class GeminiProvider(
         private const val SEARCH_REJECT_MS = 30 * 60_000L
 
         /** Ile razy można zdjąć coś z zapytania: myślenie i wyszukiwarkę. */
-        private const val MAX_REPAIRS = 2
+        private const val MAX_REPAIRS = 3
 
         private const val HTTP_BAD_REQUEST = 400
 
@@ -720,14 +762,16 @@ class GeminiProvider(
         val prompt = buildPrompt(textQuestion, images.size, scannedCodes, systemPrompt)
         parts.add(GeminiPart(text = prompt.user))
 
-        val tools = if (useSearch(enableWebSearch)) listOf(GeminiTool(googleSearch = GoogleSearchTool())) else null
+        val maps = useMaps()
+        val tools = narzędzia(useSearch(enableWebSearch), maps)
         val config = generationConfig()
 
         val request = GeminiRequest(
             contents = listOf(GeminiContent(parts = parts)),
             tools = tools,
             generationConfig = config,
-            systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.system)))
+            systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.system))),
+            toolConfig = toolConfigDlaMap(maps)
         )
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
@@ -754,7 +798,7 @@ class GeminiProvider(
                     // Odmowa dodatku do zapytania jest DO NAPRAWIENIA W LOCIE:
                     // zapamiętujemy ją i powtarzamy zapytanie bez niego,
                     // zamiast oddawać rozmowę dostawcy zapasowemu.
-                    if (noteBadRequest(response.code, errorBody, config.thinkingConfig != null, tools != null)) {
+                    if (noteBadRequest(response.code, errorBody, config.thinkingConfig != null, tools?.any { it.googleSearch != null } == true, maps)) {
                         throw RepairedRequestRetry()
                     }
                     throw AIProviderException(
@@ -875,7 +919,8 @@ data class GeminiRequest(
     val contents: List<GeminiContent>,
     val tools: List<GeminiTool>? = null,
     val generationConfig: GeminiGenerationConfig? = null,
-    val systemInstruction: GeminiContent? = null
+    val systemInstruction: GeminiContent? = null,
+    val toolConfig: GeminiToolConfig? = null
 )
 
 /**
@@ -955,8 +1000,22 @@ data class GeminiInlineData(
 
 @Serializable
 data class GeminiTool(
-    val googleSearch: GoogleSearchTool? = null
+    val googleSearch: GoogleSearchTool? = null,
+    /** Grounding w Mapach Google: miejsca, opinie, godziny otwarcia (Gemini 3+). */
+    val googleMaps: GoogleMapsTool? = null
 )
+
+@Serializable
+class GoogleMapsTool
+
+@Serializable
+data class GeminiToolConfig(val retrievalConfig: RetrievalConfig)
+
+@Serializable
+data class RetrievalConfig(val latLng: LatLng)
+
+@Serializable
+data class LatLng(val latitude: Double, val longitude: Double)
 
 @Serializable
 data class GoogleSearchTool(

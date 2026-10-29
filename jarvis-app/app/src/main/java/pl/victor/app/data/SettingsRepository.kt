@@ -313,6 +313,13 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_EAR_TRANSLATION_SPOKEN, spoken).apply()
     }
 
+    /** Mapy Google dla pytań o okolicę (opinie, godziny otwarcia) - tylko Gemini 3+. */
+    fun isMapsGroundingEnabled(): Boolean = prefs.getBoolean(KEY_MAPS_GROUNDING, true)
+
+    fun setMapsGroundingEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_MAPS_GROUNDING, enabled).apply()
+    }
+
     /** Głośniej w hałasie - patrz [pl.victor.app.audio.AmbientNoise]. */
     fun isNoiseAdaptiveVolume(): Boolean = prefs.getBoolean(KEY_NOISE_VOLUME, true)
 
@@ -1224,6 +1231,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"
+        private const val KEY_MAPS_GROUNDING = "maps_grounding"
         private const val KEY_MESSAGES_READ = "messages_read"
         private const val KEY_MESSAGES_CONTENT = "messages_content"
         private const val KEY_MESSAGES_CONFIRM = "messages_confirm"
