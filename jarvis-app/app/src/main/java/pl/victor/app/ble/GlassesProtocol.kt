@@ -421,6 +421,12 @@ object GlassesProtocol {
 
     fun resetP2p(): ByteArray = command(WORK_RESET_P2P)
 
+    /**
+     * Kasuje pliki w pamięci okularów - patrz [WORK_RELEASE_STORAGE]. Wysłanie
+     * przechodzi tylko przez `VictorManager.eraseGlassesStorage` (blokada w `send`).
+     */
+    fun releaseStorage(): ByteArray = command(WORK_RELEASE_STORAGE)
+
     // === Odpowiedź na komendę trybu transferu ===
 
     /**
@@ -676,7 +682,7 @@ object GlassesProtocol {
      * Wyciąga tryb pracy z komendy sterującej `0x02 0x01 <tryb>`.
      * @return tryb albo `null` gdy to nie jest komenda sterująca
      */
-    /** Czy to komenda, która kasuje pliki z okularów (02 01 09) - nigdy jej nie wysyłamy. */
+    /** Czy to komenda, która kasuje pliki z okularów (02 01 09) - wysyłana tylko po jawnym potwierdzeniu. */
     fun isDestructive(command: ByteArray?): Boolean = workTypeOf(command) == WORK_RELEASE_STORAGE
 
     fun workTypeOf(command: ByteArray?): Int? {

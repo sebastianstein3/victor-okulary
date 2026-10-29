@@ -2442,8 +2442,10 @@ class VictorManager private constructor(context: Context) {
      */
     private fun send(bytes: ByteArray, onResponse: ((Int) -> Unit)? = null) {
         // TWARDA BLOKADA: komenda 02 01 09 KASUJE pliki z okularów (zmierzone:
-        // 121 zdjęć -> 0) i żadna ścieżka w aplikacji nie ma prawa jej wysłać.
-        if (GlassesProtocol.isDestructive(bytes)) {
+        // 121 zdjęć -> 0). Przechodzi tylko, gdy [eraseGlassesStorage] chwilę
+        // wcześniej ją "uzbroiło" po dwóch potwierdzeniach użytkownika - żadna
+        // inna ścieżka (głos, model, tryby, skrypty) nie ma jak jej wysłać.
+        if (GlassesProtocol.isDestructive(bytes) && !consumeEraseArm()) {
             Log.e(tag, "ZABLOKOWANO komendę kasującą pamięć okularów")
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
@@ -3118,6 +3120,51 @@ class VictorManager private constructor(context: Context) {
         val answer = CompletableDeferred<MediaCount?>()
         requestMediaCount { i, v, r -> answer.complete(MediaCount(i, v, r)) }
         return withTimeoutOrNull(timeoutMs) { answer.await() }
+    }
+
+    /** Do kiedy komenda kasująca jest odblokowana; 0 = zablokowana. */
+    @Volatile
+    private var eraseArmedUntilMs = 0L
+
+    /** Zużywa odblokowanie - jedno użycie, żeby nie zostało "na później". */
+    private fun consumeEraseArm(): Boolean {
+        val armed = System.currentTimeMillis() < eraseArmedUntilMs
+        eraseArmedUntilMs = 0L
+        return armed
+    }
+
+    /**
+     * Kasuje WSZYSTKIE pliki w pamięci okularów (komenda 02 01 09) i mierzy skutek.
+     *
+     * Operacja jest NIEODWRACALNA, więc to jedyna droga do tej komendy i wymaga
+     * [confirmedByUser] - wywołujący ma to ustawić dopiero po dwóch osobnych
+     * potwierdzeniach i po sprawdzeniu [pl.victor.app.media.ReleaseSafety].
+     * Komenda nigdy nie jest wysyłana automatycznie.
+     *
+     * @return liczniki przed i po, do pokazania użytkownikowi
+     */
+    suspend fun eraseGlassesStorage(confirmedByUser: Boolean): Pair<MediaCount?, MediaCount?> {
+        if (!confirmedByUser) return null to null
+        val before = mediaCountNow()
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Kasowanie pamięci okularów (na polecenie użytkownika): liczniki PRZED",
+            mapOf("zdjęć" to before?.images, "wideo" to before?.videos, "nagrań" to before?.records)
+        )
+        eraseArmedUntilMs = System.currentTimeMillis() + ERASE_ARM_WINDOW_MS
+        try {
+            send(GlassesProtocol.releaseStorage())
+        } finally {
+            eraseArmedUntilMs = 0L
+        }
+        delay(RELEASE_STORAGE_SETTLE_MS)
+        val after = mediaCountNow()
+        diag.event(
+            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+            "Kasowanie pamięci okularów: liczniki PO",
+            mapOf("zdjęć" to after?.images, "wideo" to after?.videos, "nagrań" to after?.records)
+        )
+        return before to after
     }
 
     /** Prosi okulary o aktualny poziom baterii - odpowiedź wraca jako notify 0x05. */
@@ -5057,6 +5104,10 @@ class VictorManager private constructor(context: Context) {
         private const val MEDIA_COUNT_TIMEOUT_MS = 6_000L
 
         /** Ile dać okularom na wykonanie zwolnienia pamięci przed odczytem. */
+        private const val RELEASE_STORAGE_SETTLE_MS = 3_000L
+
+        /** Jak długo po uzbrojeniu komenda kasująca może jeszcze wyjść. */
+        private const val ERASE_ARM_WINDOW_MS = 5_000L
 
         /** Ile dać okularom na pozbieranie się po resecie łącza. */
         private const val TRANSFER_RESET_SETTLE_MS = 2_000L

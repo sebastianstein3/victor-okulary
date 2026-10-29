@@ -91,6 +91,7 @@ import pl.victor.app.ble.MediaLibrary
 import pl.victor.app.media.MediaArchive
 import pl.victor.app.media.MediaFilter
 import pl.victor.app.media.MediaItem
+import pl.victor.app.media.ReleaseSafety
 import pl.victor.app.media.applyFilter
 import pl.victor.app.media.groupForDisplay
 import pl.victor.app.ui.theme.VictorTheme
@@ -907,6 +908,83 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Kasowanie pamięci okularów - dwa osobne pytania.
+     *
+     * 0 = nic, 1 = pierwsze (co się stanie), 2 = ostateczne. Komenda czyści
+     * WSZYSTKO i nieodwracalnie, więc pytanie pojawia się dopiero wtedy, gdy
+     * [ReleaseSafety] potwierdził, że każdy plik z okularów leży już w telefonie.
+     */
+    private val _releaseStep = MutableStateFlow(0)
+    val releaseStep: StateFlow<Int> = _releaseStep.asStateFlow()
+
+    /** Ile plików zostanie skasowanych - do pokazania w obu pytaniach. */
+    private val _releaseCount = MutableStateFlow(0)
+    val releaseCount: StateFlow<Int> = _releaseCount.asStateFlow()
+
+    fun askReleaseStorage() {
+        if (_busy.value) return
+        when (val v = ReleaseSafety.checkArchive(_items.value)) {
+            is ReleaseSafety.Verdict.Refused -> _status.value = v.reason
+            is ReleaseSafety.Verdict.Allowed -> {
+                _releaseCount.value = v.count
+                _releaseStep.value = 1
+            }
+        }
+    }
+
+    fun releaseNextStep() {
+        if (_releaseStep.value == 1) _releaseStep.value = 2
+    }
+
+    fun dismissRelease() {
+        _releaseStep.value = 0
+    }
+
+    /** Wykonuje kasowanie - tylko z drugiego pytania, po ponownej kontroli liczników. */
+    fun eraseGlassesStorage() {
+        if (_releaseStep.value != 2) return
+        _releaseStep.value = 0
+        if (_busy.value) return
+        viewModelScope.launch {
+            _busy.value = true
+            try {
+                // Ponowna kontrola na świeżych danych: lista mogła się zestarzeć.
+                val known = (ReleaseSafety.checkArchive(_items.value) as? ReleaseSafety.Verdict.Allowed)
+                    ?.count
+                if (known == null) {
+                    _status.value = "Lista plików się zmieniła - nie kasuję. Spróbuj jeszcze raz."
+                    return@launch
+                }
+                _status.value = "Sprawdzam liczniki w okularach..."
+                val check = ReleaseSafety.checkCounters(known, manager.mediaCountNow())
+                if (check is ReleaseSafety.Verdict.Refused) {
+                    _status.value = check.reason
+                    return@launch
+                }
+                _status.value = "Kasuję pamięć okularów..."
+                val (before, after) = manager.eraseGlassesStorage(confirmedByUser = true)
+                _status.value = when {
+                    before == null || after == null ->
+                        "Okulary nie podały liczników - nie wiem, czy coś się zmieniło."
+                    after.total < before.total ->
+                        "Pamięć okularów wyczyszczona: było ${before.total} plików, jest ${after.total}. " +
+                            "Kopie zostają w telefonie."
+                    else ->
+                        "Liczniki się nie zmieniły (${before.total} plików) - okulary nic nie skasowały."
+                }
+                if (before != null && after != null && after.total < before.total) {
+                    archive.rememberGlassesEmptied()
+                    refreshFromArchive()
+                }
+            } catch (e: Exception) {
+                _status.value = "Nie udało się: ${e.message}"
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
+
     fun closePreview() {
         _preview.value = null
     }
@@ -971,6 +1049,8 @@ fun MediaScreen(onBack: () -> Unit) {
     val pendingPlayback by viewModel.pendingPlayback.collectAsState()
     val pendingShare by viewModel.pendingShare.collectAsState()
     val selection by viewModel.selection.collectAsState()
+    val releaseStep by viewModel.releaseStep.collectAsState()
+    val releaseCount by viewModel.releaseCount.collectAsState()
     val filter by viewModel.filter.collectAsState()
     val deletePlan by viewModel.askDelete.collectAsState()
     val context = LocalContext.current
@@ -1070,6 +1150,46 @@ fun MediaScreen(onBack: () -> Unit) {
         )
     }
 
+    if (releaseStep == 1) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissRelease() },
+            title = { Text("Wyczyścić pamięć okularów?") },
+            text = {
+                Text(
+                    "Wszystkie pliki z okularów ($releaseCount) są już zapisane w telefonie. " +
+                        "Ta operacja usunie je z okularów i NIE DA SIĘ jej cofnąć. " +
+                        "Kopie w telefonie zostaną.\n\n" +
+                        "Okulary muszą być połączone. Przed kasowaniem sprawdzę, " +
+                        "czy nie ma na nich nowszych, niezapisanych plików."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.releaseNextStep() }) { Text("Dalej") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissRelease() }) { Text("Anuluj") }
+            }
+        )
+    }
+
+    if (releaseStep == 2) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissRelease() },
+            title = { Text("Ostatnie potwierdzenie") },
+            text = {
+                Text("Na pewno usunąć $releaseCount plików z pamięci okularów? To jest nieodwracalne.")
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.eraseGlassesStorage() }) {
+                    Text("Usuń z okularów", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissRelease() }) { Text("Anuluj") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -1155,6 +1275,15 @@ fun MediaScreen(onBack: () -> Unit) {
                         )
                     }
 
+                    if (saving == null && files.isNotEmpty()) {
+                        OutlinedButton(
+                            onClick = { viewModel.askReleaseStorage() },
+                            enabled = !busy,
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Text("Wyczyść pamięć okularów")
+                        }
+                    }
                     saving?.let { progress ->
                         Column(modifier = Modifier.padding(top = 8.dp)) {
                             LinearProgressIndicator(
