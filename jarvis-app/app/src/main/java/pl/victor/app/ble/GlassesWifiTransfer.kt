@@ -664,6 +664,15 @@ class GlassesWifiTransfer(context: Context) {
 
             override fun onLost(network: Network) {
                 Log.i(TAG, "Sieć okularów zniknęła")
+                // Utrata sieci była tylko zapisywana w dzienniku: glassesNetwork
+                // zostawało ustawione, a przy ścieżce z bindProcessToNetwork CAŁY
+                // ruch aplikacji (także zapytania do AI) szedł w martwą sieć aż do
+                // stop() - audyt 28.10.
+                if (glassesNetwork == network) glassesNetwork = null
+                if (boundNetwork == network) {
+                    runCatching { cm.bindProcessToNetwork(null) }
+                    boundNetwork = null
+                }
             }
         }
 

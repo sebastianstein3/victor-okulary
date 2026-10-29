@@ -150,7 +150,14 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         // rozruch). Pakiety z tego odstępu dotąd przepadały razem z pierwszymi
         // słowami pytania - patrz [pl.victor.app.ble.MicBacklog].
         val backlog = glasses.addMicStreamListenerWithBacklog(packetListener)
-            ?: return false  // subskrypcja nie wstała - strumienia NIE ma
+            ?: run {
+                // Subskrypcja nie wstała - strumienia NIE ma. Wracamy do stanu
+                // "nieaktywne" i zwalniamy dekoder; zostawiony active=true z
+                // żywym MediaCodec wyciekał przy każdej takiej próbie.
+                active = false
+                decoder.release()
+                return false
+            }
         adoptBacklog(backlog)
         decoderOk
     }

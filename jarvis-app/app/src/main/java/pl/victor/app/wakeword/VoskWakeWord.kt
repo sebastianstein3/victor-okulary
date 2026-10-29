@@ -153,6 +153,7 @@ class VoskWakeWord(private val context: Context) {
             // więcej procesora.
             val grammar = "[${JSONObject.quote(phrase)}, ${JSONObject.quote("[unk]")}]"
             val recognizer = Recognizer(loaded, SAMPLE_RATE, grammar)
+            activeRecognizer = recognizer
             val service = SpeechService(recognizer, SAMPLE_RATE)
             service.startListening(object : RecognitionListener {
                 override fun onPartialResult(hypothesis: String?) {
@@ -265,7 +266,14 @@ class VoskWakeWord(private val context: Context) {
             speechService?.shutdown()
         }
         speechService = null
+        // SpeechService nie zamyka Recognizera, a pauza/wznowienie nasłuchu
+        // (każda tura) tworzy nowy - natywna pamięć rosła z każdą rozmową.
+        // stop() dołączył wątek rozpoznawania, więc zamknięcie jest bezpieczne.
+        runCatching { activeRecognizer?.close() }
+        activeRecognizer = null
     }
+
+    private var activeRecognizer: Recognizer? = null
 
     /** Zwalnia też model - przy wyłączaniu funkcji na dobre. */
     fun release() {

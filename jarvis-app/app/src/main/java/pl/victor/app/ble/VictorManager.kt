@@ -473,6 +473,15 @@ class VictorManager private constructor(context: Context) {
 
     private var reconnectJob: Job? = null
 
+    /**
+     * Czy trwa automatyczne ponawianie połączenia (okulary nie zostały odłączone
+     * świadomie). Usługa w tle ma wtedy żyć dalej: po ~60 s stan przechodził na
+     * DISCONNECTED, usługa gasła, proces zamarzał i okulary w kieszeni nie
+     * wracały, dopóki ktoś nie otworzył aplikacji (audyt 28.10).
+     */
+    val isReconnecting: Boolean
+        get() = !userInitiatedDisconnect && reconnectJob?.isActive == true
+
     // === Inicjalizacja ===
 
     /**
@@ -2589,6 +2598,10 @@ class VictorManager private constructor(context: Context) {
             "Podgląd na żywo: podnoszę"
         )
 
+        // Adres z poprzedniej sesji czyścimy PRZED komendą: ramka z nowym adresem
+        // (0x08) może przyjść, zanim komenda wróci - kasowana po niej ginęła, a
+        // awaitReportedIp czekało 15 s na nic.
+        _glassesIp.value = null
         val answer = requestNetworkMode(
             GlassesProtocol.startLivePreview(GlassesProtocol.TRANSFER_MODE_AP)
         )
@@ -2608,10 +2621,8 @@ class VictorManager private constructor(context: Context) {
             return null
         }
 
-        // Sieć i adres zdobywamy tą samą drogą co przy galerii. `_glassesIp`
-        // czyścimy, bo adres z poprzedniej sesji wskazywałby na nieistniejącą
-        // już sieć, a odtwarzacz czekałby na strumień pod martwym adresem.
-        _glassesIp.value = null
+        // Sieć i adres zdobywamy tą samą drogą co przy galerii (adres już wyczyszczony
+        // na początku funkcji).
         val name = glassesBleName()
         val address = lastConnectedAddress ?: settings.getLastGlassesAddress()
         if (name.isNullOrBlank() || address.isNullOrBlank()) {
@@ -2861,6 +2872,26 @@ class VictorManager private constructor(context: Context) {
      */
     suspend fun startLiveVision(): Boolean {
         if (isLiveVisionRunning) return true
+        // Flaga isLiveVisionRunning ustawia się dopiero po 8-25 s, więc dwa wywołania
+        // naraz (tryb dostępności i wcześniejszy start pod kod) oba przechodziły
+        // przez sprawdzenie: dwa podglądy, dwa dołączenia do sieci, osierocony
+        // dekoder i gniazdo pierwszego. Mutex serializuje start.
+        return liveVisionMutex.withLock {
+            if (isLiveVisionRunning) return@withLock true
+            try {
+                startLiveVisionLocked()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Anulowanie w trakcie podnoszenia strumienia zostawiało okulary w
+                // trybie podglądu z działającym pulsem.
+                stopLiveVision()
+                throw e
+            }
+        }
+    }
+
+    private val liveVisionMutex = kotlinx.coroutines.sync.Mutex()
+
+    private suspend fun startLiveVisionLocked(): Boolean {
         val url = startLivePreview() ?: return false
         val grabber = H264FrameGrabber(onEvent = ::streamEvent)
         if (!grabber.start()) {

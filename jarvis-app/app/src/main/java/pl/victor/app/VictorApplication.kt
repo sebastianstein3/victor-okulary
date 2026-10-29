@@ -364,7 +364,8 @@ class VictorApplication : Application() {
             connectionState == ConnectionState.READY ||
             connectionState == ConnectionState.CONNECTING
         val featuresOn = pl.victor.app.features.BackgroundFeatures.potrzebne.value
-        if (!glassesActive && !wakeWordOn && !featuresOn) {
+        val reconnecting = glassesManager.isReconnecting
+        if (!glassesActive && !wakeWordOn && !featuresOn && !reconnecting) {
             VictorForegroundService.stop(this)
             return
         }
@@ -375,6 +376,7 @@ class VictorApplication : Application() {
         val reason = when {
             glassesActive && wakeWordOn -> "Połączony z okularami · nasłuchuję „$phrase”"
             glassesActive -> "Połączony z okularami"
+            reconnecting && !wakeWordOn && !featuresOn -> "Łączę z okularami..."
             wakeWordOn -> "Nasłuchuję słowa „$phrase”"
             else -> "Działa: " + pl.victor.app.features.BackgroundFeatures.nazwy().joinToString(", ")
         }

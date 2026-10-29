@@ -209,6 +209,15 @@ class WakeWordDetector(
             // przyjmuje opisany tam koszt.
             val useBluetooth =
                 settings.isWakeWordOverGlassesMic() && bluetoothRouter.acquire()
+            // stopListening() wywołane w trakcie negocjowania łącza (do kilku
+            // sekund) nie miało czego zatrzymać ani zwolnić - nagrywanie startowało
+            // zaraz po nim, a licznik routera zostawał podbity na stałe (SCO i tryb
+            // rozmowy bez końca, A2DP zablokowane). Sprawdzamy, czy ktoś nie
+            // zmienił zdania.
+            if (!isListening) {
+                if (useBluetooth) bluetoothRouter.release()
+                return@launch
+            }
             holdsBluetooth = useBluetooth
             startListeningWithSource(p, useBluetooth)
         }
@@ -394,6 +403,7 @@ class VoiceProcessor private constructor(
         android.media.AudioFormat.ENCODING_PCM_16BIT,
         sampleRate * 2  // buffer size
     )
+    @Volatile
     private var running = false
     private var thread: Thread? = null
 
@@ -430,6 +440,11 @@ class VoiceProcessor private constructor(
         thread = null
         try {
             recorder.stop()
+        } catch (_: Exception) {}
+        // Każdy cykl stop/start (tryb konwersacyjny robi to co turę) tworzy NOWY
+        // procesor z nowym natywnym AudioRecord - stary musi być zwolniony.
+        try {
+            recorder.release()
         } catch (_: Exception) {}
     }
 

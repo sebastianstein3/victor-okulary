@@ -206,7 +206,14 @@ class BurstCaptureManager(
 
         // Start
         glassesManager.startVideoRecording()
-        delay(durationMs)
+        try {
+            delay(durationMs)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Anulowanie w trakcie nagrywania zostawiało okulary nagrywające dalej
+            // (bateria, pamięć) i blokowało kolejne tryby transferu i podglądu.
+            glassesManager.stopVideoRecording()
+            throw e
+        }
         onProgress(50)
 
         // Stop

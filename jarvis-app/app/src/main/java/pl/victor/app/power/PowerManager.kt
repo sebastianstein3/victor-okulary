@@ -10,6 +10,7 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -143,14 +144,25 @@ class PowerManager(
     /**
      * Aplikuje ustawienia trybu (wyłącza usługi których tryb nie potrzebuje).
      */
+    @Volatile
+    private var wakeWordDisabledByPower = false
+
     private fun applyModeSettings(mode: PowerMode) {
         // 1. Wake word
         val shouldHaveWakeWord = mode.wakeWordEnabled
         val currentlyHasWakeWord = settings.isWakeWordEnabled()
-        if (currentlyHasWakeWord != shouldHaveWakeWord) {
-            Log.d(tag, "Wake word: $currentlyHasWakeWord → $shouldHaveWakeWord")
-            settings.setWakeWordEnabled(shouldHaveWakeWord)
+        // Tryb zasilania może wyłączyć nasłuch frazy, ale TYLKO WŁĄCZAĆ to, co sam
+        // wyłączył: wcześniej po podłączeniu ładowarki włączał go nawet komuś, kto
+        // świadomie go wyłączył - telefon zaczynał słuchać bez zgody (audyt 28.10).
+        if (currentlyHasWakeWord && !shouldHaveWakeWord) {
+            Log.d(tag, "Wake word: wyłączam na czas oszczędzania baterii")
+            wakeWordDisabledByPower = true
+            settings.setWakeWordEnabled(false)
             // (w MainActivity jest listener który to obsłuży)
+        } else if (!currentlyHasWakeWord && shouldHaveWakeWord && wakeWordDisabledByPower) {
+            Log.d(tag, "Wake word: przywracam po oszczędzaniu baterii")
+            wakeWordDisabledByPower = false
+            settings.setWakeWordEnabled(true)
         }
 
         // 2. Proaktywne alerty - zmiana interwału
@@ -223,6 +235,8 @@ class PowerManager(
     }
 
     fun cleanup() {
+        // Także pętla pomiarów (co 5 min) - bez anulowania żyła do końca procesu.
+        scope.cancel()
         try {
             context.unregisterReceiver(batteryReceiver)
         } catch (e: Exception) {}

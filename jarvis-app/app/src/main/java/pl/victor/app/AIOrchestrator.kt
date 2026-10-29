@@ -1918,16 +1918,23 @@ class AIOrchestrator(
                 diag.event(DiagFormat.Phase.NASŁUCH, "rozmowa: moja kolej", mapOf("zOkularów" to zOkularów))
                 val tekst = if (zOkularów && glassesManager.isConnected()) {
                     val capture = GlassesVoiceCapture(glassesManager)
-                    if (capture.start()) {
-                        try {
-                            capture.awaitSpeechEnd()
-                        } finally {
-                            glassesManager.stopGlassesListening()
+                    try {
+                        if (capture.start()) {
+                            try {
+                                capture.awaitSpeechEnd()
+                            } finally {
+                                glassesManager.stopGlassesListening()
+                            }
+                            capture.stop()?.takeIf { it.hasAudio }?.pcm
+                                ?.let { transcribeGlassesAudio(it, languageTagFor(mój)) }
+                        } else {
+                            null
                         }
-                        capture.stop()?.takeIf { it.hasAudio }?.pcm
-                            ?.let { transcribeGlassesAudio(it, languageTagFor(mój)) }
-                    } else {
-                        null
+                    } finally {
+                        // Anulowanie w awaitSpeechEnd albo nieudany start zostawiały
+                        // odbiorcę mikrofonu na zawsze (bufor sprzed nasłuchu i
+                        // wybudzenie dźwiękiem przestawały działać).
+                        capture.detach()
                     }
                 } else {
                     audio.playListeningCue()

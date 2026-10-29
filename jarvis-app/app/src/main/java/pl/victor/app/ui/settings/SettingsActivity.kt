@@ -3993,7 +3993,12 @@ private fun PowerModeSection() {
     val app = context.applicationContext as pl.victor.app.VictorApplication
     val scope = rememberCoroutineScope()
 
-    val powerManager = remember { pl.victor.app.power.PowerManager(context, settings) }
+    val powerManager = remember { pl.victor.app.power.PowerManager(context.applicationContext, settings) }
+    // Receiver baterii i pętla pomiarów żyły dalej po wyjściu z ustawień (nowy
+    // PowerManager przy każdym wejściu) - sprzątamy przy opuszczeniu ekranu.
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose { powerManager.cleanup() }
+    }
     val currentMode by powerManager.currentMode.collectAsState()
     val batteryState by powerManager.batteryState.collectAsState()
     val autoMode by powerManager.autoModeEnabled.collectAsState()
