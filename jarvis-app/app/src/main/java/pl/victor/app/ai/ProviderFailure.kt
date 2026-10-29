@@ -27,6 +27,10 @@ object ProviderFailure {
     fun describe(message: String?, retryable: Boolean = false): String {
         val text = (message ?: "").lowercase()
         return when {
+            // Chwilowy limit na minutę też mówi "exceeded your current quota ...
+            // billing", ale wystarczy odczekać - patrz [isTransientQuota].
+            isTransientQuota(text) ->
+                "Za dużo zapytań naraz - dostawca kazał chwilę odczekać. Spróbuj za moment."
             NO_FUNDS.any { it in text } ->
                 "Dostawca AI odmówił: konto nie ma środków albo przekroczyło limit. " +
                     "Sprawdź to w ustawieniach."
@@ -90,8 +94,21 @@ object ProviderFailure {
      */
     fun isPermanent(message: String?): Boolean {
         val text = (message ?: "").lowercase()
+        if (isTransientQuota(text)) return false
         return NO_FUNDS.any { it in text } || BAD_KEY.any { it in text }
     }
+
+    /**
+     * Gemini na zwykły limit zapytań na minutę odpowiada tym samym tekstem co na
+     * brak środków ("You exceeded your current quota, please check your plan and
+     * billing details") - różni je wskazówka "retry in Ns" albo nazwa limitu na
+     * minutę. Bez tego pętla trybu ciągłego zatrzymywała się na stałe po
+     * chwilowym przeciążeniu (audyt 28.10).
+     */
+    private fun isTransientQuota(text: String): Boolean =
+        "429" in text && TRANSIENT_QUOTA.any { it in text }
+
+    private val TRANSIENT_QUOTA = listOf("perminute", "per minute", "retrydelay", "retry in", "retry after")
 
     // Kolejność list ma znaczenie tylko tyle, ile kolejność gałęzi wyżej:
     // "insufficient balance" DeepSeeka niesie czasem i 402, i 429 w tej samej

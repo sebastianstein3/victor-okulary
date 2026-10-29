@@ -38,12 +38,21 @@ object GeminiBadRequest {
         if (odpowiedź.contains("API_KEY_INVALID", ignoreCase = true) ||
             odpowiedź.contains("API key not valid", ignoreCase = true)
         ) return null
+        // Odmowa wskazuje na SAMĄ TREŚĆ (zdjęcie, nagranie, za duży ładunek) -
+        // zdjęcie ograniczenia myślenia i wyszukiwarki nic nie da, a kosztowałoby
+        // dwie powtórki z pełnym audio i obrazami oraz wyższy rachunek (audyt 28.10).
+        if (TREŚĆ.containsMatchIn(odpowiedź.lowercase())) return null
         return when {
             wysłanoOgraniczenieMyślenia -> Naprawa.BEZ_OGRANICZENIA_MYŚLENIA
             wysłanoWyszukiwarkę -> Naprawa.BEZ_WYSZUKIWARKI
             else -> null
         }
     }
+
+    private val TREŚĆ = Regex(
+        """contents\[|inline_?data|mime_?type|file_?data|too large|payload size|exceeds the maximum|""" +
+            """request size|image.{0,20}(invalid|unsupported|corrupt)|audio.{0,20}(invalid|unsupported|corrupt)"""
+    )
 
     /** Odpowiedź serwera w jednej linii - dziennik tnie wpisy na znakach nowej linii. */
     fun jednaLinia(odpowiedź: String, maks: Int = 600): String =

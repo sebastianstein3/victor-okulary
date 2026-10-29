@@ -163,3 +163,18 @@
     public static int v(...);
 }
 # Zostaw e (errors) i w (warnings) dla crash reports
+
+# ===================================================================
+# Google API Client (Gmail, Kalendarz)
+# ===================================================================
+# Modele odpowiedzi czytane są refleksją po polach z adnotacją @Key. R8 bez
+# tych reguł przemianowuje pola i Gmail/Kalendarz w release zwracają puste
+# obiekty (CI nigdy nie buduje release, więc to nie było widać).
+-keep class com.google.api.services.** { *; }
+-keepclassmembers class * {
+    @com.google.api.client.util.Key <fields>;
+}
+-keepattributes Signature,RuntimeVisibleAnnotations,AnnotationDefault
+-dontwarn com.google.api.client.**
+-dontwarn org.apache.http.**
+-dontwarn javax.naming.**

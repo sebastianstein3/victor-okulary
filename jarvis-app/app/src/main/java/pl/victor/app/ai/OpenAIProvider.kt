@@ -128,8 +128,15 @@ class OpenAIProvider(
                     put("content", userContentParts)
                 })
             })
-            put("max_tokens", MAX_ANSWER_TOKENS)
-            put("temperature", 0.7)
+            if (OpenAiModels.usesCompletionTokens(model)) {
+                // GPT-5/6 i modele rozumujące (o-series) odrzucają `max_tokens` i
+                // niestandardową temperaturę kodem 400 - model wybrany z listy API
+                // kończył się błędem w każdej turze (audyt 28.10).
+                put("max_completion_tokens", MAX_ANSWER_TOKENS)
+            } else {
+                put("max_tokens", MAX_ANSWER_TOKENS)
+                put("temperature", 0.7)
+            }
         }
 
         val httpRequest = Request.Builder()

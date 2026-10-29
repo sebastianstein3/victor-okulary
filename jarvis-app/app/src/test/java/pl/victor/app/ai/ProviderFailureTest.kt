@@ -124,4 +124,13 @@ class ProviderFailureTest {
         assertFalse(ProviderFailure.isPermanent(null))
         assertFalse(ProviderFailure.isPermanent(""))
     }
+
+    @Test
+    fun `chwilowy limit na minute Gemini nie jest brakiem srodkow`() {
+        val msg = "429 You exceeded your current quota, please check your plan and billing details. " +
+            "Please retry in 21.5s. quotaId: GenerateRequestsPerMinutePerProjectPerModel"
+        assertFalse(ProviderFailure.isPermanent(msg))
+        assertTrue(ProviderFailure.describe(msg).contains("Za dużo zapytań"))
+        assertTrue(ProviderFailure.isPermanent("You exceeded your current quota"))
+    }
 }

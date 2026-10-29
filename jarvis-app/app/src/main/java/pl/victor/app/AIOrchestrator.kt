@@ -5047,7 +5047,7 @@ class AIOrchestrator(
 
                 // Buduje strumień dla danego providera - wywoływane raz na próbę,
                 // bo Flow jest leniwy (błąd połączenia wyskakuje dopiero na collect()).
-                fun buildStream(p: AIProvider) = if (useVideoStream) {
+                fun buildStreamWith(p: AIProvider, effectiveSystemPrompt: String) = if (useVideoStream) {
                     Log.i(TAG, "Używam analyzeVideo (${video!!.size} bytes, ${videoDurationMs}ms)")
                     p.analyzeVideoStream(
                         textQuestion = enhancedPrompt,
@@ -5069,6 +5069,17 @@ class AIOrchestrator(
                         systemPrompt = effectiveSystemPrompt
                     )
                 }
+                fun buildStream(p: AIProvider): kotlinx.coroutines.flow.Flow<pl.victor.app.ai.AIResponseChunk> {
+                    // Prompt mówi "masz wyszukiwarkę Google" wg GŁÓWNEGO dostawcy. Gdy
+                    // odpowiada zapasowy bez wyszukiwarki, model dalej to słyszał i
+                    // zmyślał "aktualne" ceny - dopisujemy prawdę dla tej próby.
+                    val prompt = if (p.supportsWebSearch && settings.isWebSearchEnabled()) {
+                        effectiveSystemPrompt
+                    } else {
+                        effectiveSystemPrompt + pl.victor.app.ai.WebSearchPrompt.dlaModelu(maWyszukiwarkę = false)
+                    }
+                    return buildStreamWith(p, prompt)
+                }
 
                 // Cache jest zawsze kluczowany providerem wybranym w Ustawieniach, nie
                 // tym, który faktycznie odpowiedział - inaczej trafienie w cache po
@@ -5086,6 +5097,8 @@ class AIOrchestrator(
                 // wcześniej: "dlaczego?", "a po angielsku?", "ile to kosztuje?"
                 // z pamięci dostawałyby odpowiedź z INNEJ rozmowy.
                 val cacheEligible = aiCache.shouldCache(textQuestion) &&
+                    !pl.victor.app.proactive.NearbyQuestion.dotyczyOkolicy(textQuestion) &&
+                    !pl.victor.app.ai.WebSearchPrompt.wymagaSzukania(textQuestion) &&
                     photos.isEmpty() && video == null && audioQuestion == null &&
                     conversationContext.size() == 0
 
@@ -5113,7 +5126,7 @@ class AIOrchestrator(
                 // zmiana zachowania, nie tylko naprawa - user może wolieć jasny błąd
                 // od cichej podmiany providera.
                 val candidates = if (settings.isAutoProviderFallbackEnabled()) {
-                    fallbackProviderOrder()
+                    fallbackProviderOrder(needsAudio = audioQuestion != null, needsImages = photos.isNotEmpty())
                 } else {
                     listOf(settings.getActiveProvider())
                 }
@@ -6766,11 +6779,18 @@ class AIOrchestrator(
      * z [AIProviderFactory.supportedProviders]. Nie próbujemy providera bez klucza,
      * bo to i tak od razu by zawiodło.
      */
-    private fun fallbackProviderOrder(): List<String> {
+    private fun fallbackProviderOrder(needsAudio: Boolean = false, needsImages: Boolean = false): List<String> {
         val primary = settings.getActiveProvider()
         val others = AIProviderFactory.supportedProviders()
             .map { it.id }
             .filter { it != primary && settings.hasApiKey(it) }
+            // Zapasowy dostawca musi UMIEĆ to, czego wymaga tura: nagranie i zdjęcia
+            // nie mają sensu dla modelu tekstowego - dostawał polecenie "odpowiedz
+            // na pytanie z nagrania" bez nagrania i odpowiadał (płatnie) bzdurę.
+            .filter { id ->
+                val info = pl.victor.app.data.ModelRegistry.defaultFor(id)
+                (!needsAudio || info?.supportsAudio == true) && (!needsImages || info?.supportsVision == true)
+            }
         // DOSTAWCA Z MARTWYM MODELEM IDZIE NA KONIEC, NIE ZNIKA.
         //
         // Znikanie byłoby groźne: gdyby wszystkie okazały się martwe, kolejka

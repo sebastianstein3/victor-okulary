@@ -118,8 +118,13 @@ class AIResponseCache {
         val lower = question.lowercase()
 
         // Nie cacheuj pytań czasowych
+        // Także pytania o aktualne dane i miejsce - odpowiedź zależy od tego, gdzie
+        // jesteś i co jest teraz w sieci ("ile kosztuje bitcoin", "gdzie jestem"),
+        // a klucz cache to samo pytanie (audyt 28.10).
         val timeTriggers = listOf("teraz", "dziś", "wczoraj", "jutro", "za ile",
-            "kiedy", "godzina", "data", "pogoda", "kalendarz")
+            "kiedy", "godzina", "data", "pogoda", "kalendarz",
+            "aktualn", "cena", "ceny", "ile kosztuje", "kurs", "bitcoin", "wynik",
+            "gdzie jestem", "w pobliżu", "najbliższ", "otwarte", "otwarty")
         if (timeTriggers.any { lower.contains(it) }) return false
 
         // Nie cacheuj personalnych

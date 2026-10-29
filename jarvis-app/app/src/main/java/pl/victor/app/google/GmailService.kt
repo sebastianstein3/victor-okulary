@@ -9,6 +9,7 @@ import com.google.api.services.gmail.Gmail
 import com.google.api.services.gmail.GmailScopes
 import com.google.api.services.gmail.model.Message
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import java.util.Collections
 
@@ -67,18 +68,27 @@ class GmailService(context: Context) {
             }
             val list = request.execute()
 
-            list.messages?.mapNotNull { ref ->
-                try {
-                    val full = service.users().messages().get("me", ref.id)
-                        .setFormat("metadata")
-                        .setMetadataHeaders(listOf("From", "Subject"))
-                        .execute()
-                    parseSummary(full)
-                } catch (e: Exception) {
-                    Log.w(tag, "Failed to fetch message ${ref.id}", e)
-                    null
-                }
-            } ?: emptyList()
+            // RÓWNOLEGLE: dotąd 1 + 10 zapytań jedno po drugim, więc poczta często nie
+            // mieściła się w budżecie kontekstu (6 s) i odpadała z odpowiedzi.
+            val refs = list.messages ?: return@withContext emptyList()
+            kotlinx.coroutines.coroutineScope {
+                refs.map { ref ->
+                    async {
+                        try {
+                            val full = service.users().messages().get("me", ref.id)
+                                .setFormat("metadata")
+                                .setMetadataHeaders(listOf("From", "Subject"))
+                                .execute()
+                            parseSummary(full)
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Log.w(tag, "Failed to fetch message ${ref.id}", e)
+                            null
+                        }
+                    }
+                }.map { it.await() }.filterNotNull()
+            }
         } catch (e: Exception) {
             // Wygasłe logowanie nie może wyglądać jak pusta skrzynka.
             if (GoogleAccountManager.noteApiFailure(e)) {

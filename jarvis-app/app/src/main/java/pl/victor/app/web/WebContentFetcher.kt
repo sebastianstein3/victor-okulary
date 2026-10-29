@@ -29,6 +29,18 @@ class WebContentFetcher {
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .followRedirects(true)
+        // Kod QR z cudzej strony prowadzi tam, gdzie chce jego autor - także pod
+        // adres routera albo urządzenia w sieci domowej (SSRF). Rozwiązywanie nazw
+        // obejmuje też przekierowania, więc blokada działa na każdym kroku.
+        .dns(object : okhttp3.Dns {
+            override fun lookup(hostname: String): List<java.net.InetAddress> {
+                val adresy = okhttp3.Dns.SYSTEM.lookup(hostname)
+                if (adresy.any { isPrivateAddress(it) }) {
+                    throw java.net.UnknownHostException("adres prywatny zablokowany: $hostname")
+                }
+                return adresy
+            }
+        })
         .build()
 
     /**
@@ -54,10 +66,11 @@ class WebContentFetcher {
                     Log.w(tag, "HTTP ${response.code} for $url")
                     return@withContext null
                 }
-                val body = response.body?.string() ?: return@withContext null
                 val contentType = response.header("Content-Type") ?: ""
 
-                // Tylko HTML
+                // Typ sprawdzamy PRZED czytaniem treści: kod QR prowadzący do pliku
+                // kilku GB kładł aplikację (OOM), bo body.string() wczytywało
+                // wszystko, zanim padło pytanie o typ.
                 if (!contentType.contains("html", ignoreCase = true) &&
                     !contentType.contains("xml", ignoreCase = true)) {
                     Log.w(tag, "Non-HTML content: $contentType")
@@ -68,6 +81,11 @@ class WebContentFetcher {
                         description = ""
                     )
                 }
+                // Co najwyżej MAX_BODY_BYTES - reszta strony i tak nie zmieści się w
+                // limicie znaków.
+                val source = response.body?.source() ?: return@withContext null
+                source.request(MAX_BODY_BYTES)
+                val body = source.buffer.readUtf8(minOf(source.buffer.size, MAX_BODY_BYTES))
 
                 parseHtml(body, url, maxChars)
             }
@@ -171,6 +189,21 @@ class WebContentFetcher {
     private fun isValidUrl(url: String): Boolean {
         return url.startsWith("http://", ignoreCase = true) ||
                url.startsWith("https://", ignoreCase = true)
+    }
+
+    companion object {
+        /** Ile bajtów strony czytamy najwyżej. */
+        private const val MAX_BODY_BYTES = 1_000_000L
+
+        /** Adresy lokalne, prywatne i link-local - nie pobieramy z nich cudzych stron. */
+        internal fun isPrivateAddress(a: java.net.InetAddress): Boolean =
+            a.isLoopbackAddress || a.isAnyLocalAddress || a.isSiteLocalAddress ||
+                a.isLinkLocalAddress || a.isMulticastAddress ||
+                // fc00::/7 (unique local IPv6) - isSiteLocalAddress go nie obejmuje
+                (a.address.size == 16 && (a.address[0].toInt() and 0xFE) == 0xFC) ||
+                // 100.64.0.0/10 (CGNAT)
+                (a.address.size == 4 && (a.address[0].toInt() and 0xFF) == 100 &&
+                    (a.address[1].toInt() and 0xC0) == 64)
     }
 }
 

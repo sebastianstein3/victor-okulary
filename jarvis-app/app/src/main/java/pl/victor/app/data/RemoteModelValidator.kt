@@ -37,7 +37,21 @@ class RemoteModelValidator(
      * Pusta lista jeśli provider nie ma endpointu lub błąd.
      */
     suspend fun fetchAvailableModels(): List<String> = withContext(Dispatchers.IO) {
-        try {
+        // Lista modeli nie zmienia się w ciągu godzin, a pobieranie jej przy KAŻDEJ
+        // turze (i każdej próbie dostawcy zapasowego) dokładało opóźnienie i
+        // zapytanie sieciowe przed modelem (audyt 28.10). Cache na 6 h per
+        // dostawca i klucz; pusty wynik (błąd) nie jest zapamiętywany.
+        val cacheKey = providerId + ":" + apiKey.hashCode()
+        cache[cacheKey]?.let { (kiedy, lista) ->
+            if (System.currentTimeMillis() - kiedy < CACHE_MS) return@withContext lista
+        }
+        val wynik = pobierz()
+        if (wynik.isNotEmpty()) cache[cacheKey] = System.currentTimeMillis() to wynik
+        wynik
+    }
+
+    private suspend fun pobierz(): List<String> {
+        return try {
             when (providerId) {
                 "gemini" -> fetchGemini()
                 "openai" -> fetchOpenAI()
@@ -52,6 +66,12 @@ class RemoteModelValidator(
         }
     }
 
+    private companion object {
+        const val CACHE_MS = 6 * 3_600_000L
+        const val MAX_PAGES = 5
+        val cache = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, List<String>>>()
+    }
+
     /**
      * Sprawdza czy konkretny model istnieje u providera.
      */
@@ -60,28 +80,38 @@ class RemoteModelValidator(
         return available.isEmpty() || available.contains(modelId)
     }
 
-    private suspend fun fetchGemini(): List<String> {
-        // GET https://generativelanguage.googleapis.com/v1beta/models?key=API_KEY
-        val request = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey")
-            .get()
-            .build()
-
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                Log.w(tag, "Gemini models list: HTTP ${response.code}")
-                return emptyList()
+    private fun fetchGemini(): List<String> {
+        // GET https://generativelanguage.googleapis.com/v1beta/models, klucz w
+        // nagłówku (w adresie lądował w logach i historii). Lista jest
+        // STRONICOWANA (domyślnie 50) - bez pętli po nextPageToken poprawny model
+        // z dalszej strony uchodził za "nieistniejący" i był po cichu podmieniany.
+        val wynik = mutableListOf<String>()
+        var token: String? = null
+        repeat(MAX_PAGES) {
+            val url = StringBuilder("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000")
+            token?.let { url.append("&pageToken=").append(it) }
+            val request = Request.Builder()
+                .url(url.toString())
+                .header("x-goog-api-key", apiKey)
+                .get()
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.w(tag, "Gemini models list: HTTP ${response.code}")
+                    return if (wynik.isEmpty()) emptyList() else wynik
+                }
+                val body = response.body?.string() ?: return wynik
+                val obj = json.parseToJsonElement(body).jsonObject
+                obj["models"]?.jsonArray?.forEach { element ->
+                    val name = element.jsonObject["name"]?.jsonPrimitive?.content ?: return@forEach
+                    // Format: "models/gemini-2.5-flash" -> "gemini-2.5-flash"
+                    wynik += name.removePrefix("models/")
+                }
+                token = obj["nextPageToken"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
             }
-            val body = response.body?.string() ?: return emptyList()
-            val obj = json.parseToJsonElement(body).jsonObject
-            val models = obj["models"]?.jsonArray ?: return emptyList()
-            return models.mapNotNull { element ->
-                val model = element.jsonObject
-                val name = model["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                // Format: "models/gemini-2.5-flash" -> "gemini-2.5-flash"
-                name.removePrefix("models/")
-            }
+            if (token == null) return wynik
         }
+        return wynik
     }
 
     private suspend fun fetchOpenAI(): List<String> {

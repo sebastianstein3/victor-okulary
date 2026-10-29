@@ -43,4 +43,11 @@ class GeminiBadRequestTest {
         assertEquals("{ \"error\": { \"code\": 400, \"details\": [ \"tools\" ] } }", GeminiBadRequest.jednaLinia(wieloliniowa))
         assertEquals(600, GeminiBadRequest.jednaLinia("x".repeat(5000)).length)
     }
+
+    @Test
+    fun `odmowa wskazujaca tresc nie wyzwala zdejmowania dodatkow`() {
+        val body = """{"error":{"code":400,"message":"Invalid value at 'contents[0].parts[1].inline_data'","status":"INVALID_ARGUMENT"}}"""
+        assertNull(GeminiBadRequest.naprawa(400, body, true, true))
+        assertNull(GeminiBadRequest.naprawa(400, "Request payload size exceeds the limit", true, true))
+    }
 }
