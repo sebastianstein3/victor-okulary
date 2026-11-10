@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -915,6 +916,86 @@ class AIOrchestrator(
     private var activeTurnJob: kotlinx.coroutines.Job? = null
 
     /**
+     * Znacznik bieżącej tury - para do [activeTurnJob], ustawiana w [launchTurn].
+     *
+     * ## Po co
+     * Stan `Idle` NIE znaczy, że nic nie trwa. Tura głosowa stoi w `Idle` dwa
+     * razy: zanim zestawi łącze audio (kilka sekund) i między końcem nasłuchu a
+     * przekazaniem pytania dalej (transkrypcja). W obu oknach drugi trigger -
+     * powtórzona fraza, ramka "zdjęcie gotowe" - przechodził przez [claimIdle]
+     * i ruszał RÓWNOLEGŁĄ turę: dwa nasłuchy na jednym mikrofonie, dwie
+     * odpowiedzi naraz (audyt 28.10).
+     *
+     * Samo "korutyna żyje" nie wystarcza do odmowy, bo tura przekazuje pytanie
+     * sama sobie (nasłuch -> model, powtórka ze zdjęciem) - i robi to właśnie w
+     * stanie `Idle`. [turnMarker] odróżnia jedno od drugiego: kod wykonywany W
+     * korutynie tury widzi jej znacznik, obcy trigger - nie.
+     */
+    @Volatile
+    private var activeTurnToken: Any? = null
+
+    /** Znacznik tury widoczny z wnętrza jej korutyny - patrz [activeTurnToken]. */
+    private val turnMarker = ThreadLocal<Any?>()
+
+    /** Kiedy ruszyła bieżąca tura - karencja przejęcia w stanie `Idle`. */
+    @Volatile
+    private var turnLaunchedAtMs = 0L
+
+    /** Numer tury - do nazw blokad uśpienia, patrz [launchTurn]. */
+    private val turnSeq = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /**
+     * Ile tur trzyma teraz mikrofon frazy - patrz [holdMicForTurn].
+     */
+    private val turnMicHolds = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /**
+     * Uruchamia korutynę tury i zapisuje ją jako bieżącą.
+     *
+     * JEDYNE miejsce, które przypisuje [activeTurnJob] nową turą: znacznik i
+     * korutyna muszą powstawać razem, inaczej [claimIdle] nie odróżni
+     * przekazania pytania wewnątrz tury od obcego triggera.
+     */
+    private fun launchTurn(
+        block: suspend CoroutineScope.() -> Unit
+    ): kotlinx.coroutines.Job {
+        val token = Any()
+        activeTurnToken = token
+        turnLaunchedAtMs = System.currentTimeMillis()
+        val job = scope.launch(turnMarker.asContextElement(token), block = block)
+        activeTurnJob = job
+        // Tura, która skończyła się jako bieżąca, zwalnia znacznik - inaczej
+        // sprzątanie następnej brałoby ją za "przejętą".
+        job.invokeOnCompletion { if (activeTurnToken === token) activeTurnToken = null }
+        return job
+    }
+
+    /** Czy to wywołanie pochodzi z wnętrza bieżącej tury (przekazanie pytania). */
+    private fun insideActiveTurn(): Boolean {
+        val token = activeTurnToken
+        return token != null && turnMarker.get() === token
+    }
+
+    /**
+     * Tura bierze mikrofon frazy - z licznikiem właścicieli.
+     *
+     * Bez licznika stara tura (przerwana albo przekazująca pytanie dalej)
+     * wznawiała w swoim `finally` nasłuch frazy W TRAKCIE nowej tury: Vosk
+     * zabierał mikrofon rozpoznawaniu mowy albo słuchał własnej odpowiedzi
+     * asystenta. Każde wywołanie musi mieć dokładnie jedno [releaseMicAfterTurn].
+     */
+    private fun holdMicForTurn() {
+        turnMicHolds.incrementAndGet()
+        pauseWakeWordMic()
+    }
+
+    private fun releaseMicAfterTurn() {
+        val left = turnMicHolds.updateAndGet { if (it > 0) it - 1 else 0 }
+        if (left > 0) return
+        resumeWakeWordMic()
+    }
+
+    /**
      * Kiedy stan ostatnio się zmienił - do wykrywania tury, która utknęła.
      *
      * Zgłoszone jako "po jakimś czasie AI przestaje odpowiadać, jakby się
@@ -1519,7 +1600,42 @@ class AIOrchestrator(
         mayInterruptSpeech: Boolean = false
     ): Boolean {
         return when (_state.value) {
-            is OrchestratorState.Idle -> true
+            is OrchestratorState.Idle -> {
+                // `Idle` z żywą korutyną tury to tura w przygotowaniu albo w
+                // przekazaniu pytania - patrz [activeTurnToken].
+                val job = activeTurnJob
+                val ageMs = System.currentTimeMillis() -
+                    maxOf(stateChangedAtMs, turnLaunchedAtMs)
+                when (
+                    pl.victor.app.conversation.TurnClaim.whenIdle(
+                        turnAlive = job?.isActive == true && activeTurnToken != null,
+                        insideTurn = insideActiveTurn(),
+                        takeOver = takeOver,
+                        ageMs = ageMs,
+                        graceMs = TAKEOVER_GRACE_MS,
+                        stuckMs = STUCK_TURN_MS
+                    )
+                ) {
+                    pl.victor.app.conversation.TurnClaim.Verdict.ENTER -> return true
+                    pl.victor.app.conversation.TurnClaim.Verdict.REFUSE -> return false
+                    pl.victor.app.conversation.TurnClaim.Verdict.TAKE_OVER -> Unit
+                }
+                Log.i(TAG, "Nowe wywołanie po $ageMs ms - przerywam turę w przygotowaniu")
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.SESJA, "PRZERWANO turę - weszło nowe wywołanie",
+                        mapOf("stan" to "Idle (tura w przygotowaniu)", "poMs" to ageMs)
+                    )
+                }
+                lastCancelReason = "nowe wywołanie użytkownika"
+                job?.cancel()
+                activeTurnJob = null
+                activeTurnToken = null
+                // Przejęta tura nie zamknie już dziennika sama (jej `finally`
+                // widzi cudzy znacznik) - a nowa ma liczyć czas od zera.
+                runCatching { diag.endTurn("PRZERWANA: nowe wywołanie użytkownika") }
+                true
+            }
             is OrchestratorState.Completed, is OrchestratorState.Error -> {
                 // Poprzednia tura się skończyła - sprzątamy i wchodzimy.
                 _state.value = OrchestratorState.Idle
@@ -1567,6 +1683,16 @@ class AIOrchestrator(
                     )
                     activeTurnJob?.cancel()
                     activeTurnJob = null
+                    activeTurnToken = null
+                    if (!jobFinished) {
+                        // Patrz gałąź Idle: przerwana tura nie zamknie dziennika sama.
+                        runCatching {
+                            diag.endTurn(
+                                if (supersede) "PRZERWANA: nowe wywołanie użytkownika"
+                                else "PRZERWANA: tura utknęła"
+                            )
+                        }
+                    }
                     _state.value = OrchestratorState.Idle
                     true
                 } else {
@@ -1666,6 +1792,7 @@ class AIOrchestrator(
         stopEarTranslation(reason)
         activeTurnJob?.cancel()
         activeTurnJob = null
+        activeTurnToken = null
         _state.value = OrchestratorState.Idle
         conversationalMode.onAiFinishedSpeaking()
     }
@@ -2682,9 +2809,16 @@ class AIOrchestrator(
             @Volatile var held = false
             @Volatile var done = false
             @Volatile var heartbeat = false
+            @Volatile var micHeld = false
+            @Volatile var lockHeld = false
         }
         val prelude = Prelude()
-        activeTurnJob = scope.launch {
+        // Własna nazwa blokady na turę: przerwana tura zwalniała w `finally`
+        // blokadę o TEJ SAMEJ nazwie, którą nowa tura właśnie wzięła - i nowy
+        // nasłuch szedł przy zgaszonym ekranie bez blokady uśpienia.
+        val lockListening = "$LOCK_LISTENING#${turnSeq.incrementAndGet()}"
+        val voiceJob = launchTurn {
+            val myToken = turnMarker.get()
             // Strumień z mikrofonu okularów podpinamy JAKO PIERWSZY, przed
             // zestawianiem łącza audio. Producent (Prism Pro) subskrybuje go
             // dokładnie w chwili wybudzenia, a negocjacja SCO potrafi trwać
@@ -2734,8 +2868,10 @@ class AIOrchestrator(
             // BLE a odpowiedzią z sieci - usługa pierwszoplanowa trzyma proces
             // przy życiu, ale nie trzyma procesora. Zgłoszone jako "gdy telefon
             // jest zablokowany, AI często nie odpowiada".
-            pauseWakeWordMic()
-            wakeLock.acquire(LOCK_LISTENING, LISTEN_WAKE_LOCK_MS)
+            holdMicForTurn()
+            prelude.micHeld = true
+            wakeLock.acquire(lockListening, LISTEN_WAKE_LOCK_MS)
+            prelude.lockHeld = true
             // MIKROFON OKULARÓW IDZIE STRUMIENIEM BLE, NIE PROFILEM ROZMOWY.
             //
             // ## Prostuję to, co stało tu wcześniej
@@ -3236,7 +3372,7 @@ class AIOrchestrator(
                         silentScoTurns = 0
                         conversationalMode.onAiFinishedSpeaking()
                         handleUserTrigger(TriggerSource.WAKE_WORD, phoneText)
-                        return@launch
+                        return@launchTurn
                     }
 
                     val providerId = settings.getActiveProvider()
@@ -3257,7 +3393,7 @@ class AIOrchestrator(
                             AUDIO_QUESTION_PROMPT,
                             audioQuestion = recording
                         )
-                        return@launch
+                        return@launchTurn
                     }
 
                     val switched = noteSilentTurn(overSco)
@@ -3290,7 +3426,7 @@ class AIOrchestrator(
                     // onAiStartedSpeaking() wyżej anulował nasłuch, a nikt by go
                     // już nie wznowił - jedna cisza kończyłaby całą rozmowę.
                     conversationalMode.onAiFinishedSpeaking()
-                    return@launch
+                    return@launchTurn
                 }
                 silentScoTurns = 0
                 Log.i(TAG, "Usłyszałem: \"$bestHeard\"")
@@ -3299,6 +3435,9 @@ class AIOrchestrator(
                     bestHeard
                 )
             } finally {
+                // Sprzątanie to już nie tura - patrz ten sam zabieg w turze
+                // z modelem. Po przekazaniu pytania znacznik jest już cudzy.
+                if (activeTurnToken === myToken) activeTurnToken = null
                 // detach(), nie stop(): ten blok wykonuje się także po
                 // ANULOWANIU tury, a wtedy każde wywołanie zawieszalne
                 // natychmiast rzuca - subskrypcja BLE zostałaby zarejestrowana
@@ -3320,21 +3459,23 @@ class AIOrchestrator(
                 }
                 // Nazwa jest tu istotna: bez niej ten blok zwalniał blokadę TURY,
                 // która startuje z tego samego miejsca i żyje dłużej niż nasłuch.
-                wakeLock.release(LOCK_LISTENING)
-                resumeWakeWordMic()
+                wakeLock.release(lockListening)
+                releaseMicAfterTurn()
             }
         }
         // Anulowanie PRZED głównym try (negocjacja SCO, start strumienia):
         // sprzątamy to, co prelude zdążył wziąć. Po wejściu w try robi to finally.
-        activeTurnJob?.invokeOnCompletion { cause ->
+        voiceJob.invokeOnCompletion { cause ->
             if (cause != null && !prelude.done) {
                 prelude.capture?.detach()
                 if (prelude.heartbeat) runCatching { glassesManager.stopGlassesListening() }
-                runCatching { wakeLock.release(LOCK_LISTENING) }
+                if (prelude.lockHeld) runCatching { wakeLock.release(lockListening) }
                 if (prelude.held) {
                     scope.launch(kotlinx.coroutines.NonCancellable) { audio.endConversationRouting() }
                 }
-                resumeWakeWordMic()
+                // Tylko gdy prelude zdążył wziąć mikrofon: zwolnienie bez pary
+                // zdjęłoby blokadę mikrofonu NOWEJ turze.
+                if (prelude.micHeld) releaseMicAfterTurn()
             }
         }
     }
@@ -4300,7 +4441,20 @@ class AIOrchestrator(
             Log.i(TAG, "Pytam AI bez zdjęcia - obraz dojdzie tylko jeśli model o niego poprosi")
         }
 
-        activeTurnJob = scope.launch {
+        // Mikrofon frazy bierzemy JUŻ TUTAJ, synchronicznie, a nie na początku
+        // korutyny: tura głosowa, która przekazuje pytanie, kończy się zaraz po
+        // tym wywołaniu i w swoim `finally` oddaje mikrofon. Gdyby nowa tura
+        // jeszcze go nie trzymała, nasłuch frazy wstawał na ułamek sekundy
+        // między jedną a drugą - przy każdym pytaniu głosem.
+        val micHold = java.util.concurrent.atomic.AtomicBoolean(true)
+        holdMicForTurn()
+        val releaseMic = { if (micHold.compareAndSet(true, false)) releaseMicAfterTurn() }
+        // Nazwa blokady na turę - patrz ten sam zabieg w turze głosowej.
+        // Powtórka ze zdjęciem brała blokadę "Tura", a `finally` tury, która ją
+        // zleciła, zwalniało ją chwilę później.
+        val lockTurn = "$LOCK_TURN#${turnSeq.incrementAndGet()}"
+        val turnJob = launchTurn {
+            val myToken = turnMarker.get()
             // Powtórka ze zdjęciem to DALSZY CIĄG tego samego pytania użytkownika,
             // tylko z drugim obiegiem modelu. Bez tej flagi `finally` zamykało
             // turę zanim powtórka zdążyła ruszyć, a że zamknięcie zeruje licznik,
@@ -4322,8 +4476,7 @@ class AIOrchestrator(
             // Tura z modelem bywa dłuższa niż nasłuch: zdjęcie, kontekst,
             // odpowiedź i jej odczytanie. Bez blokady przy zgaszonym ekranie
             // potrafi utknąć w połowie.
-            pauseWakeWordMic()
-            wakeLock.acquire(LOCK_TURN, TURN_WAKE_LOCK_MS)
+            wakeLock.acquire(lockTurn, TURN_WAKE_LOCK_MS)
             // PROFIL ROZMOWY (SCO) NIE JEST TU DO NICZEGO POTRZEBNY.
             //
             // Ta część tury już nie słucha - nasłuch skończył się piętro wyżej.
@@ -4533,7 +4686,7 @@ class AIOrchestrator(
                     // [announceTurnFailure]); to jedno się nie załapało, bo wychodzi
                     // wcześniej, własnym `return@launch`, a nie przez blok catch.
                     announceTurnFailure(trigger, message)
-                    return@launch
+                    return@launchTurn
                 }
 
                 // 1b. Skan QR (offline, ML Kit)
@@ -5466,7 +5619,7 @@ class AIOrchestrator(
                             // na powtórce z obrazem.
                             saveAsNote = saveAsNote
                         )
-                        return@launch
+                        return@launchTurn
                     }
                     Log.i(TAG, "Warstwa 1 poprosiła o zdjęcie, ale okulary nie są połączone")
                 }
@@ -5662,6 +5815,11 @@ class AIOrchestrator(
                 )
                 conversationalMode.onAiFinishedSpeaking()
             } finally {
+                // Sprzątanie to już nie tura: znacznik zwalniamy od razu, żeby
+                // nowe wywołanie nie czekało na zwinięcie łącza audio. Gdy
+                // znacznik jest już cudzy, tę turę przejęło nowe wywołanie.
+                val superseded = activeTurnToken.let { it != null && it !== myToken }
+                if (activeTurnToken === myToken) activeTurnToken = null
                 // ILE TRWA ZWIJANIE ŁĄCZA AUDIO - I CO SIĘ DZIEJE PO NIM.
                 //
                 // Zgłoszone: "przez 10 sekund po odpowiedzi przycisk wywoływania
@@ -5702,9 +5860,12 @@ class AIOrchestrator(
                 if (glassesManager.isConnected() && !audio.canSpeakOverMedia()) {
                     glassesManager.requestClassicAudioWhenIdle("po turze bez trybu multimediów")
                 }
-                wakeLock.release(LOCK_TURN)
-                resumeWakeWordMic()
-                if (!handedOffToRetry) {
+                wakeLock.release(lockTurn)
+                releaseMic()
+                // Tura PRZEJĘTA przez nowe wywołanie nie zamyka dziennika: ten
+                // należy już do nowej tury, a zamknięcie zerowało jej licznik
+                // czasu - nowe pytanie zapisywało się bez pomiarów.
+                if (!handedOffToRetry && !superseded) {
                     diag.endTurn(
                         when (val st = _state.value) {
                             is OrchestratorState.Error -> "BŁĄD: ${st.message}"
@@ -5721,6 +5882,10 @@ class AIOrchestrator(
                 }
             }
         }
+        // Tura anulowana, ZANIM jej korutyna ruszyła, nie ma `finally` -
+        // mikrofon frazy zostałby wzięty na zawsze. Po zwykłym końcu to nic
+        // nie robi (zwolnienie jest jednorazowe).
+        turnJob.invokeOnCompletion { releaseMic() }
     }
 
     /**
