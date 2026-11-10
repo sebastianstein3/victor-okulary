@@ -279,6 +279,8 @@ fun SettingsScreen(
                 HorizontalDivider()
                 NoiseVolumeSection()
                 HorizontalDivider()
+                GlassesVolumeSection()
+                HorizontalDivider()
                 MapsGroundingSection()
                 HorizontalDivider()
                 SpeechSection()

@@ -102,6 +102,9 @@ fun DiagnosticsScreen(
     val recordingFileType by viewModel.recordingFileType.collectAsState()
     val recordingProgress by viewModel.recordingProgress.collectAsState()
     val batteryExempt by viewModel.batteryExemptionGranted.collectAsState()
+    val deviceInfo by viewModel.deviceInfo.collectAsState()
+    val features by viewModel.features.collectAsState()
+    val audioName by viewModel.classicAudioName.collectAsState()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
 
@@ -171,6 +174,10 @@ fun DiagnosticsScreen(
                     commandsAnswered = commandsAnswered,
                     simulated = simulated
                 )
+            }
+
+            item {
+                AboutGlassesCard(info = deviceInfo, features = features, audioName = audioName)
             }
 
             item {
@@ -361,6 +368,34 @@ private fun StatusCard(
         )
     }
 }
+
+@Composable
+private fun AboutGlassesCard(
+    info: pl.victor.app.ble.GlassesDeviceInfo?,
+    features: pl.victor.app.ble.GlassesFeatures?,
+    audioName: String?
+) {
+    SectionCard("O okularach") {
+        if (info == null && features == null && audioName == null) {
+            Text(
+                "Okulary jeszcze nie odpowiedziały.",
+                style = MaterialTheme.typography.bodySmall
+            )
+        } else {
+            StatusRow("Firmware", info?.firmware ?: "brak danych")
+            StatusRow("Sprzęt", info?.hardware ?: "brak danych")
+            StatusRow("Wi-Fi firmware", info?.wifiFirmware ?: "brak danych")
+            StatusRow("Wi-Fi sprzęt", info?.wifiHardware ?: "brak danych")
+            StatusRow("Model", features?.model?.toString() ?: "brak danych")
+            StatusRow("Tłumaczenie", features?.let { takNie(it.translation) } ?: "brak danych")
+            StatusRow("Wykrywanie założenia", features?.let { takNie(it.wearCheck) } ?: "brak danych")
+            StatusRow("Sterowanie głośnością", features?.let { takNie(it.volumeControl) } ?: "brak danych")
+            StatusRow("Część audio", audioName ?: "brak danych")
+        }
+    }
+}
+
+private fun takNie(value: Boolean): String = if (value) "tak" else "nie"
 
 @Composable
 private fun BatteryReadinessCard(

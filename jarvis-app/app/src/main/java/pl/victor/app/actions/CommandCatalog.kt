@@ -261,6 +261,12 @@ object CommandCatalog {
             listOf("Tłumacz rozmowę z angielskim", "Koniec tłumaczenia")
         ),
         ModeInfo(
+            "Głośność okularów",
+            "Reguluje głośność mowy asystenta w okularach, bez dotykania telefonu. " +
+                "\"Ciszej\" nigdy nie wycisza do zera. Suwak jest też w Ustawieniach.",
+            listOf("Głośniej", "Ciszej", "Głośność na 70 procent", "Maksymalna głośność")
+        ),
+        ModeInfo(
             "Tłumaczenie ze słuchu",
             "Tłumaczy na bieżąco to, co słychać wokół, i czyta przekład w okularach.",
             listOf("Tłumacz po niemiecku", "Koniec tłumaczenia")

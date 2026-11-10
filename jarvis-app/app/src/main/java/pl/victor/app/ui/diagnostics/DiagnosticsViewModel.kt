@@ -43,6 +43,9 @@ class DiagnosticsViewModel(application: Application) : AndroidViewModel(applicat
     val notifyLog: StateFlow<List<NotifyLogEntry>> = manager.notifyLog
     val lastCommand: StateFlow<String?> = manager.lastCommand
     val simulationEnabled: StateFlow<Boolean> = manager.simulationEnabled
+    val deviceInfo: StateFlow<pl.victor.app.ble.GlassesDeviceInfo?> = manager.deviceInfo
+    val features: StateFlow<pl.victor.app.ble.GlassesFeatures?> = manager.features
+    val classicAudioName: StateFlow<String?> = manager.classicAudioName
 
     /** Wynik ostatniego testu - jedna linia do pokazania pod przyciskami. */
     private val _result = MutableStateFlow<String?>(null)

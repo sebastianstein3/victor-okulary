@@ -2633,37 +2633,101 @@ class VictorManager private constructor(context: Context) {
         // aplikacji, ramka `service_discovered` już nie przyjdzie i kanał zapisu
         // zostałby nieuzbrojony. Przy uzbrojonym to zwykły no-op.
         armWriteChannel("wysyłka komendy")
-        try {
-            largeDataHandler.glassesControl(bytes) { _, response ->
-                lastCommandAckAtMs = System.currentTimeMillis()
-                // Odpowiedzi na komendy idą inną akcją (0x41) niż zdarzenia
-                // (0x73), więc w dzienniku ramek ich nie widać. Bez tego wpisu
-                // nie da się odróżnić "okulary milczą" od "odpowiadają, ale
-                // odmawiają" - a to dwie różne awarie.
-                _notifyLog.update { log ->
-                    (
-                        listOf(
-                            NotifyLogEntry(
-                                System.currentTimeMillis(),
-                                "(odpowiedź na komendę)",
-                                "Okulary odpowiedziały na: " + GlassesProtocol.describeCommand(bytes)
-                            )
-                        ) + log
-                        ).take(NOTIFY_LOG_SIZE)
-                }
-                val error = runCatching { response?.errorCode ?: 0 }.getOrDefault(0)
-                if (error != 0) {
-                    Log.w(tag, "glassesControl: błąd urządzenia (kod=$error)")
-                }
-                onResponse?.invoke(error)
+        val workType = GlassesProtocol.workTypeOf(bytes)
+        val waiter = if (onResponse != null) {
+            controlRouter.expect(workType) { response ->
+                onResponse(runCatching { response.errorCode }.getOrDefault(0))
             }
+        } else {
+            controlRouter.noteSent(workType)
+            null
+        }
+        try {
+            largeDataHandler.glassesControl(bytes, controlResponse)
         } catch (e: Exception) {
             Log.e(tag, "glassesControl nie powiodło się", e)
+            waiter?.let { controlRouter.cancel(it) }
         }
     }
 
+    /**
+     * Kto czeka na odpowiedź okularów na komendę sterującą - patrz
+     * [ControlResponseRouter].
+     */
+    private val controlRouter =
+        ControlResponseRouter<com.oudmon.ble.base.communication.bigData.resp.GlassModelControlResponse>()
+
+    /** Czekający na liczbę plików (odpowiedź `dataType == 4`) -> od kiedy. */
+    private val mediaCountWaiters =
+        java.util.concurrent.ConcurrentHashMap<(Int, Int, Int) -> Unit, Long>()
+
+    /**
+     * JEDYNY callback, jaki dajemy SDK dla `glassesControl`.
+     *
+     * SDK trzyma na te odpowiedzi jeden slot i każde wywołanie go nadpisuje.
+     * Dopóki każda komenda niosła własny callback, dowolna wysyłka w trakcie
+     * czekania zabierała odpowiedź czekającemu. Stały callback nie ma czego
+     * nadpisać, a adresata wybiera [controlRouter].
+     */
+    private val controlResponse =
+        com.oudmon.ble.base.communication.ILargeDataResponse<
+            com.oudmon.ble.base.communication.bigData.resp.GlassModelControlResponse
+            > { _, response -> onControlResponse(response) }
+
+    private fun onControlResponse(
+        response: com.oudmon.ble.base.communication.bigData.resp.GlassModelControlResponse?
+    ) {
+        lastCommandAckAtMs = System.currentTimeMillis()
+        if (response == null) return
+        val dataType = runCatching { response.dataType }.getOrDefault(-1)
+        if (dataType == GlassesProtocol.DATA_TYPE_MEDIA_COUNT) {
+            val i = response.imageCount
+            val v = response.videoCount
+            val r = response.recordCount
+            Log.i(tag, "Na okularach: $i zdjęć, $v wideo, $r nagrań")
+            _mediaCount.value = MediaCount(i, v, r)
+            val czekający = mediaCountWaiters.keys.toList()
+            czekający.forEach { mediaCountWaiters.remove(it) }
+            czekający.forEach { runCatching { it(i, v, r) } }
+            return
+        }
+        // Typ pracy niesie tylko odpowiedź na komendę `02 01 <typ>`.
+        val workType = if (dataType == CONTROL_ANSWER_DATA_TYPE) {
+            runCatching { response.glassWorkType }.getOrNull()
+        } else {
+            null
+        }
+        val error = runCatching { response.errorCode }.getOrDefault(0)
+        // Odpowiedzi na komendy idą inną akcją (0x41) niż zdarzenia (0x73),
+        // więc w dzienniku ramek ich nie widać. Bez tego wpisu nie da się
+        // odróżnić "okulary milczą" od "odpowiadają, ale odmawiają" - a to
+        // dwie różne awarie.
+        _notifyLog.update { log ->
+            (
+                listOf(
+                    NotifyLogEntry(
+                        System.currentTimeMillis(),
+                        "(odpowiedź na komendę)",
+                        "Okulary odpowiedziały na: " +
+                            (workType?.let {
+                                GlassesProtocol.describeCommand(byteArrayOf(0x02, 0x01, it.toByte()))
+                            } ?: "komendę (dane typu $dataType)") +
+                            if (error != 0) " - błąd $error" else ""
+                    )
+                ) + log
+                ).take(NOTIFY_LOG_SIZE)
+        }
+        if (error != 0) Log.w(tag, "glassesControl: błąd urządzenia (kod=$error, typ=$workType)")
+        controlRouter.route(workType, response)
+    }
+
     /** Odpowiedź okularów na komendę trybu transferu. */
-    data class TransferModeAnswer(val errorCode: Int, val workTypeIng: Int)
+    data class TransferModeAnswer(
+        val errorCode: Int,
+        val workTypeIng: Int,
+        /** Typ pracy odesłany w odpowiedzi - do dziennika: czy firmware go zwraca. */
+        val workType: Int? = null
+    )
 
     /**
      * Prosi okulary o tryb transferu i CZEKA na ich odpowiedź.
@@ -2701,18 +2765,26 @@ class VictorManager private constructor(context: Context) {
 
         armWriteChannel("komenda trybu transferu")
         val answer = CompletableDeferred<TransferModeAnswer?>()
+        val waiter = controlRouter.expect(GlassesProtocol.workTypeOf(bytes)) { response ->
+            val error = runCatching { response.errorCode }.getOrDefault(0)
+            val working = runCatching { response.workTypeIng }.getOrDefault(0)
+            val echoed = runCatching { response.glassWorkType }.getOrNull()
+            answer.complete(TransferModeAnswer(error, working, echoed))
+        }
         try {
-            largeDataHandler.glassesControl(bytes) { _, response ->
-                lastCommandAckAtMs = System.currentTimeMillis()
-                val error = runCatching { response?.errorCode ?: 0 }.getOrDefault(0)
-                val working = runCatching { response?.workTypeIng ?: 0 }.getOrDefault(0)
-                answer.complete(TransferModeAnswer(error, working))
-            }
+            largeDataHandler.glassesControl(bytes, controlResponse)
         } catch (e: Exception) {
             Log.e(tag, "Komenda trybu transferu nie powiodła się", e)
+            controlRouter.cancel(waiter)
             return null
         }
-        return withTimeoutOrNull(timeoutMs) { answer.await() }
+        return try {
+            withTimeoutOrNull(timeoutMs) { answer.await() }
+        } finally {
+            // Także po limicie czasu i anulowaniu: spóźniona odpowiedź nie może
+            // trafić do kogoś, kto już nie czeka - ani zająć miejsca następnemu.
+            controlRouter.cancel(waiter)
+        }
     }
 
     /**
@@ -2780,7 +2852,7 @@ class VictorManager private constructor(context: Context) {
         diag.event(
             pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
             "Podgląd na żywo: odpowiedź na komendę",
-            mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng)
+            mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng, "typ" to answer?.workType)
         )
         val refusal = answer?.let { GlassesProtocol.transferRefusalReason(it.workTypeIng) }
         if (refusal != null) {
@@ -3269,19 +3341,15 @@ class VictorManager private constructor(context: Context) {
             return
         }
 
+        // Zapomniani czekający nie mogą się zbierać w nieskończoność.
+        val teraz = System.currentTimeMillis()
+        mediaCountWaiters.entries.removeAll { teraz - it.value > ControlResponseRouter.WAITER_TTL_MS }
+        mediaCountWaiters[onResult] = teraz
         try {
-            largeDataHandler.glassesControl(bytes) { _, response ->
-                if (response != null && response.dataType == GlassesProtocol.DATA_TYPE_MEDIA_COUNT) {
-                    val i = response.imageCount
-                    val v = response.videoCount
-                    val r = response.recordCount
-                    Log.i(tag, "Na okularach: $i zdjęć, $v wideo, $r nagrań")
-                    _mediaCount.value = MediaCount(i, v, r)
-                    onResult(i, v, r)
-                }
-            }
+            largeDataHandler.glassesControl(bytes, controlResponse)
         } catch (e: Exception) {
             Log.e(tag, "requestMediaCount nie powiodło się", e)
+            mediaCountWaiters.remove(onResult)
         }
     }
 
@@ -4504,7 +4572,7 @@ class VictorManager private constructor(context: Context) {
         diag.event(
             pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
             "Hotspot okularów: odpowiedź na komendę",
-            mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng)
+            mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng, "typ" to answer?.workType)
         )
 
         // OKULARY UTKNIĘTE W TRYBIE TRANSFERU - WYPROWADŹ JE SAM.
@@ -4526,7 +4594,7 @@ class VictorManager private constructor(context: Context) {
             diag.event(
                 pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
                 "Hotspot okularów: odpowiedź po resecie",
-                mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng)
+                mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng, "typ" to answer?.workType)
             )
         }
 
@@ -5272,6 +5340,9 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile czekać na liczniki plików. */
         private const val MEDIA_COUNT_TIMEOUT_MS = 6_000L
+
+        /** `dataType` odpowiedzi na komendę `02 01 <typ pracy>` (bajtkod SDK). */
+        private const val CONTROL_ANSWER_DATA_TYPE = 1
 
         /** Ile dać okularom na wykonanie zwolnienia pamięci przed odczytem. */
         private const val RELEASE_STORAGE_SETTLE_MS = 3_000L
