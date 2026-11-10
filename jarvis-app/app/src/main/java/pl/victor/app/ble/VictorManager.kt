@@ -829,6 +829,23 @@ class VictorManager private constructor(context: Context) {
             }
             is NotifyEvent.Battery -> {
                 Log.i(tag, "Notify: bateria ${event.level}%, ładowanie=${event.charging}")
+                // Do dziennika przy zmianie o 5 punktów albo zmianie ładowania:
+                // w dziennikach sprzętu nie było o baterii ANI JEDNEGO wiersza,
+                // więc "rozłącza się" nie dało się zestawić z "rozładowuje się".
+                val zapisany = lastLoggedBattery
+                if (zapisany == null || kotlin.math.abs(zapisany - event.level) >= 5 ||
+                    lastLoggedCharging != event.charging
+                ) {
+                    lastLoggedBattery = event.level
+                    lastLoggedCharging = event.charging
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                            "bateria okularów",
+                            mapOf("procent" to event.level, "ładowanie" to event.charging)
+                        )
+                    }
+                }
                 _batteryLevel.value = event.level
                 _isCharging.value = event.charging
             }
@@ -2333,6 +2350,7 @@ class VictorManager private constructor(context: Context) {
         _discoveredDevices.value = emptyList()
         _batteryLevel.value = null
         _isCharging.value = false
+        _videoRecording.value = false
         _lastNotifyFrame.value = null
         _lastCommand.value = null
         _notifyLog.value = emptyList()
@@ -3316,14 +3334,30 @@ class VictorManager private constructor(context: Context) {
         send(GlassesProtocol.takePhoto())
     }
 
+    /**
+     * Czy trwa nagrywanie wideo, które SAMI zleciliśmy. Nagrania zaczętego
+     * przyciskiem na oprawce nie widzimy - okulary go nie zgłaszają.
+     */
+    /** Ostatni stan baterii zapisany w dzienniku - patrz obsługa ramki baterii. */
+    @Volatile
+    private var lastLoggedBattery: Int? = null
+
+    @Volatile
+    private var lastLoggedCharging: Boolean? = null
+
+    private val _videoRecording = MutableStateFlow(false)
+    val videoRecording: StateFlow<Boolean> = _videoRecording.asStateFlow()
+
     fun startVideoRecording() {
         Log.d(tag, "Start nagrywania wideo")
         send(GlassesProtocol.startVideo())
+        _videoRecording.value = true
     }
 
     fun stopVideoRecording() {
         Log.d(tag, "Stop nagrywania wideo")
         send(GlassesProtocol.stopVideo())
+        _videoRecording.value = false
     }
 
     fun startAudioRecording() {

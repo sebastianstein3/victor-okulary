@@ -261,6 +261,18 @@ object CommandCatalog {
             listOf("Tłumacz rozmowę z angielskim", "Koniec tłumaczenia")
         ),
         ModeInfo(
+            "Film z okularów",
+            "Nagrywa film kamerą okularów i zapisuje go w ich pamięci. Po zatrzymaniu " +
+                "sprawdzam, czy okulary faktycznie go zapisały. Po pięciu minutach kończę sam.",
+            listOf("Nagraj film", "Zatrzymaj nagrywanie")
+        ),
+        ModeInfo(
+            "Bateria i pamięć okularów",
+            "Mówię, ile baterii mają okulary i ile plików leży w ich pamięci. " +
+                "O słabej baterii uprzedzam sam, przy 20 i 10 procentach.",
+            listOf("Ile baterii mają okulary", "Ile zdjęć jest w okularach")
+        ),
+        ModeInfo(
             "Głośność okularów",
             "Reguluje głośność mowy asystenta w okularach, bez dotykania telefonu. " +
                 "\"Ciszej\" nigdy nie wycisza do zera. Suwak jest też w Ustawieniach.",
