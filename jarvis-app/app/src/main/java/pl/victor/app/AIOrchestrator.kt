@@ -3791,19 +3791,25 @@ class AIOrchestrator(
         if (!settings.isAlertsSpokenEnabled()) return
         missedAlertsJob?.cancel()
         missedAlertsJob = scope.launch {
-            delay(MISSED_ALERTS_DELAY_MS)
-            bezpiecznie("zaległe alerty") {
-                if (glassesManager.connectionState.value != ConnectionState.READY) return@bezpiecznie
+            // Kilka podejść: gdy po powrocie okularów akurat trwa rozmowa,
+            // alert ma wejść po niej, a nie przepaść do następnego rozłączenia.
+            repeat(MISSED_ALERTS_ATTEMPTS) {
+                delay(MISSED_ALERTS_DELAY_MS)
+                if (glassesManager.connectionState.value != ConnectionState.READY) return@launch
                 // Nie wchodzimy w słowo. Alerty zostają w pamięci tylko do
                 // pobrania, więc sprawdzamy ciszę PRZED ich zabraniem.
-                if (!ciszaWTle()) return@bezpiecznie
-                val zaległe = runCatching { victorApp?.missedAlerts?.takeFresh() }.getOrNull()
-                if (zaległe.isNullOrEmpty()) return@bezpiecznie
-                diag.event(
-                    DiagFormat.Phase.MOWA, "zaległe alerty po powrocie okularów",
-                    mapOf("ile" to zaległe.size)
-                )
-                audio.speak(zaległe.joinToString(" "), language = settings.getResponseLanguage())
+                if (!ciszaWTle()) return@repeat
+                bezpiecznie("zaległe alerty") {
+                    val zaległe = runCatching { victorApp?.missedAlerts?.takeFresh() }.getOrNull()
+                    if (!zaległe.isNullOrEmpty()) {
+                        diag.event(
+                            DiagFormat.Phase.MOWA, "zaległe alerty po powrocie okularów",
+                            mapOf("ile" to zaległe.size)
+                        )
+                        audio.speak(zaległe.joinToString(" "), language = settings.getResponseLanguage())
+                    }
+                }
+                return@launch
             }
         }
     }
@@ -7608,6 +7614,7 @@ class AIOrchestrator(
 
         /** Ile po powrocie okularów czekamy z zaległymi alertami. */
         private const val MISSED_ALERTS_DELAY_MS = 8_000L
+        private const val MISSED_ALERTS_ATTEMPTS = 6
 
         private const val LOCK_LISTENING = "Nasluch"
         private const val LOCK_TURN = "Tura"
