@@ -468,6 +468,18 @@ class VictorManager private constructor(context: Context) {
     val lowMemory: SharedFlow<Unit> = _lowMemory.asSharedFlow()
 
     /**
+     * Czy wolno pisać głośność do okularów.
+     *
+     * Tylko gdy same zgłosiły, że sterowanie głośnością obsługują. Powód jest
+     * twardy: SDK parsuje KAŻDĄ ramkę odpowiedzi tej komendy, czytając jej
+     * dwudziesty bajt bez sprawdzenia długości, na wątku głównym i bez
+     * `try` - krótkie potwierdzenie od okularów, które tej funkcji nie mają,
+     * wywróciłoby aplikację. U producenta zapis idzie po tym samym pytaniu
+     * o obsługę.
+     */
+    fun canSetVolume(): Boolean = simulator != null || _features.value?.volumeControl == true
+
+    /**
      * Ustawia głośność okularów.
      *
      * Odsyła okularom ich własny stan ze zmienionymi wartościami bieżącymi -
@@ -483,6 +495,7 @@ class VictorManager private constructor(context: Context) {
             _volume.value = target
             return true
         }
+        if (!canSetVolume()) return false
         val v = target.toCommand()
         val sent = runCatching {
             largeDataHandler.setVolumeControl(
@@ -1218,31 +1231,9 @@ class VictorManager private constructor(context: Context) {
                     }
                 }
             }.onFailure { Log.w(tag, "wearFunctionSupport nie powiodło się", it) }
-            runCatching {
-                largeDataHandler.getVolumeControl { _, rsp ->
-                    if (rsp == null) return@getVolumeControl
-                    val values = runCatching {
-                        listOf(
-                            rsp.minVolumeMusic, rsp.maxVolumeMusic, rsp.currVolumeMusic,
-                            rsp.minVolumeCall, rsp.maxVolumeCall, rsp.currVolumeCall,
-                            rsp.minVolumeSystem, rsp.maxVolumeSystem, rsp.currVolumeSystem,
-                            rsp.currVolumeType
-                        )
-                    }.getOrNull() ?: return@getVolumeControl
-                    GlassesVolume.fromValues(values)?.let { _volume.value = it }
-                    runCatching {
-                        diag.event(
-                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
-                            "głośność okularów - odpowiedź na pytanie",
-                            mapOf(
-                                "muzyka" to "${values[2]}/${values[1]}",
-                                "rozmowa" to "${values[5]}/${values[4]}",
-                                "system" to "${values[8]}/${values[7]}"
-                            )
-                        )
-                    }
-                }
-            }.onFailure { Log.w(tag, "getVolumeControl nie powiodło się", it) }
+            // O głośność NIE pytamy: okulary same przysyłają ją ramką 0x12, a
+            // odpowiedź na to pytanie SDK parsuje bez sprawdzania długości
+            // (patrz [canSetVolume]) - niepotrzebne ryzyko za dane, które już mamy.
 
             runCatching { largeDataHandler.syncBattery() }
                 .onFailure { Log.w(tag, "syncBattery nie powiodło się", it) }
@@ -2651,13 +2642,13 @@ class VictorManager private constructor(context: Context) {
         // aplikacji, ramka `service_discovered` już nie przyjdzie i kanał zapisu
         // zostałby nieuzbrojony. Przy uzbrojonym to zwykły no-op.
         armWriteChannel("wysyłka komendy")
-        val workType = GlassesProtocol.workTypeOf(bytes)
+        val key = GlassesProtocol.controlKeyOf(bytes)
         val waiter = if (onResponse != null) {
-            controlRouter.expect(workType) { response ->
+            controlRouter.expect(key) { response ->
                 onResponse(runCatching { response.errorCode }.getOrDefault(0))
             }
         } else {
-            controlRouter.noteSent(workType)
+            controlRouter.noteSent(key)
             null
         }
         try {
@@ -2710,7 +2701,7 @@ class VictorManager private constructor(context: Context) {
             return
         }
         // Typ pracy niesie tylko odpowiedź na komendę `02 01 <typ>`.
-        val workType = if (dataType == CONTROL_ANSWER_DATA_TYPE) {
+        val workType = if (dataType == GlassesProtocol.CONTROL_WORK_DATA_TYPE) {
             runCatching { response.glassWorkType }.getOrNull()
         } else {
             null
@@ -2736,7 +2727,10 @@ class VictorManager private constructor(context: Context) {
                 ).take(NOTIFY_LOG_SIZE)
         }
         if (error != 0) Log.w(tag, "glassesControl: błąd urządzenia (kod=$error, typ=$workType)")
-        controlRouter.route(workType, response)
+        controlRouter.route(
+            if (dataType >= 0) GlassesProtocol.controlKey(dataType, workType) else null,
+            response
+        )
     }
 
     /** Odpowiedź okularów na komendę trybu transferu. */
@@ -2783,7 +2777,7 @@ class VictorManager private constructor(context: Context) {
 
         armWriteChannel("komenda trybu transferu")
         val answer = CompletableDeferred<TransferModeAnswer?>()
-        val waiter = controlRouter.expect(GlassesProtocol.workTypeOf(bytes)) { response ->
+        val waiter = controlRouter.expect(GlassesProtocol.controlKeyOf(bytes)) { response ->
             val error = runCatching { response.errorCode }.getOrDefault(0)
             val working = runCatching { response.workTypeIng }.getOrDefault(0)
             val echoed = runCatching { response.glassWorkType }.getOrNull()
@@ -5384,9 +5378,6 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile czekać na liczniki plików. */
         private const val MEDIA_COUNT_TIMEOUT_MS = 6_000L
-
-        /** `dataType` odpowiedzi na komendę `02 01 <typ pracy>` (bajtkod SDK). */
-        private const val CONTROL_ANSWER_DATA_TYPE = 1
 
         /** Ile dać okularom na wykonanie zwolnienia pamięci przed odczytem. */
         private const val RELEASE_STORAGE_SETTLE_MS = 3_000L

@@ -53,10 +53,14 @@ filmu z głosu, stan baterii na głos.
 - Licznik tur trzymających mikrofon frazy; blokada uśpienia z nazwą na turę.
 
 **Okulary**
-- Powitanie z prawdziwymi callbackami: czas, wersje, funkcje, głośność.
+- Powitanie z prawdziwymi callbackami: czas, wersje, zgłaszane funkcje. O
+  głośność nie pytamy - okulary same przysyłają ją ramką 0x12.
 - Głośność okularów z telefonu: komendy "głośniej", "ciszej", "głośność na 70
   procent", suwak w ustawieniach. Układ ładunku wzięty z bajtkodu i zgodny z
   ramką 0x12, którą okulary same przysyłają; zmieniamy tylko wartości bieżące.
+  Zapis idzie TYLKO, gdy okulary zgłoszą obsługę sterowania głośnością: SDK
+  parsuje odpowiedź tej komendy bez sprawdzania długości ramki, na wątku
+  głównym - u okularów bez tej funkcji krótka odpowiedź wywróciłaby aplikację.
 - Koniec wypowiedzi po głośności dźwięku z okularów (`EnergyEndpoint`).
   Sprawdzony na 78 nagraniach z dzienników: nie ucina żadnego pytania, w 14
   skraca nasłuch o sekundę lub więcej. Działa od drugiej tury po starcie
@@ -71,6 +75,19 @@ filmu z głosu, stan baterii na głos.
 - Podgląd na żywo nie czeka na bezużyteczną odpowiedź (około 1,2 s szybciej).
 - Diagnostyka: karta "O okularach"; do dziennika trafiają bateria, profile
   A2DP/HFP, typ pracy z odpowiedzi na komendę, pomiar miernika głośności.
+
+**Po niezależnym przeglądzie zmian** (drugi model czytał diff i bajtkod SDK)
+- Anulowanie tury w trakcie czekania na łącze rozmowy sprząta urządzenie
+  rozmowy i naprawdę przerywa turę; samo czekanie patrzy na rozgłoszenie stanu
+  SCO, a nie na urządzenie "zamówione".
+- Router rozróżnia komendy po kluczu (rodzaj + tryb pracy) i liczy wysyłki,
+  więc odpowiedź na "ustaw jakość zdjęcia" nie trafia do czekającego na tryb
+  transferu.
+- Karencja miernika głośności liczy się od faktycznego startu nasłuchu, a po
+  krótkim dźwięku cisza musi trwać 3,5 s.
+- Zwolnienia mikrofonu frazy i blokady uśpienia w turze głosowej są
+  jednorazowe i wykonują się także wtedy, gdy sprzątanie tury wyleci wyjątkiem.
+- Stara tura nie wysyła już "koniec nasłuchu" okularom, gdy słucha nowa.
 
 ## Czego dziennik ma teraz dowieść (pierwszy test na sprzęcie)
 

@@ -73,6 +73,19 @@ class ControlResponseRouterTest {
     }
 
     @Test
+    fun `dwie takie same wysylki odsiewaja dwie odpowiedzi`() {
+        expect(0x04, "transfer")
+        router.noteSent(0x01)
+        router.noteSent(0x01)
+        assertFalse(router.route(0x01, "ack 1"))
+        assertFalse(router.route(0x01, "ack 2"))
+        assertTrue(got.isEmpty())
+        // Trzecia odpowiedź tego typu nie ma już swojej wysyłki.
+        assertTrue(router.route(0x01, "trzecia"))
+        assertEquals(listOf("transfer<-trzecia"), got)
+    }
+
+    @Test
     fun `bez czekajacych nic sie nie dzieje`() {
         assertFalse(router.route(0x04, "nikt"))
     }

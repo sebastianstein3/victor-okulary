@@ -410,12 +410,21 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
                 // padało po 15 ms, czyli zanim cokolwiek stało: nasłuch
                 // zaczynał na mikrofonie, którego jeszcze nie było, i początek
                 // pytania przepadał (audyt 28.10).
-                if (waitForLink) awaitModernLink(am)
+                if (waitForLink) awaitModernLink()
             } else {
                 Log.w(tag, "setCommunicationDevice odmówiło - wracam na telefon")
                 restoreMode(am)
             }
             ok
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Tura anulowana W TRAKCIE czekania na łącze. Ogólny catch niżej
+            // połknąłby anulowanie i oddał `false`: urządzenie rozmowy zostawało
+            // ustawione (nikt nie woła release po `false`), a anulowana tura
+            // szła dalej do następnego zawieszenia - ustawiała stan nasłuchu
+            // i grała sygnał "mów" po tym, jak użytkownik ją przerwał.
+            runCatching { am.clearCommunicationDevice() }
+            restoreMode(am)
+            throw e
         } catch (e: Exception) {
             Log.w(tag, "Nie udało się ustawić urządzenia rozmowy", e)
             restoreMode(am)
@@ -434,17 +443,43 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
      * Limit jest krótki i jego przekroczenie NIE jest porażką: wracamy wtedy
      * do zachowania sprzed zmiany (idziemy dalej), tylko z wpisem w logu.
      */
-    private suspend fun awaitModernLink(am: AudioManager) {
+    private suspend fun awaitModernLink() {
         val startedAt = System.currentTimeMillis()
-        val up = withTimeoutOrNull(MODERN_LINK_WAIT_MS) {
-            while (
-                runCatching { am.communicationDevice?.type }.getOrNull() !=
-                AudioDeviceInfo.TYPE_BLUETOOTH_SCO
-            ) {
-                delay(MODERN_LINK_POLL_MS)
+        // Sygnałem jest rozgłoszenie stanu SCO, a nie `communicationDevice`:
+        // to drugie oddaje urządzenie ZAMÓWIONE i byłoby "gotowe" po kilku
+        // milisekundach, zanim łącze faktycznie stanie.
+        val connected = CompletableDeferred<Unit>()
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: Context?, intent: Intent?) {
+                if (intent?.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1) ==
+                    AudioManager.SCO_AUDIO_STATE_CONNECTED
+                ) {
+                    connected.complete(Unit)
+                }
             }
-            true
-        } ?: false
+        }
+        var registered = false
+        val up = try {
+            // Rozgłoszenie jest "lepkie": rejestracja od razu oddaje ostatni stan.
+            val sticky = ContextCompat.registerReceiver(
+                context,
+                receiver,
+                IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            registered = true
+            if (sticky?.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1) ==
+                AudioManager.SCO_AUDIO_STATE_CONNECTED
+            ) {
+                connected.complete(Unit)
+            }
+            withTimeoutOrNull(MODERN_LINK_WAIT_MS) {
+                connected.await()
+                true
+            } ?: false
+        } finally {
+            if (registered) runCatching { context.unregisterReceiver(receiver) }
+        }
         lastLinkWaitMs = if (up) System.currentTimeMillis() - startedAt else -1L
         if (up) {
             Log.i(tag, "Łącze rozmowy wstało po $lastLinkWaitMs ms")
@@ -570,7 +605,6 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
 
         /** Ile czekamy na faktyczne przełączenie rozmowy na zestaw (Android 12+). */
         private const val MODERN_LINK_WAIT_MS = 1_500L
-        private const val MODERN_LINK_POLL_MS = 50L
 
         /**
          * Ile trzymać łącze po zwolnieniu ostatniego odwołania. Dobrane tak, by

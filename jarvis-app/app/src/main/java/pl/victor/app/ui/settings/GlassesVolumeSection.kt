@@ -27,7 +27,11 @@ internal fun GlassesVolumeSection() {
     // Odczyt stanu połączenia wymusza odświeżenie sekcji przy rozłączeniu.
     val connection by manager.connectionState.collectAsState()
     val current: GlassesVolume? = volume
-    val usable = current != null && connection == pl.victor.app.ble.ConnectionState.READY && manager.isConnected()
+    // Odczyt funkcji odświeża sekcję, gdy okulary odpowiedzą po połączeniu.
+    val features by manager.features.collectAsState()
+    val supported = features?.volumeControl == true
+    val usable = current != null && supported &&
+        connection == pl.victor.app.ble.ConnectionState.READY && manager.isConnected()
 
     // Zewnętrzna zmiana (przyciski na zauszniku, komenda głosowa) przestawia suwak.
     val reported = current?.percent() ?: 50
@@ -67,7 +71,11 @@ internal fun GlassesVolumeSection() {
         }
         if (!usable) {
             Text(
-                "Okulary jeszcze nie podały głośności - połącz je.",
+                if (current != null && !supported) {
+                    "Okulary nie zgłosiły obsługi sterowania głośnością z telefonu."
+                } else {
+                    "Okulary jeszcze nie podały głośności - połącz je."
+                },
                 style = MaterialTheme.typography.bodySmall
             )
         }

@@ -92,14 +92,14 @@ class EnergyEndpointTest {
         val e = EnergyEndpoint()
         e.feed(0.0, 600)
         e.feed(1_800.0, 400)
-        e.feed(0.0, 2_400)
-        assertFalse(e.ended(3_400))
+        e.feed(0.0, 3_400)
+        assertFalse(e.ended(4_400))
         e.feed(0.0, 100)
-        assertTrue(e.ended(3_500))
+        assertTrue(e.ended(4_500))
     }
 
     @Test
-    fun `trzask nie robi z mowy ciszy`() {
+        fun `trzask nie robi z mowy ciszy`() {
         val e = EnergyEndpoint()
         e.feed(30_000.0, 40)
         // Zwykła mowa po trzasku: gdyby próg szedł za szczytem, byłaby "ciszą".

@@ -14,10 +14,13 @@ package pl.victor.app.ble
  * Teraz callback w SDK jest jeden i stały, a o adresacie decyduje ten router.
  *
  * ## Po czym poznajemy adresata
- * Odpowiedź niesie typ pracy komendy, na którą odpowiada (bajt 8 ramki; w
- * bajtkodzie SDK to pole `glassWorkType`). Czy KAŻDY firmware go odsyła, nie
- * wiemy - dlatego dopasowanie po typie ma pierwszeństwo, ale gdy typ nic nie
- * mówi, odpowiedź dostaje najdłużej czekający, czyli tak jak przed zmianą.
+ * Po KLUCZU komendy - patrz [pl.victor.app.ble.GlassesProtocol.controlKeyOf]:
+ * odpowiedź powtarza rodzaj komendy (bajt 7, `dataType`), a przy komendach
+ * trybu pracy także sam tryb (bajt 8, `glassWorkType`). Czy KAŻDY firmware
+ * odsyła tryb, nie wiemy - w dziennikach odpowiedź na tryb transferu
+ * przychodzi z wartościami domyślnymi. Dlatego dopasowanie po kluczu ma
+ * pierwszeństwo, ale gdy klucz nic nie mówi, odpowiedź dostaje najdłużej
+ * czekający, czyli tak jak przed zmianą.
  */
 class ControlResponseRouter<R>(
     private val now: () -> Long = System::currentTimeMillis
@@ -26,8 +29,12 @@ class ControlResponseRouter<R>(
 
     private val waiters = ArrayList<Waiter<R>>()
 
-    /** Typy komend wysłanych bez czekania na odpowiedź -> kiedy poszły. */
-    private val recentSends = HashMap<Int, Long>()
+    /**
+     * Komendy wysłane bez czekania na odpowiedź: klucz -> kiedy poszły.
+     * Lista, nie pojedynczy czas: dwie takie same komendy pod rząd to dwie
+     * odpowiedzi do odsiania, a nie jedna.
+     */
+    private val recentSends = HashMap<Int, ArrayDeque<Long>>()
 
     /**
      * Zapisuje oczekującego na odpowiedź komendy o typie [workType].
@@ -47,7 +54,7 @@ class ControlResponseRouter<R>(
     /** Poszła komenda, na której odpowiedź nikt nie czeka. */
     @Synchronized
     fun noteSent(workType: Int?) {
-        if (workType != null) recentSends[workType] = now()
+        if (workType != null) recentSends.getOrPut(workType) { ArrayDeque() }.addLast(now())
     }
 
     /**
@@ -72,9 +79,10 @@ class ControlResponseRouter<R>(
             }
             // Odpowiedź na komendę, na którą nikt nie czekał - nie wolno jej
             // podać komuś, kto czeka na co innego.
-            val sentAt = recentSends[workType]
-            if (sentAt != null && now() - sentAt <= RECENT_SEND_MS) {
-                recentSends.remove(workType)
+            val sent = recentSends[workType]
+            if (sent != null && sent.isNotEmpty()) {
+                sent.removeFirst()
+                if (sent.isEmpty()) recentSends.remove(workType)
                 return null
             }
         }
@@ -86,7 +94,9 @@ class ControlResponseRouter<R>(
     private fun purge() {
         val limit = now() - WAITER_TTL_MS
         waiters.removeAll { it.atMs < limit }
-        recentSends.values.removeAll { it < now() - RECENT_SEND_MS }
+        val sendLimit = now() - RECENT_SEND_MS
+        recentSends.values.forEach { times -> times.removeAll { it < sendLimit } }
+        recentSends.values.removeAll { it.isEmpty() }
     }
 
     @Synchronized

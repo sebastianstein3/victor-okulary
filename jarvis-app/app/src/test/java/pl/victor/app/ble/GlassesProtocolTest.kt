@@ -605,6 +605,23 @@ class GlassesProtocolTest {
     }
 
     @Test
+    fun `klucz komendy zgadza sie z kluczem jej odpowiedzi`() {
+        // Tryb transferu: 02 01 04 <sieć> -> odpowiedź dataType=1, typ pracy 4.
+        assertEquals(
+            GlassesProtocol.controlKey(1, 0x04),
+            GlassesProtocol.controlKeyOf(GlassesProtocol.enableTransferMode(GlassesProtocol.TRANSFER_MODE_AP))
+        )
+        // Liczba plików: 02 04 -> dataType=4, typ pracy nie ma znaczenia.
+        assertEquals(GlassesProtocol.controlKey(4, 99), GlassesProtocol.controlKeyOf(GlassesProtocol.requestMediaCount()))
+        // Jakość zdjęcia (02 0B) nie może mieć klucza komendy trybu pracy.
+        val quality = GlassesProtocol.controlKeyOf(GlassesProtocol.setAiPhotoQuality(2))
+        assertEquals(GlassesProtocol.controlKey(0x0B, null), quality)
+        assertTrue(quality != GlassesProtocol.controlKey(1, 0x0B))
+        assertEquals(null, GlassesProtocol.controlKeyOf(byteArrayOf(0x01)))
+        assertEquals(null, GlassesProtocol.controlKeyOf(null))
+    }
+
+    @Test
     fun `komenda kasujaca pamiec jest rozpoznawana jako niebezpieczna`() {
         assertTrue(GlassesProtocol.isDestructive(byteArrayOf(0x02, 0x01, 0x09)))
         assertTrue(GlassesProtocol.isDestructive(GlassesProtocol.releaseStorage()))

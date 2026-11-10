@@ -944,6 +944,9 @@ class AIOrchestrator(
     /** Numer tury - do nazw blokad uśpienia, patrz [launchTurn]. */
     private val turnSeq = java.util.concurrent.atomic.AtomicInteger(0)
 
+    /** Numer ostatniego nasłuchu zaczętego z okularów - patrz [startVoiceTurn]. */
+    private val glassesListenSeq = java.util.concurrent.atomic.AtomicInteger(0)
+
     /**
      * Ile tur trzyma teraz mikrofon frazy - patrz [holdMicForTurn].
      */
@@ -2862,6 +2865,24 @@ class AIOrchestrator(
         // blokadę o TEJ SAMEJ nazwie, którą nowa tura właśnie wzięła - i nowy
         // nasłuch szedł przy zgaszonym ekranie bez blokady uśpienia.
         val lockListening = "$LOCK_LISTENING#${turnSeq.incrementAndGet()}"
+        // Zwolnienia jednorazowe: `finally` tury i obsługa jej zakończenia
+        // wołają je oba, a liczy się pierwsze. Gdyby coś w `finally` rzuciło
+        // przed zwolnieniem, licznik mikrofonu frazy zostałby podbity do
+        // restartu aplikacji - nasłuch frazy na telefonie już by nie wrócił.
+        val micReleased = java.util.concurrent.atomic.AtomicBoolean(false)
+        val lockReleased = java.util.concurrent.atomic.AtomicBoolean(false)
+        val releaseVoiceMic = {
+            if (prelude.micHeld && micReleased.compareAndSet(false, true)) releaseMicAfterTurn()
+        }
+        val releaseVoiceLock = {
+            if (prelude.lockHeld && lockReleased.compareAndSet(false, true)) {
+                runCatching { wakeLock.release(lockListening) }
+            }
+        }
+        // Który nasłuch okularów jest NAJNOWSZY. Stara tura, której sprzątanie
+        // spóźni się za start nowej, nie może wysłać okularom "koniec nasłuchu" -
+        // zatrzymałaby strumień i puls tury, która właśnie słucha.
+        val myGlassesListen = if (fromGlasses) glassesListenSeq.incrementAndGet() else -1
         val voiceJob = launchTurn {
             val myToken = turnMarker.get()
             // Strumień z mikrofonu okularów podpinamy JAKO PIERWSZY, przed
@@ -3498,7 +3519,9 @@ class AIOrchestrator(
                 // Również po anulowanej turze - inaczej "cicho" uciszało
                 // syntezator, a okulary nasłuchiwały dalej. Ale TYLKO wtedy, gdy
                 // ścieżka normalna tego nie zrobiła: patrz znacznik wyżej.
-                if (fromGlasses && !nasluchZatrzymany) glassesManager.stopGlassesListening()
+                if (fromGlasses && !nasluchZatrzymany && glassesListenSeq.get() == myGlassesListen) {
+                    runCatching { glassesManager.stopGlassesListening() }
+                }
                 // NonCancellable: ten blok wykonuje się też po ANULOWANIU tury, a
                 // wtedy zawieszenie na blokadzie routera rzuca od razu - licznik
                 // łącza zostawał podbity, SCO stało, a wiersze niżej (blokada
@@ -3510,8 +3533,8 @@ class AIOrchestrator(
                 }
                 // Nazwa jest tu istotna: bez niej ten blok zwalniał blokadę TURY,
                 // która startuje z tego samego miejsca i żyje dłużej niż nasłuch.
-                wakeLock.release(lockListening)
-                releaseMicAfterTurn()
+                releaseVoiceLock()
+                releaseVoiceMic()
             }
         }
         // Anulowanie PRZED głównym try (negocjacja SCO, start strumienia):
@@ -3519,15 +3542,18 @@ class AIOrchestrator(
         voiceJob.invokeOnCompletion { cause ->
             if (cause != null && !prelude.done) {
                 prelude.capture?.detach()
-                if (prelude.heartbeat) runCatching { glassesManager.stopGlassesListening() }
-                if (prelude.lockHeld) runCatching { wakeLock.release(lockListening) }
+                if (prelude.heartbeat && glassesListenSeq.get() == myGlassesListen) {
+                    runCatching { glassesManager.stopGlassesListening() }
+                }
                 if (prelude.held) {
                     scope.launch(kotlinx.coroutines.NonCancellable) { audio.endConversationRouting() }
                 }
-                // Tylko gdy prelude zdążył wziąć mikrofon: zwolnienie bez pary
-                // zdjęłoby blokadę mikrofonu NOWEJ turze.
-                if (prelude.micHeld) releaseMicAfterTurn()
             }
+            // Zawsze, nie tylko przy anulowaniu w przygotowaniu: po zwykłym
+            // końcu to nic nie robi (zwolnienia są jednorazowe), a ratuje
+            // mikrofon i blokadę, gdy `finally` tury wyleci wyjątkiem.
+            releaseVoiceLock()
+            releaseVoiceMic()
         }
     }
 
@@ -6186,9 +6212,9 @@ class AIOrchestrator(
         }
         val procent = (komenda as? pl.victor.app.conversation.VolumeCommand.SetPercent)?.percent
         val telefon = audio.changeSpeechVolume(kroki, procent)
-        val cel = glassesManager.volume.value?.takeIf { it.writable }?.let {
-            if (procent != null) it.withSpeechPercent(procent) else it.withSpeechStepped(kroki)
-        }
+        val cel = glassesManager.volume.value
+            ?.takeIf { it.writable && glassesManager.canSetVolume() }
+            ?.let { if (procent != null) it.withSpeechPercent(procent) else it.withSpeechStepped(kroki) }
         val okulary = cel != null && glassesManager.setGlassesVolume(cel)
         runCatching {
             diag.event(

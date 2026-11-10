@@ -115,6 +115,16 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
     private var meterPcmBytes = 0L
     private var meterFailures = 0
 
+    /**
+     * Od kiedy NAPRAWDĘ słuchamy - do karencji miernika.
+     *
+     * [startedAtMs] cofa się o zaległe pakiety (do półtorej sekundy), więc
+     * liczona od niego karencja kończyłaby się, zanim człowiek usłyszał sygnał
+     * "mów". Dźwięk z zaległości (fraza wybudzenia, echo sygnału) plus chwila
+     * wahania wyglądałyby wtedy jak skończona wypowiedź.
+     */
+    private var meterStartedAtMs = 0L
+
     @Volatile
     private var meterState = METER_OFF
 
@@ -169,6 +179,7 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         meterIndex = 0
         meterPcmBytes = 0L
         meterFailures = 0
+        meterStartedAtMs = startedAtMs
         meterState = METER_OFF
         endpoint = EnergyEndpoint()
         endedByEnergy = false
@@ -338,7 +349,7 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         try {
             awaitSpeechEndLoop(silenceMs, minVoicedMs, graceMs, maxMs) { now ->
                 withContext(Dispatchers.Default) { feedMeter() }
-                if (meterState == METER_ON && endpoint.ended(now - startedAtMs)) {
+                if (meterState == METER_ON && endpoint.ended(now - meterStartedAtMs)) {
                     if (energyEndAtMs == 0L) energyEndAtMs = now
                     if (!phoneHearing() || now - energyEndAtMs >= PHONE_TAIL_MS) {
                         endedByEnergy = true

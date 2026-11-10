@@ -685,6 +685,29 @@ object GlassesProtocol {
     /** Czy to komenda, która kasuje pliki z okularów (02 01 09) - wysyłana tylko po jawnym potwierdzeniu. */
     fun isDestructive(command: ByteArray?): Boolean = workTypeOf(command) == WORK_RELEASE_STORAGE
 
+    /**
+     * Klucz, po którym odpowiedź okularów da się przypisać komendzie.
+     *
+     * Odpowiedź powtarza drugi bajt komendy jako `dataType` (`02 04` -> 4,
+     * `02 0B` -> 11), a przy komendach trybu pracy (`02 01 <tryb>`) także sam
+     * tryb. Klucz skleja oba, żeby odpowiedź na "ustaw jakość zdjęcia" nie
+     * trafiła do kogoś, kto czeka na "tryb transferu".
+     *
+     * @return klucz albo `null`, gdy to nie jest komenda sterująca
+     */
+    fun controlKeyOf(command: ByteArray?): Int? {
+        if (command == null || command.size < 2 || command[0].toInt() != 0x02) return null
+        val kind = command[1].toInt() and 0xFF
+        return controlKey(kind, if (command.size >= 3) command[2].toInt() and 0xFF else null)
+    }
+
+    /** Klucz z pól odpowiedzi - para do [controlKeyOf]. */
+    fun controlKey(dataType: Int, workType: Int?): Int =
+        (dataType shl 8) or (if (dataType == CONTROL_WORK_DATA_TYPE) (workType ?: 0) and 0xFF else 0)
+
+    /** `dataType` komend i odpowiedzi trybu pracy (`02 01 <tryb>`). */
+    const val CONTROL_WORK_DATA_TYPE = 1
+
     fun workTypeOf(command: ByteArray?): Int? {
         if (command == null || command.size < 3) return null
         if (command[0].toInt() != 0x02 || command[1].toInt() != 0x01) return null

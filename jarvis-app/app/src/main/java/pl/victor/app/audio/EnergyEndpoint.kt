@@ -99,7 +99,7 @@ class EnergyEndpoint(
 
         /** Poniżej tylu milisekund mowy cisza musi trwać dłużej. */
         const val SHORT_SPEECH_MS = 1_000L
-        const val SILENCE_AFTER_SHORT_SPEECH_MS = 2_500L
+        const val SILENCE_AFTER_SHORT_SPEECH_MS = 3_500L
 
         /**
          * Granice progu. W dziennikach 95% okien ciszy ma głośność do 37, a
