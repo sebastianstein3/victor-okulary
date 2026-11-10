@@ -104,6 +104,35 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
 
     private var previousPacketAtMs = 0L
 
+    // === Miernik głośności na żywo - patrz [EnergyEndpoint] ===
+    //
+    // Osobny dekoder, karmiony w trakcie nagrywania WYŁĄCZNIE po to, żeby
+    // zmierzyć głośność. Właściwe nagranie dalej dekoduje [stop] od zera,
+    // swoim dekoderem - miernik nie ma jak go zepsuć, a gdy sam zawiedzie,
+    // nasłuch kończy się tak jak dotąd (rozpoznawaniem albo limitem czasu).
+    private var meterDecoder: OpusDecoder? = null
+    private var meterIndex = 0
+    private var meterPcmBytes = 0L
+    private var meterFailures = 0
+
+    @Volatile
+    private var meterState = METER_OFF
+
+    @Volatile
+    private var endpoint = EnergyEndpoint()
+
+    /** Czy nasłuch skończył miernik głośności (a nie limit czasu). */
+    @Volatile
+    var endedByEnergy = false
+        private set
+
+    /** Co zmierzył miernik - do dziennika. */
+    fun meterSummary(): String = when (meterState) {
+        METER_OFF -> "wyłączony (ramkowanie jeszcze nieznane)"
+        METER_BROKEN -> "zawiódł (dekoder)"
+        else -> endpoint.describe() + " koniecPoGłośności=$endedByEnergy"
+    }
+
     /**
      * Ile mowy przyszło dotąd z okularów - do decyzji podejmowanych NA ŻYWO,
      * w trakcie nasłuchu.
@@ -137,6 +166,12 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         lastPacketAtMs = 0L
         previousPacketAtMs = 0L
         voicedMs = 0L
+        meterIndex = 0
+        meterPcmBytes = 0L
+        meterFailures = 0
+        meterState = METER_OFF
+        endpoint = EnergyEndpoint()
+        endedByEnergy = false
         active = true
 
         val decoderOk = decoder.start()
@@ -290,10 +325,100 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         silenceMs: Long = SpeechEnd.SILENCE_ENDS_SPEECH_MS,
         minVoicedMs: Long = SpeechEnd.MIN_VOICED_MS,
         graceMs: Long = SpeechEnd.MIN_LISTEN_MS,
-        maxMs: Long = SpeechEnd.MAX_SPEECH_MS
+        maxMs: Long = SpeechEnd.MAX_SPEECH_MS,
+        /**
+         * Czy rozpoznawanie mowy w telefonie właśnie COŚ słyszy. Gdy tak, po
+         * wykryciu ciszy dajemy mu jeszcze [PHONE_TAIL_MS] na oddanie tekstu -
+         * jego transkrypcja jest lepsza niż samo nagranie. Gdy telefon jest
+         * głuchy (kieszeń, zablokowany ekran), kończymy od razu.
+         */
+        phoneHearing: () -> Boolean = { false }
+    ) {
+        var energyEndAtMs = 0L
+        try {
+            awaitSpeechEndLoop(silenceMs, minVoicedMs, graceMs, maxMs) { now ->
+                withContext(Dispatchers.Default) { feedMeter() }
+                if (meterState == METER_ON && endpoint.ended(now - startedAtMs)) {
+                    if (energyEndAtMs == 0L) energyEndAtMs = now
+                    if (!phoneHearing() || now - energyEndAtMs >= PHONE_TAIL_MS) {
+                        endedByEnergy = true
+                        Log.i(TAG, "Koniec wypowiedzi po głośności: ${endpoint.describe()}")
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    // Mowa wróciła - poprzednia cisza była pauzą w zdaniu.
+                    energyEndAtMs = 0L
+                    false
+                }
+            }
+        } finally {
+            // Także po anulowaniu: dekoder miernika to zasób systemowy.
+            meterDecoder?.release()
+            meterDecoder = null
+        }
+    }
+
+    /**
+     * Karmi miernik pakietami, które przyszły od poprzedniego wywołania.
+     *
+     * Działa tylko przy ramkowaniu POZNANYM przy wcześniejszym, udanym
+     * nagraniu ([learnedOffset]): zgadywanie przesunięcia karmi dekoder
+     * śmieciami, a tu nie ma na to miejsca. Pierwsza tura po starcie aplikacji
+     * idzie więc bez miernika.
+     */
+    private fun feedMeter() {
+        if (meterState == METER_BROKEN) return
+        val offset = learnedOffset
+        if (offset < 0) return
+        val fresh: List<ByteArray> = synchronized(lock) {
+            if (!active || meterIndex >= packets.size) return
+            packets.subList(meterIndex, packets.size).toList().also { meterIndex = packets.size }
+        }
+        val dec = meterDecoder ?: OpusDecoder().let { created ->
+            if (!created.start()) {
+                meterState = METER_BROKEN
+                return
+            }
+            meterDecoder = created
+            created
+        }
+        meterState = METER_ON
+        for (packet in fresh) {
+            if (packet.size <= offset) continue
+            val body = if (offset == 0) packet else packet.copyOfRange(offset, packet.size)
+            for (frame in OpusFraming.split(body, learnedPacketSize)) {
+                val timeUs = meterPcmBytes * 1_000_000L /
+                    (OpusDecoder.SAMPLE_RATE.toLong() * BYTES_PER_SAMPLE)
+                val pcm = dec.decode(frame, timeUs)
+                if (pcm == null || pcm.isEmpty()) {
+                    // Dekoder, który nie przyjmuje ramek, niczego nie zmierzy -
+                    // a cisza z braku pomiaru nie może udawać ciszy w mikrofonie.
+                    if (++meterFailures >= METER_MAX_FAILURES && endpoint.measuredMs == 0L) {
+                        meterState = METER_BROKEN
+                        return
+                    }
+                    continue
+                }
+                meterPcmBytes += pcm.size
+                val frameMs = pcm.size.toLong() * 1000L /
+                    (OpusDecoder.SAMPLE_RATE.toLong() * BYTES_PER_SAMPLE)
+                endpoint.add(EnergyEndpoint.rms(pcm), frameMs)
+            }
+        }
+    }
+
+    private suspend fun awaitSpeechEndLoop(
+        silenceMs: Long,
+        minVoicedMs: Long,
+        graceMs: Long,
+        maxMs: Long,
+        energyEnded: suspend (nowMs: Long) -> Boolean
     ) {
         while (true) {
             val now = System.currentTimeMillis()
+            if (energyEnded(now)) return
             val (voiced, lastAt) = synchronized(lock) { voicedMs to lastPacketAtMs }
             if (SpeechEnd.endsOnSilence(
                     voicedMs = voiced,
@@ -442,6 +567,15 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
             }
         }
         decoder.release()
+
+        // Ramkowanie potwierdzone udanym dekodowaniem - z niego korzysta
+        // miernik głośności w następnych nagraniach (patrz [feedMeter]).
+        if (payloadOffset >= 0 && decodedPackets >= MIN_PACKETS_TO_LEARN &&
+            failedPackets * 10 <= decodedPackets
+        ) {
+            learnedOffset = payloadOffset
+            learnedPacketSize = packetSize
+        }
 
         val samples = pcm.toByteArray()
         Result(
@@ -603,6 +737,30 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
 
 
         private const val SILENCE_POLL_MS = 150L
+
+        private const val METER_OFF = 0
+        private const val METER_ON = 1
+        private const val METER_BROKEN = 2
+
+        /** Po tylu nieudanych ramkach bez ani jednej udanej miernik się poddaje. */
+        private const val METER_MAX_FAILURES = 20
+
+        /** Tyle rozkodowanych pakietów musi mieć nagranie, żeby uczyć się z niego ramkowania. */
+        private const val MIN_PACKETS_TO_LEARN = 25
+
+        /**
+         * Ile czekamy na tekst z telefonu po tym, jak okulary ucichły - patrz
+         * [awaitSpeechEnd]. Rozpoznawanie zamyka wynik zwykle w sekundę-dwie
+         * po końcu mowy.
+         */
+        const val PHONE_TAIL_MS = 2_500L
+
+        /** Ramkowanie poznane przy ostatnim udanym nagraniu; -1 = nieznane. */
+        @Volatile
+        private var learnedOffset = -1
+
+        @Volatile
+        private var learnedPacketSize = OpusFraming.NO_FIXED_SIZE
 
     }
 }

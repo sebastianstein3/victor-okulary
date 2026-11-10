@@ -1158,6 +1158,26 @@ class AIOrchestrator(
             }
         }
 
+        // Okulary zgłosiły, że kończy im się pamięć. Dotąd szło to tylko do
+        // dziennika - a człowiek dowiadywał się dopiero z nieudanego zdjęcia.
+        scope.launch {
+            glassesManager.lowMemory.collect {
+                bezpiecznie("mało pamięci w okularach") {
+                    val teraz = System.currentTimeMillis()
+                    if (teraz - lowMemoryAnnouncedAtMs < LOW_MEMORY_ANNOUNCE_EVERY_MS) return@bezpiecznie
+                    // Nie wchodzimy w słowo; okulary zgłoszą to ponownie przy
+                    // następnym zdjęciu, więc pominięty komunikat nie ginie.
+                    if (!ciszaWTle()) return@bezpiecznie
+                    lowMemoryAnnouncedAtMs = teraz
+                    audio.speak(
+                        "Pamięć okularów jest prawie pełna. Zapisz zdjęcia w telefonie " +
+                            "i wyczyść pamięć okularów w galerii aplikacji.",
+                        language = settings.getResponseLanguage()
+                    )
+                }
+            }
+        }
+
         // Dotknięcie zauszników w trakcie mówienia = "cicho".
         scope.launch {
             glassesManager.speechInterrupted.collect {
@@ -1853,6 +1873,10 @@ class AIOrchestrator(
     /** Ostatni przycisk albo nasłuch - patrz [ciszaWTle]. */
     @Volatile
     private var ostatniaAktywnośćMs = 0L
+
+    /** Kiedy ostatnio powiedzieliśmy o pełnej pamięci okularów. */
+    @Volatile
+    private var lowMemoryAnnouncedAtMs = 0L
 
     /** Notatki ze spotkania - patrz [pl.victor.app.features.meeting.MeetingRecorder]. */
     val meeting by lazy {
@@ -3143,6 +3167,9 @@ class AIOrchestrator(
                         "odrzuconych" to captured?.failedPackets,
                         "przesunięcie" to captured?.payloadOffset,
                         "ramka" to captured?.packetSize,
+                        // Czy koniec wypowiedzi wykrył miernik głośności i co
+                        // zmierzył - patrz EnergyEndpoint.
+                        "miernik" to glassesCapture?.meterSummary(),
                         // Głośność co pół sekundy - rozstrzyga, czy "w
                         // nagraniu nie słychać pytania" znaczy "mowa jest,
                         // tylko nierozpoznana", czy "okulary po pierwszej
@@ -3563,7 +3590,13 @@ class AIOrchestrator(
                     onPartial = onPartial
                 )
             }
-            val glassesQuiet = async { capture.awaitSpeechEnd() }
+            // Gdy telefon coś słyszy, miernik głośności z okularów daje mu
+            // jeszcze chwilę na oddanie tekstu; gdy jest głuchy - kończy sam.
+            val glassesQuiet = async {
+                capture.awaitSpeechEnd(
+                    phoneHearing = { speechToText.lastMicSignal?.speechDetected == true }
+                )
+            }
 
             // Rozpoznawanie wygrywa wyścig TYLKO z niepustym wynikiem - i to
             // jest tu sedno.
@@ -5947,6 +5980,47 @@ class AIOrchestrator(
         }
     }
 
+    /**
+     * "Głośniej" / "ciszej" / "głośność na 70 procent".
+     *
+     * Zmienia DWIE rzeczy naraz, bo na głośność mowy w okularach składają się
+     * obie: poziom strumienia w telefonie i własna głośność okularów (z
+     * dziennika: muzyka stała na 10 z 16, czyli nigdy na pełnej). Własną
+     * głośność okularów ustawiamy komendą SDK - patrz
+     * [pl.victor.app.ble.GlassesVolume].
+     */
+    private fun applyVolumeCommand(komenda: pl.victor.app.conversation.VolumeCommand) {
+        val kroki = when (komenda) {
+            is pl.victor.app.conversation.VolumeCommand.Up -> 1
+            is pl.victor.app.conversation.VolumeCommand.Down -> -1
+            is pl.victor.app.conversation.VolumeCommand.SetPercent -> 0
+        }
+        val procent = (komenda as? pl.victor.app.conversation.VolumeCommand.SetPercent)?.percent
+        val telefon = audio.changeSpeechVolume(kroki, procent)
+        val cel = glassesManager.volume.value?.takeIf { it.writable }?.let {
+            if (procent != null) it.withSpeechPercent(procent) else it.withSpeechStepped(kroki)
+        }
+        val okulary = cel != null && glassesManager.setGlassesVolume(cel)
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.AKCJA, "głośność na komendę",
+                mapOf(
+                    "kroki" to kroki, "procent" to procent,
+                    "telefonProcent" to telefon,
+                    "okularyProcent" to cel?.percent(), "okularyWysłane" to okulary
+                )
+            )
+        }
+        val wynik = if (okulary) cel?.percent() else telefon
+        val speech = when {
+            wynik == null -> "Nie mogę teraz zmienić głośności."
+            wynik >= 100 -> "Głośność maksymalna."
+            else -> "Głośność $wynik procent."
+        }
+        audio.speak(speech, language = settings.getResponseLanguage())
+        _state.value = OrchestratorState.Completed(speech)
+    }
+
     private fun handleMetaCommand(text: String): Boolean {
         // Briefing jest komendą META, nie akcją: nie uruchamia niczego przez
         // Intent, tylko układa wypowiedź z danych, które i tak już zbieramy.
@@ -5970,6 +6044,14 @@ class AIOrchestrator(
         // na tekście usłyszanym już po włączeniu.
         // Tryb przewodnika - lokalnie, bez modelu, z tego samego powodu co
         // tłumaczenie: zapytany o czynność model odpowiada na nią słowami.
+        // GŁOŚNOŚĆ - lokalnie, bo model zapytany o czynność odpowiada na nią
+        // słowami, a głośności nie ruszy.
+        pl.victor.app.conversation.VolumeCommand.parse(text)?.let { komenda ->
+            applyVolumeCommand(komenda)
+            runCatching { diag.endTurn("głośność") }
+            return true
+        }
+
         // KROK PO KROKU - start i sterowanie głosem.
         if (steps.głosem(text)) {
             runCatching { diag.endTurn("krok po kroku") }
@@ -7291,6 +7373,9 @@ class AIOrchestrator(
         private const val TURN_WAKE_LOCK_MS = 240_000L
 
         /** Nazwy właścicieli blokady - patrz [pl.victor.app.power.WakelockHelper]. */
+        /** Nie częściej mówimy o pełnej pamięci okularów. */
+        private const val LOW_MEMORY_ANNOUNCE_EVERY_MS = 6 * 60 * 60 * 1000L
+
         private const val LOCK_LISTENING = "Nasluch"
         private const val LOCK_TURN = "Tura"
 

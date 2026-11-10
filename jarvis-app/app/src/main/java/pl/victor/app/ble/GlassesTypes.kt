@@ -15,6 +15,28 @@ data class MediaCount(
     val total: Int get() = images + videos + records
 }
 
+/**
+ * Wersje oprogramowania i sprzętu okularów - z odpowiedzi na `syncDeviceInfo`.
+ * Pola bywają puste, gdy dany egzemplarz ich nie podaje.
+ */
+data class GlassesDeviceInfo(
+    val firmware: String?,
+    val hardware: String?,
+    val wifiFirmware: String?,
+    val wifiHardware: String?
+)
+
+/**
+ * Co okulary zgłaszają jako obsługiwane - z odpowiedzi na `wearFunctionSupport`.
+ * Znaczenie numeru modelu nie jest znane; zapisujemy go surowo.
+ */
+data class GlassesFeatures(
+    val model: Int,
+    val translation: Boolean,
+    val wearCheck: Boolean,
+    val volumeControl: Boolean
+)
+
 /** Urządzenie znalezione podczas skanowania BLE. */
 data class DiscoveredDevice(
     val address: String,

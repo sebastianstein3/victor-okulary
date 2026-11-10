@@ -448,6 +448,65 @@ class VictorManager private constructor(context: Context) {
     private val _glassesVolume = MutableStateFlow(-1)
     val glassesVolume: StateFlow<Int> = _glassesVolume.asStateFlow()
 
+    /**
+     * Pełny stan głośności okularów (trzy kanały) - z ramki 0x12 albo z
+     * odpowiedzi na `getVolumeControl`. `null`, dopóki okulary go nie podały.
+     */
+    private val _volume = MutableStateFlow<GlassesVolume?>(null)
+    val volume: StateFlow<GlassesVolume?> = _volume.asStateFlow()
+
+    /** Wersje oprogramowania okularów - `null`, dopóki nie odpowiedzą. */
+    private val _deviceInfo = MutableStateFlow<GlassesDeviceInfo?>(null)
+    val deviceInfo: StateFlow<GlassesDeviceInfo?> = _deviceInfo.asStateFlow()
+
+    /** Funkcje zgłaszane przez okulary - `null`, dopóki nie odpowiedzą. */
+    private val _features = MutableStateFlow<GlassesFeatures?>(null)
+    val features: StateFlow<GlassesFeatures?> = _features.asStateFlow()
+
+    /** Okulary zgłosiły, że kończy im się pamięć - do powiedzenia użytkownikowi. */
+    private val _lowMemory = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
+    val lowMemory: SharedFlow<Unit> = _lowMemory.asSharedFlow()
+
+    /**
+     * Ustawia głośność okularów.
+     *
+     * Odsyła okularom ich własny stan ze zmienionymi wartościami bieżącymi -
+     * patrz [GlassesVolume]. Nie pisze, gdy stanu jeszcze nie znamy albo wygląda
+     * na źle odczytany: zapis wymyślonych zakresów mógłby rozstroić sterowanie
+     * głośnością na zausznikach.
+     *
+     * @return `false`, gdy komenda nie wyszła
+     */
+    fun setGlassesVolume(target: GlassesVolume): Boolean {
+        if (!isConnected() || !target.writable) return false
+        if (simulator != null) {
+            _volume.value = target
+            return true
+        }
+        val v = target.toCommand()
+        val sent = runCatching {
+            largeDataHandler.setVolumeControl(
+                v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9]
+            )
+        }.onFailure { Log.w(tag, "setVolumeControl nie powiodło się", it) }.isSuccess
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                "ustawiam głośność okularów",
+                mapOf(
+                    "muzyka" to target.music.current,
+                    "rozmowa" to target.call.current,
+                    "system" to target.system.current,
+                    "wysłane" to sent
+                )
+            )
+        }
+        // Stan potwierdzi najbliższa ramka 0x12 od okularów; do tego czasu
+        // kolejne "głośniej" ma liczyć od tego, co właśnie wysłaliśmy.
+        if (sent) _volume.value = target
+        return sent
+    }
+
     private var initialized = false
     private var scanning = false
     private var notifyListenerRegistered = false
@@ -821,6 +880,7 @@ class VictorManager private constructor(context: Context) {
                 }
                 lastPhotoFailure = "Okulary zgłaszają brak miejsca w pamięci. " +
                     "Pobierz z nich pliki albo je wyczyść."
+                _lowMemory.tryEmit(Unit)
             }
             is NotifyEvent.PlaybackStateEcho ->
                 Log.d(tag, "Notify: okulary potwierdzają stan odtwarzania (${event.value})")
@@ -828,7 +888,17 @@ class VictorManager private constructor(context: Context) {
                 Log.i(tag, "Notify: użytkownik uciszył V.I.C.T.O.R.-a")
                 _speechInterrupted.tryEmit(Unit)
             }
-            is NotifyEvent.Unbound -> Log.w(tag, "Notify: okulary odpięły aplikację")
+            is NotifyEvent.Unbound -> {
+                Log.w(tag, "Notify: okulary odpięły aplikację")
+                // Dotąd tylko w logcacie - a to wyjaśnia "okulary nagle
+                // przestały reagować" lepiej niż cokolwiek innego.
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
+                        "okulary ODPIĘŁY aplikację (ramka 0x0D)"
+                    )
+                }
+            }
             is NotifyEvent.IdentificationStopped ->
                 Log.d(tag, "Notify: okulary przerwały rozpoznawanie obrazu")
             is NotifyEvent.VolumeChanged -> {
@@ -893,6 +963,7 @@ class VictorManager private constructor(context: Context) {
                 // każdej zmianie stanu dźwięku i dawał dziesiątki wierszy na
                 // minutę w dzienniku. Zapisujemy więc tylko zmianę GŁOŚNOŚCI.
                 Log.d(tag, "Notify: ustawienia głośności ${event.values}")
+                GlassesVolume.fromValues(event.values)?.let { _volume.value = it }
                 val poziomy = event.values.take(9)
                 if (poziomy != lastVolumeLevels) {
                     lastVolumeLevels = poziomy
@@ -1048,14 +1119,113 @@ class VictorManager private constructor(context: Context) {
             // ODCZYTEM albo synchronizacją - żadne nic nie psuje, nawet gdy dany
             // egzemplarz go nie potrzebuje; brak choćby jednego może za to
             // zostawiać okulary w stanie, w którym nie przyjmują sterowania.
-            runCatching { largeDataHandler.syncTime(null) }
-                .onFailure { Log.w(tag, "syncTime nie powiodło się", it) }
-            runCatching { largeDataHandler.syncDeviceInfo(null) }
-                .onFailure { Log.w(tag, "syncDeviceInfo nie powiodło się", it) }
-            runCatching { largeDataHandler.wearFunctionSupport(null) }
-                .onFailure { Log.w(tag, "wearFunctionSupport nie powiodło się", it) }
-            runCatching { largeDataHandler.getVolumeControl(null) }
-                .onFailure { Log.w(tag, "getVolumeControl nie powiodło się", it) }
+            //
+            // CALLBACK MUSI BYĆ NIEPUSTY. Te cztery wywołania szły z `null` i
+            // NIGDY nie wychodziły do okularów: SDK zaczyna każde z nich od
+            // `respMap.put(akcja, callback)`, a `ConcurrentHashMap` na `null`
+            // rzuca wyjątek - który `runCatching` po cichu łapał. Okulary nie
+            // dostawały więc ani czasu (nazwy plików to znaczniki czasu), ani
+            // pytań o wersję, funkcje i głośność. Sprawdzone w bajtkodzie AAR.
+            runCatching {
+                largeDataHandler.syncTime { _, _ ->
+                    Log.i(tag, "Okulary przyjęły synchronizację czasu")
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                            "okulary przyjęły synchronizację czasu"
+                        )
+                    }
+                }
+            }.onFailure { Log.w(tag, "syncTime nie powiodło się", it) }
+            runCatching {
+                largeDataHandler.syncDeviceInfo { _, rsp ->
+                    val info = GlassesDeviceInfo(
+                        firmware = runCatching { rsp?.firmwareVersion }.getOrNull(),
+                        hardware = runCatching { rsp?.hardwareVersion }.getOrNull(),
+                        wifiFirmware = runCatching { rsp?.wifiFirmwareVersion }.getOrNull(),
+                        wifiHardware = runCatching { rsp?.wifiHardwareVersion }.getOrNull()
+                    )
+                    _deviceInfo.value = info
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                            "wersje okularów",
+                            mapOf(
+                                "firmware" to info.firmware,
+                                "sprzęt" to info.hardware,
+                                "wifiFirmware" to info.wifiFirmware,
+                                "wifiSprzęt" to info.wifiHardware
+                            )
+                        )
+                    }
+                }
+            }.onFailure { Log.w(tag, "syncDeviceInfo nie powiodło się", it) }
+            runCatching {
+                largeDataHandler.wearFunctionSupport { _, rsp ->
+                    if (rsp == null) return@wearFunctionSupport
+                    val features = GlassesFeatures(
+                        model = runCatching { rsp.glassesModel }.getOrDefault(-1),
+                        translation = runCatching { rsp.isTranslationSupport }.getOrDefault(false),
+                        wearCheck = runCatching { rsp.isWearCheckSupport }.getOrDefault(false),
+                        volumeControl = runCatching { rsp.isVolumeControl }.getOrDefault(false)
+                    )
+                    _features.value = features
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                            "funkcje zgłaszane przez okulary",
+                            mapOf(
+                                "model" to features.model,
+                                "tłumaczenie" to features.translation,
+                                "wykrywanieZałożenia" to features.wearCheck,
+                                "sterowanieGłośnością" to features.volumeControl
+                            )
+                        )
+                    }
+                    // Wykrywanie założenia: TYLKO ODCZYT, do dziennika. Z SDK nie
+                    // wynika, czy pole `open` to "okulary na nosie", czy "funkcja
+                    // włączona" - następny dziennik to rozstrzygnie, zanim
+                    // cokolwiek na tym oprzemy.
+                    if (features.wearCheck) {
+                        runCatching {
+                            largeDataHandler.wearCheck(false, false) { _, wear ->
+                                runCatching {
+                                    diag.event(
+                                        pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                                        "wykrywanie założenia - odczyt",
+                                        mapOf("open" to runCatching { wear?.isOpen }.getOrNull())
+                                    )
+                                }
+                            }
+                        }.onFailure { Log.w(tag, "wearCheck nie powiodło się", it) }
+                    }
+                }
+            }.onFailure { Log.w(tag, "wearFunctionSupport nie powiodło się", it) }
+            runCatching {
+                largeDataHandler.getVolumeControl { _, rsp ->
+                    if (rsp == null) return@getVolumeControl
+                    val values = runCatching {
+                        listOf(
+                            rsp.minVolumeMusic, rsp.maxVolumeMusic, rsp.currVolumeMusic,
+                            rsp.minVolumeCall, rsp.maxVolumeCall, rsp.currVolumeCall,
+                            rsp.minVolumeSystem, rsp.maxVolumeSystem, rsp.currVolumeSystem,
+                            rsp.currVolumeType
+                        )
+                    }.getOrNull() ?: return@getVolumeControl
+                    GlassesVolume.fromValues(values)?.let { _volume.value = it }
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                            "głośność okularów - odpowiedź na pytanie",
+                            mapOf(
+                                "muzyka" to "${values[2]}/${values[1]}",
+                                "rozmowa" to "${values[5]}/${values[4]}",
+                                "system" to "${values[8]}/${values[7]}"
+                            )
+                        )
+                    }
+                }
+            }.onFailure { Log.w(tag, "getVolumeControl nie powiodło się", it) }
 
             runCatching { largeDataHandler.syncBattery() }
                 .onFailure { Log.w(tag, "syncBattery nie powiodło się", it) }

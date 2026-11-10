@@ -159,6 +159,46 @@ class AudioManager(
         }.onFailure { Log.w(tag, "Nie udało się podnieść głośności", it) }
     }
 
+    /**
+     * Zmienia głośność mowy na telefonie na życzenie użytkownika.
+     *
+     * Dokładnie jedno z [steps] i [percent] ma znaczenie: kroki to "głośniej"
+     * i "ciszej" (krok = jedna piąta zakresu), procent to "głośność na 70".
+     * W dół nigdy do zera - wyciszonego asystenta nie da się już poprosić
+     * głosem o powrót.
+     *
+     * @return nowa głośność w procentach albo `null`, gdy system odmówił
+     *   (np. tryb "nie przeszkadzać")
+     */
+    fun changeSpeechVolume(steps: Int, percent: Int?): Int? = runCatching {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        // Wybór użytkownika wygrywa z podbiciem "wg hałasu" - nie przywracamy
+        // już poziomu sprzed podbicia.
+        restoreJob?.cancel()
+        podbicie = null
+        val streams = buildList {
+            add(android.media.AudioManager.STREAM_MUSIC)
+            if (bluetoothRouter.isRoutedToBluetooth.value) {
+                add(android.media.AudioManager.STREAM_VOICE_CALL)
+            }
+        }
+        var result: Int? = null
+        for (stream in streams) {
+            val max = am.getStreamMaxVolume(stream)
+            if (max <= 0) continue
+            val current = am.getStreamVolume(stream)
+            val target = if (percent != null) {
+                Math.round(max * percent.coerceIn(0, 100) / 100f).coerceIn(1, max)
+            } else {
+                val step = maxOf(1, Math.round(max * 0.2f))
+                (current + steps * step).coerceIn(1, max)
+            }
+            if (target != current) am.setStreamVolume(stream, target, 0)
+            if (result == null) result = target * 100 / max
+        }
+        result
+    }.onFailure { Log.w(tag, "Nie udało się zmienić głośności", it) }.getOrNull()
+
     /** Zlecenie mowy nie wyszło - nikt nie zgłosi końca, więc przywrócenie planujemy sami. */
     private fun planujPrzywróceniePoPorażce() {
         if (podbicie == null) return
