@@ -2846,23 +2846,33 @@ class VictorManager private constructor(context: Context) {
         // (0x08) może przyjść, zanim komenda wróci - kasowana po niej ginęła, a
         // awaitReportedIp czekało 15 s na nic.
         _glassesIp.value = null
-        val answer = requestNetworkMode(
-            GlassesProtocol.startLivePreview(GlassesProtocol.TRANSFER_MODE_AP)
-        )
-        diag.event(
-            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
-            "Podgląd na żywo: odpowiedź na komendę",
-            mapOf("błąd" to answer?.errorCode, "stan" to answer?.workTypeIng, "typ" to answer?.workType)
-        )
-        val refusal = answer?.let { GlassesProtocol.transferRefusalReason(it.workTypeIng) }
-        if (refusal != null) {
-            lastTransferFailure = refusal
-            diag.event(
-                pl.victor.app.diagnostics.DiagFormat.Phase.BŁĄD,
-                "Podgląd na żywo: okulary odmówiły",
-                mapOf("stan" to answer?.workTypeIng, "powód" to refusal)
+        // NA ODPOWIEDŹ NIE CZEKAMY - idzie do dziennika obok.
+        //
+        // Czekanie kosztowało 1,1-1,3 s przy każdym starcie strumienia (dziennik:
+        // "podnoszę" 22:04:09.854, "odpowiedź na komendę" 22:04:11.077) i nie
+        // dawało nic: SDK nie czyta z odpowiedzi na TĘ komendę ani kodu błędu,
+        // ani stanu (typ pracy 0x14 nie jest na jego liście - sprawdzone w
+        // bajtkodzie `GlassModelControlResponse`), więc zawsze wychodziło
+        // "błąd=1 stan=0", czyli wartości domyślne. Odmowy nie da się z niej
+        // wyczytać; o porażce i tak rozstrzyga sieć, do której zaraz dołączamy.
+        // Okulary potwierdzają start osobną ramką 0x11, która przychodzi po
+        // ~100 ms.
+        scope.launch {
+            val answer = requestNetworkMode(
+                GlassesProtocol.startLivePreview(GlassesProtocol.TRANSFER_MODE_AP)
             )
-            return null
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                    "Podgląd na żywo: odpowiedź na komendę",
+                    mapOf(
+                        "błąd" to answer?.errorCode,
+                        "stan" to answer?.workTypeIng,
+                        "typ" to answer?.workType,
+                        "poMs" to (System.currentTimeMillis() - startedAt)
+                    )
+                )
+            }
         }
 
         // Sieć i adres zdobywamy tą samą drogą co przy galerii (adres już wyczyszczony

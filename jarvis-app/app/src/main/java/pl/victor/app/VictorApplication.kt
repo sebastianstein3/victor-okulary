@@ -61,6 +61,9 @@ class VictorApplication : Application() {
      * zdarzeń. Rozbicie na osobne dzienniki per warstwa odebrałoby mu całą
      * wartość: szuka się w nim właśnie tego, co działo się MIĘDZY warstwami.
      */
+    /** Alerty niewypowiedziane przy rozłączonych okularach - patrz [pl.victor.app.proactive.MissedAlerts]. */
+    val missedAlerts = pl.victor.app.proactive.MissedAlerts()
+
     val diag: pl.victor.app.diagnostics.DiagnosticLog by lazy {
         pl.victor.app.diagnostics.DiagnosticLog(this)
     }

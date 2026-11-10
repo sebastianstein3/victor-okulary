@@ -144,6 +144,9 @@ class ProactiveAlertsWorker(
                     mapOf("rodzaj" to alert.type.name)
                 )
             }
+            // Okulary wracają zwykle po kilkudziesięciu sekundach - wtedy
+            // orkiestrator powie to, czego tu nie dało się powiedzieć.
+            runCatching { app.missedAlerts.remember("${alert.title}. ${alert.message}") }
             return
         }
 

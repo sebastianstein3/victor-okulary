@@ -228,7 +228,14 @@ class AudioManager(
      *
      * @return `true` gdy rozmowa faktycznie idzie przez okulary
      */
-    suspend fun beginConversationRouting(): Boolean = bluetoothRouter.acquire()
+    suspend fun beginConversationRouting(waitForLink: Boolean = true): Boolean =
+        bluetoothRouter.acquire(waitForLink = waitForLink)
+
+    /** Stan profili Bluetooth w telefonie - patrz [BluetoothAudioRouter.profileStates]. */
+    fun bluetoothProfileStates(): String = bluetoothRouter.profileStates()
+
+    /** Ile trwało ostatnie czekanie na łącze rozmowy - do dziennika. */
+    fun lastConversationLinkWaitMs(): Long = bluetoothRouter.lastLinkWaitMs
 
     /** Zwalnia łącze wzięte przez [beginConversationRouting]. */
     suspend fun endConversationRouting() = bluetoothRouter.release()

@@ -1289,6 +1289,7 @@ class AIOrchestrator(
                                 language = settings.getResponseLanguage()
                             )
                         }
+                        speakMissedAlertsSoon()
                     } else if (utrataJob == null) {
                         // KARENCJA, a nie natychmiast. Łącze potrafi mrugnąć na
                         // sekundę i wrócić samo - a komunikat o czymś, co już się
@@ -2941,6 +2942,9 @@ class AIOrchestrator(
                         DiagFormat.Phase.AUDIO, "zestawiony profil rozmowy do nasłuchu",
                         mapOf(
                             "ms" to (System.currentTimeMillis() - routingStartedAtMs),
+                            // Ile trwało faktyczne wstanie łącza; -1 = nie
+                            // wstało w limicie i poszliśmy dalej.
+                            "łączeMs" to audio.lastConversationLinkWaitMs(),
                             "mikrofonOkularów" to wantsGlassesMic
                         )
                     )
@@ -3727,6 +3731,36 @@ class AIOrchestrator(
 
     /** Odliczanie karencji przed ogłoszeniem utraty łącza. */
     private var utrataJob: kotlinx.coroutines.Job? = null
+
+    private var missedAlertsJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Po powrocie okularów mówi alerty, które przepadły, gdy były rozłączone.
+     *
+     * Z opóźnieniem: zaraz po połączeniu idzie powitanie okularów i wstaje
+     * dźwięk - komunikat wypowiedziany w tej samej sekundzie poszedłby
+     * głośnikiem telefonu albo w próżnię.
+     */
+    private fun speakMissedAlertsSoon() {
+        if (!settings.isAlertsSpokenEnabled()) return
+        missedAlertsJob?.cancel()
+        missedAlertsJob = scope.launch {
+            delay(MISSED_ALERTS_DELAY_MS)
+            bezpiecznie("zaległe alerty") {
+                if (glassesManager.connectionState.value != ConnectionState.READY) return@bezpiecznie
+                // Nie wchodzimy w słowo. Alerty zostają w pamięci tylko do
+                // pobrania, więc sprawdzamy ciszę PRZED ich zabraniem.
+                if (!ciszaWTle()) return@bezpiecznie
+                val zaległe = runCatching { victorApp?.missedAlerts?.takeFresh() }.getOrNull()
+                if (zaległe.isNullOrEmpty()) return@bezpiecznie
+                diag.event(
+                    DiagFormat.Phase.MOWA, "zaległe alerty po powrocie okularów",
+                    mapOf("ile" to zaległe.size)
+                )
+                audio.speak(zaległe.joinToString(" "), language = settings.getResponseLanguage())
+            }
+        }
+    }
 
     /**
      * Co powiedzieć po nasłuchu, który nic nie usłyszał.
@@ -4539,7 +4573,9 @@ class AIOrchestrator(
                 // rozmowy nie pozwala A2DP wstać.
                 glassesManager.requestClassicAudio("brak A2DP przed odpowiedzią")
             }
-            audioHeld = if (canUseMedia) false else audio.beginConversationRouting()
+            // Bez czekania na faktyczne wstanie łącza: mówić zaczniemy dopiero
+            // po odpowiedzi modelu, a do tego czasu łącze zdąży wstać samo.
+            audioHeld = if (canUseMedia) false else audio.beginConversationRouting(waitForLink = false)
 
             // ZWIŃ PROFIL ROZMOWY, ZANIM ZACZNIESZ MÓWIĆ PRZEZ A2DP.
             //
@@ -4571,7 +4607,13 @@ class AIOrchestrator(
                 DiagFormat.Phase.AUDIO,
                 if (canUseMedia) "mowa przez A2DP - bez profilu rozmowy"
                 else "brak A2DP - biorę profil rozmowy",
-                mapOf("a2dp" to canUseMedia, "scoStoi" to audio.isRoutedToBluetooth())
+                mapOf(
+                    "a2dp" to canUseMedia,
+                    "scoStoi" to audio.isRoutedToBluetooth(),
+                    // Czy telefon w ogóle ma połączony profil multimediów -
+                    // rozstrzyga, skąd bierze się lepki stan "tylko rozmowa".
+                    "profile" to audio.bluetoothProfileStates()
+                )
             )
                 // 1. CAPTURE - adaptacyjny tryb
                 val provider = getOrCreateProvider()
@@ -7375,6 +7417,9 @@ class AIOrchestrator(
         /** Nazwy właścicieli blokady - patrz [pl.victor.app.power.WakelockHelper]. */
         /** Nie częściej mówimy o pełnej pamięci okularów. */
         private const val LOW_MEMORY_ANNOUNCE_EVERY_MS = 6 * 60 * 60 * 1000L
+
+        /** Ile po powrocie okularów czekamy z zaległymi alertami. */
+        private const val MISSED_ALERTS_DELAY_MS = 8_000L
 
         private const val LOCK_LISTENING = "Nasluch"
         private const val LOCK_TURN = "Tura"

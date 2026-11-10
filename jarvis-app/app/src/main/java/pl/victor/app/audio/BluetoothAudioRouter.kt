@@ -135,6 +135,37 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
     }
 
     /**
+     * Stan PROFILI Bluetooth w telefonie: multimedia (A2DP) i rozmowa (HFP).
+     *
+     * ## Po co obok [audioProfileSummary]
+     * W dziennikach sprzętu okulary są widoczne ALBO jako odtwarzanie, ALBO
+     * jako zestaw rozmowny - nigdy naraz - i stan "tylko rozmowa" jest lepki:
+     * po turze bez multimediów następna też idzie bez nich w 63 z 73
+     * przypadków. Lista urządzeń audio nie mówi, czy to telefon nie połączył
+     * profilu multimediów, czy okulary go nie wystawiają. Stan profili - tak.
+     *
+     * @return np. "a2dp=połączony hfp=rozłączony"
+     */
+    fun profileStates(): String {
+        if (!hasBluetoothPermission()) return "brak uprawnienia"
+        return try {
+            val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE)
+                as? android.bluetooth.BluetoothManager)?.adapter
+                ?: return "brak adaptera"
+            fun opis(profile: Int): String = when (adapter.getProfileConnectionState(profile)) {
+                android.bluetooth.BluetoothProfile.STATE_CONNECTED -> "połączony"
+                android.bluetooth.BluetoothProfile.STATE_CONNECTING -> "łączy"
+                android.bluetooth.BluetoothProfile.STATE_DISCONNECTING -> "rozłącza"
+                else -> "rozłączony"
+            }
+            "a2dp=" + opis(android.bluetooth.BluetoothProfile.A2DP) +
+                " hfp=" + opis(android.bluetooth.BluetoothProfile.HEADSET)
+        } catch (e: Exception) {
+            "błąd odczytu: ${e.message}"
+        }
+    }
+
+    /**
      * Opis tego, JAK telefon widzi okulary od strony dźwięku.
      *
      * Rozróżnienie jest kluczowe i nieoczywiste: **A2DP** to tylko odtwarzanie
@@ -255,7 +286,15 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
      *
      * Każde udane [acquire] MUSI mieć swoje [release], najlepiej w `finally`.
      */
-    suspend fun acquire(timeoutMs: Long = SCO_TIMEOUT_MS): Boolean = lock.withLock {
+    suspend fun acquire(
+        timeoutMs: Long = SCO_TIMEOUT_MS,
+        /**
+         * Czy czekać, aż łącze rozmowy FAKTYCZNIE wstanie (Android 12+).
+         * `true` dla nasłuchu - mikrofon jest potrzebny od razu. `false`, gdy
+         * tura najpierw pyta model, a mówić zacznie i tak po sekundzie-dwóch.
+         */
+        waitForLink: Boolean = true
+    ): Boolean = lock.withLock {
         if (!scoEnabled) {
             // Świadomy wybór użytkownika (albo automatyczne wyłączenie po serii
             // nieudanych tur): odpowiedź pójdzie przez A2DP, pytania zbierze
@@ -271,7 +310,7 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
             holdCount++
             return@withLock _isRoutedToBluetooth.value
         }
-        val started = startRouting(timeoutMs)
+        val started = startRouting(timeoutMs, waitForLink)
         if (started) {
             holdCount = 1
             _isRoutedToBluetooth.value = true
@@ -323,20 +362,20 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
     @Deprecated("Użyj acquire()", ReplaceWith("acquire(timeoutMs)"))
     suspend fun startScoAndAwait(timeoutMs: Long = SCO_TIMEOUT_MS): Boolean = acquire(timeoutMs)
 
-    private suspend fun startRouting(timeoutMs: Long): Boolean {
+    private suspend fun startRouting(timeoutMs: Long, waitForLink: Boolean): Boolean {
         val am = audioManager ?: return false
         if (!hasConnectedBluetoothAudioDevice()) {
             Log.d(tag, "Brak podłączonego zestawu Bluetooth - zostaję na telefonie")
             return false
         }
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            startModern(am)
+            startModern(am, waitForLink)
         } else {
             startLegacy(am, timeoutMs)
         }
     }
 
-    private fun startModern(am: AudioManager): Boolean {
+    private suspend fun startModern(am: AudioManager, waitForLink: Boolean): Boolean {
         val device = try {
             am.availableCommunicationDevices.firstOrNull {
                 it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
@@ -366,6 +405,12 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
             val ok = am.setCommunicationDevice(device)
             if (ok) {
                 Log.i(tag, "Rozmowa przez ${device.productName}")
+                // `true` znaczy tylko "prośba przyjęta" - łącze SCO wstaje
+                // asynchronicznie. W dziennikach "profil rozmowy zestawiony"
+                // padało po 15 ms, czyli zanim cokolwiek stało: nasłuch
+                // zaczynał na mikrofonie, którego jeszcze nie było, i początek
+                // pytania przepadał (audyt 28.10).
+                if (waitForLink) awaitModernLink(am)
             } else {
                 Log.w(tag, "setCommunicationDevice odmówiło - wracam na telefon")
                 restoreMode(am)
@@ -375,6 +420,36 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
             Log.w(tag, "Nie udało się ustawić urządzenia rozmowy", e)
             restoreMode(am)
             false
+        }
+    }
+
+    /** Ile trwało ostatnie czekanie na łącze rozmowy; -1 = nie wstało w limicie. */
+    @Volatile
+    var lastLinkWaitMs: Long = 0L
+        private set
+
+    /**
+     * Czeka, aż system faktycznie przełączy rozmowę na zestaw Bluetooth.
+     *
+     * Limit jest krótki i jego przekroczenie NIE jest porażką: wracamy wtedy
+     * do zachowania sprzed zmiany (idziemy dalej), tylko z wpisem w logu.
+     */
+    private suspend fun awaitModernLink(am: AudioManager) {
+        val startedAt = System.currentTimeMillis()
+        val up = withTimeoutOrNull(MODERN_LINK_WAIT_MS) {
+            while (
+                runCatching { am.communicationDevice?.type }.getOrNull() !=
+                AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+            ) {
+                delay(MODERN_LINK_POLL_MS)
+            }
+            true
+        } ?: false
+        lastLinkWaitMs = if (up) System.currentTimeMillis() - startedAt else -1L
+        if (up) {
+            Log.i(tag, "Łącze rozmowy wstało po $lastLinkWaitMs ms")
+        } else {
+            Log.w(tag, "Łącze rozmowy nie wstało w $MODERN_LINK_WAIT_MS ms - idę dalej")
         }
     }
 
@@ -492,6 +567,10 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
 
     companion object {
         private const val SCO_TIMEOUT_MS = 4_000L
+
+        /** Ile czekamy na faktyczne przełączenie rozmowy na zestaw (Android 12+). */
+        private const val MODERN_LINK_WAIT_MS = 1_500L
+        private const val MODERN_LINK_POLL_MS = 50L
 
         /**
          * Ile trzymać łącze po zwolnieniu ostatniego odwołania. Dobrane tak, by
