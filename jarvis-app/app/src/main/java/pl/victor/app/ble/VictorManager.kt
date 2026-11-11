@@ -467,6 +467,48 @@ class VictorManager private constructor(context: Context) {
     private val _lowMemory = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
     val lowMemory: SharedFlow<Unit> = _lowMemory.asSharedFlow()
 
+    private var volumeVerifyJob: Job? = null
+
+    /**
+     * Po zapisie pyta okulary o głośność i zapisuje do dziennika, co NAPRAWDĘ
+     * mają. Bieg 174: zapis wyszedł ("wysłane=true"), ale okulary nie odesłały
+     * ramki 0x12 i z dziennika nie dało się powiedzieć, czy go przyjęły.
+     * Pytamy tylko tam, gdzie wolno pisać - patrz [canSetVolume].
+     */
+    private fun verifyVolumeSoon(target: GlassesVolume) {
+        volumeVerifyJob?.cancel()
+        volumeVerifyJob = scope.launch {
+            delay(VOLUME_VERIFY_DELAY_MS)
+            if (!isConnected() || !canSetVolume()) return@launch
+            runCatching {
+                largeDataHandler.getVolumeControl { _, rsp ->
+                    if (rsp == null) return@getVolumeControl
+                    val values = runCatching {
+                        listOf(
+                            rsp.minVolumeMusic, rsp.maxVolumeMusic, rsp.currVolumeMusic,
+                            rsp.minVolumeCall, rsp.maxVolumeCall, rsp.currVolumeCall,
+                            rsp.minVolumeSystem, rsp.maxVolumeSystem, rsp.currVolumeSystem,
+                            rsp.currVolumeType
+                        )
+                    }.getOrNull() ?: return@getVolumeControl
+                    val actual = GlassesVolume.fromValues(values) ?: return@getVolumeControl
+                    _volume.value = actual
+                    runCatching {
+                        diag.event(
+                            pl.victor.app.diagnostics.DiagFormat.Phase.BLE,
+                            "głośność okularów po zapisie",
+                            mapOf(
+                                "muzyka" to "${actual.music.current} (chciałem ${target.music.current})",
+                                "rozmowa" to "${actual.call.current} (chciałem ${target.call.current})",
+                                "przyjęte" to (actual.music.current == target.music.current)
+                            )
+                        )
+                    }
+                }
+            }.onFailure { Log.w(tag, "getVolumeControl po zapisie nie powiodło się", it) }
+        }
+    }
+
     /**
      * Czy wolno pisać głośność do okularów.
      *
@@ -516,7 +558,10 @@ class VictorManager private constructor(context: Context) {
         }
         // Stan potwierdzi najbliższa ramka 0x12 od okularów; do tego czasu
         // kolejne "głośniej" ma liczyć od tego, co właśnie wysłaliśmy.
-        if (sent) _volume.value = target
+        if (sent) {
+            _volume.value = target
+            verifyVolumeSoon(target)
+        }
         return sent
     }
 
@@ -5381,6 +5426,9 @@ class VictorManager private constructor(context: Context) {
 
         /** Ile dać okularom na wykonanie zwolnienia pamięci przed odczytem. */
         private const val RELEASE_STORAGE_SETTLE_MS = 3_000L
+
+        /** Ile po zapisie głośności pytamy okulary, co mają - patrz [verifyVolumeSoon]. */
+        private const val VOLUME_VERIFY_DELAY_MS = 800L
 
         /** Jak długo po uzbrojeniu komenda kasująca może jeszcze wyjść. */
         private const val ERASE_ARM_WINDOW_MS = 5_000L

@@ -1243,6 +1243,29 @@ class AIOrchestrator(
                         }
                         return@bezpiecznie
                     }
+                    // MÓWI POPRZEDNIA TURA, A NOWA JUŻ RUSZYŁA.
+                    //
+                    // Bieg 174, 16:44:19: asystent czytał jeszcze poprzednią
+                    // odpowiedź, użytkownik nacisnął aparat (nowa tura: zdjęcie)
+                    // i dotknął zausznika, żeby uciszyć tamto. Dotknięcie
+                    // ubiło NOWĄ turę 0,24 s po starcie - zdjęcie przepadło.
+                    // Gdy bieżąca tura jeszcze nic nie mówi (nasłuch, zdjęcie,
+                    // czekanie na model), mowa należy do poprzedniej: uciszamy
+                    // tylko ją.
+                    val stan = _state.value
+                    if (stan is OrchestratorState.Listening ||
+                        stan is OrchestratorState.Capturing ||
+                        stan is OrchestratorState.Thinking
+                    ) {
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.WAKE, "ucisz z okularów - uciszam mowę, nowa tura trwa dalej",
+                                mapOf("stan" to stan::class.simpleName)
+                            )
+                        }
+                        audio.stopSpeaking()
+                        return@bezpiecznie
+                    }
                     Log.i(TAG, "Okulary: użytkownik przerwał wypowiedź")
                     cancelCurrentTurn("dotknięcie zauszników")
                 }
@@ -1422,6 +1445,14 @@ class AIOrchestrator(
         // Bajt trybu decyduje już tylko o tym, czy o zdjęciu MÓWIMY.
         Log.i(TAG, "Okulary: zdjęcie z przycisku (opisz=$aiVision)")
         scope.launch {
+            // BLOKADA UŚPIENIA NA CZAS POBIERANIA. Bieg 174: "pobieram" o
+            // 16:42:28, miniatura o 16:44:18 - sto dziesięć sekund, bo przy
+            // zgaszonym ekranie procesor zasnął w środku czekania i obudził się
+            // dopiero, gdy użytkownik sięgnął po telefon. Usługa pierwszoplanowa
+            // trzyma proces, ale nie procesor.
+            val lockPhoto = "$LOCK_HW_PHOTO#${turnSeq.incrementAndGet()}"
+            wakeLock.acquire(lockPhoto, HW_PHOTO_WAKE_LOCK_MS)
+            try {
             // Zdjęcie już jest w okularach - pobieramy JE, zamiast robić drugie.
             // Gdy pobranie się nie uda, tura i tak rusza: zrobi wtedy własne
             // zdjęcie, co jest gorsze niż nic nie zrobić, ale lepsze niż cisza
@@ -1449,11 +1480,17 @@ class AIOrchestrator(
                     TriggerSource.BUTTON,
                     PHOTO_ON_DEMAND_QUESTION,
                     forceVision = true,
-                    // NIE przerywa mówienia: to nie jest palec na oprawce,
-                    // tylko tura zbudowana z ramki notify. Patrz uzasadnienie
-                    // przy [handleUserTrigger].
-                    allowInterruptSpeech = false
+                    // Prośba o opis (tryb 2) to palec na przycisku aparatu,
+                    // a nie echo naszej migawki - te odsiewa obsługa ramki,
+                    // zanim tu dotrą. Bieg 174, 16:45:07: zdjęcie z prośbą o
+                    // opis odrzucone ("tura już trwa"), bo asystent mówił
+                    // akurat "nie dosłyszałem" z poprzedniej tury. Zwykłe
+                    // zdjęcie (bez prośby) dalej nie przerywa mowy.
+                    allowInterruptSpeech = aiVision
                 )
+            }
+            } finally {
+                wakeLock.release(lockPhoto)
             }
         }
     }
@@ -3011,6 +3048,9 @@ class AIOrchestrator(
             // całą transkrypcję), a to w `finally` jest jedynym, które zadziała
             // po ANULOWANEJ turze. Pilnuje ich więc ten znacznik.
             var nasluchZatrzymany = false
+            // Nagranie z okularów oddane do dekodowania w tle - wtedy to tamta
+            // korutyna je zamyka, a `finally` tury nie może go odpinać.
+            var captureHandedOff = false
             // Liczone RAZ i tutaj, bo czyta je zarówno wpis o końcu nasłuchu,
             // jak i wpis o transkrypcji - a te dwa dzieli pół ekranu kodu.
             val phoneMicNotTrusted = pl.victor.app.audio.MicChoice.phoneMicNotTrusted(
@@ -3197,44 +3237,79 @@ class AIOrchestrator(
                 // ustach i to ON jest źródłem prawdy, gdy nagrywał. Nasłuch
                 // telefonu zostaje jako zapas - dla pytań zadawanych do telefonu i
                 // na wypadek, gdyby strumień BLE nic nie przyniósł.
-                val captured = glassesCapture?.stop()
-                diag.event(
-                    DiagFormat.Phase.NASŁUCH, "nagranie z okularów",
-                    mapOf(
-                        "jest" to (captured?.hasAudio == true),
-                        "sekund" to captured?.audioSeconds,
-                        // Bez tych czterech liczb „nagranie jest niewyraźne"
-                        // nie ma jak się rozstrzygnąć: nie wiadomo, czy to
-                        // użytkownik mówił cicho, czy dekoder składa szum z
-                        // pakietów, których kształtu nie odgadł.
-                        "pakietów" to captured?.packets,
-                        "rozkodowanych" to captured?.decodedPackets,
-                        "odrzuconych" to captured?.failedPackets,
-                        "przesunięcie" to captured?.payloadOffset,
-                        "ramka" to captured?.packetSize,
-                        // Czy koniec wypowiedzi wykrył miernik głośności i co
-                        // zmierzył - patrz EnergyEndpoint.
-                        "miernik" to glassesCapture?.meterSummary(),
-                        // Głośność co pół sekundy - rozstrzyga, czy "w
-                        // nagraniu nie słychać pytania" znaczy "mowa jest,
-                        // tylko nierozpoznana", czy "okulary po pierwszej
-                        // chwili nadają same zera". Patrz [AudioEnvelope].
-                        "obwiednia" to captured?.pcm?.let {
-                            pl.victor.app.audio.AudioEnvelope.doDziennika(
-                                pl.victor.app.audio.AudioEnvelope.rms(
-                                    it, pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
-                                )
+                // NIE CZEKAMY NA NAGRANIE, GDY NIE BĘDZIE UŻYTE.
+                //
+                // Rozkodowanie nagrania z okularów trwa 2-3,5 s (bieg 174:
+                // 258 pakietów - 2,1 s, 424 - 3,4 s). Gdy telefon dał już tekst,
+                // a przepisanie nagrania jest wyłączone albo milczy od
+                // [GLASSES_TRANSCRIPT_MAX_MISSES] prób, nagranie trafia
+                // wyłącznie do dziennika - a tura czekała na nie i tak, w
+                // środku drogi od pytania do odpowiedzi. Teraz rozkodowanie
+                // idzie obok, a pytanie od razu dalej.
+                fun zapiszNagranie(nagranie: GlassesVoiceCapture.Result?, wTle: Boolean) {
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.NASŁUCH, "nagranie z okularów",
+                            mapOf(
+                                "jest" to (nagranie?.hasAudio == true),
+                                "sekund" to nagranie?.audioSeconds,
+                                // Bez tych czterech liczb „nagranie jest niewyraźne"
+                                // nie ma jak się rozstrzygnąć: nie wiadomo, czy to
+                                // użytkownik mówił cicho, czy dekoder składa szum z
+                                // pakietów, których kształtu nie odgadł.
+                                "pakietów" to nagranie?.packets,
+                                "rozkodowanych" to nagranie?.decodedPackets,
+                                "odrzuconych" to nagranie?.failedPackets,
+                                "przesunięcie" to nagranie?.payloadOffset,
+                                "ramka" to nagranie?.packetSize,
+                                // Czy koniec wypowiedzi wykrył miernik głośności i co
+                                // zmierzył - patrz EnergyEndpoint.
+                                "miernik" to glassesCapture?.meterSummary(),
+                                // Głośność co pół sekundy - rozstrzyga, czy "w
+                                // nagraniu nie słychać pytania" znaczy "mowa jest,
+                                // tylko nierozpoznana", czy "okulary po pierwszej
+                                // chwili nadają same zera". Patrz [AudioEnvelope].
+                                "obwiednia" to nagranie?.pcm?.let {
+                                    pl.victor.app.audio.AudioEnvelope.doDziennika(
+                                        pl.victor.app.audio.AudioEnvelope.rms(
+                                            it, pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
+                                        )
+                                    )
+                                },
+                                "ciszaNaKońcuOkien" to nagranie?.pcm?.let {
+                                    pl.victor.app.audio.AudioEnvelope.ciszaNaKońcu(
+                                        pl.victor.app.audio.AudioEnvelope.rms(
+                                            it, pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
+                                        )
+                                    )
+                                }
                             )
-                        },
-                        "ciszaNaKońcuOkien" to captured?.pcm?.let {
-                            pl.victor.app.audio.AudioEnvelope.ciszaNaKońcu(
-                                pl.victor.app.audio.AudioEnvelope.rms(
-                                    it, pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
-                                )
-                            )
+                        )
+                    }
+                    if (wTle) {
+                        runCatching {
+                            diag.event(DiagFormat.Phase.NASŁUCH, "nagranie z okularów rozkodowane w tle - tura nie czekała")
                         }
+                    }
+                }
+                val tekstZTelefonu = setAsidePhoneTranscript
+                val nagranieNiepotrzebne = tekstZTelefonu != null && glassesCapture != null &&
+                    (!wantsGlassesMic || glassesTranscriptMissedTooOften())
+                val captured = if (nagranieNiepotrzebne) {
+                    captureHandedOff = true
+                    val doDziennika = glassesCapture
+                    scope.launch(kotlinx.coroutines.NonCancellable) {
+                        zapiszNagranie(runCatching { doDziennika?.stop() }.getOrNull(), wTle = true)
+                    }
+                    diag.event(
+                        DiagFormat.Phase.TRANSKRYPCJA,
+                        "mam tekst z telefonu - nie czekam na nagranie z okularów",
+                        mapOf("mikrofonOkularów" to wantsGlassesMic, "pustychPrzepisań" to glassesTranscriptMisses)
                     )
-                )
+                    null
+                } else {
+                    glassesCapture?.stop().also { zapiszNagranie(it, wTle = false) }
+                }
                 val transcribeStartedAt = System.currentTimeMillis()
                 // NIE PRZEPISUJEMY NAGRANIA, GDY TEKST Z TELEFONU JUŻ LEŻY.
                 //
@@ -3284,8 +3359,7 @@ class AIOrchestrator(
                 // Po [GLASSES_TRANSCRIPT_MAX_MISSES] pustych próbach z rzędu,
                 // gdy tekst z telefonu leży, nie przepisujemy - do pierwszej
                 // tury bez tekstu z telefonu albo pierwszego sukcesu.
-                val skipGlassesTranscript = phoneFallback != null &&
-                    glassesTranscriptMisses >= GLASSES_TRANSCRIPT_MAX_MISSES
+                val skipGlassesTranscript = phoneFallback != null && glassesTranscriptMissedTooOften()
                 val glassesHeard = when {
                     captured?.hasAudio != true -> null
                     // Kto WYŁĄCZYŁ mikrofon okularów, ten ma dostać stare
@@ -3359,7 +3433,26 @@ class AIOrchestrator(
                     // wysyłkę z ~875 kB do ułamka tego, co skraca też czekanie.
                     val recording = captured?.takeIf { it.hasAudio }?.let { capture ->
                         val raw = capture.pcm
-                        if (raw == null) {
+                        // NAGRANIE BEZ MOWY NIE IDZIE DO MODELU.
+                        //
+                        // Bieg 174, tura 3c01: przycisk wciśnięty, nikt nic nie
+                        // powiedział (szczyt głośności 359, mowa w dziennikach
+                        // zaczyna się od ok. 1500), a model dostał ciszę, myślał
+                        // dwie sekundy, odpowiedział "słyszę tylko szum" - i
+                        // przez ten czas zablokował zdjęcie, o które użytkownik
+                        // poprosił przyciskiem aparatu.
+                        val szczyt = raw?.let {
+                            pl.victor.app.audio.VoiceTrim.measure(it, pl.victor.app.audio.OpusDecoder.SAMPLE_RATE)?.peak
+                        }
+                        if (szczyt != null && szczyt < RECORDING_SPEECH_PEAK) {
+                            runCatching {
+                                diag.event(
+                                    DiagFormat.Phase.NASŁUCH, "w nagraniu z okularów nie ma mowy - nie wysyłam go modelowi",
+                                    mapOf("szczyt" to szczyt.toInt(), "próg" to RECORDING_SPEECH_PEAK.toInt())
+                                )
+                            }
+                            null
+                        } else if (raw == null) {
                             capture.wav
                         } else {
                             val trimmed = pl.victor.app.audio.VoiceTrim.trim(
@@ -3515,7 +3608,7 @@ class AIOrchestrator(
                 // natychmiast rzuca - subskrypcja BLE zostałaby zarejestrowana
                 // na zawsze. Przerwana tura nie ma zresztą czego dekodować;
                 // gałąź ciszy wyżej zdążyła już wziąć wynik przez stop().
-                glassesCapture?.detach()
+                if (!captureHandedOff) glassesCapture?.detach()
                 // Również po anulowanej turze - inaczej "cicho" uciszało
                 // syntezator, a okulary nasłuchiwały dalej. Ale TYLKO wtedy, gdy
                 // ścieżka normalna tego nie zrobiła: patrz znacznik wyżej.
@@ -3633,19 +3726,27 @@ class AIOrchestrator(
         }
 
         return coroutineScope {
+            // Czy rozpoznawanie w telefonie ROZUMIE, a nie tylko słyszy.
+            //
+            // Dotąd ogon [GlassesVoiceCapture.PHONE_TAIL_MS] dostawał każdy
+            // nasłuch, w którym telefon wykrył "mowę". Bieg 174: w dwóch turach
+            // telefon wykrył mowę, nie oddał ani słowa, a nasłuch stał przez to
+            // 2,5 s dłużej. Wynik częściowy znaczy, że telefon naprawdę coś
+            // rozpoznaje i warto na niego poczekać.
+            val phonePartial = java.util.concurrent.atomic.AtomicBoolean(false)
+            val partialWatch: (String) -> Unit = { text ->
+                if (text.isNotBlank()) phonePartial.set(true)
+                onPartial?.invoke(text)
+            }
             val listening = async {
                 conversationalMode.listenOnce(
                     languageTag = languageTag,
                     useBluetoothMic = useBluetoothMic,
-                    onPartial = onPartial
+                    onPartial = partialWatch
                 )
             }
-            // Gdy telefon coś słyszy, miernik głośności z okularów daje mu
-            // jeszcze chwilę na oddanie tekstu; gdy jest głuchy - kończy sam.
             val glassesQuiet = async {
-                capture.awaitSpeechEnd(
-                    phoneHearing = { speechToText.lastMicSignal?.speechDetected == true }
-                )
+                capture.awaitSpeechEnd(phoneHearing = { phonePartial.get() })
             }
 
             // Rozpoznawanie wygrywa wyścig TYLKO z niepustym wynikiem - i to
@@ -3768,9 +3869,33 @@ class AIOrchestrator(
     @Volatile
     private var setAsidePhoneTranscript: String? = null
 
-    /** Puste przepisania nagrania okularów z rzędu - patrz [GLASSES_TRANSCRIPT_MAX_MISSES]. */
-    @Volatile
-    private var glassesTranscriptMisses = 0
+    /**
+     * Puste przepisania nagrania okularów z rzędu - patrz [GLASSES_TRANSCRIPT_MAX_MISSES].
+     *
+     * Trwałe, nie w pamięci procesu: licznik zerowany przy każdym starcie
+     * aplikacji kosztował trzy daremne przepisania (po 1,5-4 s) na start - a
+     * na tym telefonie przepisanie nagrania z okularów nie oddało tekstu ani
+     * razu w ponad 250 próbach. Sukces zeruje licznik jak dotąd.
+     */
+    private var glassesTranscriptMisses: Int
+        get() = runtimePrefs.getInt(KEY_GLASSES_TRANSCRIPT_MISSES, 0)
+        set(value) {
+            runtimePrefs.edit().putInt(KEY_GLASSES_TRANSCRIPT_MISSES, value).apply()
+        }
+
+    private val runtimePrefs by lazy {
+        context.getSharedPreferences(RUNTIME_PREFS, android.content.Context.MODE_PRIVATE)
+    }
+
+    /**
+     * Czy przepisanie nagrania z okularów milczy od tylu prób, że przy gotowym
+     * tekście z telefonu nie warto na nie czekać. Z włączoną transkrypcją w
+     * chmurze próbujemy zawsze - to inna, dużo lepsza droga niż ta, która
+     * milczała.
+     */
+    private fun glassesTranscriptMissedTooOften(): Boolean =
+        !settings.isCloudTranscriptionEnabled() &&
+            glassesTranscriptMisses >= GLASSES_TRANSCRIPT_MAX_MISSES
 
     /** Pamięć o tym, co już powiedziano o łączu - patrz [ConnectionAnnouncer]. */
     private val announcer = ConnectionAnnouncer()
@@ -3842,6 +3967,10 @@ class AIOrchestrator(
         speechToText.lastFailureReason()?.let { reason ->
             return "Rozpoznawanie mowy nie zadziałało: $reason."
         }
+        val bezMowy = capture?.takeIf { it.hasAudio }?.pcm?.let {
+            pl.victor.app.audio.VoiceTrim.measure(it, pl.victor.app.audio.OpusDecoder.SAMPLE_RATE)?.peak
+        }?.let { it < RECORDING_SPEECH_PEAK } == true
+        if (bezMowy) return "Nie usłyszałem pytania. Powiedz je zaraz po sygnale."
         if (capture == null) {
             return if (isDeviceLocked()) {
                 "Nic nie usłyszałem. Telefon jest zablokowany, a systemowe " +
@@ -4077,7 +4206,18 @@ class AIOrchestrator(
          * Czy odpowiedź modelu ma trafić do notatnika zamiast być tylko
          * wypowiedzianą odpowiedzią - patrz [pl.victor.app.notes.Notes.describeRequest].
          */
-        saveAsNote: Boolean = false
+        saveAsNote: Boolean = false,
+        /**
+         * Czy [textQuestion] to polecenie złożone przez aplikację (briefing,
+         * notatka z odpowiedzi), a nie słowa użytkownika.
+         *
+         * Takie polecenie nie może przechodzić przez warstwę 0 ani komendy
+         * sterujące: niesie w sobie cudzy materiał (kalendarz, pocztę), a
+         * wzorce szukają słów. Bieg 174: briefing zawierał "masz" i "styl",
+         * więc zamiast porannego podsumowania asystent wyrecytował listę
+         * person - dwa razy pod rząd.
+         */
+        internalPrompt: Boolean = false
     ) {
         // Przycisk na okularach to też świadome działanie użytkownika TERAZ -
         // ma pierwszeństwo tak samo jak wypowiedź. Tury wewnętrzne (powtórka ze
@@ -4108,7 +4248,7 @@ class AIOrchestrator(
         // `textQuestion` jest wtedy instrukcją dla modelu, a nie tym, co
         // powiedział użytkownik. Sprawdzanie ich na takim tekście mogłoby
         // odpalić przypadkową komendę - dlatego wszystko idzie prosto do modelu.
-        val textIsQuestion = audioQuestion == null
+        val textIsQuestion = audioQuestion == null && !internalPrompt
 
         // === POTWIERDZENIE CZEKAJĄCEJ AKCJI - PRZED WSZYSTKIM INNYM ===
         //
@@ -4384,7 +4524,8 @@ class AIOrchestrator(
                             pl.victor.app.notes.Notes.noteFromTextPrompt(
                                 material, request.topic
                             ),
-                            saveAsNote = true
+                            saveAsNote = true,
+                            internalPrompt = true
                         )
                     }
                     else -> {
@@ -4395,7 +4536,8 @@ class AIOrchestrator(
                             trigger,
                             pl.victor.app.notes.Notes.noteFromSightPrompt(request.topic),
                             forceVision = true,
-                            saveAsNote = true
+                            saveAsNote = true,
+                            internalPrompt = true
                         )
                     }
                 }
@@ -6070,7 +6212,7 @@ class AIOrchestrator(
                 Log.i(TAG, "Briefing pominięty - nie ma o czym mówić")
                 return@launch
             }
-            handleUserTrigger(TriggerSource.TEXT_INPUT, prompt)
+            handleUserTrigger(TriggerSource.TEXT_INPUT, prompt, internalPrompt = true)
         }
     }
 
@@ -7552,6 +7694,17 @@ class AIOrchestrator(
         /** Po tylu pustych przepisaniach nagrania okularów z rzędu bierzemy od razu tekst z telefonu. */
         private const val GLASSES_TRANSCRIPT_MAX_MISSES = 3
 
+        /**
+         * Najgłośniejsze okno (20 ms, RMS) nagrania z okularów, poniżej którego
+         * nie ma w nim mowy. Z dzienników: nagrania bez mowy mają szczyt 100-360,
+         * z mową - od ok. 1500 wzwyż.
+         */
+        private const val RECORDING_SPEECH_PEAK = 800.0
+
+        /** Stan, który ma przetrwać restart aplikacji, a nie jest ustawieniem. */
+        private const val RUNTIME_PREFS = "victor_runtime"
+        private const val KEY_GLASSES_TRANSCRIPT_MISSES = "glasses_transcript_misses"
+
         /** Po tylu ms nieodebrany strumień z wyprzedzeniem gaśnie - patrz [warmUpStreamForCode]. */
         private const val CODE_WARMUP_MAX_MS = 75_000L
 
@@ -7615,6 +7768,10 @@ class AIOrchestrator(
         /** Ile po powrocie okularów czekamy z zaległymi alertami. */
         private const val MISSED_ALERTS_DELAY_MS = 8_000L
         private const val MISSED_ALERTS_ATTEMPTS = 6
+
+        /** Blokada uśpienia na pobranie zdjęcia z przycisku - patrz [handleGlassesPhoto]. */
+        private const val LOCK_HW_PHOTO = "ZdjecieZPrzycisku"
+        private const val HW_PHOTO_WAKE_LOCK_MS = 45_000L
 
         private const val LOCK_LISTENING = "Nasluch"
         private const val LOCK_TURN = "Tura"
