@@ -1574,6 +1574,55 @@ class AIOrchestrator(
     }
 
     /**
+     * Ostatnia deska: przepisanie nagrania przez model, gdy przyjmuje dźwięk.
+     *
+     * Tylko dla krótkich wypowiedzi z mową (patrz [RECORDING_SPEECH_PEAK]) -
+     * cisza wysłana do modelu kończy się zgadywaniem, a nie przepisem.
+     *
+     * @return tekst albo `null`, gdy model nie przyjmuje dźwięku, nie
+     *   usłyszał mowy albo zawiódł
+     */
+    private suspend fun transcribeWithModel(pcm: ByteArray, language: String): String? {
+        val providerId = settings.getActiveProvider()
+        if (!settings.hasApiKey(providerId) ||
+            !AIProviderFactory.getCapabilitiesFor(providerId).supportsAudio
+        ) {
+            return null
+        }
+        val rate = pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
+        val szczyt = pl.victor.app.audio.VoiceTrim.measure(pcm, rate)?.peak ?: return null
+        if (szczyt < RECORDING_SPEECH_PEAK) return null
+        val wav = pl.victor.app.audio.WavWriter.wrap(pl.victor.app.audio.VoiceTrim.trim(pcm, rate), rate)
+        val język = pl.victor.app.translation.SimultaneousTranslator.languageName(language)
+        val prompt = "Przepisz dosłownie, co mówi osoba na załączonym nagraniu (język: $język). " +
+            "Odpowiedz wyłącznie przepisanym tekstem, bez komentarza i bez cudzysłowów. " +
+            "Jeśli nie słychać wyraźnej mowy, odpowiedz dokładnie: $MODEL_NO_SPEECH"
+        val tekst = try {
+            getOrCreateProvider().analyze(
+                textQuestion = prompt,
+                images = emptyList(),
+                audioBytes = wav,
+                systemPrompt = PLAIN_TASK_SYSTEM_PROMPT
+            ).text.trim()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Przepisanie nagrania przez model nie powiodło się", e)
+            null
+        }
+        val wynik = tekst?.takeIf {
+            it.isNotBlank() && !it.contains(MODEL_NO_SPEECH) && it.length <= MODEL_TRANSCRIPT_MAX_CHARS
+        }
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.TRANSKRYPCJA, "przepisanie nagrania przez model",
+                mapOf("wynik" to wynik?.take(60), "odmowa" to (tekst?.contains(MODEL_NO_SPEECH) == true))
+            )
+        }
+        return wynik
+    }
+
+    /**
      * Przepisuje nagranie przez usługę w chmurze - albo od razu oddaje `null`.
      *
      * Trzy warunki i wszystkie muszą być spełnione: ustawienie włączone, klucz
@@ -2142,23 +2191,47 @@ class AIOrchestrator(
             val jegoJęzyk = settings.getEarTranslationFrom()
             try {
                 diag.event(DiagFormat.Phase.NASŁUCH, "rozmowa: moja kolej", mapOf("zOkularów" to zOkularów))
+                // TELEFON SŁUCHA TEŻ, PO POLSKU - NIE TYLKO OKULARY.
+                //
+                // Dotąd kliknięcie na oprawce brało WYŁĄCZNIE nagranie z
+                // okularów i przepisywało je rozpoznawaniem na urządzeniu. Na
+                // telefonie użytkownika ta droga nie oddała tekstu ani razu w
+                // ponad 250 próbach - więc w rozmowie w dwie strony Twoja kolej
+                // kończyłaby się zawsze "Nie usłyszałem". Teraz jest tak jak przy
+                // zwykłym pytaniu: rozpoznawanie telefonu w Twoim języku, a
+                // okulary pilnują końca wypowiedzi. Nagranie z okularów idzie w
+                // ruch dopiero, gdy telefon nic nie zrozumiał.
+                var źródło = "telefon"
                 val tekst = if (zOkularów && glassesManager.isConnected()) {
                     val capture = GlassesVoiceCapture(glassesManager)
                     try {
-                        if (capture.start()) {
-                            try {
-                                capture.awaitSpeechEnd()
-                            } finally {
-                                glassesManager.stopGlassesListening()
+                        val nadaje = capture.start()
+                        audio.playListeningCue()
+                        setAsidePhoneTranscript = null
+                        val zTelefonu = try {
+                            listenUntilSpeechEnds(
+                                languageTag = languageTagFor(mój),
+                                capture = if (nadaje) capture else null,
+                                trustPhoneMicrophone = true,
+                                useBluetoothMic = pl.victor.app.audio.MicChoice.useBluetoothMic(
+                                    overSco = false,
+                                    bleStreamLive = nadaje
+                                )
+                            )?.takeIf { it.isNotBlank() } ?: setAsidePhoneTranscript
+                        } finally {
+                            glassesManager.stopGlassesListening()
+                        }
+                        zTelefonu ?: run {
+                            val pcm = if (nadaje) capture.stop().takeIf { it.hasAudio }?.pcm else null
+                            pcm?.let {
+                                źródło = "okulary"
+                                transcribeGlassesAudio(it, languageTagFor(mój))
+                                    ?: transcribeWithModel(it, mój)?.also { źródło = "model" }
                             }
-                            capture.stop()?.takeIf { it.hasAudio }?.pcm
-                                ?.let { transcribeGlassesAudio(it, languageTagFor(mój)) }
-                        } else {
-                            null
                         }
                     } finally {
-                        // Anulowanie w awaitSpeechEnd albo nieudany start zostawiały
-                        // odbiorcę mikrofonu na zawsze (bufor sprzed nasłuchu i
+                        // Anulowanie albo nieudany start zostawiały odbiorcę
+                        // mikrofonu na zawsze (bufor sprzed nasłuchu i
                         // wybudzenie dźwiękiem przestawały działać).
                         capture.detach()
                     }
@@ -2182,7 +2255,7 @@ class AIOrchestrator(
                 }
                 diag.event(
                     DiagFormat.Phase.NASŁUCH, "rozmowa: moje zdanie",
-                    mapOf("powiedziane" to tekst.take(60), "przekład" to przekład.take(60))
+                    mapOf("powiedziane" to tekst.take(60), "przekład" to przekład.take(60), "źródło" to źródło)
                 )
                 _earTranscript.value = _earTranscript.value.zSegmentem(
                     pl.victor.app.translation.TwoWay.mojeZdanie(tekst), przekład, System.currentTimeMillis()
@@ -2714,11 +2787,26 @@ class AIOrchestrator(
             // wyłączyła tłumaczenie po jednym podejściu.
             earListenError = speechToText.lastFailureReason()
             earListenErrorCode = speechToText.lastFailureCode
+            // Telefon dał tekst, a przepisanie nagrania z okularów milczy od
+            // [GLASSES_TRANSCRIPT_MAX_MISSES] prób: każde zdanie czekało 2-4 s
+            // na rozkodowanie i przepisanie, które nic nie wnosiło - przekład
+            // przychodził przez to wyraźnie po rozmówcy. Nagranie zamykamy obok.
+            if (!heard.isNullOrBlank() && glassesTranscriptMissedTooOften()) {
+                zatrzymane = true
+                capture?.let { c ->
+                    scope.launch(kotlinx.coroutines.NonCancellable) { runCatching { c.stop() } }
+                }
+                return heard
+            }
             val captured = capture?.stop()
             zatrzymane = true
             val zOkularów = captured?.pcm
                 ?.takeIf { captured.hasAudio }
                 ?.let { transcribeGlassesAudio(it, languageTagFor(from)) }
+                ?.also { glassesTranscriptMisses = 0 }
+            if (zOkularów == null && captured?.hasAudio == true && !heard.isNullOrBlank()) {
+                glassesTranscriptMisses = glassesTranscriptMisses + 1
+            }
             zOkularów ?: heard ?: setAsidePhoneTranscript
         } finally {
             _state.value = OrchestratorState.Idle
@@ -7700,6 +7788,12 @@ class AIOrchestrator(
          * z mową - od ok. 1500 wzwyż.
          */
         private const val RECORDING_SPEECH_PEAK = 800.0
+
+        /** Umówiona odpowiedź modelu "w nagraniu nie ma mowy" - patrz [transcribeWithModel]. */
+        private const val MODEL_NO_SPEECH = "BRAK"
+
+        /** Dłuższy "przepis" krótkiej wypowiedzi to model, który się rozgadał. */
+        private const val MODEL_TRANSCRIPT_MAX_CHARS = 400
 
         /** Stan, który ma przetrwać restart aplikacji, a nie jest ustawieniem. */
         private const val RUNTIME_PREFS = "victor_runtime"
