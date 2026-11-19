@@ -2147,7 +2147,22 @@ class AIOrchestrator(
             polecenie = { tekst ->
                 if (pl.victor.app.conversation.MetaCommands.meetingCommand(tekst) == false) stopMeeting()
             },
-            wolnoWznowić = { !_earTranslation.value }
+            wolnoWznowić = { !_earTranslation.value },
+            // Mówcy: płatne (przełącznik w Ustawieniach, "tylko darmowe") i tylko
+            // przez Gemini - diaryzację ma `gemini-3.5-transcribe`, nie aktywny dostawca.
+            bezMówców = {
+                pl.victor.app.features.meeting.SpeakerTranscript.powódBezMówców(
+                    tylkoDarmowe = settings.isFreeOnly(),
+                    włączone = settings.isMeetingSpeakersEnabled(),
+                    kluczGemini = settings.getApiKey("gemini")
+                )
+            },
+            rozpoznajMówców = { plik ->
+                settings.getApiKey("gemini")?.takeIf { it.isNotBlank() }?.let { klucz ->
+                    pl.victor.app.features.meeting.MeetingDiarizer(klucz)
+                        .rozpoznaj(plik, languageTagFor(settings.getResponseLanguage()))
+                }
+            }
         )
     }
 

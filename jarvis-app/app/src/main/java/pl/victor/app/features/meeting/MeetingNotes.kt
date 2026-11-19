@@ -4,8 +4,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Jedna wypowiedź ze spotkania - przesunięcie od początku i tekst. */
-data class MeetingLine(val odStartuMs: Long, val tekst: String)
+/**
+ * Jedna wypowiedź ze spotkania - przesunięcie od początku i tekst.
+ *
+ * [mówca] ("Osoba 1") i [fragment] są tylko przy rozpoznaniu mówców (patrz
+ * [SpeakerTranscript]); spotkania zapisane wcześniej czytają się z `null`.
+ */
+data class MeetingLine(
+    val odStartuMs: Long,
+    val tekst: String,
+    val mówca: String? = null,
+    /** Numer fragmentu nagrania - numeracja osób zaczyna się w nim od nowa. */
+    val fragment: Int? = null
+)
 
 /** Zapisane spotkanie. */
 data class Meeting(
@@ -20,8 +31,33 @@ data class Meeting(
 /** Teksty dla modelu, na głos i do udostępnienia - bez Androida. */
 object MeetingNotes {
 
-    fun transkrypcja(linie: List<MeetingLine>): String =
-        linie.joinToString("\n") { "[${czas(it.odStartuMs)}] ${it.tekst}" }
+    /**
+     * Linie "[mm:ss] Osoba 1: tekst". Gdy zaczyna się kolejny fragment z
+     * mówcami, wstawia znacznik - ta sama osoba może mieć w nim inny numer i
+     * czytający (człowiek albo model) musi to wiedzieć.
+     */
+    fun transkrypcja(linie: List<MeetingLine>): String = buildString {
+        var poprzedniFragment: Int? = null
+        var byłFragment = false
+        linie.forEach { l ->
+            if (l.mówca != null && l.fragment != null && l.fragment != poprzedniFragment) {
+                if (byłFragment) {
+                    if (isNotEmpty()) append('\n')
+                    append("--- kolejne ").append(SpeakerTranscript.MAKS_FRAGMENT_MS / 60_000)
+                        .append(" min nagrania: numeracja osób od nowa ---")
+                }
+                byłFragment = true
+                poprzedniFragment = l.fragment
+            }
+            if (isNotEmpty()) append('\n')
+            append('[').append(czas(l.odStartuMs)).append("] ")
+            l.mówca?.let { append(it).append(": ") }
+            append(l.tekst)
+        }
+    }
+
+    /** Czy transkrypcja ma rozpoznanych mówców. */
+    fun zMówcami(linie: List<MeetingLine>): Boolean = linie.any { it.mówca != null }
 
     /**
      * Polecenie dla modelu. Krótkie i stałe w formie: wynik idzie do notatek
@@ -30,7 +66,14 @@ object MeetingNotes {
     fun polecenie(linie: List<MeetingLine>, czasTrwaniaMs: Long): String = buildString {
         append("Poniżej transkrypcja spotkania (").append(czasTrwaniaMs / 60_000).append(" min), ")
         append("przepisana automatycznie z mikrofonu - mogą w niej być pomyłki rozpoznawania mowy, ")
-        append("popraw je po sensie, ale nie wymyślaj niczego, czego nie ma.\n\n")
+        append("popraw je po sensie, ale nie wymyślaj niczego, czego nie ma.\n")
+        if (zMówcami(linie)) {
+            append("Wypowiedzi są oznaczone mówcami (\"Osoba 1\", \"Osoba 2\"...) rozpoznanymi automatycznie ")
+            append("po głosie. Numeracja zaczyna się od nowa w każdym kawałku nagrania (znacznik \"---\"), ")
+            append("więc ta sama osoba może mieć w różnych kawałkach inny numer. Przy zadaniach pisz, kto je ")
+            append("bierze: imię, jeśli padło, a jeśli nie - \"Osoba N\" tylko wtedy, gdy wynika to z jednego kawałka.\n")
+        }
+        append("\n")
         append("Przygotuj notatkę po polsku, BEZ markdown, dokładnie w tym układzie:\n")
         append("TEMAT: jedno zdanie\n")
         append("USTALENIA:\n- ...\n")

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * Notatki ze spotkania: nagrywa mikrofonem telefonu, przepisuje na bieżąco,
@@ -40,6 +41,17 @@ import kotlinx.coroutines.withContext
  * Zakończenie działa też samo z siebie: gdy przepisana wypowiedź jest
  * poleceniem końca, [polecenie] dostaje ją od razu.
  *
+ * ## Mówcy (płatne, z przełącznikiem)
+ * Gdy [bezMówców] zwraca `null` przy starcie, wypowiedzi idą też do plików
+ * fragmentów ([ZapisFragmentów]), a każdy pełny fragment (7 min MOWY) jest
+ * rozpoznawany z podziałem na mówców W TRAKCIE spotkania, w tle. Dlaczego nie
+ * dopiero po końcu: godzinne spotkanie to kilka zapytań po kilkadziesiąt
+ * sekund, a po "zakończ spotkanie" czekałoby się na nie wszystkie przed
+ * podsumowaniem. W trakcie zostaje tylko ostatni, niepełny fragment. Plik
+ * fragmentu znika zaraz po udanym rozpoznaniu. Transkrypcja na żywo działa
+ * jak dotąd (ekran, "zakończ spotkanie") i zostaje tam, gdzie fragment się
+ * nie udał - patrz [SpeakerTranscript.scal].
+ *
  * @param przepisz PCM 16 kHz mono -> tekst albo `null`
  * @param podsumuj polecenie -> notatka modelu albo `null`
  * @param polecenie każda przepisana wypowiedź - do wykrycia "zakończ spotkanie"
@@ -52,7 +64,11 @@ class MeetingRecorder(
     private val dziennik: (String, Map<String, Any?>) -> Unit,
     private val polecenie: (String) -> Unit = {},
     /** Czy wolno zdjąć pauzę z bezpiecznika - nie, gdy mikrofon należy do tłumaczenia albo tury. */
-    private val wolnoWznowić: () -> Boolean = { true }
+    private val wolnoWznowić: () -> Boolean = { true },
+    /** `null` = rozpoznawać mówców; inaczej powód, czemu nie (do dziennika). Pytane przy starcie. */
+    private val bezMówców: () -> String? = { "niedostępne" },
+    /** Plik PCM fragmentu -> odpowiedź usługi z mówcami. */
+    private val rozpoznajMówców: suspend (File) -> MeetingDiarizer.Wynik? = { null }
 ) {
     sealed class Stan {
         object Bezczynny : Stan()
@@ -84,6 +100,12 @@ class MeetingRecorder(
     private var kolejka: Channel<Pair<Long, ShortArray>>? = null
     private var startMs = 0L
     @Volatile private var nieprzepisanych = 0
+
+    /** Fragmenty do rozpoznania mówców - `null`, gdy spotkanie idzie bez nich. */
+    private var mówcyKolejka: Channel<ZapisFragmentów.Fragment>? = null
+    private var mówcy: Job? = null
+    private val wynikiMówców: MutableList<SpeakerTranscript.WynikFragmentu> =
+        java.util.Collections.synchronizedList(ArrayList<SpeakerTranscript.WynikFragmentu>())
 
     val nagrywa: Boolean get() = _stan.value is Stan.Nagrywa
 
@@ -142,7 +164,11 @@ class MeetingRecorder(
         _stan.value = Stan.Nagrywa(startMs)
         val k = Channel<Pair<Long, ShortArray>>(Channel.UNLIMITED)
         kolejka = k
-        dziennik("spotkanie: start", emptyMap())
+        val id = startMs.toString()
+        val powód = runCatching { bezMówców() }.getOrElse { it.javaClass.simpleName }
+        wynikiMówców.clear()
+        val zapis = if (powód == null) uruchomMówców(id) else null
+        dziennik("spotkanie: start", mapOf("mówcy" to (powód == null), "bezMówców" to powód))
 
         przepisywanie = scope.launch {
             for ((odStartu, próbki) in k) {
@@ -167,6 +193,19 @@ class MeetingRecorder(
         }
 
         nagrywanie = scope.launch(Dispatchers.IO) {
+            var plikMówców = zapis
+            // Każda wypowiedź: do przepisania na bieżąco i - przy mówcach - do pliku fragmentu.
+            fun wypowiedź(odStartu: Long, próbki: ShortArray) {
+                k.trySend(odStartu to próbki)
+                val z = plikMówców ?: return
+                try {
+                    z.dopisz(odStartu, SpeechSegmenter.doBajtów(próbki))
+                } catch (e: Exception) {
+                    // Pełny dysk nie może zatrzymać nagrywania - spotkanie idzie dalej bez mówców.
+                    plikMówców = null
+                    dziennik("spotkanie: mówcy - zapis nagrania nie działa", mapOf("błąd" to e.javaClass.simpleName))
+                }
+            }
             val segmenter = SpeechSegmenter(HZ)
             val ramka = ShortArray(HZ / 50) // 20 ms
             var przeczytane = 0L
@@ -187,7 +226,7 @@ class MeetingRecorder(
                             runCatching { r.stop() }
                             r.release()
                             rec = null
-                            segmenter.domknij()?.let { k.trySend((przeczytane * 1000 / HZ) to it) }
+                            segmenter.domknij()?.let { wypowiedź(przeczytane * 1000 / HZ, it) }
                         }
                         kotlinx.coroutines.delay(100)
                         continue
@@ -204,23 +243,62 @@ class MeetingRecorder(
                     if (n <= 0) continue
                     przeczytane += n
                     val kawałek = if (n == ramka.size) ramka.copyOf() else ramka.copyOf(n)
-                    segmenter.podaj(kawałek)?.let { wypowiedź ->
+                    segmenter.podaj(kawałek)?.let { kawałekMowy ->
                         // Zegar ścienny, nie liczba próbek: pauzy (tura asystenta)
                         // nie dodają próbek i znaczniki czasu się rozjeżdżały.
                         val koniecMs = System.currentTimeMillis() - startMs
-                        k.trySend((koniecMs - wypowiedź.size * 1000L / HZ) to wypowiedź)
+                        wypowiedź(koniecMs - kawałekMowy.size * 1000L / HZ, kawałekMowy)
                     }
                 }
-                segmenter.domknij()?.let { k.trySend((System.currentTimeMillis() - startMs) to it) }
+                segmenter.domknij()?.let { wypowiedź(System.currentTimeMillis() - startMs, it) }
             } finally {
                 rec?.let { r ->
                     runCatching { r.stop() }
                     r.release()
                 }
                 k.close()
+                // Ostatni, niepełny fragment też idzie do rozpoznania.
+                runCatching { plikMówców?.domknij() }
+                mówcyKolejka?.close()
             }
         }
         return true
+    }
+
+    /**
+     * Kolejka i pętla rozpoznawania mówców - fragment po fragmencie, w tle.
+     *
+     * @return zapis fragmentów dla pętli nagrywania
+     */
+    private fun uruchomMówców(id: String): ZapisFragmentów {
+        val q = Channel<ZapisFragmentów.Fragment>(Channel.UNLIMITED)
+        mówcyKolejka = q
+        mówcy = scope.launch {
+            for (f in q) {
+                val sekund = f.plik.length() / SpeakerTranscript.BAJTÓW_NA_SEKUNDĘ
+                val w = runCatching { rozpoznajMówców(f.plik) }.getOrNull()
+                val o = w?.odpowiedź?.takeIf { it.maMówców }
+                val linie = o?.let { SpeakerTranscript.linie(it.słowa, f.ułożenie, f.nr) }?.takeIf { it.isNotEmpty() }
+                val (odMs, doMs) = SpeakerTranscript.zakres(f.ułożenie)
+                wynikiMówców.add(SpeakerTranscript.WynikFragmentu(f.nr, odMs, doMs, linie))
+                // Udany - nagranie nie jest już potrzebne. Nieudany zostaje do
+                // końca spotkania (patrz [stop]), żeby dało się go obejrzeć w razie błędu.
+                if (linie != null) f.plik.delete()
+                dziennik(
+                    "spotkanie: mówcy - fragment",
+                    mapOf(
+                        "nr" to f.nr, "s" to sekund, "wypowiedzi" to f.ułożenie.size,
+                        "ms" to w?.ms, "prób" to w?.prób, "osób" to (o?.mówców ?: 0),
+                        "słów" to (w?.odpowiedź?.słowa?.size ?: 0), "linii" to (linie?.size ?: 0),
+                        "błąd" to (w?.błąd ?: if (w == null) "brak wyniku" else null)
+                    )
+                )
+            }
+        }
+        return ZapisFragmentów(
+            plikDla = { nr -> store.plikFragmentu(id, nr) },
+            gotowy = { q.trySend(it) }
+        )
     }
 
     /**
@@ -235,7 +313,36 @@ class MeetingRecorder(
         _stan.value = Stan.Podsumowuje
         nagrywanie?.join()
         przepisywanie?.join()
-        val linie = _linie.value
+        // Ostatni fragment mówców - zwykle jedno zapytanie, reszta poszła w trakcie.
+        // Z limitem: zawieszona usługa nie może trzymać podsumowania w nieskończoność -
+        // fragmenty bez wyniku biorą wtedy linie przepisane na bieżąco.
+        mówcy?.let { job ->
+            if (kotlinx.coroutines.withTimeoutOrNull(MAKS_CZEKANIE_NA_MÓWCÓW_MS) { job.join() } == null) {
+                job.cancel()
+                dziennik("spotkanie: mówcy - koniec czekania", mapOf("s" to MAKS_CZEKANIE_NA_MÓWCÓW_MS / 1000))
+            }
+        }
+        mówcy = null
+        mówcyKolejka = null
+        val żywe = _linie.value
+        // Jedna pętla rozpoznawania, fragment po fragmencie - kolejność jest już po numerach.
+        val wyniki: List<SpeakerTranscript.WynikFragmentu> = synchronized(wynikiMówców) { wynikiMówców.toList() }
+        val linie = SpeakerTranscript.scal(żywe, wyniki)
+        // Nieudane fragmenty też: nie ma drogi, żeby je ponowić, a to nagranie
+        // głosu ludzi przy stole - nie zostaje w telefonie bez potrzeby.
+        val usunięte = withContext(Dispatchers.IO) { runCatching { store.usuńNagrania(startMs.toString()) }.getOrDefault(0) }
+        if (wyniki.isNotEmpty()) {
+            dziennik(
+                "spotkanie: mówcy - wynik",
+                mapOf(
+                    "fragmentów" to wyniki.size,
+                    "udanych" to wyniki.count { it.linie != null },
+                    "linii" to linie.count { it.mówca != null },
+                    "zastąpionych" to (żywe.size - linie.count { it.mówca == null }),
+                    "usuniętychNagrań" to usunięte
+                )
+            )
+        }
         dziennik(
             "spotkanie: koniec nagrywania",
             mapOf("min" to (koniec - startMs) / 60_000, "wypowiedzi" to linie.size, "nieprzepisanych" to nieprzepisanych)
@@ -264,6 +371,9 @@ class MeetingRecorder(
     companion object {
         const val HZ = 16_000
         private const val MAKS_PAUZA_MS = 120_000L
+
+        /** Najdłużej czekamy po końcu spotkania na rozpoznanie mówców (ostatni fragment, może i przedostatni). */
+        private const val MAKS_CZEKANIE_NA_MÓWCÓW_MS = 240_000L
 
         /** Jak często zapisujemy stan spotkania w trakcie. */
         private const val ZAPIS_CO_MS = 15_000L

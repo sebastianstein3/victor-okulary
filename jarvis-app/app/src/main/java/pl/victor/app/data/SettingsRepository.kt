@@ -226,6 +226,23 @@ class SettingsRepository private constructor(private val context: Context) {
     }
 
     /**
+     * Czy w notatkach ze spotkania rozpoznawać mówców ("Osoba 1:", "Osoba 2:")
+     * przez `gemini-3.5-transcribe` z diaryzacją - patrz
+     * [pl.victor.app.features.meeting.SpeakerTranscript].
+     *
+     * Płatne: ok. $0,003 za minutę MOWY na spotkaniu (cisza nie jest wysyłana),
+     * dodatkowo do transkrypcji na bieżąco. Wymaga klucza Gemini - sprawdza to
+     * orkiestrator przy starcie spotkania. Wyłączone albo "tylko darmowe" -
+     * notatki jak dotąd, bez mówców.
+     */
+    fun isMeetingSpeakersEnabled(): Boolean =
+        prefs.getBoolean(KEY_MEETING_SPEAKERS, true) && !isFreeOnly()
+
+    fun setMeetingSpeakersEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_MEETING_SPEAKERS, enabled).apply()
+    }
+
+    /**
      * Czy nasłuch frazy ma iść przez MIKROFON OKULARÓW zamiast telefonu.
      *
      * ## Domyślnie WYŁĄCZONE i to jest ważne
@@ -1248,6 +1265,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_WAKE_FIX_184 = "wake_enabled_fix_184"
         private const val KEY_WAKE_WORD_GLASSES_MIC = "wake_word_glasses_mic"
         private const val KEY_CLOUD_TRANSCRIPTION = "cloud_transcription"
+        private const val KEY_MEETING_SPEAKERS = "meeting_speakers"
         private const val KEY_PHOTO_SOURCE = "photo_source"
         private const val KEY_PHOTO_DIVISOR = "photo_divisor"
         private const val KEY_DIAG_LOG = "diagnostic_log_enabled"

@@ -21,13 +21,25 @@ object WavWriter {
      */
     fun wrap(pcm: ByteArray, sampleRate: Int, channels: Int = 1): ByteArray {
         val out = ByteArrayOutputStream(HEADER_SIZE + pcm.size)
+        out.write(header(pcm.size, sampleRate, channels))
+        out.write(pcm)
+        return out.toByteArray()
+    }
+
+    /**
+     * Sam nagłówek WAV dla [pcmBytes] bajtów próbek - do wysyłania długiego
+     * nagrania strumieniem z pliku (notatki ze spotkania), bez trzymania
+     * kilkunastu MB w pamięci.
+     */
+    fun header(pcmBytes: Int, sampleRate: Int, channels: Int = 1): ByteArray {
+        val out = ByteArrayOutputStream(HEADER_SIZE)
         val byteRate = sampleRate * channels * BYTES_PER_SAMPLE
         val blockAlign = channels * BYTES_PER_SAMPLE
 
         out.write("RIFF".toByteArray(Charsets.US_ASCII))
         // Pole RIFF liczy WSZYSTKO po sobie: "WAVE" (4) + nagłówek i treść
         // sekcji "fmt " (8 + 16) + nagłówek sekcji "data" (8) + same próbki.
-        out.write(le32(RIFF_OVERHEAD + pcm.size))
+        out.write(le32(RIFF_OVERHEAD + pcmBytes))
         out.write("WAVE".toByteArray(Charsets.US_ASCII))
 
         out.write("fmt ".toByteArray(Charsets.US_ASCII))
@@ -40,9 +52,7 @@ object WavWriter {
         out.write(le16(BITS_PER_SAMPLE))
 
         out.write("data".toByteArray(Charsets.US_ASCII))
-        out.write(le32(pcm.size))
-        out.write(pcm)
-
+        out.write(le32(pcmBytes))
         return out.toByteArray()
     }
 
@@ -56,7 +66,7 @@ object WavWriter {
     private fun le16(value: Int): ByteArray =
         ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(value.toShort()).array()
 
-    private const val HEADER_SIZE = 44
+    const val HEADER_SIZE = 44
 
     /** Wszystko w nagłówku poza polem RIFF i samymi próbkami: 44 - 8. */
     private const val RIFF_OVERHEAD = 36
