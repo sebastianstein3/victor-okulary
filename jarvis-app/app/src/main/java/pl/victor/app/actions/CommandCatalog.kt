@@ -26,7 +26,12 @@ object CommandCatalog {
         /** Zdania, które faktycznie zadziałają, gdy się je powie lub kliknie. */
         val examples: List<String>,
         /** Czy bez połączonych okularów ta komenda nie ma sensu. */
-        val needsGlasses: Boolean = false
+        val needsGlasses: Boolean = false,
+        /**
+         * Czy komenda potrzebuje obrazu z kamery. W trybie bez kamery
+         * (Ustawienia) takie pozycje są ukryte - patrz [grouped].
+         */
+        val needsCamera: Boolean = false
     )
 
     enum class CommandGroup(val emoji: String, val title: String) {
@@ -44,7 +49,8 @@ object CommandCatalog {
             ActionType.TAKE_PHOTO, CommandGroup.VISION, "Zrób zdjęcie",
             "Robi zdjęcie okularami i pokazuje je modelowi.",
             listOf("Zrób zdjęcie", "Co właśnie widzę?", "Spójrz na to"),
-            needsGlasses = true
+            needsGlasses = true,
+            needsCamera = true
         ),
         CommandInfo(
             ActionType.SEND_SMS, CommandGroup.COMMUNICATION, "Wyślij SMS",
@@ -189,31 +195,43 @@ object CommandCatalog {
             ActionType.READ_TEXT, CommandGroup.ACCESSIBILITY, "Czytaj tekst",
             "Czyta na głos napisy, na które patrzysz - w pętli, aż powiesz stop.",
             listOf("Czytaj tekst na głos", "Przeczytaj mi to"),
-            needsGlasses = true
+            needsGlasses = true,
+            needsCamera = true
         ),
         CommandInfo(
             ActionType.DESCRIBE_SCENE, CommandGroup.ACCESSIBILITY, "Opisuj otoczenie",
             "Co jakiś czas opisuje, co widać dookoła.",
             listOf("Opisuj mi otoczenie", "Co przede mną?"),
-            needsGlasses = true
+            needsGlasses = true,
+            needsCamera = true
         ),
         CommandInfo(
             ActionType.START_NAVIGATION, CommandGroup.ACCESSIBILITY, "Prowadź (dla niewidomych)",
             "Ostrzega o schodach, krawężnikach i przeszkodach na drodze.",
             listOf("Prowadź mnie", "Uważaj na przeszkody"),
-            needsGlasses = true
+            needsGlasses = true,
+            needsCamera = true
         ),
         CommandInfo(
             ActionType.STOP_ACCESSIBILITY, CommandGroup.ACCESSIBILITY, "Wyłącz tryb",
             "Kończy czytanie, opisywanie albo prowadzenie.",
-            listOf("Dziękuję, wystarczy", "Przestań czytać")
+            listOf("Dziękuję, wystarczy", "Przestań czytać"),
+            // Sama nie patrzy, ale kończy wyłącznie tryby, które bez kamery
+            // się nie włączą - bez nich byłaby jedyną pozycją w swojej grupie.
+            needsCamera = true
         )
     )
 
-    /** Komendy pogrupowane tematycznie, w kolejności grup. */
-    fun grouped(): List<Pair<CommandGroup, List<CommandInfo>>> =
-        CommandGroup.entries.map { group -> group to ALL.filter { it.group == group } }
-            .filter { it.second.isNotEmpty() }
+    /**
+     * Komendy pogrupowane tematycznie, w kolejności grup.
+     *
+     * @param cameraFree `true` = tryb bez kamery: bez komend z [CommandInfo.needsCamera];
+     *   grupa, która przez to zostaje pusta, znika
+     */
+    fun grouped(cameraFree: Boolean = false): List<Pair<CommandGroup, List<CommandInfo>>> =
+        CommandGroup.entries.map { group ->
+            group to ALL.filter { it.group == group && !(cameraFree && it.needsCamera) }
+        }.filter { it.second.isNotEmpty() }
 
     fun byType(type: ActionType): CommandInfo? = ALL.firstOrNull { it.type == type }
 
@@ -223,7 +241,17 @@ object CommandCatalog {
      * tłumaczenie. Do tej pory istniały wyłącznie jako komendy głosowe, o których
      * nigdzie nie było mowy (audyt 28.10).
      */
-    data class ModeInfo(val name: String, val whatItDoes: String, val examples: List<String>)
+    data class ModeInfo(
+        val name: String,
+        val whatItDoes: String,
+        val examples: List<String>,
+        /** Czy tryb potrzebuje kamery - w trybie bez kamery jest ukryty. */
+        val needsCamera: Boolean = false
+    )
+
+    /** Tryby do pokazania; w trybie bez kamery bez tych z [ModeInfo.needsCamera]. */
+    fun modes(cameraFree: Boolean = false): List<ModeInfo> =
+        MODES.filter { !(cameraFree && it.needsCamera) }
 
     val MODES: List<ModeInfo> = listOf(
         ModeInfo(
@@ -264,7 +292,8 @@ object CommandCatalog {
             "Film z okularów",
             "Nagrywa film kamerą okularów i zapisuje go w ich pamięci. Po zatrzymaniu " +
                 "sprawdzam, czy okulary faktycznie go zapisały. Po pięciu minutach kończę sam.",
-            listOf("Nagraj film", "Zatrzymaj nagrywanie")
+            listOf("Nagraj film", "Zatrzymaj nagrywanie"),
+            needsCamera = true
         ),
         ModeInfo(
             "Bateria i pamięć okularów",

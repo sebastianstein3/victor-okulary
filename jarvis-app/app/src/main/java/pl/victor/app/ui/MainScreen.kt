@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
-import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.History
@@ -65,10 +64,49 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Accessibility
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.BatteryStd
+import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.FormatListNumbered
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Hearing
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import pl.victor.app.OrchestratorState
 import pl.victor.app.ui.components.ActionConfirmationDialog
-import pl.victor.app.ui.components.CapabilitiesPanel
-import pl.victor.app.ui.components.GlassesPanel
 import pl.victor.app.ui.components.ModelBadge
 import pl.victor.app.ui.components.NewModelsBanner
 import pl.victor.app.ui.history.HistoryActivity
@@ -94,9 +132,15 @@ fun MainScreen(
     val newModels by viewModel.newModels.collectAsState()
     val currentModelId by viewModel.currentModelId.collectAsState()
     val pendingAction by viewModel.pendingActionConfirmation.collectAsState()
-    var textInput by remember { mutableStateOf("") }
+    // TextFieldValue, nie sam String: kafelki "Zadzwoń", "Krok po kroku" itd.
+    // wstawiają początek zdania i kursor ma stanąć NA KOŃCU, a przy zwykłym
+    // Stringu zostawał tam, gdzie był - czyli na początku pustego pola.
+    var textInput by remember { mutableStateOf(TextFieldValue("")) }
+    val textFocus = remember { FocusRequester() }
     val context = LocalContext.current
     val glassesManager = pl.victor.app.VictorApplication.get().glassesManager
+    val cameraFree by pl.victor.app.VictorApplication.get().settings.cameraFreeFlow.collectAsState()
+    val glassesBattery by glassesManager.batteryLevel.collectAsState()
 
     // Model mógł zostać zmieniony w ustawieniach - odśwież badge po powrocie na ten ekran
     // (ustawienia to osobne Activity, więc wracamy tu przez ON_RESUME).
@@ -125,10 +169,47 @@ fun MainScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         pl.victor.app.ui.brand.VictorMark(modifier = Modifier.size(24.dp))
                         Spacer(Modifier.size(8.dp))
-                        Text("V.I.C.T.O.R.")
+                        Text("V.I.C.T.O.R.", maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 },
                 actions = {
+                    // Znaczek trybu bez kamery: sama ikona, bo w pasku z czterema
+                    // przyciskami i baterią napis by się nie zmieścił na 390 dp.
+                    if (cameraFree) {
+                        Icon(
+                            Icons.Default.VideocamOff,
+                            contentDescription = "Tryb bez kamery",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .padding(end = 6.dp)
+                                .size(20.dp)
+                        )
+                    }
+                    // Bateria okularów - tylko gdy są połączone i ją znamy.
+                    // Zastępuje pełny panel okularów, który był na ekranie głównym.
+                    val battery = glassesBattery
+                    if (connState == pl.victor.app.ble.ConnectionState.READY && battery != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 2.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.BatteryStd,
+                                contentDescription = "Bateria okularów",
+                                tint = if (battery <= 20) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                "$battery%",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                     IconButton(onClick = {
                         context.startActivity(Intent(context, PairingActivity::class.java))
                     }) {
@@ -172,11 +253,17 @@ fun MainScreen(
             onCheckAgain = { viewModel.refreshModels() }
         )
 
-        // Animowany badge aktualnego modelu
-        ModelBadge(
-            modelId = currentModelId,
-            showDetails = state is OrchestratorState.Idle
-        )
+        // Animowany badge aktualnego modelu - poza stanem bezczynności. Na
+        // ekranie głównym zabierał ok. 70 dp, przez które kafelki przestawały
+        // się mieścić bez przewijania, a model widać i zmienia się w
+        // Ustawieniach. W trakcie odpowiedzi zostaje: wtedy ważne jest, KTO
+        // odpowiada.
+        if (state !is OrchestratorState.Idle) {
+            ModelBadge(
+                modelId = currentModelId,
+                showDetails = false
+            )
+        }
 
         // Banner ostrzegawczy o modelu
         modelWarning?.let { warning ->
@@ -220,25 +307,38 @@ fun MainScreen(
             }
         }
 
-        // verticalScroll, bo ekran główny nie mieści się już na jednym widoku:
-        // doszedł panel okularów i spis możliwości. Kolejność modyfikatorów jest
+        // verticalScroll zostaje, choć kafelki mieszczą się na typowym telefonie:
+        // przy dużej czcionce systemowej treść ma się przewijać, a nie urwać.
+        // Kolejność modyfikatorów jest
         // istotna - fillMaxSize PRZED przewijaniem zostawia kolumnie minimalną
         // wysokość ekranu, więc krótka treść (np. sam stan "myślę") dalej jest
         // wyśrodkowana, a długa się przewija zamiast urwać.
+        //
+        // Stan bezczynności (kafelki) układa się od góry, z węższym marginesem;
+        // pozostałe stany - jak dotąd, wyśrodkowane.
+        val idle = state is OrchestratorState.Idle
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(if (idle) 16.dp else 24.dp)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = if (idle) Alignment.Start else Alignment.CenterHorizontally,
+            verticalArrangement = if (idle) Arrangement.Top else Arrangement.Center
         ) {
             when (val currentState = state) {
                 is OrchestratorState.Idle -> IdleContent(
                     textInput = textInput,
                     onTextChange = { textInput = it },
+                    onPrefill = { start ->
+                        textInput = TextFieldValue(start, selection = TextRange(start.length))
+                        // Pole jest zawsze na ekranie w tym stanie; runCatching
+                        // na wypadek, gdyby kliknięcie przyszło w trakcie zmiany stanu.
+                        runCatching { textFocus.requestFocus() }
+                    },
+                    focusRequester = textFocus,
+                    cameraFree = cameraFree,
                     onCaptureClick = { viewModel.onCaptureButtonPressed() },
-                    onExample = { viewModel.onTextSubmit(it) },
+                    onSendText = { viewModel.onTextSubmit(it) },
                     onVoiceClick = {
                         // RECORD_AUDIO było zadeklarowane w manifeście, ale NIKT
                         // o nie nie prosił - ani onboarding, ani żaden ekran. Bez
@@ -253,8 +353,8 @@ fun MainScreen(
                         }
                     },
                     onTextSubmit = {
-                        viewModel.onTextSubmit(textInput)
-                        textInput = ""
+                        viewModel.onTextSubmit(textInput.text)
+                        textInput = TextFieldValue("")
                     }
                 )
 
@@ -313,287 +413,564 @@ fun MainScreen(
     }
 }
 
+/**
+ * Ekran główny w spoczynku: kafelki zamiast kolumny przycisków.
+ *
+ * ## Dlaczego kafelki
+ * Dawna kolumna obrysowanych przycisków z emoji rosła z każdą funkcją i
+ * kończyła się daleko poza ekranem - a najważniejsze ("Powiedz") było na
+ * samym dole. Teraz kolejność jest odwrotna: najpierw to, co DZIAŁA w tle
+ * (z przyciskiem "Zakończ"), potem główne wejście, potem funkcje w grupach
+ * po trzy. Całość mieści się na typowym telefonie bez przewijania; przewijanie
+ * zostaje tylko na wypadek dużej czcionki systemowej.
+ *
+ * ## Tryb bez kamery
+ * Gdy w Ustawieniach włączony jest "Tryb bez kamery", znikają kafelki, które
+ * bez aparatu nie mają sensu (Co widzę, Na żywo, Galeria, Dla niewidomych,
+ * Krok po kroku), a w ich miejsce wchodzi telefon: dzwonienie, muzyka, alarm,
+ * wiadomości i plan dnia.
+ */
 @Composable
 private fun IdleContent(
-    textInput: String,
-    onTextChange: (String) -> Unit,
+    textInput: TextFieldValue,
+    onTextChange: (TextFieldValue) -> Unit,
+    onPrefill: (String) -> Unit,
+    focusRequester: FocusRequester,
+    cameraFree: Boolean,
     onCaptureClick: () -> Unit,
-    onExample: (String) -> Unit,
+    onSendText: (String) -> Unit,
     onVoiceClick: () -> Unit,
     onTextSubmit: () -> Unit
 ) {
-    val orch = pl.victor.app.VictorApplication.get().orchestrator
-    val accessibilityMode by orch.accessibility.mode.collectAsState()
+    val app = pl.victor.app.VictorApplication.get()
+    val orch = app.orchestrator
     val context = LocalContext.current
 
-    Text(
-        text = "Hej, jestem Twoim asystentem AI",
-        style = MaterialTheme.typography.headlineSmall,
-        textAlign = TextAlign.Center
-    )
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    Text(
-        text = "Mów, pokaż aparatem albo napisz - odpowiem głosem",
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-
-    // === Okulary: stan, gesty, ostatnie zdarzenie ===
-    Spacer(modifier = Modifier.height(16.dp))
-    GlassesPanel(
-        onTakePhoto = onCaptureClick,
-        onOpenPairing = {
-            context.startActivity(Intent(context, PairingActivity::class.java))
-        },
-        onOpenDiagnostics = {
-            context.startActivity(
-                Intent(context, pl.victor.app.ui.diagnostics.DiagnosticsActivity::class.java)
-            )
-        },
-        onOpenGallery = {
-            context.startActivity(
-                Intent(context, pl.victor.app.ui.media.MediaActivity::class.java)
-            )
-        }
-    )
-
-    // === Podgląd na żywo ===
-    Spacer(modifier = Modifier.height(12.dp))
-    androidx.compose.material3.OutlinedButton(
-        onClick = {
-            context.startActivity(
-                Intent(context, pl.victor.app.ui.livepreview.LivePreviewActivity::class.java)
-            )
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        androidx.compose.material3.Text("Podgląd na żywo z kamery")
-    }
-
-    // === Tłumaczenie na żywo ===
-    // Panel jak w aplikacji producenta: to, co słychać, i przekład na ekranie.
-    Spacer(modifier = Modifier.height(12.dp))
-    androidx.compose.material3.OutlinedButton(
-        onClick = {
-            context.startActivity(
-                Intent(context, pl.victor.app.ui.translation.TranslationActivity::class.java)
-            )
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("🌍 Tłumaczenie na żywo")
-    }
-
-    // === Przewodnik po okolicy ===
-    // Ten sam tryb co "włącz przewodnika" głosem - patrz features.GuideMode.
-    Spacer(modifier = Modifier.height(12.dp))
-    val guide = remember { pl.victor.app.VictorApplication.get().orchestrator.guide }
+    // Wszystko, co może działać w tle - stąd pasek "TERAZ DZIAŁA" i
+    // podświetlenie kafelków.
+    val accessibilityMode by orch.accessibility.mode.collectAsState()
+    val guide = remember { orch.guide }
     val guideOn by guide.aktywny.collectAsState()
-    androidx.compose.material3.OutlinedButton(
-        onClick = { if (guide.aktywny.value) guide.stop("przycisk w aplikacji") else guide.start() },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(if (guideOn) "🧭 Przewodnik mówi - wyłącz" else "🧭 Przewodnik po okolicy")
+    val earOn by orch.earTranslation.collectAsState()
+    val earTwoWay by orch.earTwoWay.collectAsState()
+    val meetingRecorder = remember { orch.meeting }
+    val meetingState by meetingRecorder.stan.collectAsState()
+    val meetingOn = meetingState is pl.victor.app.features.meeting.MeetingRecorder.Stan.Nagrywa
+    val videoOn by app.glassesManager.videoRecording.collectAsState()
+    val connState by app.glassesManager.connectionState.collectAsState()
+    val blindOn = accessibilityMode != pl.victor.app.accessibility.AccessibilityMode.OFF
+
+    var showBlindDialog by remember { mutableStateOf(false) }
+
+    fun open(activity: Class<*>) {
+        context.startActivity(Intent(context, activity))
     }
 
-    // === Notatki ze spotkania ===
-    Spacer(modifier = Modifier.height(12.dp))
-    androidx.compose.material3.OutlinedButton(
-        onClick = {
-            context.startActivity(Intent(context, pl.victor.app.ui.meeting.MeetingActivity::class.java))
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("🎙️ Notatki ze spotkania")
+    // Gdy działa kilka rzeczy naraz, pasek pokazuje pierwszą z tej listy.
+    // Kolejność = co najbardziej zajmuje uszy i mikrofon.
+    val running: RunningMode? = when {
+        earTwoWay -> RunningMode(
+            icon = Icons.Default.Forum,
+            name = "Rozmowa – tłumaczenie",
+            onStop = { orch.stopEarTranslation("przycisk w aplikacji") }
+        )
+        earOn -> RunningMode(
+            icon = Icons.Default.Hearing,
+            name = "Tłumaczenie ze słuchu",
+            onStop = { orch.stopEarTranslation("przycisk w aplikacji") }
+        )
+        meetingOn -> RunningMode(
+            icon = Icons.Default.Group,
+            name = "Notatki ze spotkania",
+            onStop = { orch.stopMeeting() }
+        )
+        guideOn -> RunningMode(
+            icon = Icons.Default.Explore,
+            name = "Przewodnik po okolicy",
+            onStop = { guide.stop("przycisk w aplikacji") }
+        )
+        blindOn -> RunningMode(
+            icon = Icons.Default.Accessibility,
+            name = accessibilityMode.displayName,
+            onStop = { orch.accessibility.disable() }
+        )
+        videoOn -> RunningMode(
+            icon = Icons.Default.Videocam,
+            name = "Film z okularów",
+            onStop = { orch.stopVideoFromUi() }
+        )
+        else -> null
     }
 
-    // === Notatki ===
-    Spacer(modifier = Modifier.height(12.dp))
-    androidx.compose.material3.OutlinedButton(
-        onClick = {
-            context.startActivity(
-                Intent(context, pl.victor.app.ui.notes.NotesActivity::class.java)
+    // === Okulary niepołączone ===
+    // Pełny panel okularów (legenda gestów, ostatnie zdarzenie) zajmował pół
+    // ekranu także wtedy, gdy wszystko działało. Teraz przy połączonych
+    // okularach wystarcza znaczek baterii w pasku górnym, a karta pojawia się
+    // tylko wtedy, gdy jest coś do zrobienia: połączyć albo sprawdzić, co nie działa.
+    if (connState != pl.victor.app.ble.ConnectionState.READY) {
+        GlassesDisconnectedCard(
+            state = connState,
+            onConnect = { open(PairingActivity::class.java) },
+            onDiagnose = { open(pl.victor.app.ui.diagnostics.DiagnosticsActivity::class.java) }
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+
+    // === TERAZ DZIAŁA ===
+    running?.let { mode ->
+        RunningBar(mode)
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+
+    // === Rząd główny: Powiedz (2 kolumny) + Co widzę / Wiadomości ===
+    // Szerokość kolumny liczona jak w siatkach poniżej, żeby krawędzie
+    // kafelków wypadały w jednej linii.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val column = (maxWidth - TILE_GAP * 2) / 3
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(TILE_GAP)
+        ) {
+            VoiceTile(
+                onClick = onVoiceClick,
+                modifier = Modifier
+                    .width(column * 2 + TILE_GAP)
+                    .fillMaxHeight()
             )
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("📝 Notatki")
+            if (cameraFree) {
+                HomeTile(
+                    label = "Wiadomości",
+                    icon = Icons.Default.Chat,
+                    onClick = { orch.readNewMessages() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            } else {
+                HomeTile(
+                    label = "Co widzę",
+                    icon = Icons.Default.Visibility,
+                    onClick = onCaptureClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            }
+        }
     }
 
-    // === Co asystent o Tobie wie ===
-    Spacer(modifier = Modifier.height(8.dp))
-    androidx.compose.material3.OutlinedButton(
-        onClick = {
-            context.startActivity(
-                Intent(context, pl.victor.app.ui.memory.FactsActivity::class.java)
-            )
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("🧠 Co o Tobie wiem")
+    // === Grupy kafelków ===
+    val translationActivity = pl.victor.app.ui.translation.TranslationActivity::class.java
+    val earTile = HomeTileSpec("Ze słuchu", Icons.Default.Hearing, active = earOn && !earTwoWay) {
+        open(translationActivity)
     }
-
-    // === Co V.I.C.T.O.R. potrafi ===
-    Spacer(modifier = Modifier.height(12.dp))
-    CapabilitiesPanel(
-        onExample = onExample,
-        onOpenAll = {
-            context.startActivity(
-                Intent(context, pl.victor.app.ui.commands.CommandsActivity::class.java)
-            )
+    val twoWayTile = HomeTileSpec("Rozmowa", Icons.Default.Forum, active = earTwoWay) {
+        if (!orch.earTwoWay.value) orch.startTwoWayTranslation()
+        open(translationActivity)
+    }
+    val guideTile = HomeTileSpec("Przewodnik", Icons.Default.Explore, active = guideOn) {
+        if (guide.aktywny.value) guide.stop("przycisk w aplikacji") else guide.start()
+    }
+    val factsTile = HomeTileSpec("Co o mnie wiesz", Icons.Default.Face) {
+        open(pl.victor.app.ui.memory.FactsActivity::class.java)
+    }
+    val commandsTile = HomeTileSpec("Wszystkie komendy", Icons.Default.List) {
+        open(pl.victor.app.ui.commands.CommandsActivity::class.java)
+    }
+    val rememberGroup = listOf(
+        HomeTileSpec("Notatki", Icons.Default.Edit) {
+            open(pl.victor.app.ui.notes.NotesActivity::class.java)
+        },
+        HomeTileSpec("Spotkanie", Icons.Default.Group, active = meetingOn) {
+            open(pl.victor.app.ui.meeting.MeetingActivity::class.java)
+        },
+        // Przypomnienia w miejscach mają swoją kartę na ekranie komend.
+        HomeTileSpec("Przypomnienia", Icons.Default.Notifications) {
+            open(pl.victor.app.ui.commands.CommandsActivity::class.java)
         }
     )
 
-    // === Panel Accessibility (niewidomi) ===
-    Spacer(modifier = Modifier.height(12.dp))
-    // PANEL, NIE KARTA. Materialowa karta oddziela treść cieniem i
-    // wypełnieniem - wygląda jak kartonik na tle. Panel oddziela ją kreską i
-    // zostawia tło prawie takie samo jak dookoła; tak buduje się pola w
-    // przyrządach. Patrz [pl.victor.app.ui.theme.VictorPanel].
-    pl.victor.app.ui.theme.VictorPanel(
-        label = "Asystent niewidomych",
-        accent = accessibilityMode != pl.victor.app.accessibility.AccessibilityMode.OFF
+    val groups: List<Pair<String, List<HomeTileSpec>>> = if (cameraFree) {
+        listOf(
+            "Telefon" to listOf(
+                HomeTileSpec("Zadzwoń", Icons.Default.Call) { onPrefill("Zadzwoń do ") },
+                HomeTileSpec("Muzyka", Icons.Default.MusicNote) { onSendText("Włącz muzykę") },
+                HomeTileSpec("Alarm i minutnik", Icons.Default.Alarm) { onPrefill("Ustaw alarm na ") }
+            ),
+            "Rozmawiaj i tłumacz" to listOf(
+                earTile,
+                twoWayTile,
+                HomeTileSpec("Mój dzień", Icons.Default.WbSunny) { orch.runBriefing() }
+            ),
+            "Zapamiętaj" to rememberGroup,
+            "W drodze i moje" to listOf(guideTile, factsTile, commandsTile)
+        )
+    } else {
+        listOf(
+            "Patrz i tłumacz" to listOf(
+                HomeTileSpec("Na żywo", Icons.Default.Videocam) {
+                    open(pl.victor.app.ui.livepreview.LivePreviewActivity::class.java)
+                },
+                earTile,
+                twoWayTile
+            ),
+            "Zapamiętaj" to rememberGroup,
+            "W drodze" to listOf(
+                guideTile,
+                HomeTileSpec("Krok po kroku", Icons.Default.FormatListNumbered) {
+                    onPrefill("Krok po kroku: ")
+                },
+                HomeTileSpec("Dla niewidomych", Icons.Default.Accessibility, active = blindOn) {
+                    showBlindDialog = true
+                }
+            ),
+            "Moje" to listOf(
+                HomeTileSpec("Galeria", Icons.Default.PhotoLibrary) {
+                    open(pl.victor.app.ui.media.MediaActivity::class.java)
+                },
+                factsTile,
+                commandsTile
+            )
+        )
+    }
+
+    groups.forEach { (title, tiles) ->
+        Spacer(modifier = Modifier.height(14.dp))
+        TileGroup(title = title, tiles = tiles)
+    }
+
+    // === Pole tekstowe ===
+    Spacer(modifier = Modifier.height(16.dp))
+    OutlinedTextField(
+        value = textInput,
+        onValueChange = onTextChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        placeholder = { Text("Lub wpisz pytanie…") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+        keyboardActions = KeyboardActions(onSend = {
+            if (textInput.text.isNotBlank()) onTextSubmit()
+        }),
+        trailingIcon = {
+            IconButton(onClick = onTextSubmit, enabled = textInput.text.isNotBlank()) {
+                Icon(Icons.Default.Send, contentDescription = "Wyślij")
+            }
+        }
+    )
+
+    // === Tryby dla niewidomych ===
+    // Zastępuje dawny duży panel "Asystent niewidomych": trzy tryby to rzadki
+    // wybór, a panel zajmował stałe miejsce na ekranie każdemu.
+    if (showBlindDialog) {
+        BlindModesDialog(
+            current = accessibilityMode,
+            onReadText = { orch.accessibility.enableReadText() },
+            onDescribeScene = { orch.accessibility.enableDescribeScene() },
+            onNavigate = { orch.accessibility.enableNavigate() },
+            onDisable = { orch.accessibility.disable() },
+            onDismiss = { showBlindDialog = false }
+        )
+    }
+}
+
+/** Odstęp między kafelkami - wspólny dla siatek i rzędu głównego. */
+private val TILE_GAP = 8.dp
+
+/** Co pokazuje pasek "TERAZ DZIAŁA". */
+private class RunningMode(
+    val icon: ImageVector,
+    val name: String,
+    val onStop: () -> Unit
+)
+
+/** Jeden kafelek w siatce. */
+private class HomeTileSpec(
+    val label: String,
+    val icon: ImageVector,
+    val active: Boolean = false,
+    val onClick: () -> Unit
+)
+
+/** Pasek tego, co działa w tle, z przyciskiem "Zakończ". */
+@Composable
+private fun RunningBar(mode: RunningMode) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.primaryContainer)
+            .border(1.dp, colors.primary, shape)
+            .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        // Ikona jest ozdobą - nazwę trybu czytnik ekranu dostaje z tekstu obok.
+        Icon(
+            mode.icon,
+            contentDescription = null,
+            tint = colors.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.size(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "TERAZ DZIAŁA",
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                mode.name,
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.onPrimaryContainer,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Button(
+            onClick = mode.onStop,
+            modifier = Modifier.heightIn(min = 48.dp)
+        ) {
+            Text("Zakończ")
+        }
+    }
+}
+
+/** Duży kafelek "Powiedz" - główne wejście, na dwie kolumny. */
+@Composable
+private fun VoiceTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = modifier
+            .heightIn(min = 88.dp)
+            .clip(shape)
+            .background(colors.primary)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Napis "Powiedz" stoi obok - ikona nie potrzebuje opisu.
+        Icon(
+            Icons.Default.Mic,
+            contentDescription = null,
+            tint = colors.onPrimary,
+            modifier = Modifier.size(32.dp)
+        )
+        Spacer(modifier = Modifier.size(12.dp))
         Column {
             Text(
-                if (accessibilityMode != pl.victor.app.accessibility.AccessibilityMode.OFF)
-                    "Aktywny: ${accessibilityMode.emoji} ${accessibilityMode.displayName}"
-                else "Komendy: \"czytaj\", \"co przede mną\", \"prowadź\"",
+                "Powiedz",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.onPrimary
+            )
+            Text(
+                "albo kliknij na oprawce",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.onPrimary
             )
-            Spacer(modifier = Modifier.size(8.dp))
-            // JEDEN POD DRUGIM, NIE OBOK SIEBIE.
-            //
-            // Trzy przyciski w rzędzie mieściły się tylko dlatego, że etykiety
-            // zjechały do 11 sp - czyli poniżej progu czytelności, i to w
-            // panelu przeznaczonym dla osób, które widzą źle albo wcale.
-            // Do tego przy powiększonej czcionce systemowej (a kto nie widzi
-            // dobrze, ten ją powiększa) tekst i tak się urywał.
-            //
-            // W kolumnie każdy przycisk ma pełną szerokość, etykietę w
-            // domyślnym rozmiarze i wysokość co najmniej 48 dp - tyle wynosi
-            // minimalny cel dotyku na Androidzie.
-            val modeButtons = listOf(
-                Triple(
-                    Icons.Default.MenuBook,
-                    "Czytaj tekst",
-                    { orch.accessibility.enableReadText() }
-                ),
-                Triple(
-                    Icons.Default.Visibility,
-                    "Opisuj otoczenie",
-                    { orch.accessibility.enableDescribeScene() }
-                ),
-                Triple(
-                    Icons.Default.Explore,
-                    "Prowadź",
-                    { orch.accessibility.enableNavigate() }
-                )
+        }
+    }
+}
+
+/** Zwykły kafelek: ikona u góry, podpis pod nią. */
+@Composable
+private fun HomeTile(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    active: Boolean = false
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .clip(shape)
+            .background(if (active) colors.primaryContainer else colors.surface)
+            .border(1.dp, if (active) colors.primary else colors.outlineVariant, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = colors.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            if (active) "$label · działa" else label,
+            fontSize = 13.sp,
+            lineHeight = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            color = if (active) colors.onPrimaryContainer else colors.onSurface
+        )
+    }
+}
+
+/** Nagłówek grupy i siatka kafelków po trzy w rzędzie. */
+@Composable
+private fun TileGroup(title: String, tiles: List<HomeTileSpec>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        tiles.chunked(3).forEachIndexed { index, row ->
+            if (index > 0) Spacer(modifier = Modifier.height(TILE_GAP))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(TILE_GAP)
+            ) {
+                row.forEach { tile ->
+                    HomeTile(
+                        label = tile.label,
+                        icon = tile.icon,
+                        onClick = tile.onClick,
+                        active = tile.active,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    )
+                }
+                // Niepełny rząd: puste miejsca trzymają szerokość kolumn.
+                repeat(3 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+/** Krótka karta, gdy okulary nie są gotowe: połącz albo sprawdź, co nie działa. */
+@Composable
+private fun GlassesDisconnectedCard(
+    state: pl.victor.app.ble.ConnectionState,
+    onConnect: () -> Unit,
+    onDiagnose: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    val description = when (state) {
+        pl.victor.app.ble.ConnectionState.CONNECTING -> "Łączę…"
+        pl.victor.app.ble.ConnectionState.SCANNING -> "Szukam okularów…"
+        pl.victor.app.ble.ConnectionState.CONNECTED -> "Połączone, kończę konfigurację"
+        pl.victor.app.ble.ConnectionState.ERROR -> "Błąd połączenia"
+        else -> "Możesz pytać telefonem albo połączyć okulary"
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.surfaceVariant)
+            .padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Default.BluetoothDisabled,
+            contentDescription = null,
+            tint = colors.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.size(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Okulary niepołączone",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
             )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+        TextButton(onClick = onConnect) { Text("Połącz") }
+        TextButton(onClick = onDiagnose) { Text("Sprawdź") }
+    }
+}
+
+/** Wybór trybu dla niewidomych - zastępuje dawny panel na ekranie głównym. */
+@Composable
+private fun BlindModesDialog(
+    current: pl.victor.app.accessibility.AccessibilityMode,
+    onReadText: () -> Unit,
+    onDescribeScene: () -> Unit,
+    onNavigate: () -> Unit,
+    onDisable: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val off = current == pl.victor.app.accessibility.AccessibilityMode.OFF
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Dla niewidomych") },
+        text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                modeButtons.forEach { (icon, label, action) ->
+                Text(
+                    if (off) {
+                        "Wybierz tryb. Głosem: „czytaj”, „co przede mną”, „prowadź”."
+                    } else {
+                        "Teraz działa: ${current.displayName}. Żeby wybrać inny, najpierw go wyłącz."
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                // Jeden pod drugim, pełna szerokość i co najmniej 48 dp - ten
+                // wybór robią osoby, które widzą źle, często z dużą czcionką.
+                listOf(
+                    Triple(Icons.Default.MenuBook, "Czytaj tekst", onReadText),
+                    Triple(Icons.Default.Visibility, "Opisuj otoczenie", onDescribeScene),
+                    Triple(Icons.Default.Explore, "Prowadź", onNavigate)
+                ).forEach { (icon, label, action) ->
                     Button(
-                        onClick = action,
+                        onClick = {
+                            action()
+                            onDismiss()
+                        },
+                        enabled = off,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 48.dp),
-                        enabled = accessibilityMode ==
-                            pl.victor.app.accessibility.AccessibilityMode.OFF
+                            .heightIn(min = 48.dp)
                     ) {
-                        // Ikona jest ozdobą przy widocznej etykiecie - czytnik
-                        // ekranu ma przeczytać samą etykietę, nie nazwę glifu.
-                        Icon(
-                            icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.size(8.dp))
                         Text(label)
                     }
                 }
-            }
-            if (accessibilityMode != pl.victor.app.accessibility.AccessibilityMode.OFF) {
-                Spacer(modifier = Modifier.size(8.dp))
-                Button(
-                    onClick = { orch.accessibility.disable() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.Stop,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text("Zatrzymaj tryb")
+                if (!off) {
+                    Button(
+                        onClick = {
+                            onDisable()
+                            onDismiss()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("Wyłącz tryb")
+                    }
                 }
             }
-        }
-    }
-
-    Spacer(modifier = Modifier.height(32.dp))
-
-    // Dwa główne wejścia, rozdzielone intencją. Wcześniej był tu SAM aparat:
-    // żeby w ogóle coś powiedzieć, trzeba było mieć okulary na głowie i
-    // działające wybudzenie - albo pisać z klawiatury. Asystent głosowy, do
-    // którego trzeba pisać, mija się z celem.
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Button(
-                onClick = onVoiceClick,
-                modifier = Modifier.size(132.dp)
-            ) {
-                Icon(
-                    Icons.Default.Mic,
-                    contentDescription = "Zapytaj głosem",
-                    modifier = Modifier.size(52.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Powiedz", style = MaterialTheme.typography.labelLarge)
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            FilledTonalButton(
-                onClick = onCaptureClick,
-                modifier = Modifier.size(132.dp)
-            ) {
-                Icon(
-                    Icons.Default.Camera,
-                    contentDescription = "Zapytaj o to, co widzę",
-                    modifier = Modifier.size(52.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Pokaż", style = MaterialTheme.typography.labelLarge)
-        }
-    }
-
-    Spacer(modifier = Modifier.height(32.dp))
-
-    OutlinedTextField(
-        value = textInput,
-        onValueChange = onTextChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Lub wpisz pytanie…") },
-        singleLine = true,
-        trailingIcon = {
-            if (textInput.isNotBlank()) {
-                Button(onClick = onTextSubmit) {
-                    Text("Wyślij")
-                }
-            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
         }
     )
 }

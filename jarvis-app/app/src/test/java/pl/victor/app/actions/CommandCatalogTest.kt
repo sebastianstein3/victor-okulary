@@ -1,6 +1,7 @@
 package pl.victor.app.actions
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -51,6 +52,33 @@ class CommandCatalogTest {
         assertTrue(ActionType.DESCRIBE_SCENE in needing)
         // Latarka jest w telefonie - okulary nie są do niej potrzebne.
         assertTrue(ActionType.TOGGLE_FLASHLIGHT !in needing)
+    }
+
+    @Test
+    fun `w katalogu sa komendy z kamera i bez niej`() {
+        // Tryb bez kamery chowa pozycje po fladze - musi więc istnieć jedno i drugie.
+        assertTrue(CommandCatalog.byType(ActionType.DESCRIBE_SCENE)!!.needsCamera)
+        assertTrue(CommandCatalog.byType(ActionType.TAKE_PHOTO)!!.needsCamera)
+        assertFalse(CommandCatalog.byType(ActionType.SEND_SMS)!!.needsCamera)
+        assertFalse(CommandCatalog.byType(ActionType.MAKE_CALL)!!.needsCamera)
+    }
+
+    @Test
+    fun `tryb bez kamery chowa tylko komendy z kamera`() {
+        val bezKamery = CommandCatalog.grouped(cameraFree = true).flatMap { it.second }
+        assertTrue(bezKamery.none { it.needsCamera })
+        assertEquals(CommandCatalog.ALL.count { !it.needsCamera }, bezKamery.size)
+        // Żadna grupa nie zostaje pusta - puste znikają.
+        assertTrue(CommandCatalog.grouped(cameraFree = true).all { it.second.isNotEmpty() })
+    }
+
+    @Test
+    fun `tryb bez kamery chowa tryby z kamera`() {
+        assertTrue(CommandCatalog.MODES.any { it.needsCamera })
+        assertTrue(CommandCatalog.MODES.any { !it.needsCamera })
+        val bezKamery = CommandCatalog.modes(cameraFree = true)
+        assertTrue(bezKamery.none { it.needsCamera })
+        assertEquals(CommandCatalog.MODES.size, CommandCatalog.modes().size)
     }
 
     @Test

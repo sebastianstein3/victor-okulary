@@ -214,6 +214,17 @@ fun SettingsScreen(
             // bez której aplikacja nie działa, więc ona jedna jest otwarta od
             // razu. Reszta czeka, aż ktoś jej poszuka - i teraz da się jej
             // szukać po nazwie kategorii zamiast przewijaniem.
+            //
+            // "Tryb pracy i wygląd" stoi na samej górze, ale zwinięty: to jeden
+            // wiersz, a tryb bez kamery zmienia cały ekran główny - musi dać się
+            // znaleźć bez szukania.
+            SettingsGroup(
+                title = "Tryb pracy i wygląd",
+                subtitle = "Tryb bez kamery, jasny albo ciemny motyw"
+            ) {
+                CameraAndThemeSection()
+            }
+
             SettingsGroup(
                 title = "Model AI i klucze",
                 subtitle = "Dostawca, model, klucze API, styl odpowiedzi",

@@ -74,6 +74,9 @@ fun CommandsScreen(onBack: () -> Unit) {
         (context.applicationContext as VictorApplication).settings
     }
     var custom by remember { mutableStateOf(settings.getCustomCommands()) }
+    // Tryb bez kamery chowa komendy i tryby, które potrzebują obrazu - decyduje
+    // flaga needsCamera w katalogu, nie porównywanie nazw.
+    val cameraFree by settings.cameraFreeFlow.collectAsState()
 
     fun save(list: List<CustomCommands.CustomCommand>) {
         settings.setCustomCommands(list)
@@ -109,6 +112,17 @@ fun CommandsScreen(onBack: () -> Unit) {
                 )
             }
 
+            if (cameraFree) {
+                item {
+                    Text(
+                        "Włączony jest tryb bez kamery - komendy, które potrzebują " +
+                            "obrazu, są ukryte. Wyłączysz go w Ustawieniach.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             item {
                 CustomCommandEditor(
                     commands = custom,
@@ -125,13 +139,13 @@ fun CommandsScreen(onBack: () -> Unit) {
                     modifier = Modifier.padding(top = 12.dp)
                 )
             }
-            items(CommandCatalog.MODES) { mode ->
+            items(CommandCatalog.modes(cameraFree)) { mode ->
                 InfoCard(mode.name, mode.whatItDoes, mode.examples, needsGlasses = false)
             }
 
             item { PlaceRemindersCard() }
 
-            CommandCatalog.grouped().forEach { (group, commands) ->
+            CommandCatalog.grouped(cameraFree).forEach { (group, commands) ->
                 item {
                     Text(
                         group.emoji + " " + group.title,
