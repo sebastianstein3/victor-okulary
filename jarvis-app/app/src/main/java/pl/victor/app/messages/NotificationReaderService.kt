@@ -30,6 +30,9 @@ class NotificationReaderService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         runCatching { MessageInbox.usuń(sbn.key) }
+        if (sbn.packageName == pl.victor.app.navigation.MapsNavigation.PAKIET_MAP) {
+            runCatching { pl.victor.app.navigation.MapsNavigation.usunięte(sbn.key) }
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -38,6 +41,12 @@ class NotificationReaderService : NotificationListenerService() {
 
     private fun obsłuż(sbn: StatusBarNotification) {
         val settings = SettingsRepository.getInstance(this)
+        // Prowadzenie Google Maps - stałe powiadomienie z następnym manewrem.
+        // Przed filtrem wiadomości: to nie wiadomość i ma własny przełącznik.
+        if (sbn.packageName == pl.victor.app.navigation.MapsNavigation.PAKIET_MAP) {
+            if (settings.isNavPromptsEnabled()) obsłużNawigację(sbn)
+            return
+        }
         if (!settings.isMessageReadingEnabled()) return
         if (sbn.packageName == packageName) return
         if (sbn.packageName !in settings.getMessageApps()) return
@@ -78,6 +87,23 @@ class NotificationReaderService : NotificationListenerService() {
             ),
             odpowiedz
         )
+    }
+
+    /**
+     * Powiadomienie Map. Prowadzenie ma kategorię "navigation" i jest stałe -
+     * inne powiadomienia Map (np. udostępnianie lokalizacji) pomijamy.
+     */
+    private fun obsłużNawigację(sbn: StatusBarNotification) {
+        val n = sbn.notification
+        if (n.category != Notification.CATEGORY_NAVIGATION && !sbn.isOngoing) return
+        val e = n.extras
+        val stan = pl.victor.app.navigation.MapsNotificationParser.rozbierz(
+            tytuł = e.getCharSequence(Notification.EXTRA_TITLE)?.toString(),
+            tekst = e.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
+            podtekst = e.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString(),
+            terazMs = System.currentTimeMillis()
+        ) ?: return
+        pl.victor.app.navigation.MapsNavigation.przyjmij(sbn.key, stan)
     }
 
     /**

@@ -328,6 +328,17 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_LIVE_EAR_TRANSLATION, enabled).apply()
     }
 
+    /**
+     * Czy mówić w okularach o skrętach z nawigacji Google Maps (odczyt jej
+     * powiadomienia). Wymaga dostępu do powiadomień - tego samego co
+     * czytanie wiadomości.
+     */
+    fun isNavPromptsEnabled(): Boolean = prefs.getBoolean(KEY_NAV_PROMPTS, true)
+
+    fun setNavPromptsEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_NAV_PROMPTS, enabled).apply()
+    }
+
     /** Mapy Google dla pytań o okolicę (opinie, godziny otwarcia) - tylko Gemini 3+. */
     fun isMapsGroundingEnabled(): Boolean = prefs.getBoolean(KEY_MAPS_GROUNDING, true)
 
@@ -1205,6 +1216,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
         private const val KEY_LIVE_EAR_TRANSLATION = "live_ear_translation"
+        private const val KEY_NAV_PROMPTS = "nav_prompts"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"
         private const val KEY_CAMERA_FREE = "camera_free"
         private const val KEY_THEME_MODE = "theme_mode"

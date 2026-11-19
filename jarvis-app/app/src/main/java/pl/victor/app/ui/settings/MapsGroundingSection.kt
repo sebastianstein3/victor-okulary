@@ -37,5 +37,26 @@ internal fun MapsGroundingSection() {
                 settings.setMapsGroundingEnabled(it)
             })
         }
+        var nav by remember { mutableStateOf(settings.isNavPromptsEnabled()) }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Skręty z nawigacji w okularach", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Gdy prowadzą Mapy Google („prowadź mnie do…”), asystent mówi w okularach " +
+                        "„Za 300 metrów skręć w prawo…” i odpowiada na „ile jeszcze?”, " +
+                        "„gdzie skręcam?”. Wymaga dostępu do powiadomień (tego samego co " +
+                        "wiadomości). Żeby nie słyszeć wskazówek dwa razy, wycisz głos w " +
+                        "Mapach: w trakcie nawigacji ikona głośnika → wyciszony.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Switch(checked = nav, onCheckedChange = {
+                nav = it
+                settings.setNavPromptsEnabled(it)
+            })
+        }
     }
 }

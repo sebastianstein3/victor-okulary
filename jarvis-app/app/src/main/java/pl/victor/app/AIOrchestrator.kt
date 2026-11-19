@@ -1286,6 +1286,8 @@ class AIOrchestrator(
 
         // Wiadomości z powiadomień - patrz pl.victor.app.messages.
         messages.start()
+        // Skręty z nawigacji Google Maps - patrz pl.victor.app.navigation.
+        startNavPrompts()
         // Po każdej wypowiedzi asystenta chwila na dopytanie, zanim tło
         // (przewodnik, wiadomości) zabierze głos - patrz [ciszaWTle].
         scope.launch {
@@ -2007,6 +2009,38 @@ class AIOrchestrator(
         val odGestu = System.currentTimeMillis() - ostatniaAktywnośćMs
         return bezTury && !audio.speaking.value && !_earTranslation.value &&
             odGestu > CISZA_PO_AKTYWNOŚCI_MS
+    }
+
+    /**
+     * Mówi w okularach o skrętach, gdy prowadzą Mapy Google.
+     *
+     * Skręt nie może czekać jak wiadomość: dajemy chwilę ([NAV_WAIT_MS]) na
+     * koniec bieżącej wypowiedzi, a gdy trwa rozmowa - pomijamy, z wpisem w
+     * dzienniku (Mapy i tak mówią same, jeśli ich głos jest włączony).
+     * Bez okularów milczymy: głośnik telefonu dublowałby głos Map.
+     */
+    private fun startNavPrompts() {
+        val zapowiedzi = pl.victor.app.navigation.NavZapowiedzi()
+        scope.launch {
+            pl.victor.app.navigation.MapsNavigation.stan.collect { stan ->
+                if (stan == null) {
+                    zapowiedzi.wyzeruj()
+                    return@collect
+                }
+                val zdanie = zapowiedzi.decyzja(stan) ?: return@collect
+                if (!settings.isNavPromptsEnabled() || !glassesManager.isConnected()) return@collect
+                val doKiedy = System.currentTimeMillis() + NAV_WAIT_MS
+                while (!ciszaWTle() && System.currentTimeMillis() < doKiedy) delay(EAR_TURN_POLL_MS)
+                val mówię = ciszaWTle()
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.KONTEKST, "nawigacja: zapowiedź",
+                        mapOf("zdanie" to zdanie, "m" to stan.dystansM, "powiedziane" to mówię)
+                    )
+                }
+                if (mówię) audio.speak(zdanie, language = settings.getResponseLanguage())
+            }
+        }
     }
 
     /** Ostatni przycisk albo nasłuch - patrz [ciszaWTle]. */
@@ -4985,6 +5019,17 @@ class AIOrchestrator(
                 }
             }
 
+            // "Ile jeszcze?", "gdzie skręcam?" w trakcie prowadzenia Map -
+            // odpowiedź jest w powiadomieniu, model niczego tu nie doda.
+            pl.victor.app.navigation.NavPytania.odpowiedź(
+                textQuestion, pl.victor.app.navigation.MapsNavigation.aktywna()
+            )?.let { odp ->
+                runCatching { diag.event(DiagFormat.Phase.AKCJA, "nawigacja: pytanie o trasę", mapOf("odpowiedź" to odp)) }
+                audio.speak(odp, language = settings.getResponseLanguage())
+                _state.value = OrchestratorState.Completed(odp)
+                return
+            }
+
             val critical = actionDetector.detectCritical(textQuestion)
             if (critical.isNotEmpty()) {
                 // "Zrób zdjęcie" nie jest akcją do wykonania przez Intent - to
@@ -5785,6 +5830,7 @@ class AIOrchestrator(
                         append(messagesContext)
                         append("\n\n")
                     }
+                    pl.victor.app.navigation.MapsNavigation.kontekstDlaModelu()?.let { append(it).append("\n\n") }
                     steps.kontekst()?.let { append(it).append("\n") }
                     if (notesContext != null) {
                         append(notesContext)
@@ -8104,6 +8150,9 @@ class AIOrchestrator(
 
         /** Tyle najdłużej czeka przekład Twojego zdania z modelu, potem tłumacz w telefonie. */
         private const val MY_TURN_MODEL_MS = 6_000L
+
+        /** Tyle zapowiedź skrętu czeka na koniec bieżącej wypowiedzi. */
+        private const val NAV_WAIT_MS = 4_000L
 
         /** Ile czekamy na gotowość sesji na żywo, zanim przejdziemy na telefon. */
         private const val EAR_LIVE_CONNECT_MS = 8_000L
