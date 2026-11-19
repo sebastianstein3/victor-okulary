@@ -1066,6 +1066,35 @@ class SettingsRepository private constructor(private val context: Context) {
     }
 
     /**
+     * Tryb bez kamery: asystent głosowy, rozmowa i obsługa telefonu - bez
+     * zdjęć, podglądu, czytania napisów i trybów dla niewidomych.
+     *
+     * Strumień, nie zwykły odczyt: ekran główny i lista komend mają się
+     * przebudować w chwili przełączenia, a nie po ponownym otwarciu.
+     */
+    private val _cameraFreeFlow = MutableStateFlow(prefs.getBoolean(KEY_CAMERA_FREE, false))
+    val cameraFreeFlow: StateFlow<Boolean> = _cameraFreeFlow.asStateFlow()
+
+    fun isCameraFree(): Boolean = _cameraFreeFlow.value
+
+    fun setCameraFree(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_CAMERA_FREE, enabled).apply()
+        _cameraFreeFlow.value = enabled
+    }
+
+    /** Motyw: [THEME_SYSTEM] (jak telefon), [THEME_LIGHT] albo [THEME_DARK]. */
+    private val _themeModeFlow = MutableStateFlow(
+        prefs.getString(KEY_THEME_MODE, THEME_SYSTEM) ?: THEME_SYSTEM
+    )
+    val themeModeFlow: StateFlow<String> = _themeModeFlow.asStateFlow()
+
+    fun setThemeMode(mode: String) {
+        val wartość = mode.takeIf { it in THEME_MODES } ?: THEME_SYSTEM
+        prefs.edit().putString(KEY_THEME_MODE, wartość).apply()
+        _themeModeFlow.value = wartość
+    }
+
+    /**
      * Cache "alert już wysłany" - żeby nie spamować.
      * Klucz: "{type}-{eventId}-{beginMs/30min}"
      */
@@ -1231,6 +1260,13 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"
+        private const val KEY_CAMERA_FREE = "camera_free"
+        private const val KEY_THEME_MODE = "theme_mode"
+
+        const val THEME_SYSTEM = "system"
+        const val THEME_LIGHT = "light"
+        const val THEME_DARK = "dark"
+        val THEME_MODES = listOf(THEME_SYSTEM, THEME_LIGHT, THEME_DARK)
         private const val KEY_MAPS_GROUNDING = "maps_grounding"
         private const val KEY_MESSAGES_READ = "messages_read"
         private const val KEY_MESSAGES_CONTENT = "messages_content"

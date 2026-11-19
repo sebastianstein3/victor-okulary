@@ -11,6 +11,8 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -173,6 +175,23 @@ private val HighContrastLightScheme = lightColorScheme(
 private const val LARGE_TEXT_SCALE = 1.30f
 
 /**
+ * Czy rysować ciemny motyw - z ustawienia, a gdy to "jak telefon", z systemu.
+ * Strumień: zmiana w Ustawieniach przemalowuje otwarte ekrany od razu.
+ */
+@Composable
+fun rememberDarkTheme(): Boolean {
+    val context = LocalContext.current
+    val settings = remember(context) { SettingsRepository.getInstance(context) }
+    val tryb by settings.themeModeFlow.collectAsState()
+    val systemowy = isSystemInDarkTheme()
+    return when (tryb) {
+        SettingsRepository.THEME_DARK -> true
+        SettingsRepository.THEME_LIGHT -> false
+        else -> systemowy
+    }
+}
+
+/**
  * Motyw aplikacji V.I.C.T.O.R.
  *
  * Domyślnie czyta opcje dostępności (wysoki kontrast, duże litery) z ustawień.
@@ -180,7 +199,7 @@ private const val LARGE_TEXT_SCALE = 1.30f
  */
 @Composable
 fun VictorTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = rememberDarkTheme(),
     /**
      * Czy brać kolory z tapety telefonu zamiast z marki.
      *
