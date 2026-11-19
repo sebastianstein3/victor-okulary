@@ -1357,6 +1357,9 @@ private fun SpeechSection() {
     val context = LocalContext.current
     val settings = remember { (context.applicationContext as pl.victor.app.VictorApplication).settings }
     var cloud by remember { mutableStateOf(settings.isCloudTranscriptionEnabled()) }
+    var speakers by remember { mutableStateOf(settings.isMeetingSpeakersEnabled()) }
+    val freeOnly by settings.freeOnlyFlow.collectAsState()
+    val maKluczGemini = remember { !settings.getApiKey("gemini").isNullOrBlank() }
     var glassesMic by remember { mutableStateOf(settings.isWakeWordOverGlassesMic()) }
     var endWait by remember { mutableStateOf(settings.getSpeechEndWait()) }
     val usługa = remember {
@@ -1412,6 +1415,38 @@ private fun SpeechSection() {
                 Switch(
                     checked = cloud,
                     onCheckedChange = { cloud = it; settings.setCloudTranscriptionEnabled(it) }
+                )
+            }
+
+            Spacer(Modifier.size(12.dp))
+
+            // Mówcy w notatkach ze spotkania - płatne, więc osobny przełącznik z
+            // kosztem i respektujący "Tylko darmowe funkcje".
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "👥 Rozpoznawanie mówców w spotkaniach – ok. 0,003 \$/min (Gemini)",
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        when {
+                            freeOnly -> "Wyłączone przez \"Tylko darmowe funkcje\" - notatki bez podziału na osoby."
+                            !maKluczGemini -> "Potrzebny klucz Gemini. Bez niego notatki ze spotkania " +
+                                "są jak dotąd, bez podziału na osoby."
+                            else -> "Notatki ze spotkania z podziałem na osoby (\"Osoba 1:\", " +
+                                "\"Osoba 2:\"), a podsumowanie wie, kto co mówił. Nagranie mowy " +
+                                "idzie do Google co ok. 7 minut mówienia (cisza nie jest " +
+                                "wysyłana), dodatkowo do przepisywania na bieżąco. Numeracja osób " +
+                                "zaczyna się od nowa w każdym 7-minutowym kawałku."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = speakers && maKluczGemini && !freeOnly,
+                    enabled = maKluczGemini && !freeOnly,
+                    onCheckedChange = { speakers = it; settings.setMeetingSpeakersEnabled(it) }
                 )
             }
 

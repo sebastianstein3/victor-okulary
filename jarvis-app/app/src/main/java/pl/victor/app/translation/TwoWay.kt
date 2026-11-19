@@ -17,6 +17,54 @@ object TwoWay {
     const val PREFIKS = "Ty: "
 
     /**
+     * Co pokazać na ekranie "Pokaż rozmówcy": ostatni przekład TWOJEGO zdania
+     * (duży, w jego języku) i ostatnie zdanie rozmówcy (jego oryginał, małe).
+     *
+     * ## Po co
+     * Rozmówca słyszy przekład z głośnika telefonu, ale w hałasie (ulica,
+     * dworzec) to nie wystarcza - telefon odwrócony ekranem do niego działa
+     * jak napisy. Jego oryginał pod spodem pozwala mu sprawdzić, czy jego
+     * zdanie zostało dobrze usłyszane.
+     */
+    data class DlaRozmówcy(
+        /** Przekład Twojego ostatniego zdania na język rozmówcy albo `null`, gdy jeszcze nic nie mówiłeś. */
+        val mójPrzekład: String?,
+        /** Twoje zdanie po polsku (bez [PREFIKS]) - mały podpis dla Ciebie. */
+        val mojeZdanie: String?,
+        /** Ostatnie zdanie rozmówcy w jego języku albo `null`. */
+        val jegoOryginał: String?,
+        /** Id odcinka z [mójPrzekład] - ekran wie, że przyszedł nowy, a nie ten sam. */
+        val mójId: Long?
+    )
+
+    fun dlaRozmówcy(t: EarTranscript): DlaRozmówcy {
+        val mój = t.segmenty.lastOrNull { czyMoje(it.oryginał) && it.przekład.isNotBlank() }
+        val jego = t.segmenty.lastOrNull { !czyMoje(it.oryginał) && it.oryginał.isNotBlank() }
+        return DlaRozmówcy(
+            mójPrzekład = mój?.przekład?.trim(),
+            mojeZdanie = mój?.oryginał?.removePrefix(PREFIKS)?.trim(),
+            jegoOryginał = jego?.oryginał?.trim(),
+            mójId = mój?.id
+        )
+    }
+
+    /**
+     * Wielkość czcionki przekładu dla rozmówcy (sp): czytelna z metra, a
+     * długie zdanie wciąż mieści się na ekranie telefonu bez przewijania.
+     * Krótkie "Dziękuję" ma być ogromne, akapit - tylko duży.
+     */
+    fun czcionkaDlaRozmówcy(tekst: String?): Int {
+        val n = tekst?.trim()?.length ?: 0
+        return when {
+            n <= 30 -> 60
+            n <= 70 -> 48
+            n <= 130 -> 40
+            n <= 220 -> 34
+            else -> 28
+        }
+    }
+
+    /**
      * Polecenie dla modelu: przekład TWOJEGO zdania na język rozmówcy.
      *
      * Model, a nie ML Kit, bo ML Kit tłumaczy słowo w słowo, a rozmówca słyszy

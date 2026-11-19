@@ -42,6 +42,20 @@ class MeetingStore(context: Context) {
     }
 
     /**
+     * Nagrania fragmentów spotkania do rozpoznania mówców (patrz
+     * [ZapisFragmentów]). Osobny katalog: lista spotkań go nie widzi, a
+     * sprzątanie po przerwanym spotkaniu usuwa go w całości.
+     */
+    private val nagrania = File(katalog, "audio")
+
+    fun plikFragmentu(id: String, nr: Int): File = File(nagrania, "$id-$nr.pcm")
+
+    /** Usuwa wszystkie fragmenty nagrania spotkania [id]; @return ile usunięto. */
+    fun usuńNagrania(id: String): Int =
+        nagrania.listFiles { f -> f.name.startsWith("$id-") && f.name.endsWith(".pcm") }.orEmpty()
+            .count { it.delete() }
+
+    /**
      * Odzyskuje spotkania przerwane (proces zabity w trakcie nagrywania): zapisuje
      * je jako zwykłe, bez podsumowania.
      *
@@ -59,6 +73,9 @@ class MeetingStore(context: Context) {
             }
             f.delete()
         }
+        // Nagrania z przerwanego spotkania: bez transkrypcji z mówcami nie ma
+        // ich jak dokończyć, a to nagranie głosu - nie trzymamy go bez potrzeby.
+        nagrania.listFiles().orEmpty().forEach { it.delete() }
         return ile
     }
 
