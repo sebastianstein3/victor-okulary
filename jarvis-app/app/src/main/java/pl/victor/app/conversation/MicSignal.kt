@@ -40,7 +40,20 @@ class MicSignal {
     var samples: Int = 0
         private set
 
+    /**
+     * Czy nasłuch zakończyła APLIKACJA (cisza po zdaniu - patrz
+     * [RecognizerEndpoint]), a nie silnik. Do dziennika: bez tego nie da się
+     * sprawdzić, czy skrócone czekanie na koniec zdania w ogóle zadziałało.
+     */
+    @Volatile
+    var endedByApp: Boolean = false
+        private set
+
     private val startedAtMs = System.currentTimeMillis()
+
+    fun noteEndedByApp() {
+        endedByApp = true
+    }
 
     /** Silnik zgłosił gotowość - od tej chwili mikrofon naprawdę nagrywa. */
     fun noteReady() {

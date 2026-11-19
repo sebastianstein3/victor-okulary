@@ -67,10 +67,12 @@ class EnergyEndpoint(
      *
      * @param sinceStartMs czas od początku nasłuchu - przed karencją cisza jest
      *   przerwą PRZED pytaniem, nie po nim
+     * @param silenceMs cisza kończąca wypowiedź - z Ustawień ("Czekanie na
+     *   koniec zdania", patrz [SpeechEndWait]); domyślnie ta z konstruktora
      */
-    fun ended(sinceStartMs: Long): Boolean =
+    fun ended(sinceStartMs: Long, silenceMs: Long = this.silenceMs): Boolean =
         sinceStartMs >= graceMs && voicedMs >= minVoicedMs &&
-            trailingSilenceMs >= requiredSilenceMs()
+            trailingSilenceMs >= requiredSilenceMs(silenceMs)
 
     /**
      * Po krótkim dźwięku czekamy dłużej.
@@ -80,7 +82,7 @@ class EnergyEndpoint(
      * ogon sygnału), półtorej sekundy ciszy i dopiero potem właściwe pytanie.
      * Krótka "mowa" jest więc słabym dowodem, że pytanie już padło.
      */
-    fun requiredSilenceMs(): Long =
+    fun requiredSilenceMs(silenceMs: Long = this.silenceMs): Long =
         if (voicedMs < SHORT_SPEECH_MS) maxOf(silenceMs, SILENCE_AFTER_SHORT_SPEECH_MS) else silenceMs
 
     fun describe(): String =

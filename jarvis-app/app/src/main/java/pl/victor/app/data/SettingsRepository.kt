@@ -226,6 +226,30 @@ class SettingsRepository private constructor(private val context: Context) {
     }
 
     /**
+     * Jak długo czekać na ciszę po zdaniu, zanim nasłuch się skończy.
+     *
+     * Czytane przy KAŻDYM nasłuchu (rozpoznawanie w telefonie, cisza i
+     * głośność strumienia z okularów) - patrz [pl.victor.app.audio.SpeechEndWait].
+     * Nie dotyczy czekania na POCZĄTEK mowy: to zostaje bez zmian.
+     */
+    fun getSpeechEndWait(): pl.victor.app.audio.SpeechEndWait =
+        pl.victor.app.audio.SpeechEndWait.fromId(prefs.getString(KEY_SPEECH_END_WAIT, null))
+
+    fun setSpeechEndWait(value: pl.victor.app.audio.SpeechEndWait) {
+        prefs.edit().putString(KEY_SPEECH_END_WAIT, value.id).apply()
+    }
+
+    /**
+     * Czy człowiek kazał nie pokazywać więcej podpowiedzi o trybie multimediów
+     * okularów - patrz [pl.victor.app.ble.MediaModeSession].
+     */
+    fun isMediaModeHintSuppressed(): Boolean = prefs.getBoolean(KEY_MEDIA_MODE_HINT_OFF, false)
+
+    fun setMediaModeHintSuppressed(suppressed: Boolean) {
+        prefs.edit().putBoolean(KEY_MEDIA_MODE_HINT_OFF, suppressed).apply()
+    }
+
+    /**
      * Czy nasłuch frazy ma iść przez MIKROFON OKULARÓW zamiast telefonu.
      *
      * ## Domyślnie WYŁĄCZONE i to jest ważne
@@ -1248,6 +1272,8 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_WAKE_FIX_184 = "wake_enabled_fix_184"
         private const val KEY_WAKE_WORD_GLASSES_MIC = "wake_word_glasses_mic"
         private const val KEY_CLOUD_TRANSCRIPTION = "cloud_transcription"
+        private const val KEY_SPEECH_END_WAIT = "speech_end_wait"
+        private const val KEY_MEDIA_MODE_HINT_OFF = "media_mode_hint_off"
         private const val KEY_PHOTO_SOURCE = "photo_source"
         private const val KEY_PHOTO_DIVISOR = "photo_divisor"
         private const val KEY_DIAG_LOG = "diagnostic_log_enabled"

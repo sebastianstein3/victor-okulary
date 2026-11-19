@@ -1358,6 +1358,7 @@ private fun SpeechSection() {
     val settings = remember { (context.applicationContext as pl.victor.app.VictorApplication).settings }
     var cloud by remember { mutableStateOf(settings.isCloudTranscriptionEnabled()) }
     var glassesMic by remember { mutableStateOf(settings.isWakeWordOverGlassesMic()) }
+    var endWait by remember { mutableStateOf(settings.getSpeechEndWait()) }
     val usługa = remember {
         pl.victor.app.conversation.CloudSpeechToText.wybierz(
             aktywny = settings.getActiveProvider(),
@@ -1472,6 +1473,38 @@ private fun SpeechSection() {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+
+            // CZEKANIE NA KONIEC ZDANIA - jedna wartość dla każdego nasłuchu:
+            // rozpoznawania w telefonie i ciszy w strumieniu z okularów. Z
+            // dzienników: spora część 4-7 s od "Hej Wiktor" do końca nasłuchu
+            // to czekanie na ciszę po zdaniu. Czekanie na POCZĄTEK mowy tego
+            // wyboru nie dotyczy - patrz audio.SpeechEndWait.
+            Text("⏱ Czekanie na koniec zdania", fontWeight = FontWeight.Medium)
+            Text(
+                "Ile ciszy po Twoim zdaniu kończy słuchanie. Krótsze - szybsza " +
+                    "odpowiedź, ale dłuższa pauza w środku zdania może je uciąć. " +
+                    "Na zaczęcie mówienia czas jest zawsze ten sam.\n" +
+                    "Krótkie: ok. 0,9 s. Normalne: ok. 1,1 s. Długie: jak dawniej - " +
+                    "o końcu decyduje rozpoznawanie mowy w telefonie (zwykle dłużej).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                pl.victor.app.audio.SpeechEndWait.values().forEach { option ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        RadioButton(
+                            selected = endWait == option,
+                            onClick = { endWait = option; settings.setSpeechEndWait(option) }
+                        )
+                        Text(option.label)
+                    }
+                }
             }
 
             HorizontalDivider(Modifier.padding(vertical = 12.dp))

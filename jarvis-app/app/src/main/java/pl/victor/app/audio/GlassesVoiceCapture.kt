@@ -338,6 +338,13 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         graceMs: Long = SpeechEnd.MIN_LISTEN_MS,
         maxMs: Long = SpeechEnd.MAX_SPEECH_MS,
         /**
+         * Cisza w GŁOŚNOŚCI kończąca wypowiedź - z Ustawień, patrz
+         * [SpeechEndWait.glassesEnergySilenceMs]. Dłuższa cisza po bardzo
+         * krótkim dźwięku ([EnergyEndpoint.SILENCE_AFTER_SHORT_SPEECH_MS])
+         * zostaje niezależnie od tego wyboru.
+         */
+        energySilenceMs: Long = EnergyEndpoint.SILENCE_ENDS_SPEECH_MS,
+        /**
          * Czy rozpoznawanie mowy w telefonie właśnie COŚ słyszy. Gdy tak, po
          * wykryciu ciszy dajemy mu jeszcze [PHONE_TAIL_MS] na oddanie tekstu -
          * jego transkrypcja jest lepsza niż samo nagranie. Gdy telefon jest
@@ -349,7 +356,7 @@ class GlassesVoiceCapture(private val glasses: VictorManager) {
         try {
             awaitSpeechEndLoop(silenceMs, minVoicedMs, graceMs, maxMs) { now ->
                 withContext(Dispatchers.Default) { feedMeter() }
-                if (meterState == METER_ON && endpoint.ended(now - meterStartedAtMs)) {
+                if (meterState == METER_ON && endpoint.ended(now - meterStartedAtMs, energySilenceMs)) {
                     if (energyEndAtMs == 0L) energyEndAtMs = now
                     if (!phoneHearing() || now - energyEndAtMs >= PHONE_TAIL_MS) {
                         endedByEnergy = true

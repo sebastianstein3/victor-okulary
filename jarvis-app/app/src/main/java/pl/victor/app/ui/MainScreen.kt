@@ -553,6 +553,40 @@ private fun IdleContent(
         Spacer(modifier = Modifier.height(12.dp))
     }
 
+    // === Tryb multimediów okularów nie wstaje ===
+    // Raz na połączenie, po dwóch nieudanych prośbach z rzędu - patrz
+    // VictorManager.mediaModeHint. Dotąd aplikacja wiedziała o tym tylko w
+    // dzienniku, a naprawa to zwykle jeden przełącznik w ustawieniach.
+    val mediaHint by app.glassesManager.mediaModeHint.collectAsState()
+    val hint = mediaHint
+    if (connState == pl.victor.app.ble.ConnectionState.READY && hint != null) {
+        MediaModeHintCard(
+            hint = hint,
+            onOpenSettings = {
+                app.glassesManager.noteMediaModeHintSettingsOpened()
+                val intent = if (hint.action == pl.victor.app.ble.MediaModeHintAction.APP_SETTINGS) {
+                    Intent(
+                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.fromParts("package", context.packageName, null)
+                    )
+                } else {
+                    Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                }
+                // Producenci potrafią nie mieć któregoś ekranu - wtedy ogólne
+                // ustawienia, lepsze niż przycisk, który nic nie robi.
+                runCatching { context.startActivity(intent) }
+                    .onFailure {
+                        runCatching {
+                            context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+                        }
+                    }
+            },
+            onDismiss = { app.glassesManager.dismissMediaModeHint(forever = false) },
+            onNeverShow = { app.glassesManager.dismissMediaModeHint(forever = true) }
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+
     // === TERAZ DZIAŁA ===
     running?.let { mode ->
         RunningBar(mode)
@@ -937,6 +971,64 @@ private fun GlassesDisconnectedCard(
         }
         TextButton(onClick = onConnect) { Text("Połącz") }
         TextButton(onClick = onDiagnose) { Text("Sprawdź") }
+    }
+}
+
+/**
+ * Podpowiedź, gdy tryb multimediów okularów nie wstaje - w stylu karty
+ * "Okulary niepołączone", tylko z miejscem na instrukcję.
+ */
+@Composable
+private fun MediaModeHintCard(
+    hint: pl.victor.app.ble.MediaModeHint,
+    onOpenSettings: () -> Unit,
+    onDismiss: () -> Unit,
+    onNeverShow: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.surfaceVariant)
+            .padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Bluetooth,
+                contentDescription = null,
+                tint = colors.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.size(12.dp))
+            Text(
+                hint.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            hint.body,
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        FilledTonalButton(onClick = onOpenSettings) {
+            Text(
+                if (hint.action == pl.victor.app.ble.MediaModeHintAction.APP_SETTINGS) "Ustawienia aplikacji"
+                else "Ustawienia Bluetooth"
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = onNeverShow) { Text("Nie pokazuj więcej") }
+            TextButton(onClick = onDismiss) { Text("Zamknij") }
+        }
     }
 }
 

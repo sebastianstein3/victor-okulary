@@ -3626,7 +3626,11 @@ class AIOrchestrator(
                         // przestawia w trakcie pracy i człowiek, i sama
                         // aplikacja - czytanie nagłówka jako stanu bieżącego
                         // raz już doprowadziło do błędnej diagnozy.
-                        "ustawienieMikOkularów" to wantsGlassesMic
+                        "ustawienieMikOkularów" to wantsGlassesMic,
+                        // Ile ciszy po zdaniu kończy ten nasłuch - wybór z
+                        // Ustawień. Bez tego nie da się porównać `ms` z
+                        // wiersza "koniec" między biegami.
+                        "czekanieNaKoniec" to settings.getSpeechEndWait().describe()
                     )
                 )
                 // Gdy łącze SCO nie stoi, "mikrofon telefonu" to naprawdę
@@ -3699,7 +3703,10 @@ class AIOrchestrator(
                         "mikrofon" to mic?.verdict(),
                         "szczytDb" to mic?.peakDb,
                         "próbek" to mic?.samples,
-                        "gotowyPoMs" to mic?.readyMs
+                        "gotowyPoMs" to mic?.readyMs,
+                        // true: koniec wyznaczyła cisza po zdaniu mierzona
+                        // przez aplikację (RecognizerEndpoint), nie silnik.
+                        "koniecPoCiszyAplikacji" to mic?.endedByApp
                     )
                 )
                 // PYTANIE O KOD: strumień rusza JUŻ TERAZ, nie po przepisaniu
@@ -4245,8 +4252,17 @@ class AIOrchestrator(
                     onPartial = partialWatch
                 )
             }
+            // Cisza kończąca wypowiedź z Ustawień ("Czekanie na koniec
+            // zdania") - ta sama, którą rozpoznawanie w telefonie dostaje w
+            // SpeechToText.listen. Czekanie na POCZĄTEK mowy (karencja,
+            // limit) zostaje jak było.
+            val endWait = settings.getSpeechEndWait()
             val glassesQuiet = async {
-                capture.awaitSpeechEnd(phoneHearing = { phonePartial.get() })
+                capture.awaitSpeechEnd(
+                    silenceMs = endWait.glassesPacketSilenceMs,
+                    energySilenceMs = endWait.glassesEnergySilenceMs,
+                    phoneHearing = { phonePartial.get() }
+                )
             }
 
             // Rozpoznawanie wygrywa wyścig TYLKO z niepustym wynikiem - i to
@@ -5329,6 +5345,9 @@ class AIOrchestrator(
             // jest SCO. Wtedy je bierzemy - bo odpowiedź z głośnika telefonu w
             // kieszeni jest gorsza niż tryb rozmowy.
             val canUseMedia = audio.canSpeakOverMedia()
+            // Tryb multimediów jest - liczy się jako sukces także bez prośby
+            // (zeruje serię porażek i chowa podpowiedź na ekranie głównym).
+            if (canUseMedia) glassesManager.noteMediaModeAvailable()
             if (!canUseMedia) {
                 // Bierzemy SCO, bo trzeba - ale przy okazji prosimy okulary,
                 // żeby wróciły do trybu multimediów. Inaczej raz utracony A2DP

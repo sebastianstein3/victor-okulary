@@ -140,7 +140,14 @@ class SpeechToText(private val context: Context) {
          * końca wypowiedzi (patrz komentarz w [intent]). Zwykłe pytanie idzie
          * więc dokładnie tak jak dotąd.
          */
-        onPartial: ((String) -> Unit)? = null
+        onPartial: ((String) -> Unit)? = null,
+        /**
+         * Ile ciszy po rozpoznanych słowach kończy nasłuch - patrz
+         * [RecognizerEndpoint]. `null`: decyduje silnik, jak dawniej.
+         * Domyślnie z Ustawień ("Czekanie na koniec zdania"), żeby KAŻDY
+         * nasłuch w aplikacji szedł tym samym wyborem.
+         */
+        endSilenceMs: Long? = configuredEndSilenceMs()
     ): String? {
         if (!isAvailable()) {
             Log.w(tag, "Rozpoznawanie mowy niedostępne na tym urządzeniu")
@@ -172,7 +179,7 @@ class SpeechToText(private val context: Context) {
             val onDeviceFirst = !onDeviceStillMissing(languageTag)
             val first = withTimeoutOrNull(timeoutMs) {
                 withContext(Dispatchers.Main) {
-                    listenOnMainThread(languageTag, preferOnDevice = onDeviceFirst, onPartial = onPartial)
+                    listenOnMainThread(languageTag, preferOnDevice = onDeviceFirst, onPartial = onPartial, endSilenceMs = endSilenceMs)
                 }
             }
             if (first != null || !onDeviceFirst || !LanguagePackFallback.isLanguageError(lastErrorCode)) {
@@ -198,7 +205,7 @@ class SpeechToText(private val context: Context) {
             lastErrorCode = null
             return withTimeoutOrNull(left) {
                 withContext(Dispatchers.Main) {
-                    listenOnMainThread(languageTag, preferOnDevice = false, onPartial = onPartial)
+                    listenOnMainThread(languageTag, preferOnDevice = false, onPartial = onPartial, endSilenceMs = endSilenceMs)
                 }
             }
         } finally {
@@ -259,10 +266,17 @@ class SpeechToText(private val context: Context) {
     private val downloadRequested: MutableSet<String> =
         java.util.Collections.synchronizedSet(mutableSetOf())
 
+    /** Wybór z Ustawień - patrz [pl.victor.app.audio.SpeechEndWait]. */
+    private fun configuredEndSilenceMs(): Long? =
+        runCatching {
+            pl.victor.app.data.SettingsRepository.getInstance(context).getSpeechEndWait()
+        }.getOrDefault(pl.victor.app.audio.SpeechEndWait.DEFAULT).recognizerSilenceMs
+
     private suspend fun listenOnMainThread(
         languageTag: String,
         preferOnDevice: Boolean = true,
-        onPartial: ((String) -> Unit)? = null
+        onPartial: ((String) -> Unit)? = null,
+        endSilenceMs: Long? = null
     ): String? =
         suspendCancellableCoroutine { continuation ->
             val recognizer = createRecognizer(preferOnDevice)
@@ -272,18 +286,63 @@ class SpeechToText(private val context: Context) {
                 return@suspendCancellableCoroutine
             }
 
+            // KONIEC WYPOWIEDZI MIERZONY PRZEZ NAS - patrz [RecognizerEndpoint].
+            //
+            // Wszystkie wywołania słuchacza i ten zegar idą na wątku głównym,
+            // więc miernik nie potrzebuje żadnej synchronizacji.
+            val endpoint = endSilenceMs?.let { RecognizerEndpoint(it) }
+
             // onError i onResults potrafią przyjść oba - wznawiamy dokładnie raz.
             val resumed = AtomicBoolean(false)
             fun finish(result: String?) {
                 if (resumed.compareAndSet(false, true)) {
                     runCatching { recognizer.destroy() }
-                    continuation.resume(result)
+                    // Po NASZYM zatrzymaniu pusty wynik zastępuje ostatni
+                    // częściowy - skrócenie ciszy nie może zgubić pytania.
+                    val out = endpoint?.pickResult(result) ?: result
+                    // Błąd, który silnik zgłosił po zatrzymaniu, nie jest
+                    // awarią, skoro pytanie mamy - inaczej trafiłby na ekran.
+                    if (out != null && result == null) lastErrorCode = null
+                    continuation.resume(out)
                 }
             }
 
             val signal = MicSignal()
             lastMicSignal = signal
-            recognizer.setRecognitionListener(listener(signal, ::finish, onPartial))
+            val partialHook: ((String) -> Unit)? = if (endpoint == null) {
+                onPartial
+            } else {
+                { text ->
+                    endpoint.onPartial(text, System.currentTimeMillis())
+                    onPartial?.invoke(text)
+                }
+            }
+            val levelHook: ((Float) -> Unit)? =
+                endpoint?.let { e -> { db -> e.onLevel(db, System.currentTimeMillis()) } }
+            recognizer.setRecognitionListener(listener(signal, ::finish, partialHook, levelHook))
+            if (endpoint != null) {
+                val handler = Handler(Looper.getMainLooper())
+                val tick = object : Runnable {
+                    override fun run() {
+                        if (resumed.get()) return
+                        if (!endpoint.shouldStop(System.currentTimeMillis())) {
+                            handler.postDelayed(this, ENDPOINT_POLL_MS)
+                            return
+                        }
+                        endpoint.markStopped()
+                        signal.noteEndedByApp()
+                        Log.i(tag, "Cisza po zdaniu ($endSilenceMs ms) - kończę nasłuch sam")
+                        // stopListening, nie cancel: silnik ma ODDAĆ to, co
+                        // usłyszał, a nie wyrzucić.
+                        runCatching { recognizer.stopListening() }
+                            .onFailure { finish(null) }
+                        // Bezpiecznik: silnik, który po zatrzymaniu milczy,
+                        // dostaje chwilę - potem oddajemy wynik częściowy.
+                        handler.postDelayed({ finish(null) }, FORCED_STOP_RESULT_WAIT_MS)
+                    }
+                }
+                handler.postDelayed(tick, ENDPOINT_POLL_MS)
+            }
             continuation.invokeOnCancellation {
                 // Anulowanie (np. z withTimeoutOrNull) przychodzi z dowolnego wątku,
                 // a SpeechRecognizer wolno ruszać tylko z głównego - stąd post().
@@ -295,7 +354,16 @@ class SpeechToText(private val context: Context) {
                 }
             }
 
-            runCatching { recognizer.startListening(intent(languageTag, partial = onPartial != null)) }
+            // Wyniki częściowe zamawiamy także wtedy, gdy potrzebuje ich nasz
+            // miernik końca. To nie jest nowe zamówienie dla tego silnika:
+            // nasłuch z okularów prosi o nie zawsze (`listenUntilSpeechEnds`)
+            // i tam silnik kończył wypowiedzi normalnie. Psuły go dopiero
+            // okna ciszy - te zostają nieustawione.
+            runCatching {
+                recognizer.startListening(
+                    intent(languageTag, partial = onPartial != null || endpoint != null)
+                )
+            }
                 .onFailure {
                     Log.w(tag, "startListening nie powiodło się", it)
                     finish(null)
@@ -489,7 +557,8 @@ class SpeechToText(private val context: Context) {
     private fun listener(
         signal: MicSignal,
         finish: (String?) -> Unit,
-        onPartial: ((String) -> Unit)? = null
+        onPartial: ((String) -> Unit)? = null,
+        onLevel: ((Float) -> Unit)? = null
     ) = object : RecognitionListener {
         override fun onResults(results: Bundle?) {
             val text = results
@@ -521,7 +590,10 @@ class SpeechToText(private val context: Context) {
         // co system i tak przysyła.
         override fun onReadyForSpeech(params: Bundle?) = signal.noteReady()
         override fun onBeginningOfSpeech() = signal.noteSpeechStart()
-        override fun onRmsChanged(rmsdB: Float) = signal.noteLevel(rmsdB)
+        override fun onRmsChanged(rmsdB: Float) {
+            signal.noteLevel(rmsdB)
+            onLevel?.invoke(rmsdB)
+        }
         override fun onBufferReceived(buffer: ByteArray?) = Unit
         override fun onEndOfSpeech() = Unit
         override fun onPartialResults(partialResults: Bundle?) {
@@ -612,6 +684,12 @@ class SpeechToText(private val context: Context) {
         private const val EXTRA_MASK_OFFENSIVE_WORDS = "android.speech.extra.MASK_OFFENSIVE_WORDS"
 
         private const val TAG = "SpeechToText"
+
+        /** Jak często miernik końca sprawdza ciszę - patrz [RecognizerEndpoint]. */
+        private const val ENDPOINT_POLL_MS = 100L
+
+        /** Ile czekać na wynik silnika po naszym `stopListening()`. */
+        private const val FORCED_STOP_RESULT_WAIT_MS = 1_500L
 
         /**
          * Jedna wypowiedź rzadko trwa dłużej. Limit jest twardy, bo

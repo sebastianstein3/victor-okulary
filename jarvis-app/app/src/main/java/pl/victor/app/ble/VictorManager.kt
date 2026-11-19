@@ -1118,6 +1118,13 @@ class VictorManager private constructor(context: Context) {
         // padnie po ponownym połączeniu.
         synchronized(micStreamListeners) { micBacklog.clear() }
         lastTriggerAtMs = 0L
+        // Tryb multimediów liczymy NA POŁĄCZENIE: po nowym łączu okulary mogły
+        // zostać przełączone w ustawieniach albo sparowane od nowa, więc stare
+        // porażki i pokazana podpowiedź niczego już nie dowodzą.
+        mediaModeSession.reset()
+        mediaModeDiagnosis = null
+        mediaModeDiagnosisJob?.cancel()
+        _mediaModeHint.value = null
     }
 
     /**
@@ -1382,6 +1389,7 @@ class VictorManager private constructor(context: Context) {
             // każda kolejna tura znowu brała SCO. Tu jest chwila, kiedy SCO na
             // pewno nie stoi.
             requestClassicAudioWhenIdle("po połączeniu")
+            diagnoseMediaModeSoon()
         }
     }
 
@@ -2112,6 +2120,9 @@ class VictorManager private constructor(context: Context) {
         if (!isConnected()) return
         val now = System.currentTimeMillis()
         if (now - lastClassicAudioRequestAtMs < CLASSIC_AUDIO_RETRY_MS) return
+        // Po serii porażek w tej sesji - raz na dziesięć minut, nie co turę.
+        if (!mediaModeSession.mayRequest(now)) return
+        mediaModeSession.noteRequest(now)
         lastClassicAudioRequestAtMs = now
         scope.launch {
             runCatching {
@@ -2139,19 +2150,22 @@ class VictorManager private constructor(context: Context) {
             // telefonu - i użytkownik ma prawo to usłyszeć, zamiast latami
             // słuchać asystenta przez gorszy profil.
             delay(CLASSIC_AUDIO_CHECK_MS)
+            val router = pl.victor.app.audio.BluetoothAudioRouter.getInstance(appContext)
+            val wstał = router.hasA2dpOutput()
             runCatching {
-                val router = pl.victor.app.audio.BluetoothAudioRouter.getInstance(appContext)
                 diag.event(
                     pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
-                    if (router.hasA2dpOutput()) "tryb multimediów wstał"
+                    if (wstał) "tryb multimediów wstał"
                     else "tryb multimediów NIE wstał mimo prośby",
                     mapOf(
                         "poMs" to CLASSIC_AUDIO_CHECK_MS,
+                        "nieudanychZRzędu" to if (wstał) 0 else mediaModeSession.consecutiveFailures + 1,
                         "jakTelefonWidziOkulary" to
                             router.audioProfileSummary().replace("\n", " / ")
                     )
                 )
             }
+            noteMediaModeResult(wstał)
         }
     }
 
@@ -2201,9 +2215,13 @@ class VictorManager private constructor(context: Context) {
                             mapOf("powód" to reason)
                         )
                     }
+                    noteMediaModeResult(true)
                     return@launch
                 }
                 if (router.isRoutedToBluetooth.value) return@launch
+                // Po serii porażek w tej sesji nie prosimy po każdej turze -
+                // patrz [MediaModeSession].
+                if (!mediaModeSession.mayRequest(System.currentTimeMillis())) return@launch
                 lastClassicAudioRequestAtMs = System.currentTimeMillis()
                 if (ensureClassicAudio(reason, CLASSIC_AUDIO_IDLE_TIMEOUT_MS)) return@launch
             }
@@ -2232,8 +2250,16 @@ class VictorManager private constructor(context: Context) {
         timeoutMs: Long = CLASSIC_AUDIO_CHECK_MS
     ): Boolean {
         val router = pl.victor.app.audio.BluetoothAudioRouter.getInstance(appContext)
-        if (router.hasA2dpOutput()) return true
+        if (router.hasA2dpOutput()) {
+            noteMediaModeResult(true)
+            return true
+        }
         if (simulator != null || !isConnected()) return false
+        // Także alert proaktywny: po serii porażek czekanie sześć sekund na
+        // kanał, który w tej sesji nie wstał ani razu, tylko opóźnia alert.
+        val teraz = System.currentTimeMillis()
+        if (!mediaModeSession.mayRequest(teraz)) return false
+        mediaModeSession.noteRequest(teraz)
 
         runCatching {
             diag.event(
@@ -2257,6 +2283,7 @@ class VictorManager private constructor(context: Context) {
                         mapOf("poMs" to (timeoutMs - (doKiedy - System.currentTimeMillis())))
                     )
                 }
+                noteMediaModeResult(true)
                 return true
             }
             delay(CLASSIC_AUDIO_POLL_MS)
@@ -2267,12 +2294,171 @@ class VictorManager private constructor(context: Context) {
                 "tryb multimediów nie wstał w limicie",
                 mapOf(
                     "poMs" to timeoutMs,
+                    "nieudanychZRzędu" to mediaModeSession.consecutiveFailures + 1,
                     "jakTelefonWidziOkulary" to
                         router.audioProfileSummary().replace("\n", " / ")
                 )
             )
         }
+        noteMediaModeResult(false)
         return false
+    }
+
+    // === Tryb multimediów: diagnoza, ograniczenie próśb, podpowiedź ===
+
+    /** Porażki i prośby w bieżącej sesji połączenia - patrz [MediaModeSession]. */
+    private val mediaModeSession = MediaModeSession()
+
+    /** Diagnoza z tej sesji - robiona raz na połączenie, patrz [diagnoseMediaModeSoon]. */
+    @Volatile
+    private var mediaModeDiagnosis: MediaModeDiagnosis? = null
+
+    private var mediaModeDiagnosisJob: Job? = null
+
+    private val _mediaModeHint = MutableStateFlow<MediaModeHint?>(null)
+
+    /**
+     * Podpowiedź o trybie multimediów na ekran główny - albo `null`.
+     *
+     * Najwyżej raz na połączenie, po [MediaModeSession.HINT_AFTER_FAILURES]
+     * nieudanych prośbach z rzędu, i nigdy po "Nie pokazuj więcej".
+     */
+    val mediaModeHint: StateFlow<MediaModeHint?> = _mediaModeHint.asStateFlow()
+
+    /**
+     * Orkiestrator widzi tryb multimediów przy turze - sukces bez prośby też
+     * się liczy, bo system potrafi połączyć profil sam.
+     */
+    fun noteMediaModeAvailable() {
+        noteMediaModeResult(true)
+    }
+
+    /** Człowiek zamknął podpowiedź - na tę sesję albo na zawsze. */
+    fun dismissMediaModeHint(forever: Boolean) {
+        val hint = _mediaModeHint.value
+        _mediaModeHint.value = null
+        if (forever) runCatching { settings.setMediaModeHintSuppressed(true) }
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                if (forever) "podpowiedź o trybie multimediów: nie pokazuj więcej"
+                else "podpowiedź o trybie multimediów zamknięta",
+                mapOf("rodzaj" to hint?.kind?.name)
+            )
+        }
+    }
+
+    /** Człowiek poszedł z podpowiedzi do ustawień - do dziennika, żeby było widać skutek. */
+    fun noteMediaModeHintSettingsOpened() {
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                "podpowiedź o trybie multimediów: otwarte ustawienia",
+                mapOf("rodzaj" to _mediaModeHint.value?.kind?.name)
+            )
+        }
+    }
+
+    private fun noteMediaModeResult(up: Boolean) {
+        when (mediaModeSession.noteResult(up)) {
+            MediaModeSession.Transition.ENTERED_BACKOFF -> runCatching {
+                // RAZ, a nie przy każdej pominiętej prośbie - o to w tym chodzi.
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                    "tryb multimediów nie wstał ${MediaModeSession.BACKOFF_AFTER_FAILURES} razy - " +
+                        "przestaję prosić przy każdej turze",
+                    mapOf(
+                        "następnaPróbaCoMin" to MediaModeSession.BACKOFF_INTERVAL_MS / 60_000L,
+                        "diagnoza" to (
+                            mediaModeDiagnosis?.let { MediaModeAdvisor.hintKind(it)?.label }
+                                ?: "jeszcze nie ma"
+                            )
+                    )
+                )
+            }
+            MediaModeSession.Transition.RECOVERED -> runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                    "tryb multimediów wrócił - prośby znowu przy każdej potrzebie"
+                )
+            }
+            MediaModeSession.Transition.NONE -> Unit
+        }
+        if (up) {
+            if (_mediaModeHint.value != null) {
+                _mediaModeHint.value = null
+                runCatching {
+                    diag.event(
+                        pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                        "podpowiedź o trybie multimediów schowana - tryb wstał"
+                    )
+                }
+            }
+            return
+        }
+        maybeShowMediaModeHint()
+    }
+
+    private fun maybeShowMediaModeHint() {
+        val suppressed = runCatching { settings.isMediaModeHintSuppressed() }.getOrDefault(false)
+        if (!mediaModeSession.hintDue(suppressed)) return
+        mediaModeSession.markHintShown()
+        scope.launch {
+            val diagnosis = mediaModeDiagnosis ?: runMediaModeDiagnosis("przed podpowiedzią")
+            if (!isConnected()) return@launch
+            val hint = MediaModeAdvisor.hintFor(diagnosis)
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                    if (hint != null) "pokazuję podpowiedź o trybie multimediów"
+                    else "podpowiedź o trybie multimediów pominięta - system ma profil połączony",
+                    mapOf(
+                        "rodzaj" to hint?.kind?.name,
+                        "nieudanychZRzędu" to mediaModeSession.consecutiveFailures
+                    )
+                )
+            }
+            if (hint != null) _mediaModeHint.value = hint
+        }
+    }
+
+    /**
+     * Diagnoza trybu multimediów RAZ na połączenie, z opóźnieniem.
+     *
+     * Opóźnienie, bo klasyczny Bluetooth wraca po połączeniu wolniej niż BLE
+     * (dziennik z biegu 153) - zapytany od razu system nie znałby jeszcze
+     * stanu profilu. Do tego czasu przejdą też prośby "po połączeniu".
+     */
+    private fun diagnoseMediaModeSoon() {
+        if (simulator != null) return
+        if (mediaModeDiagnosis != null || mediaModeDiagnosisJob?.isActive == true) return
+        mediaModeDiagnosisJob = scope.launch {
+            delay(MEDIA_MODE_DIAGNOSIS_DELAY_MS)
+            if (!isConnected() || mediaModeDiagnosis != null) return@launch
+            runMediaModeDiagnosis("po połączeniu")
+        }
+    }
+
+    private suspend fun runMediaModeDiagnosis(reason: String): MediaModeDiagnosis {
+        val router = pl.victor.app.audio.BluetoothAudioRouter.getInstance(appContext)
+        val diagnosis = runCatching {
+            MediaModeProbe.diagnose(
+                context = appContext,
+                audioName = router.connectedDeviceName(),
+                bleName = glassesBleName(),
+                bleAddress = lastConnectedAddress ?: settings.getLastGlassesAddress()
+            )
+        }.onFailure { Log.w(tag, "Diagnoza trybu multimediów nie powiodła się", it) }
+            .getOrDefault(MediaModeDiagnosis.PROBE_FAILED)
+        mediaModeDiagnosis = diagnosis
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.AUDIO,
+                "diagnoza trybu multimediów okularów",
+                mapOf("kiedy" to reason) + diagnosis.fields()
+            )
+        }
+        return diagnosis
     }
 
     /** Opis zdarzenia po polsku - na ekran diagnostyczny. */
@@ -5328,6 +5514,9 @@ class VictorManager private constructor(context: Context) {
 
         /** Odczekanie przed pierwszym sprawdzeniem A2DP - patrz [requestClassicAudioWhenIdle]. */
         private const val CLASSIC_AUDIO_FIRST_CHECK_MS = 4_000L
+
+        /** Kiedy po połączeniu zapytać system o profile okularów - patrz [diagnoseMediaModeSoon]. */
+        private const val MEDIA_MODE_DIAGNOSIS_DELAY_MS = 12_000L
 
         /** Przerwa między próbami - na powrót klasycznego Bluetootha po połączeniu. */
         private const val CLASSIC_AUDIO_IDLE_RETRY_MS = 15_000L
