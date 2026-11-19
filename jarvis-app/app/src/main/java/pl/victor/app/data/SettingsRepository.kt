@@ -51,16 +51,8 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().remove("$KEY_MODEL_PREFIX$providerId").apply()
     }
 
-    /**
-     * Model lokalny nie ma klucza API - reszta apki (fallback, ekran testu
-     * połączenia) jest napisana pod założenie "pusty klucz = provider
-     * niedostępny", więc zwracamy stały placeholder zamiast rozsiewać
-     * specjalne przypadki po całym kodzie. Prawdziwym warunkiem gotowości
-     * jest pobrany plik modelu - patrz [hasApiKey].
-     */
     fun getApiKey(providerId: String): String? =
-        if (providerId == LOCAL_PROVIDER_ID) LOCAL_PROVIDER_PLACEHOLDER_KEY
-        else prefs.getString("$KEY_API_PREFIX$providerId", null)
+        prefs.getString("$KEY_API_PREFIX$providerId", null)
 
     fun setApiKey(providerId: String, key: String) {
         require(key.isNotBlank()) { "API key cannot be blank" }
@@ -68,11 +60,43 @@ class SettingsRepository private constructor(private val context: Context) {
     }
 
     fun hasApiKey(providerId: String): Boolean =
-        if (providerId == LOCAL_PROVIDER_ID) {
-            pl.victor.app.localmodel.LocalModelStorage.isDownloaded(context, pl.victor.app.localmodel.LocalModelCatalog.QWEN_0_8B)
-        } else {
-            !getApiKey(providerId).isNullOrBlank()
-        }
+        !getApiKey(providerId).isNullOrBlank()
+
+    /**
+     * Sprząta ustawienia po usuniętym modelu lokalnym (llama.cpp + Qwen 0.8B).
+     *
+     * Model wyleciał z aplikacji, bo na Galaxy A23 był bezużyteczny: w dzienniku
+     * bez sieci wczytywał się 13,8 s, liczył 19 s i nie oddał ani jednego tokena
+     * ("model lokalny: koniec generowania ms=19317 byłPierwszyToken=false").
+     * Telefon, który miał go wybranego jako dostawcę, zostałby po aktualizacji z
+     * aktywnym dostawcą "local", którego nikt już nie obsługuje - każda tura
+     * kończyłaby się "nieznanym dostawcą". Przestawiamy go więc na pierwszego
+     * dostawcę z kluczem (patrz [LocalModelLeftovers.replacementProvider]) i
+     * usuwamy klucze, które zapisywała wyłącznie ta funkcja.
+     *
+     * Bez osobnej flagi "już posprzątane": oba sprawdzenia są tanie i po
+     * pierwszym przebiegu po prostu nic nie znajdują - a flaga byłaby kolejnym
+     * kluczem, który kiedyś trzeba będzie sprzątać.
+     *
+     * @param providerOrder kolejność dostawców, wg której szukamy następcy
+     * @return co zostało zmienione - albo `null`, gdy nie było czego sprzątać
+     */
+    fun removeLocalModelSettings(providerOrder: List<String>): LocalModelLeftovers.Cleanup? {
+        val active = prefs.getString(KEY_ACTIVE_PROVIDER, null)
+        val newProvider = LocalModelLeftovers.replacementProvider(
+            active = active,
+            order = providerOrder,
+            hasKey = ::hasApiKey,
+            default = DEFAULT_PROVIDER
+        )
+        val orphans = LocalModelLeftovers.ORPHAN_KEYS.filter { prefs.contains(it) }
+        if (newProvider == null && orphans.isEmpty()) return null
+        prefs.edit().apply {
+            if (newProvider != null) putString(KEY_ACTIVE_PROVIDER, newProvider)
+            orphans.forEach { remove(it) }
+        }.apply()
+        return LocalModelLeftovers.Cleanup(newProvider = newProvider, removedKeys = orphans)
+    }
 
     /**
      * Kiedy ostatnio sprawdzono modele u providera (ms since epoch).
@@ -1274,8 +1298,6 @@ class SettingsRepository private constructor(private val context: Context) {
             }
 
         private const val DEFAULT_PROVIDER = "gemini"
-        private const val LOCAL_PROVIDER_ID = "local"
-        private const val LOCAL_PROVIDER_PLACEHOLDER_KEY = "local-model-no-key-needed"
         const val DEFAULT_CAPTURE_COUNT = 5
         const val DEFAULT_CAPTURE_INTERVAL_MS = 1000L
 

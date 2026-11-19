@@ -61,11 +61,11 @@ class DeadModelsTest {
         val modele = mapOf(
             "gemini" to "gemini-2.5-flash-lite",
             "deepseek" to "deepseek-chat",
-            "local" to null
+            "openai" to null
         )
-        val kolejka = listOf("gemini", "deepseek", "local")
+        val kolejka = listOf("gemini", "deepseek", "openai")
         assertEquals(
-            listOf("deepseek", "local", "gemini"),
+            listOf("deepseek", "openai", "gemini"),
             d.przestaw(kolejka) { modele[it] }
         )
     }

@@ -6,7 +6,6 @@ import pl.victor.app.data.ModelRegistry
 import pl.victor.app.data.ModelResolution
 import pl.victor.app.data.ModelSource
 import pl.victor.app.data.SmartModelResolver
-import pl.victor.app.localmodel.LocalModelCatalog
 
 /**
  * Fabryka providerów AI - tworzy odpowiednią implementację na podstawie ID.
@@ -20,7 +19,6 @@ import pl.victor.app.localmodel.LocalModelCatalog
 object AIProviderFactory {
 
     private const val TAG = "AIProviderFactory"
-    const val LOCAL_PROVIDER_ID = "local"
 
     /**
      * Zwraca capabilities dla danego providera (bez tworzenia instancji).
@@ -64,12 +62,6 @@ object AIProviderFactory {
             maxImagesPerRequest = 4,
             supportsFunctionCalling = true
         )
-        "local" -> ProviderCapabilities(
-            supportsImages = false,
-            supportsVideo = false,
-            supportsAudio = false,
-            supportsFunctionCalling = false
-        )
         else -> ProviderCapabilities()
     }
     private val resolver = SmartModelResolver()
@@ -89,18 +81,6 @@ object AIProviderFactory {
         preferredModelId: String? = null,
         availableFromProvider: List<String> = emptyList()
     ): AIProviderWithMetadata {
-        if (providerId.lowercase() == LOCAL_PROVIDER_ID) {
-            // Bez klucza API, bez resolvera modeli chmurowych - katalog lokalny
-            // ma dziś jeden wpis i nie jest wersjonowany przez żadnego providera.
-            val modelId = LocalModelCatalog.QWEN_0_8B.id
-            Log.i(TAG, "Creating $LOCAL_PROVIDER_ID with model $modelId")
-            return AIProviderWithMetadata(
-                provider = LocalAIProvider(context.applicationContext),
-                modelId = modelId,
-                resolution = ModelResolution(modelId = modelId, source = ModelSource.PREFERRED, warning = null)
-            )
-        }
-
         require(apiKey.isNotBlank()) { "API key for $providerId is empty" }
 
         // Rozwiąż model
@@ -193,13 +173,6 @@ object AIProviderFactory {
             description = "Bardzo tani (~$0,3/1M tok), dobry polski, modele tekstowe " +
                 "i rozumujące. Listę modeli pobieramy z API, więc nowe pojawiają się same.",
             keyUrl = "https://platform.deepseek.com/api_keys",
-            available = true
-        ),
-        ProviderInfo(
-            id = LOCAL_PROVIDER_ID,
-            displayName = "Model lokalny (offline)",
-            description = "Darmowy, działa bez internetu po jednorazowym pobraniu (~560MB). Mniejsza jakość niż modele chmurowe.",
-            keyUrl = "",
             available = true
         )
     )

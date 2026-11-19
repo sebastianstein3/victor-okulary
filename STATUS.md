@@ -299,7 +299,7 @@ błędu, obok „Spróbuj ponownie".
 |---|---|---|
 | 0 — odruch | „zrób zdjęcie", „pauza", „włącz latarkę", „następna" | zawsze, offline, natychmiast |
 | 1 — rozumienie | wszystko inne; AI odpowiada albo prosi o narzędzie znacznikiem `[[ACTION: ...]]` | domyślnie |
-| 2 — awaria | pełna detekcja wzorcami | tylko gdy AI niedostępne |
+| 2 — awaria | pełna detekcja wzorcami (timer, budzik, telefon, SMS…); bez dopasowania — komunikat „nie mam internetu” z przykładami poleceń offline | gdy brak klucza API albo wszyscy dostawcy padli z braku sieci |
 
 AI może samo poprosić o zdjęcie (`[[ACTION: type=take_photo]]`) — wtedy
 aplikacja robi zdjęcie i zadaje to samo pytanie jeszcze raz, już z obrazem.

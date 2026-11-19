@@ -11,7 +11,8 @@ import org.junit.Test
  *
  * Oba przypadki z dziennika z 18:29-18:37: trzy razy "nie mam dostępu do
  * aktualnych cen" przy włączonym wyszukiwaniu Google i przerwanie tury, po
- * którym aplikacja przeszła przez wszystkich dostawców aż do modelu lokalnego.
+ * którym aplikacja przeszła przez wszystkich dostawców aż do (usuniętego
+ * dziś) modelu lokalnego.
  */
 class WebSearchPromptTest {
 

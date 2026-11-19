@@ -1006,7 +1006,8 @@ class MediaViewModel(app: android.app.Application) : AndroidViewModel(app) {
         // Sieć okularów internetu nie ma, a zwolnienie jej nie przywraca
         // łączności natychmiast - Android musi przepiąć ruch z powrotem. Kto
         // wyszedł z galerii i od razu o coś zapytał, trafiał w tę dziurę:
-        // asystent meldował brak sieci i schodził na model lokalny.
+        // asystent meldował brak sieci (wtedy jeszcze schodząc na usunięty
+        // dziś model lokalny, teraz - mówiąc, że nie ma internetu).
         //
         // Zgłoszone jako "po pobraniu zdjęć do galerii okulary nie reagują już
         // na nic". Reagowały - to aplikacja nie miała czym zapytać.
