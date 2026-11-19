@@ -111,6 +111,27 @@ class SettingsRepository private constructor(private val context: Context) {
      */
     private val _wakeWordEnabledFlow = MutableStateFlow(wakeEnabledPoNaprawie())
 
+    private val _freeOnlyFlow = MutableStateFlow(prefs.getBoolean(KEY_FREE_ONLY, false))
+
+    /**
+     * "Tylko darmowe funkcje" - główny przełącznik kosztów.
+     *
+     * Włączony przestawia KAŻDĄ płatną dodatkową usługę na darmowy odpowiednik:
+     * transkrypcja w chmurze -> rozpoznawanie w telefonie, tłumaczenie na żywo
+     * -> tłumaczenie w telefonie, Mapy Google -> OpenStreetMap, głos w chmurze
+     * -> syntezator Androida itd. Każda nowa płatna funkcja MA go sprawdzać.
+     * Sam model AI (odpowiedzi asystenta) zostaje - bez niego nie ma asystenta;
+     * jego koszt zależy od klucza (Gemini ma darmowy limit).
+     */
+    val freeOnlyFlow: StateFlow<Boolean> = _freeOnlyFlow.asStateFlow()
+
+    fun isFreeOnly(): Boolean = _freeOnlyFlow.value
+
+    fun setFreeOnly(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_FREE_ONLY, enabled).apply()
+        _freeOnlyFlow.value = enabled
+    }
+
     /**
      * Jednorazowa naprawa z biegu 184: wybór "Hej Wiktor" nie włączał nasłuchu
      * telefonu (osobny przełącznik, domyślnie wyłączony), więc fraza nie
@@ -198,7 +219,7 @@ class SettingsRepository private constructor(private val context: Context) {
      * ta decyzja ma być widoczna, a nie schowana w innej funkcji.
      */
     fun isCloudTranscriptionEnabled(): Boolean =
-        prefs.getBoolean(KEY_CLOUD_TRANSCRIPTION, true)
+        prefs.getBoolean(KEY_CLOUD_TRANSCRIPTION, true) && !isFreeOnly()
 
     fun setCloudTranscriptionEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_CLOUD_TRANSCRIPTION, enabled).apply()
@@ -338,7 +359,8 @@ class SettingsRepository private constructor(private val context: Context) {
      * 3-4 centy za minutę. Bez klucza albo bez sieci tryb sam wraca do
      * tłumaczenia w telefonie.
      */
-    fun isLiveEarTranslationEnabled(): Boolean = prefs.getBoolean(KEY_LIVE_EAR_TRANSLATION, true)
+    fun isLiveEarTranslationEnabled(): Boolean =
+        prefs.getBoolean(KEY_LIVE_EAR_TRANSLATION, true) && !isFreeOnly()
 
     fun setLiveEarTranslationEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_LIVE_EAR_TRANSLATION, enabled).apply()
@@ -366,7 +388,7 @@ class SettingsRepository private constructor(private val context: Context) {
     }
 
     /** Mapy Google dla pytań o okolicę (opinie, godziny otwarcia) - tylko Gemini 3+. */
-    fun isMapsGroundingEnabled(): Boolean = prefs.getBoolean(KEY_MAPS_GROUNDING, true)
+    fun isMapsGroundingEnabled(): Boolean = prefs.getBoolean(KEY_MAPS_GROUNDING, true) && !isFreeOnly()
 
     fun setMapsGroundingEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_MAPS_GROUNDING, enabled).apply()
@@ -1244,6 +1266,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
         private const val KEY_LIVE_EAR_TRANSLATION = "live_ear_translation"
         private const val KEY_NAV_PROMPTS = "nav_prompts"
+        private const val KEY_FREE_ONLY = "free_only"
         private const val KEY_OSM_PLACES = "osm_places"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"
         private const val KEY_CAMERA_FREE = "camera_free"

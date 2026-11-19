@@ -33,7 +33,24 @@ internal fun CameraAndThemeSection() {
     val settings = pl.victor.app.VictorApplication.get().settings
     val cameraFree by settings.cameraFreeFlow.collectAsState()
     val themeMode by settings.themeModeFlow.collectAsState()
+    val freeOnly by settings.freeOnlyFlow.collectAsState()
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.weight(1f)) {
+                Text("Tylko darmowe funkcje", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Wyłącza wszystkie płatne dodatki i bierze ich darmowe odpowiedniki: " +
+                        "rozpoznawanie mowy w telefonie zamiast chmury, tłumaczenie w " +
+                        "telefonie zamiast na żywo, OpenStreetMap zamiast Map Google, " +
+                        "syntezator Androida zamiast głosu w chmurze. Odpowiedzi asystenta " +
+                        "dalej idą przez wybrany model (Gemini ma darmowy limit).",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Switch(checked = freeOnly, onCheckedChange = { settings.setFreeOnly(it) })
+        }
+
+        Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.weight(1f)) {
                 Text("Tryb bez kamery", style = MaterialTheme.typography.titleSmall)
