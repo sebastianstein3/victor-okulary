@@ -88,6 +88,14 @@
 -dontwarn org.greenrobot.eventbus.**
 
 # ===================================================================
+# ONNX Runtime (fraza "Hej Wiktor", openWakeWord)
+# ===================================================================
+# Biblioteka natywna szuka klas Javy po nazwach przez JNI - po zmianie nazw
+# przez R8 sesja ONNX nie wstaje w release (w debug wszystko działa).
+-keep class ai.onnxruntime.** { *; }
+-dontwarn ai.onnxruntime.**
+
+# ===================================================================
 # ML Kit Barcode Scanning
 # ===================================================================
 -keep class com.google.mlkit.** { *; }

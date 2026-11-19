@@ -60,13 +60,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pl.victor.app.data.SettingsRepository
 import pl.victor.app.ui.MainActivity
 import pl.victor.app.ui.brand.VictorBrandMark
 import pl.victor.app.ui.theme.VictorTheme
 
 /**
  * Onboarding - prowadzenie nowego użytkownika przez setup.
- * 8 kroków: welcome → provider → api key → weather → picovoice → location → permissions → done
+ * Kroki: welcome → funkcje → provider → api key → weather → fraza wybudzenia →
+ * location → permissions → okulary → done
  */
 class OnboardingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -238,7 +240,7 @@ fun OnboardingScreen(
                         OnboardingStep.PROVIDER -> StepProvider(viewModel)
                         OnboardingStep.API_KEY -> StepApiKey(viewModel)
                         OnboardingStep.WEATHER -> StepWeather(viewModel)
-                        OnboardingStep.PICOVOICE -> StepPicovoice(viewModel)
+                        OnboardingStep.WAKE_WORD -> StepWakeWord(viewModel)
                         OnboardingStep.LOCATION -> StepLocation(viewModel)
                         OnboardingStep.PERMISSIONS -> StepPermissions(
                             viewModel = viewModel,
@@ -626,49 +628,64 @@ private fun StepWeather(viewModel: OnboardingViewModel) {
     }
 }
 
+/**
+ * Wybór frazy wybudzenia - te same dwie opcje i te same uczciwe opisy co w
+ * Ustawieniach. Pominięcie kroku niczego nie włącza.
+ */
 @Composable
-private fun StepPicovoice(viewModel: OnboardingViewModel) {
+private fun StepWakeWord(viewModel: OnboardingViewModel) {
     val state by viewModel.state.collectAsState()
-    val context = LocalContext.current
+    val opcje = listOf(
+        Triple(
+            SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR,
+            "„Hej Wiktor”",
+            "Telefon słucha frazy na urządzeniu, offline, bez kont i opłat; " +
+                "zużywa trochę baterii."
+        ),
+        Triple(
+            SettingsRepository.WAKE_ENGINE_HEJ_LENS,
+            "„Hej Lens”",
+            "Słuchają tylko okulary (fraza producenta), telefon nie nasłuchuje - " +
+                "najoszczędniej; skuteczność zależy od egzemplarza."
+        )
+    )
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         StepHeader(
             "🎙️",
-            "Wake word (opcjonalne)",
-            "Aktywuj AI głosem, np. mówiąc \"Computer\". Docelowa fraza \"Hey Victor\" wymaga " +
-                "później własnego modelu (patrz Ustawienia) - na start działa od razu wbudowana " +
-                "komenda. Wymaga darmowego konta Picovoice."
+            "Fraza wybudzenia (opcjonalne)",
+            "Jak wołać asystenta bez sięgania po telefon. Zawsze działa też przycisk " +
+                "na oprawce. Możesz zmienić później w Ustawieniach."
         )
 
         Spacer(Modifier.height(16.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-            )
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text("Darmowy Picovoice:", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.size(4.dp))
-                Text("1. https://console.picovoice.ai/", style = MaterialTheme.typography.bodySmall)
-                Text("2. Sign Up", style = MaterialTheme.typography.bodySmall)
-                Text("3. Utwórz projekt", style = MaterialTheme.typography.bodySmall)
-                Text("4. Skopiuj AccessKey", style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.size(4.dp))
-                Text("Darmowy tier: 3 wake words / urządzenie", style = MaterialTheme.typography.labelSmall)
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(8.dp)) {
+                opcje.forEach { (id, nazwa, opis) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        RadioButton(
+                            selected = state.wakeEngine == id,
+                            onClick = { viewModel.setWakeEngine(id) }
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        Column {
+                            Text(nazwa, fontWeight = FontWeight.Bold)
+                            Text(
+                                opis,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         }
-
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
-            value = state.picovoiceKey,
-            onValueChange = { viewModel.setPicovoiceKey(it) },
-            label = { Text("Picovoice AccessKey (opcjonalnie)") },
-            placeholder = { Text("/5jV.../kE=") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 
@@ -901,7 +918,15 @@ private fun StepDone(viewModel: OnboardingViewModel) {
                 Spacer(Modifier.size(8.dp))
                 ConfigSummary("🧠 AI", state.providerId, state.apiKey.isNotBlank())
                 ConfigSummary("🌦️ Pogoda", state.openWeatherKey.take(8) + "...".takeIf { state.openWeatherKey.isNotBlank() } ?: "pominięto", state.openWeatherKey.isNotBlank())
-                ConfigSummary("🎙️ Wake word", state.picovoiceKey.take(8) + "...".takeIf { state.picovoiceKey.isNotBlank() } ?: "pominięto", state.picovoiceKey.isNotBlank())
+                ConfigSummary(
+                    "🎙️ Fraza",
+                    when (state.wakeEngine) {
+                        SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR -> "Hej Wiktor (telefon)"
+                        SettingsRepository.WAKE_ENGINE_HEJ_LENS -> "Hej Lens (okulary)"
+                        else -> "pominięto"
+                    },
+                    state.wakeEngine != null
+                )
                 ConfigSummary("📍 Lokalizacja", state.city.ifBlank { "pominięto" }, state.city.isNotBlank())
                 ConfigSummary("🔐 Uprawnienia", "${countGranted(state)}/4 przyznane", countGranted(state) > 0)
                 ConfigSummary(

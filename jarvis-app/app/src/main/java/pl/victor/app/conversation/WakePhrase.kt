@@ -46,6 +46,16 @@ object WakePhrase {
     )
 
     /**
+     * Fraza nasłuchu TELEFONU („Hej Wiktor") w zapisach, w jakich może ją
+     * oddać rozpoznawanie mowy - polskim i angielskim. Podawana jako
+     * `extraPhrases`: to ona zostaje na początku pytania, gdy ktoś powie frazę
+     * i pytanie jednym tchem.
+     */
+    val PHONE_PHRASES: List<String> = listOf(
+        "hej wiktor", "hey wiktor", "hej victor", "hey victor", "ej wiktor", "okej wiktor"
+    )
+
+    /**
      * Do PORÓWNAŃ: małe litery, bez ogonków, bez interpunkcji.
      *
      * `ł` i `Ł` trzeba podmienić ręcznie, zanim ruszy `Normalizer`: w Unicode

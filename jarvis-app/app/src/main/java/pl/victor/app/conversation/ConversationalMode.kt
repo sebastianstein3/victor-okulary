@@ -13,8 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import pl.victor.app.audio.AudioManager
-import pl.victor.app.wakeword.WakeWordDetector
-import pl.victor.app.wakeword.WakeWordState
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -36,7 +34,14 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class ConversationalMode(
     private val audio: AudioManager,
-    private val wakeWord: WakeWordDetector? = null,
+    /**
+     * Oddaje mikrofon nasłuchu frazy na czas rozpoznawania - mikrofon jest
+     * wyłączny, a rozpoznawanie przegrywa z nasłuchem zawsze. Właściciel
+     * nasłuchu (aplikacja) sam pilnuje, czy w ogóle coś słucha.
+     */
+    private val pauseWakeMic: () -> Unit = {},
+    /** Odwrotność [pauseWakeMic] - wołana zawsze po nasłuchu, także po błędzie. */
+    private val resumeWakeMic: () -> Unit = {},
     private val speechToText: SpeechToText? = null,
     /** @return `true`, gdy z wypowiedzi ruszyła tura (wznowi nasłuch `onAiFinishedSpeaking`); `false` - zignorowana */
     private val onUserSpoke: suspend (String) -> Boolean,
@@ -287,12 +292,9 @@ class ConversationalMode(
         useBluetoothMic: Boolean = true,
         onPartial: ((String) -> Unit)? = null
     ): String? {
-        val wakeWordWasRunning = wakeWord?.state?.value == WakeWordState.LISTENING
-        if (wakeWordWasRunning) {
-            Log.d(tag, "Wstrzymuję wykrywanie słowa kluczowego - zwalniam mikrofon")
-            runCatching { wakeWord?.stopListening() }
-                .onFailure { Log.w(tag, "Nie udało się zatrzymać wake worda", it) }
-        }
+        Log.d(tag, "Wstrzymuję nasłuch frazy - zwalniam mikrofon")
+        runCatching { pauseWakeMic() }
+            .onFailure { Log.w(tag, "Nie udało się wstrzymać nasłuchu frazy", it) }
         return try {
             stt.listen(
                 languageTag = languageTag,
@@ -301,10 +303,8 @@ class ConversationalMode(
                 onPartial = onPartial
             )
         } finally {
-            if (wakeWordWasRunning) {
-                runCatching { wakeWord?.startListening() }
-                    .onFailure { Log.w(tag, "Nie udało się wznowić wake worda", it) }
-            }
+            runCatching { resumeWakeMic() }
+                .onFailure { Log.w(tag, "Nie udało się wznowić nasłuchu frazy", it) }
         }
     }
 

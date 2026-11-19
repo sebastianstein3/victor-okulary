@@ -25,12 +25,12 @@ import java.util.concurrent.TimeUnit
 /**
  * Przepisuje nagranie na tekst przez usługę w chmurze.
  *
- * ## Po co, skoro są już dwie inne drogi
- * Bo obie są słabe tam, gdzie to najbardziej boli. Rozpoznawanie systemowe wymaga
+ * ## Po co, skoro jest rozpoznawanie na telefonie
+ * Bo jest słabe tam, gdzie to najbardziej boli. Rozpoznawanie systemowe wymaga
  * Androida 13+ i pobranego pakietu języka, a przy zablokowanym ekranie na wielu
- * telefonach po prostu nie startuje. Vosk działa zawsze, ale jego mały model
- * polski myli słowa - a przekręcone pytanie jest gorsze niż brak pytania, bo model
- * odpowiada wtedy pewnie i nie na temat. Zgłoszone: "na pytanie jaka jest pogoda
+ * telefonach po prostu nie startuje. Mniejsze modele lokalne myliły słowa - a
+ * przekręcone pytanie jest gorsze niż brak pytania, bo model odpowiada wtedy
+ * pewnie i nie na temat. Zgłoszone: "na pytanie jaka jest pogoda
  * odpowiada, czym jest rozwód".
  *
  * Ta droga używa klucza, który jest już w ustawieniach - tego od WYBRANEGO

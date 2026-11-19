@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import pl.victor.app.data.SettingsRepository
 import pl.victor.app.VictorApplication
 import pl.victor.app.ai.AIProviderFactory
 
@@ -24,7 +25,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             providerId = s.getActiveProvider(),
             apiKey = s.getApiKey(s.getActiveProvider()) ?: "",
             openWeatherKey = s.getOpenWeatherApiKey(),
-            picovoiceKey = s.getPicovoiceAccessKey(),
             city = s.getWeatherLocation(),
             hasBatteryExemption = pl.victor.app.power.BatteryOptimizationHelper.isIgnoringOptimizations(app)
         )
@@ -63,7 +63,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                 _state.value = current.copy(currentStep = OnboardingStep.PROVIDER.ordinal)
             // Dla pozostałych opcjonalnych kroków - zwykłe "dalej o jeden".
             OnboardingStep.WEATHER,
-            OnboardingStep.PICOVOICE,
+            OnboardingStep.WAKE_WORD,
             OnboardingStep.LOCATION,
             OnboardingStep.GLASSES -> nextStep()
             else -> {}
@@ -82,8 +82,9 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _state.value = _state.value.copy(openWeatherKey = key)
     }
 
-    fun setPicovoiceKey(key: String) {
-        _state.value = _state.value.copy(picovoiceKey = key)
+    /** Wybór frazy wybudzenia - patrz [OnboardingState.wakeEngine]. */
+    fun setWakeEngine(engine: String) {
+        _state.value = _state.value.copy(wakeEngine = engine)
     }
 
     fun setCity(city: String) {
@@ -140,14 +141,16 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             settings.setWeatherLocation(s.city)
         }
 
-        // Picovoice
-        if (s.picovoiceKey.isNotBlank()) {
-            settings.setPicovoiceAccessKey(s.picovoiceKey)
-        }
-
-        // Wake word - włącz jeśli jest klucz
-        if (s.picovoiceKey.isNotBlank()) {
-            settings.setWakeWordEnabled(true)
+        // Fraza wybudzenia - tylko gdy wybrana. "Hej Wiktor" włącza nasłuch
+        // telefonu, bo to wprost wybór "telefon ma słuchać"; "Hej Lens" zostawia
+        // mikrofon telefonu w spokoju.
+        when (s.wakeEngine) {
+            SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR -> {
+                settings.setWakeEngine(SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR)
+                settings.setWakeWordEnabled(true)
+            }
+            SettingsRepository.WAKE_ENGINE_HEJ_LENS ->
+                settings.setWakeEngine(SettingsRepository.WAKE_ENGINE_HEJ_LENS)
         }
 
         settings.setOnboardingCompleted(true)
@@ -173,7 +176,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             OnboardingStep.PROVIDER -> s.providerId.isNotBlank()
             OnboardingStep.API_KEY -> s.apiKey.isNotBlank() && s.apiKey.length > 5
             OnboardingStep.WEATHER -> true  // opcjonalne
-            OnboardingStep.PICOVOICE -> true  // opcjonalne
+            OnboardingStep.WAKE_WORD -> true  // opcjonalne
             OnboardingStep.LOCATION -> true   // opcjonalne
             OnboardingStep.PERMISSIONS -> true  // nawet bez uprawnień idź dalej
             OnboardingStep.GLASSES -> true    // opcjonalne

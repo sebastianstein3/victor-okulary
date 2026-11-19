@@ -157,26 +157,21 @@ z Etapu 4.
 
 Nie zależą od okularów — da się je sprawdzić od razu.
 
-1. **Klucz Picovoice.** Ustawienia → sekcja komendy głosowej → wklej klucz
-   z [console.picovoice.ai](https://console.picovoice.ai/) (darmowy tier).
-   Bez klucza przełącznik jest nieaktywny.
-2. **Wybierz komendę z grupy „Działają od razu".** Wszystkie są angielskie —
-   Porcupine ma tylko takie wbudowane. Domyślna to „V.I.C.T.O.R.", wymowa „dżarwis".
-3. **Włącz przełącznik.** Komunikat pod nim powie, czy się udało; jeśli nie —
-   powie dlaczego (brak zgody na mikrofon, zły klucz, fraza wymagająca modelu).
-4. Powiedz komendę. Usłyszysz **krótki sygnał** — dopiero on znaczy „mów
-   teraz". Wcześniejszy dźwięk wybudzenia gra firmware okularów i wypada
+1. **Wybierz frazę.** Ustawienia → sekcja frazy wybudzenia:
+   - **„Hej Wiktor”** — telefon słucha frazy sam (openWakeWord, offline, bez
+     kont, kluczy i opłat). Zużywa trochę baterii.
+   - **„Hej Lens”** — słuchają tylko okulary (fraza producenta), telefon nie
+     nasłuchuje. Najoszczędniej, ale skuteczność zależy od egzemplarza.
+2. Przy „Hej Wiktor” sprawdź, czy pod opcją widać „model gotowy”. Komunikat
+   powie, jeśli czegoś brakuje (zgoda na mikrofon, plik modelu).
+3. Powiedz frazę. Usłyszysz **krótki sygnał** — dopiero on znaczy „mów
+   teraz”. Wcześniejszy dźwięk wybudzenia gra firmware okularów i wypada
    nawet o kilka sekund przed startem nagrywania (okno rozpoznawania kliknięć
    plus zestawienie łącza SCO). Mówienie przed sygnałem to najczęstsza
-   przyczyna „wybudziłem, powiedziałem, a on nic".
+   przyczyna „wybudziłem, powiedziałem, a on nic”.
 
-**Chcesz polską frazę?** Wytrenuj model na console.picovoice.ai:
-- plik `.ppn` z frazą (wybierz język polski),
-- plik `.pv` — model języka polskiego,
-- skopiuj oba na telefon i wskaż ścieżki w ustawieniach przy pozycji „Własna".
-
-Bez tych plików polska fraza **nie zadziała** — wcześniejsze wersje aplikacji
-udawały, że działa, po cichu nasłuchując „jarvis".
+Picovoice (Porcupine) i Vosk zostały usunięte: darmowe klucze Picovoice
+przestały działać 30.06.2026, a Vosk był ciężki dla baterii i mylił słowa.
 
 **Skąd bierze się pytanie.** Aplikacja próbuje po kolei trzech dróg:
 mikrofonu okularów przez profil rozmowy (SCO/HFP), mikrofonu telefonu, a na

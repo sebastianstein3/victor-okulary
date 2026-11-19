@@ -37,7 +37,7 @@ import kotlin.coroutines.resume
  *    nasłuchiwanie dostaje świeżą instancję, zwalnianą w `finally`.
  *
  * Mikrofon jest wyłączny - jeśli trzyma go wykrywanie słowa kluczowego
- * (Porcupine), rozpoznawanie nie dostanie dźwięku. Zatrzymanie go na czas
+ * (nasłuch "Hej Wiktor"), rozpoznawanie nie dostanie dźwięku. Zatrzymanie go na czas
  * słuchania należy do wołającego.
  */
 class SpeechToText(private val context: Context) {
@@ -98,7 +98,7 @@ class SpeechToText(private val context: Context) {
      *
      * ## Dlaczego to jest najważniejsza droga lokalna
      * Bo to ten sam silnik, którym dyktuje się na klawiaturze w trybie offline -
-     * dla polszczyzny jest nieporównanie lepszy od modelu Voska, jest darmowy i
+     * dla polszczyzny jest dobry, jest darmowy i
      * działa przy zablokowanym ekranie. Wymaga tylko POBRANEGO PAKIETU JĘZYKA, a
      * tego nie ma na telefonie domyślnie.
      *

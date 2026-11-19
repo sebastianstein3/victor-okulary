@@ -13,8 +13,8 @@ plugins {
  * 113,7 MB -> 106 MB. Siedem megabajtów, czyli circa 7%.
  *
  * Zakładałem circa połowę, bo wychodziłem z założenia, że ciężar APK to
- * biblioteki natywne powielone w czterech architekturach (llama.cpp, Vosk,
- * Porcupine, ML Kit). Pomiar to obalił - te biblioteki są tylko ułamkiem pliku.
+ * biblioteki natywne powielone w czterech architekturach (llama.cpp, ML Kit
+ * i ówczesne dwa silniki frazy wybudzenia). Pomiar to obalił - te biblioteki są tylko ułamkiem pliku.
  * Gdzie siedzi reszta, wypisuje teraz krok "Rozmiar i skład APK" w build.yml;
  * dalsze cięcie ma sens dopiero na podstawie tej listy, nie kolejnej hipotezy.
  *
@@ -266,16 +266,12 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.4")
     implementation("androidx.camera:camera-view:1.3.4")
 
-    // Porcupine - on-device wake word
-    implementation("ai.picovoice:porcupine-android:3.0.0")
-    // Porcupine recorder (do audio capture)
-    implementation("ai.picovoice:android-voice-processor:1.0.0")
-    // ML Kit - Barcode scanning (QR)
-    // Vosk - rozpoznawanie mowy offline, Apache 2.0, BEZ konta i klucza.
-    // Używane wyłącznie jako alternatywa dla Picovoice przy wykrywaniu frazy
-    // wybudzenia; model językowy pobierany jest na telefon, nie do APK.
-    implementation("com.alphacephei:vosk-android:0.3.75")
+    // ONNX Runtime - fraza "Hej Wiktor" wykrywana na telefonie przez
+    // openWakeWord (MIT; modele bazowe Apache-2.0, w assets/wakeword).
+    // Offline, bez konta i klucza - patrz pl.victor.app.wakeword.OpenWakeWord.
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.20.0")
 
+    // ML Kit - Barcode scanning (QR)
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // ML Kit - Text Recognition (OCR)

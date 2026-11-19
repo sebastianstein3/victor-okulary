@@ -12,7 +12,7 @@ package pl.victor.app.power
  * - Cel: < 3% baterii/godz
  *
  * NORMAL (zbalansowany):
- * - Wake word ON (Porcupine)
+ * - Wake word ON (nasłuch "Hej Wiktor" na telefonie)
  * - Proaktywne alerty co 15 min
  * - AI: domyślny model
  * - Video dostępne ale ostrzeżenie

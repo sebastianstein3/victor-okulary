@@ -8,8 +8,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -86,7 +84,7 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        // Init wake word + conversational mode
+        // Tryb konwersacyjny (nasłuch frazy prowadzi aplikacja, nie ekran)
         initWakeWordAndConversationalMode()
 
         setContent {
@@ -110,65 +108,16 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Subskrybuje wake word eventów i aktywuje tryb konwersacyjny.
+     * Aktywuje tryb konwersacyjny, jeśli jest włączony.
+     *
+     * Nasłuch "Hej Wiktor" NIE startuje tutaj: trzyma mikrofon, więc jego cyklem
+     * życia zarządza VictorApplication - uruchomiony z ekranu przeżywał jego
+     * zamknięcie i blokował rozpoznawanie mowy. Patrz VictorApplication.refreshWake().
      */
     private fun initWakeWordAndConversationalMode() {
         val app = application as VictorApplication
         val settings = app.settings
-        val wakeWord = app.wakeWordDetector
         val orchestrator = app.orchestrator
-
-        // Subskrybuj wake word eventy
-        lifecycleScope.launch {
-            wakeWord.detectionEvent.collect { keyword ->
-                Log.i(tag, "Wake word wykryty: $keyword")
-                if (settings.isConversationalModeEnabled()) {
-                    orchestrator.enableConversationalMode()
-                } else {
-                    // startVoiceQuestion(), NIE handleUserTrigger(). To drugie
-                    // szło do modelu z PUSTYM pytaniem: fraza wybudzenia to
-                    // sygnał "zaraz o coś zapytam", a nie samo pytanie. Model
-                    // dostawał więc sam kontekst i odpowiadał na nic, zamiast
-                    // poczekać, aż użytkownik powie, o co mu chodzi.
-                    orchestrator.startVoiceQuestion()
-                }
-            }
-        }
-
-        // Vosk NIE startuje tutaj: trzyma mikrofon, więc jego cyklem życia
-        // zarządza VictorApplication - inaczej nasłuch przeżywał zamknięcie
-        // ekranu i blokował rozpoznawanie mowy. Patrz refreshVosk().
-
-        // Init wake word jeśli włączony + jest klucz
-        if (settings.isWakeWordEnabled() &&
-            settings.getWakeEngine() != pl.victor.app.data.SettingsRepository.WAKE_ENGINE_VOSK &&
-            settings.getPicovoiceAccessKey().isNotBlank()
-        ) {
-            lifecycleScope.launch {
-                try {
-                    val entry = settings.getSelectedWakeWordEntry()
-                    val result = wakeWord.initialize(
-                        accessKey = settings.getPicovoiceAccessKey(),
-                        // Porcupine rozpoznaje nazwę wbudowanej komendy, nie
-                        // wyświetlaną frazę - dla własnej frazy liczy się plik .ppn.
-                        keyword = entry.porcupineKeyword ?: settings.getSelectedWakeWord(),
-                        keywordPath = settings.getCustomKeywordPath(),
-                        modelPath = settings.getCustomModelPath()
-                    )
-                    if (result.isSuccess) {
-                        wakeWord.startListening()
-                        Log.i(tag, "Wake word listening")
-                    } else {
-                        // Cicha porażka zostawiała użytkownika z włączonym
-                        // przełącznikiem i martwym wykrywaniem.
-                        Log.w(tag, "Wake word nie wystartował: ${result.message()}")
-                        audio.speak(result.message(), language = "pl")
-                    }
-                } catch (e: Exception) {
-                    Log.e(tag, "Failed to init wake word", e)
-                }
-            }
-        }
 
         // Aktywuj tryb konwersacyjny jeśli włączony w settings.
         //
@@ -181,8 +130,6 @@ class MainActivity : ComponentActivity() {
             orchestrator.enableConversationalMode(afterUserAction = false)
         }
     }
-
-    private val audio by lazy { pl.victor.app.audio.AudioManager.getInstance(this) }
 
     /**
      * Uruchamia Google Sign-In flow.

@@ -1345,7 +1345,8 @@ class VictorManager private constructor(context: Context) {
                 }
             }
 
-            // Wykrywanie komendy głosowej po stronie okularów - nie wymaga Picovoice.
+            // Wykrywanie komendy głosowej po stronie okularów ("Hej Lens") - bez
+            // nasłuchu mikrofonem telefonu.
             // Respektujemy wybór użytkownika, a nie włączamy na sztywno.
             //
             // ALE WYŁĄCZENIA NIE WYSYŁAMY PRZY POŁĄCZENIU. Okulary same pamiętają
@@ -2052,7 +2053,7 @@ class VictorManager private constructor(context: Context) {
     /**
      * Włącza albo wyłącza wykrywanie komendy głosowej PO STRONIE OKULARÓW.
      *
-     * To alternatywa dla Picovoice na telefonie: okulary mają własny układ wykrywania
+     * To alternatywa dla nasłuchu "Hej Wiktor" na telefonie: okulary mają własny układ wykrywania
      * wybudzenia, a SDK wystawia go przez aiVoiceWake. Odpowiedź (stan włączenia) wraca
      * w callbacku i trafia do [glassesWakeWordEnabled].
      */

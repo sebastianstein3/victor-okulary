@@ -299,26 +299,16 @@ fun SettingsScreen(
 
             SettingsGroup(
                 title = "Wybudzanie",
-                subtitle = "Fraza, która budzi asystenta, i silnik jej wykrywania"
+                subtitle = "Fraza, która budzi asystenta: „Hej Wiktor” albo „Hej Lens”"
             ) {
                 // Te dwie sekcje leżały na dwóch końcach ekranu, choć jedna
                 // jest ustawieniem drugiej.
-                WakeEngineSection()
-                HorizontalDivider()
-                WakeWordSection(
+                WakeEngineSection(
                     enabled = state.wakeWordEnabled,
-                    selectedId = state.wakeWordId,
-                    customPhrase = state.customWakeWord,
-                    keywordPath = state.customKeywordPath,
-                    modelPath = state.customModelPath,
-                    picovoiceAccessKey = state.picovoiceAccessKey,
-                    onEnabledChange = { viewModel.setWakeWordEnabled(it) },
-                    onWakeWordSelected = { viewModel.setWakeWordId(it) },
-                    onCustomPhraseChange = { viewModel.setCustomWakeWord(it) },
-                    onPicovoiceKeyChange = { viewModel.setPicovoiceAccessKey(it) },
-                    onKeywordPathChange = { viewModel.setCustomKeywordPath(it) },
-                    onModelPathChange = { viewModel.setCustomModelPath(it) }
+                    onEnabledChange = { viewModel.setWakeWordEnabled(it) }
                 )
+                HorizontalDivider()
+                WakeWordSection()
             }
 
             SettingsGroup(
@@ -1226,146 +1216,124 @@ private fun CaptureSection(
 }
 
 /**
- * Wybór silnika wykrywania frazy wybudzenia.
+ * Wybór frazy wybudzenia: „Hej Wiktor” (słucha telefon) albo „Hej Lens”
+ * (słuchają tylko okulary).
  *
- * ## Dlaczego wybór, a nie jeden silnik
- * Picovoice działa lepiej i taniej energetycznie, ale wymaga konta, a własna
- * fraza - płatnego planu. Vosk nie wymaga niczego (Apache 2.0, bez klucza),
- * kosztem baterii i pobrania modelu na telefon. To jest realny kompromis, więc
- * decyzja należy do użytkownika, a nie do nas.
+ * ## Dlaczego wybór, a nie jedna fraza
+ * Bo to realny kompromis. Nasłuch na telefonie działa niezależnie od egzemplarza
+ * okularów, ale trzyma mikrofon i trochę kosztuje baterii. Fraza okularów nie
+ * kosztuje telefonu nic, za to jej skuteczność zależy od egzemplarza - i
+ * aplikacja na nią nie ma wpływu. Opisy mówią to wprost, bez obietnic.
+ *
+ * Stan modelu „Hej Wiktor” jest pokazany przy opcji: klasyfikator frazy
+ * trenuje się osobno i dopóki go nie ma w aplikacji, wybór tej opcji niczego
+ * nie uruchomi - lepiej to napisać niż zostawić włączony przełącznik, który
+ * milczy.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WakeEngineSection() {
+private fun WakeEngineSection(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit
+) {
     val context = LocalContext.current
     val app = remember { context.applicationContext as pl.victor.app.VictorApplication }
     val settings = remember { app.settings }
-    val vosk = remember { app.voskWakeWord }
-    val scope = rememberCoroutineScope()
 
     var engine by remember { mutableStateOf(settings.getWakeEngine()) }
-    var phrase by remember { mutableStateOf(settings.getVoskPhrase()) }
-    var url by remember { mutableStateOf(settings.getVoskModelUrl()) }
-    var modelReady by remember { mutableStateOf(vosk.isModelReady()) }
-    var status by remember { mutableStateOf<String?>(null) }
-    var progress by remember { mutableStateOf<Float?>(null) }
-    var busy by remember { mutableStateOf(false) }
+    // Stan modelu "Hej Wiktor". Pierwsze sprawdzenie wczytuje sieci - poza
+    // wątkiem głównym; do tego czasu nic nie pokazujemy zamiast zgadywać.
+    var modelChecked by remember { mutableStateOf(false) }
+    var modelProblem by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(engine) {
+        modelProblem = withContext(Dispatchers.Default) {
+            runCatching { app.phoneWake.modelProblem() }.getOrElse { it.message ?: "błąd modelu" }
+        }
+        modelChecked = true
+    }
+
+    val wybierz: (String) -> Unit = { id ->
+        engine = id
+        settings.setWakeEngine(id)
+        // Start albo zatrzymanie nasłuchu i odświeżenie usługi w tle od razu -
+        // wybór frazy nie jest strumieniem, który aplikacja obserwuje.
+        app.refreshWake()
+    }
 
     Column(modifier = Modifier.padding(16.dp)) {
-        Text("Wykrywanie frazy wybudzenia", style = MaterialTheme.typography.titleMedium)
+        Text("Fraza wybudzenia", style = MaterialTheme.typography.titleMedium)
 
         listOf(
-            pl.victor.app.data.SettingsRepository.WAKE_ENGINE_PICOVOICE to
-                "Picovoice - lżejszy dla baterii, wymaga klucza (własna fraza: plan płatny)",
-            pl.victor.app.data.SettingsRepository.WAKE_ENGINE_VOSK to
-                "Vosk - bez konta i klucza, dowolna fraza po polsku, więcej baterii"
-        ).forEach { (id, label) ->
+            Triple(
+                pl.victor.app.data.SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR,
+                "„Hej Wiktor”",
+                "Telefon słucha frazy na urządzeniu, offline, bez kont i opłat; " +
+                    "zużywa trochę baterii."
+            ),
+            Triple(
+                pl.victor.app.data.SettingsRepository.WAKE_ENGINE_HEJ_LENS,
+                "„Hej Lens”",
+                "Słuchają tylko okulary (fraza producenta), telefon nie nasłuchuje - " +
+                    "najoszczędniej; skuteczność zależy od egzemplarza."
+            )
+        ).forEach { (id, label, description) ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        engine = id
-                        settings.setWakeEngine(id)
-                        app.refreshVosk()
-                    }
+                    .clickable { wybierz(id) }
                     .padding(vertical = 4.dp)
             ) {
-                RadioButton(selected = engine == id, onClick = {
-                    engine = id
-                    settings.setWakeEngine(id)
-                    app.refreshVosk()
-                })
-                Text(
-                    label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
+                RadioButton(selected = engine == id, onClick = { wybierz(id) })
+                Column(modifier = Modifier.padding(start = 4.dp)) {
+                    Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text(
+                        description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (id == pl.victor.app.data.SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR && modelChecked) {
+                        val problem = modelProblem
+                        Text(
+                            if (problem == null) "✅ Model gotowy." else "⚠ $problem",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (problem == null) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
         }
 
-        if (engine == pl.victor.app.data.SettingsRepository.WAKE_ENGINE_VOSK) {
-            OutlinedTextField(
-                value = phrase,
-                onValueChange = {
-                    phrase = it
-                    settings.setVoskPhrase(it)
-                },
-                label = { Text("Fraza wybudzenia") },
-                supportingText = {
+        if (engine == pl.victor.app.data.SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Nasłuchuj „Hej Wiktor” na telefonie")
                     Text(
-                        "Pisz tak, jak model ją usłyszy - po polsku. \"Hej Wiktor\", " +
-                            "nie \"Hey Victor\": model jest polski i angielskiej " +
-                            "pisowni nie zna."
+                        if (enabled) {
+                            "Telefon słucha frazy w tle. Na czas pytania, spotkania i " +
+                                "tłumaczenia oddaje mikrofon."
+                        } else {
+                            "Wyłączone - telefon nie nasłuchuje. Zostaje fraza okularów " +
+                                "i przycisk na oprawce."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-            )
-
-            OutlinedTextField(
-                value = url,
-                onValueChange = {
-                    url = it
-                    settings.setVoskModelUrl(it)
-                },
-                label = { Text("Adres modelu") },
-                supportingText = {
-                    Text(
-                        "Nazwy plików modeli zmieniają się z wersjami. Gdy pobieranie " +
-                            "zwróci 404, weź aktualny adres ze strony modeli Voska i " +
-                            "wklej tutaj."
-                    )
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-            )
-
+                }
+                Switch(checked = enabled, onCheckedChange = onEnabledChange)
+            }
+        } else {
             Text(
-                if (modelReady) "✅ Model jest na telefonie." else "⚠ Model nie jest pobrany.",
-                style = MaterialTheme.typography.bodyMedium,
+                "Mikrofon telefonu zostaje wolny. Fraza okularów musi być włączona " +
+                    "w karcie „Wybudzenie z okularów” poniżej.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp)
             )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        busy = true
-                        status = "Pobieram model (kilkadziesiąt MB, najlepiej przez Wi-Fi)..."
-                        scope.launch {
-                            val error = vosk.downloadModel(url) { progress = it }
-                            modelReady = vosk.isModelReady()
-                            if (error == null) app.refreshVosk()
-                            status = error ?: "Model gotowy. Włącz wybudzanie na ekranie głównym."
-                            progress = null
-                            busy = false
-                        }
-                    },
-                    enabled = !busy
-                ) {
-                    Text(if (modelReady) "Pobierz ponownie" else "Pobierz model")
-                }
-                if (busy) {
-                    val p = progress
-                    if (p != null) {
-                        Text("${(p * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
-
-            status?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
         }
     }
 }
@@ -1442,8 +1410,8 @@ private fun SpeechSection() {
 
             // NAJLEPSZA DROGA LOKALNA JEST JUŻ W TELEFONIE - tylko trzeba ją
             // pobrać. To ten sam silnik, którym dyktuje się na klawiaturze bez
-            // sieci: dla polszczyzny nieporównanie lepszy od Voska, darmowy i
-            // działa przy zablokowanym ekranie. Aplikacja korzystała z niego od
+            // sieci: dla polszczyzny dobry, darmowy i działa przy
+            // zablokowanym ekranie. Aplikacja korzystała z niego od
             // dawna, ale gdy pakietu brakowało, po cichu schodziła niżej - i nikt
             // nie wiedział, że jednym pobraniem można mieć to za darmo.
             Text("📴 Rozpoznawanie bez internetu", fontWeight = FontWeight.Medium)
@@ -1457,8 +1425,8 @@ private fun SpeechSection() {
                 )
             } else {
                 Text(
-                    "❌ Brak pakietu języka polskiego. Bez niego zostaje Vosk, który " +
-                        "myli słowa. Pobranie pakietu jest darmowe i jednorazowe - " +
+                    "❌ Brak pakietu języka polskiego. Bez niego i bez transkrypcji w " +
+                        "chmurze pytanie idzie do modelu jako samo nagranie. Pobranie pakietu jest darmowe i jednorazowe - " +
                         "w ustawieniach systemu wejdź w rozpoznawanie mowy Google i " +
                         "pobierz język polski do użytku offline.",
                     style = MaterialTheme.typography.bodySmall,
@@ -1491,7 +1459,7 @@ private fun SpeechSection() {
                 Spacer(Modifier.size(10.dp))
                 Text("Ostatnie pytanie rozpoznała: $source", style = MaterialTheme.typography.labelMedium)
                 Text(
-                    "Dróg jest pięć i z zewnątrz wyglądają tak samo. Gdy asystent " +
+                    "Dróg jest cztery i z zewnątrz wyglądają tak samo. Gdy asystent " +
                         "odpowie nie na temat, to pole mówi, gdzie szukać przyczyny.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1511,7 +1479,8 @@ private fun SpeechSection() {
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        "Wyłączone: fraza łapana mikrofonem telefonu. Włączenie trzyma " +
+                        "Dotyczy „Hej Wiktor”. Wyłączone: fraza łapana mikrofonem " +
+                            "telefonu. Włączenie trzyma " +
                             "okulary w trybie ROZMOWY przez cały czas - Android pokazuje " +
                             "je wtedy jako urządzenie do połączeń, nie do multimediów, i " +
                             "nie posłuchasz przez nie muzyki. Wybudzanie samymi okularami " +
@@ -1524,7 +1493,13 @@ private fun SpeechSection() {
                 }
                 Switch(
                     checked = glassesMic,
-                    onCheckedChange = { glassesMic = it; settings.setWakeWordOverGlassesMic(it) }
+                    onCheckedChange = {
+                        glassesMic = it
+                        settings.setWakeWordOverGlassesMic(it)
+                        // Nasłuch wybiera mikrofon przy starcie - bez restartu
+                        // zmiana działałaby dopiero od następnej tury.
+                        app.restartPhoneWake()
+                    }
                 )
             }
         }
@@ -2929,29 +2904,13 @@ private fun ActionListItem(emoji: String, name: String, description: String) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Wybudzenie z okularów i to, czym zbierane jest pytanie po wybudzeniu.
+ *
+ * Wybór frazy (telefon czy okulary) jest piętro wyżej, w [WakeEngineSection].
+ */
 @Composable
-private fun WakeWordSection(
-    enabled: Boolean,
-    selectedId: String,
-    customPhrase: String,
-    keywordPath: String = "",
-    modelPath: String = "",
-    picovoiceAccessKey: String = "",
-    onEnabledChange: (Boolean) -> Unit,
-    onWakeWordSelected: (String) -> Unit,
-    onCustomPhraseChange: (String) -> Unit,
-    onPicovoiceKeyChange: (String) -> Unit = {},
-    onKeywordPathChange: (String) -> Unit = {},
-    onModelPathChange: (String) -> Unit = {}
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val wakeWords = remember { pl.victor.app.data.WakeWordRegistry.all() }
-    val current = wakeWords.find { it.id == selectedId } ?: pl.victor.app.data.WakeWordRegistry.default()
-    val resolvedPhrase = if (selectedId == "custom" && customPhrase.isNotBlank()) customPhrase
-        else if (selectedId == "custom") "Wpisz swoją"
-        else current.phrase
-
+private fun WakeWordSection() {
     val glasses = remember { pl.victor.app.VictorApplication.get().glassesManager }
     val glassesWakeEnabled by glasses.glassesWakeWordEnabled.collectAsState()
     val glassesConnection by glasses.connectionState.collectAsState()
@@ -2969,10 +2928,9 @@ private fun WakeWordSection(
         Text("Komenda głosowa (v1.1)", style = MaterialTheme.typography.titleMedium)
 
         // === Wybudzenie po stronie OKULARÓW ===
-        // To jest droga, która NIE wymaga konta Picovoice. Okulary mają własne
-        // wykrywanie frazy w firmware; aplikacja tylko je włącza i słucha
-        // zdarzenia. Karta jest pierwsza, bo dla użytkownika okularów to
-        // rozwiązanie domyślne - Picovoice niżej dotyczy nasłuchu telefonu.
+        // Okulary mają własne wykrywanie frazy w firmware ("Hej Lens");
+        // aplikacja tylko je włącza i słucha zdarzenia. Działa niezależnie od
+        // nasłuchu "Hej Wiktor" na telefonie.
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = androidx.compose.material3.CardDefaults.cardColors(
@@ -2991,8 +2949,8 @@ private fun WakeWordSection(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
                         Text(
-                            "Okulary same wykrywają swoją frazę - bez konta " +
-                                "Picovoice i bez nasłuchu mikrofonem telefonu. " +
+                            "Okulary same wykrywają swoją frazę („Hej Lens”) - " +
+                                "bez nasłuchu mikrofonem telefonu. " +
                                 "Po wybudzeniu V.I.C.T.O.R. słucha pytania i " +
                                 "odpowiada głosem przez okulary.",
                             style = MaterialTheme.typography.bodySmall
@@ -3134,243 +3092,7 @@ private fun WakeWordSection(
                 }) { Text("Otwórz ustawienia Bluetooth") }
             }
         }
-
-        Text(
-            "Poniżej: nasłuch mikrofonem TELEFONU (Picovoice). Przydatny, gdy " +
-                "okularów nie masz na sobie - wymaga własnego klucza dostępu.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Aktywuj AI głosowo")
-                Text(
-                    if (picovoiceAccessKey.isBlank()) {
-                        "Najpierw wklej klucz Picovoice poniżej - bez niego " +
-                            "wykrywanie komendy nie ruszy."
-                    } else {
-                        "V.I.C.T.O.R. nasłuchuje komendy w tle. Zużywa baterię."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = enabled,
-                onCheckedChange = onEnabledChange,
-                // Przełącznik był zablokowany na sztywno komentarzem "gdy Picovoice
-                // dodane" - biblioteka jest w projekcie od dawna, brakuje tylko
-                // klucza dostępu, a ten wpisuje się w karcie poniżej.
-                enabled = picovoiceAccessKey.isNotBlank()
-            )
-        }
-
-        // Karta z aktualną komendą
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = androidx.compose.material3.CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(current.emoji, style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.size(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "„${resolvedPhrase}" + if (selectedId != "custom") "”" else "”",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    )
-                    Text(
-                        current.description,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-
-        // Dropdown
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = current.phrase.ifBlank { "Własna komenda" },
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Wybierz komendę") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(),
-                trailingIcon = { Text("▼", modifier = Modifier.padding(8.dp)) }
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                // Podział przebiega tam, gdzie przebiega naprawdę: część fraz
-                // Porcupine zna, reszta wymaga wytrenowanego modelu.
-                Text(
-                    "  Działają od razu (wymowa angielska)",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(8.dp)
-                )
-                wakeWords.filter { it.worksOutOfTheBox }.forEach { ww ->
-                    WakeWordItem(ww, selectedId, onWakeWordSelected) { expanded = false }
-                }
-                HorizontalDivider()
-                Text(
-                    "  Wymaga własnego modelu .ppn",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(8.dp)
-                )
-                wakeWords.filterNot { it.worksOutOfTheBox }.forEach { ww ->
-                    WakeWordItem(ww, selectedId, onWakeWordSelected) { expanded = false }
-                }
-            }
-        }
-
-        // Pole custom (gdy wybrano custom)
-        if (selectedId == "custom") {
-            OutlinedTextField(
-                value = customPhrase,
-                onValueChange = onCustomPhraseChange,
-                label = { Text("Twoja komenda") },
-                placeholder = { Text("Np. Hej V.I.C.T.O.R., Panie Asystencie") },
-                modifier = Modifier.fillMaxWidth(),
-                supportingText = {
-                    Text(
-                        "Sama fraza nie wystarczy - Porcupine potrzebuje pliku .ppn " +
-                            "wytrenowanego na console.picovoice.ai. Dla frazy polskiej " +
-                            "dodatkowo modelu .pv dla języka polskiego."
-                    )
-                }
-            )
-
-            Spacer(Modifier.size(8.dp))
-            OutlinedTextField(
-                value = keywordPath,
-                onValueChange = onKeywordPathChange,
-                label = { Text("Ścieżka do pliku .ppn") },
-                placeholder = { Text("/sdcard/Download/hey-victor_pl.ppn") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(Modifier.size(8.dp))
-            OutlinedTextField(
-                value = modelPath,
-                onValueChange = onModelPathChange,
-                label = { Text("Model .pv (tylko język inny niż angielski)") },
-                placeholder = { Text("/sdcard/Download/porcupine_params_pl.pv") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-        }
-
-        // Info o domyślnej
-        Text(
-            "Domyślna: „${pl.victor.app.data.WakeWordRegistry.default().phrase}” - " +
-                "wbudowana w Porcupine, działa bez dodatkowych plików. " +
-                "Wymowa angielska: „dżarwis”.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        // Picovoice access key (v1.1)
-        if (picovoiceAccessKey.isBlank()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        "🔑 Aby włączyć wake word, wpisz Picovoice AccessKey",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    )
-                    Spacer(Modifier.size(4.dp))
-                    Text(
-                        "1. Zarejestruj się na https://console.picovoice.ai/\n" +
-                                "2. Utwórz projekt (darmowy tier: 3 keywords)\n" +
-                                "3. Skopiuj AccessKey i wklej poniżej",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    OutlinedTextField(
-                        value = picovoiceAccessKey,
-                        onValueChange = onPicovoiceKeyChange,
-                        label = { Text("Picovoice AccessKey") },
-                        placeholder = { Text("np. /5jV.../kE=") },
-                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "✓ Picovoice skonfigurowany",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                )
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = { onPicovoiceKeyChange("") }) {
-                    Text("Zmień klucz")
-                }
-            }
-        }
     }
-}
-
-@Composable
-private fun WakeWordItem(
-    ww: pl.victor.app.data.WakeWord,
-    selectedId: String,
-    onSelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    DropdownMenuItem(
-        text = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    ww.emoji,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Column {
-                    Text(
-                        ww.phrase.ifBlank { "(własna)" },
-                        fontWeight = if (ww.id == selectedId)
-                            androidx.compose.ui.text.font.FontWeight.Bold
-                        else androidx.compose.ui.text.font.FontWeight.Normal
-                    )
-                    Text(
-                        ww.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        onClick = {
-            onSelected(ww.id)
-            onDismiss()
-        }
-    )
 }
 
 // === Sekcja: Inteligentne funkcje (v1.2) ===

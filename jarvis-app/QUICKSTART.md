@@ -138,7 +138,7 @@ heycyan-app/
 ## Co dalej po MVP
 
 - [ ] OpenAI / Claude / MiniMax providers (szkielet gotowy w `AIProviderFactory.kt`)
-- [ ] Wake word ("Hej Cyan") - Picovoice
+- [ ] Fraza wybudzenia ("Hej Wiktor" - openWakeWord, albo "Hej Lens" w okularach)
 - [ ] QR scanning (ML Kit - dependency dodana)
 - [ ] TTS streaming (bez czekania na pełną odpowiedź)
 - [ ] Własny model offline (whisper-tiny, Phi-3 vision)

@@ -12,7 +12,6 @@ import pl.victor.app.data.ModelDiscoveryService
 import pl.victor.app.data.SettingsRepository
 import pl.victor.app.proactive.ProactiveAlertsScheduler
 import pl.victor.app.storage.PhotoStorage
-import pl.victor.app.wakeword.WakeWordDetector
 
 /**
  * Application class - inicjalizuje globalne zależności.
@@ -36,15 +35,17 @@ class VictorApplication : Application() {
     lateinit var modelDiscovery: ModelDiscoveryService
         private set
 
-    lateinit var wakeWordDetector: WakeWordDetector
-        private set
-
     /**
-     * Alternatywa dla Picovoice - bez konta i bez klucza. Tworzona zawsze,
-     * bo sama w sobie nic nie robi, dopóki jej się nie wystartuje.
+     * Nasłuch "Hej Wiktor" na telefonie (openWakeWord). Tworzony leniwie, bo
+     * sam w sobie nic nie robi, dopóki go nie wystartuje [refreshWake]; kto
+     * wybrał frazę okularów, nie płaci nawet za wczytanie sieci.
      */
-    val voskWakeWord: pl.victor.app.wakeword.VoskWakeWord by lazy {
-        pl.victor.app.wakeword.VoskWakeWord(this)
+    val phoneWake: pl.victor.app.wakeword.OpenWakeWord by lazy {
+        pl.victor.app.wakeword.OpenWakeWord(this).also { detector ->
+            detector.onDiag = { message, fields ->
+                runCatching { diag.event(pl.victor.app.diagnostics.DiagFormat.Phase.WAKE, message, fields) }
+            }
+        }
     }
 
     lateinit var photoStorage: PhotoStorage
@@ -149,14 +150,12 @@ class VictorApplication : Application() {
         }
         database = AppDatabase.getInstance(this)
         modelDiscovery = ModelDiscoveryService(settings)
-        wakeWordDetector = WakeWordDetector(this)
         photoStorage = PhotoStorage(this)
         audio = AudioManager.getInstance(this)
         orchestrator = AIOrchestrator(
             context = this,
             settings = settings,
-            history = pl.victor.app.data.HistoryRepository(database.conversationDao()),
-            wakeWord = wakeWordDetector
+            history = pl.victor.app.data.HistoryRepository(database.conversationDao())
         )
 
         // Cleanup starych zdjęć (>30 dni)
@@ -200,32 +199,8 @@ class VictorApplication : Application() {
             }
         }
 
-        // Jeśli wake word jest włączony - uruchom
-        if (settings.isWakeWordEnabled()) {
-            val accessKey = settings.getPicovoiceAccessKey()
-            if (accessKey.isNotBlank()) {
-                // initialize() jest suspend (ładuje model Porcupine), a onCreate nie jest
-                // korutyną - uruchamiamy w tle, żeby nie blokować startu aplikacji.
-                appScope.launch {
-                    val entry = settings.getSelectedWakeWordEntry()
-                    val result = wakeWordDetector.initialize(
-                        accessKey = accessKey,
-                        keyword = entry.porcupineKeyword ?: settings.getSelectedWakeWord(),
-                        keywordPath = settings.getCustomKeywordPath(),
-                        modelPath = settings.getCustomModelPath()
-                    )
-                    if (result.isSuccess) {
-                        wakeWordDetector.startListening()
-                        Log.i(TAG, "Wake word detector started (fraza: ${entry.phrase.ifBlank { entry.id }})")
-                    } else {
-                        // Świadomie NIE podmieniamy na inną frazę po cichu - jeśli
-                        // "Hey Victor" wymaga jeszcze własnego modelu, aplikacja ma
-                        // milczeć, a nie nasłuchiwać czegoś, czego użytkownik nie wybrał.
-                        Log.w(TAG, "Wake word start przy uruchomieniu nieudany: ${result.message()}")
-                    }
-                }
-            }
-        }
+        // Nasłuch "Hej Wiktor" startuje przez refreshBackgroundService() niżej:
+        // pierwszy odczyt każdego z obserwowanych StateFlow woła refreshPhoneWake().
 
         // Usługa pierwszoplanowa musi żyć dokładnie wtedy, gdy okulary są połączone
         // i/lub wake word nasłuchuje - inaczej Doze zabija BLE i AudioRecord kilka
@@ -249,87 +224,113 @@ class VictorApplication : Application() {
     }
 
     /**
-     * Czy nasłuch Voska jest w tej chwili uruchomiony.
+     * Czy nasłuch "Hej Wiktor" jest w tej chwili uruchomiony.
      *
      * ## Dlaczego to musi być tutaj, a nie w MainActivity
-     * Bo Vosk trzyma MIKROFON, a mikrofon jest wyłączny. Uruchomiony z ekranu
+     * Bo nasłuch trzyma MIKROFON, a mikrofon jest wyłączny. Uruchomiony z ekranu
      * przeżywał jego zamknięcie i nadal zajmował mikrofon, więc systemowe
      * rozpoznawanie mowy nie miało skąd go wziąć - zgłoszone jako "AI mówi, że
      * nie może rozpoznać wiadomości z nagrania". Skoro więc coś ma nim
      * zarządzać przez całe życie procesu, to aplikacja, nie ekran.
      */
     @Volatile
-    private var voskRunning = false
+    private var wakeRunning = false
 
-    /** Czy oddaliśmy mikrofon na czas tury i mamy go potem odzyskać. */
-    @Volatile
-    private var voskPausedForTurn = false
+    /**
+     * Kto w tej chwili potrzebuje mikrofonu frazy dla siebie - patrz
+     * [pauseWakeForTurn]. Zbiór, nie flaga: tura (orkiestrator) i tryb
+     * konwersacyjny oddają mikrofon niezależnie, i koniec jednego nie może
+     * wznowić nasłuchu w trakcie drugiego.
+     */
+    private val wakePauses = mutableSetOf<String>()
 
-    fun startVoskListening() {
-        if (voskRunning) return
-        if (!voskWakeWord.isModelReady()) {
-            Log.w(TAG, "Vosk: model nie jest pobrany - nasłuch nie startuje")
-            return
+    /** Ostatni zapisany do dziennika powód, dla którego nasłuch nie ruszył. */
+    private var lastWakeStartError: String? = null
+
+    @Synchronized
+    fun startPhoneWake() {
+        if (wakeRunning) return
+        // Mikrofon jest teraz czyjś (tura, spotkanie, tłumaczenie ze słuchu) -
+        // nasłuch wróci sam przy [resumeWakeAfterTurn]. Bez tego zmiana
+        // połączenia okularów w trakcie spotkania podbierała mu mikrofon.
+        if (wakePauses.isNotEmpty()) return
+        val error = phoneWake.start { orchestrator.startVoiceQuestion() }
+        wakeRunning = error == null
+        if (error == null) {
+            lastWakeStartError = null
+            Log.i(TAG, "Nasłuch „Hej Wiktor” uruchomiony")
+        } else if (error != lastWakeStartError) {
+            // Raz na powód, nie przy każdym odświeżeniu - brak modelu to stan,
+            // a nie zdarzenie, i zalałby dziennik.
+            lastWakeStartError = error
+            Log.w(TAG, "Nasłuch „Hej Wiktor” nie ruszył: $error")
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                    "nasłuch „Hej Wiktor” nie ruszył",
+                    mapOf("powód" to error)
+                )
+            }
         }
-        val error = voskWakeWord.start(settings.getVoskPhrase()) {
-            orchestrator.startVoiceQuestion()
-        }
-        voskRunning = error == null
-        if (error != null) Log.w(TAG, "Vosk nie wystartował: $error") else Log.i(TAG, "Vosk słucha")
     }
 
-    fun stopVoskListening() {
-        voskWakeWord.stop()
-        voskRunning = false
-        voskPausedForTurn = false
+    @Synchronized
+    fun stopPhoneWake() {
+        if (!wakeRunning) return
+        phoneWake.stop()
+        wakeRunning = false
     }
 
     /**
-     * Oddaje mikrofon na czas tury.
+     * Oddaje mikrofon na czas tury (albo spotkania, tłumaczenia ze słuchu,
+     * nasłuchu trybu konwersacyjnego).
      *
-     * Bez tego Vosk i rozpoznawanie mowy biją się o to samo urządzenie, a
-     * przegrywa zawsze to drugie - czyli właśnie pytanie użytkownika.
+     * Bez tego nasłuch frazy i rozpoznawanie mowy biją się o to samo
+     * urządzenie, a przegrywa zawsze to drugie - czyli właśnie pytanie
+     * użytkownika. Wołanie kilka razy z rzędu przez tego samego [kto] jest
+     * bezpieczne; mikrofon wraca dopiero, gdy odda go KAŻDY, kto go wziął.
      */
-    fun pauseVoskForTurn() {
-        if (!voskRunning) return
-        voskWakeWord.stop()
-        voskRunning = false
-        voskPausedForTurn = true
+    @Synchronized
+    fun pauseWakeForTurn(kto: String = WAKE_HOLDER_TURN) {
+        wakePauses.add(kto)
+        if (!wakeRunning) return
+        phoneWake.stop()
+        wakeRunning = false
     }
 
-    fun resumeVoskAfterTurn() {
-        if (!voskPausedForTurn) return
-        voskPausedForTurn = false
-        startVoskListening()
+    /** Odwrotność [pauseWakeForTurn]; nasłuch wraca, jeśli ustawienia go chcą. */
+    @Synchronized
+    fun resumeWakeAfterTurn(kto: String = WAKE_HOLDER_TURN) {
+        if (!wakePauses.remove(kto)) return
+        if (wakePauses.isEmpty()) refreshPhoneWake()
+    }
+
+    /** Startuje albo zatrzymuje nasłuch zgodnie z ustawieniami. */
+    @Synchronized
+    private fun refreshPhoneWake() {
+        if (settings.isPhoneWakeWanted()) startPhoneWake() else stopPhoneWake()
     }
 
     /**
-     * Przepisuje nagranie na tekst Voskiem - druga droga, gdy systemowa zawiedzie.
-     *
-     * Tu, a nie wprost w orkiestratorze, bo instancja Voska i jej model żyją w
-     * aplikacji: wczytanie modelu kosztuje i nie ma sensu robić tego na turę.
-     *
-     * Nie rusza mikrofonu (pracuje na gotowym buforze), więc nie trzeba wokół tego
-     * zawieszać nasłuchu frazy.
-     *
-     * @return tekst albo `null`, gdy modelu nie ma albo nic nie rozpoznał
+     * Uruchamia od nowa, gdy działa - po zmianie ustawienia, które nasłuch
+     * czyta przy starcie (np. mikrofon okularów).
      */
-    suspend fun transcribeWithVosk(pcm: ByteArray, sampleRate: Int): String? =
-        runCatching { voskWakeWord.transcribe(pcm, sampleRate) }
-            .onFailure { Log.w(TAG, "Transkrypcja Voskiem nie powiodła się", it) }
-            .getOrNull()
+    @Synchronized
+    fun restartPhoneWake() {
+        if (!wakeRunning) return
+        stopPhoneWake()
+        startPhoneWake()
+    }
 
     /**
-     * Uruchamia albo zatrzymuje Voska zgodnie z ustawieniami.
+     * Uruchamia albo zatrzymuje nasłuch "Hej Wiktor" i odświeża usługę w tle.
      *
-     * Publiczne, bo wybór silnika i pobranie modelu dzieją się w ustawieniach,
-     * a nie są strumieniem - bez wywołania stamtąd zmiana zaczynałaby działać
-     * dopiero przy najbliższym połączeniu okularów.
+     * Publiczne, bo wybór frazy dzieje się w ustawieniach i nie jest
+     * strumieniem - bez wywołania stamtąd zmiana zaczynałaby działać dopiero
+     * przy najbliższym połączeniu okularów.
      */
-    fun refreshVosk() {
-        val wanted = settings.wakeWordEnabledFlow.value &&
-            settings.getWakeEngine() == pl.victor.app.data.SettingsRepository.WAKE_ENGINE_VOSK
-        if (wanted) startVoskListening() else stopVoskListening()
+    fun refreshWake() {
+        refreshBackgroundService()
     }
 
     /**
@@ -360,9 +361,11 @@ class VictorApplication : Application() {
     }
 
     private fun refreshBackgroundService() {
-        refreshVosk()
+        refreshPhoneWake()
         val connectionState = glassesManager.connectionState.value
-        val wakeWordOn = settings.wakeWordEnabledFlow.value
+        // Usługa z mikrofonem tylko wtedy, gdy telefon naprawdę ma słuchać -
+        // przy frazie okularów nasłuch telefonu stoi, więc nie ma czego chronić.
+        val wakeWordOn = settings.isPhoneWakeWanted()
         val glassesActive = connectionState == ConnectionState.CONNECTED ||
             connectionState == ConnectionState.READY ||
             connectionState == ConnectionState.CONNECTING
@@ -372,10 +375,7 @@ class VictorApplication : Application() {
             VictorForegroundService.stop(this)
             return
         }
-        // Prawdziwa aktywna fraza, nie nazwa apki - dopóki "Hey Victor" wymaga
-        // własnego modelu, nasłuch faktycznie idzie na inne słowo (domyślnie
-        // "Computer"), i powiadomienie ma o tym mówić prawdę.
-        val phrase = settings.getSelectedWakeWordEntry().phrase.ifBlank { "wybraną frazę" }
+        val phrase = "Hej Wiktor"
         val reason = when {
             glassesActive && wakeWordOn -> "Połączony z okularami · nasłuchuję „$phrase”"
             glassesActive -> "Połączony z okularami"
@@ -388,6 +388,12 @@ class VictorApplication : Application() {
 
     companion object {
         private const val TAG = "VictorApp"
+
+        /** Właściciel mikrofonu frazy: tura orkiestratora - patrz [pauseWakeForTurn]. */
+        const val WAKE_HOLDER_TURN = "tura"
+
+        /** Właściciel mikrofonu frazy: nasłuch trybu konwersacyjnego. */
+        const val WAKE_HOLDER_CONVERSATION = "rozmowa"
 
         /** Identyfikator dostawcy „model lokalny" - patrz [pl.victor.app.ai.LocalAIProvider.id]. */
         private const val LOCAL_PROVIDER_ID = "local"

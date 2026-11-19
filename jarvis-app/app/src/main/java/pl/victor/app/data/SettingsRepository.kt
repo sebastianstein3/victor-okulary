@@ -178,7 +178,7 @@ class SettingsRepository private constructor(private val context: Context) {
      * jest domyślna, gdy klucz Gemini albo OpenAI jest już w ustawieniach.
      *
      * Kto nie chce wysyłać nagrań poza telefon, wyłącza to i zostaje przy
-     * rozpoznawaniu systemowym oraz Vosku. Nagranie głosu to dane wrażliwe, więc
+     * rozpoznawaniu systemowym na telefonie. Nagranie głosu to dane wrażliwe, więc
      * ta decyzja ma być widoczna, a nie schowana w innej funkcji.
      */
     fun isCloudTranscriptionEnabled(): Boolean =
@@ -496,90 +496,6 @@ class SettingsRepository private constructor(private val context: Context) {
 
     fun setGlassesSimulationEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_GLASSES_SIMULATION, enabled).apply()
-    }
-
-    /**
-     * ID wybranej komendy głosowej. Domyślnie "computer" - działa od razu,
-     * bez wgrywania własnego modelu. "Hey Victor" (id `hey_victor`) to fraza
-     * docelowa, ale wymaga wytrenowania - patrz [WakeWordRegistry].
-     *
-     * Wcześniejsze wersje zapisywały tu identyfikatory fraz, których Porcupine
-     * nie obsługuje (np. "jarvis_start", "hej_cyan"). Takie zapisy nie istnieją
-     * już w katalogu, więc [getSelectedWakeWordEntry] schodzi wtedy na domyślną.
-     */
-    fun getSelectedWakeWordId(): String =
-        prefs.getString(KEY_WAKE_WORD, WakeWordRegistry.default().id)
-            ?: WakeWordRegistry.default().id
-
-    fun setSelectedWakeWordId(id: String) {
-        prefs.edit().putString(KEY_WAKE_WORD, id).apply()
-    }
-
-/**
-     * Wybrana komenda jako wpis katalogu - z niego wiadomo nie tylko jaka fraza,
-     * ale też czy Porcupine ją zna, czy potrzebny jest własny model.
-     */
-    fun getSelectedWakeWordEntry(): WakeWord {
-        val id = getSelectedWakeWordId()
-        return WakeWordRegistry.findById(id) ?: WakeWordRegistry.default()
-    }
-
-    /**
-     * Pełna fraza komendy (rozwiązana z ID + custom jeśli potrzeba).
-     * Do wyświetlania; do inicjalizacji detektora służy [getSelectedWakeWordEntry].
-     */
-    fun getSelectedWakeWord(): String {
-        val entry = getSelectedWakeWordEntry()
-        return if (entry.id == "custom") getCustomWakeWord() else entry.phrase
-    }
-
-    /**
-     * Ścieżka do własnego pliku `.ppn` z konsoli Picovoice.
-     * Bez niego fraza spoza wbudowanej listy nie zadziała.
-     */
-    fun getCustomKeywordPath(): String = prefs.getString(KEY_KEYWORD_PATH, "") ?: ""
-
-    fun setCustomKeywordPath(path: String) {
-        prefs.edit().putString(KEY_KEYWORD_PATH, path).apply()
-    }
-
-    /**
-     * Ścieżka do modelu językowego `.pv` - potrzebna tylko dla fraz
-     * w językach innych niż angielski (np. polskich).
-     */
-    fun getCustomModelPath(): String = prefs.getString(KEY_MODEL_PATH, "") ?: ""
-
-    fun setCustomModelPath(path: String) {
-        prefs.edit().putString(KEY_MODEL_PATH, path).apply()
-    }
-
-    fun setSelectedWakeWord(phrase: String) {
-        // Stara metoda - zapisuje jako custom
-        // Backward compatibility
-        setCustomWakeWord(phrase)
-    }
-
-    /**
-     * Własna komenda (dla "custom").
-     */
-    fun getCustomWakeWord(): String =
-        prefs.getString(KEY_CUSTOM_WAKE_WORD, "") ?: ""
-
-    fun setCustomWakeWord(phrase: String) {
-        prefs.edit().putString(KEY_CUSTOM_WAKE_WORD, phrase).apply()
-    }
-
-    // === Picovoice (wake word) ===
-
-    /**
-     * Picovoice AccessKey z konsoli https://console.picovoice.ai/
-     * Darmowy tier: 3 wake words / urządzenie.
-     */
-    fun getPicovoiceAccessKey(): String =
-        prefs.getString(KEY_PICOVOICE_KEY, "") ?: ""
-
-    fun setPicovoiceAccessKey(key: String) {
-        prefs.edit().putString(KEY_PICOVOICE_KEY, key).apply()
     }
 
     // === Action mode ===
@@ -919,41 +835,55 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putString(KEY_TTS_ENGINE, packageName).apply()
     }
 
-    // === Silnik wykrywania frazy wybudzenia ===
+    // === Fraza wybudzenia ===
 
     /**
-     * "picovoice" albo "vosk".
+     * Która fraza budzi asystenta: [WAKE_ENGINE_HEJ_WIKTOR] albo [WAKE_ENGINE_HEJ_LENS].
      *
-     * Domyślnie Picovoice - działa lepiej i taniej energetycznie, ale wymaga
-     * klucza. Vosk nie wymaga niczego, kosztem baterii i pobrania modelu.
+     * - "Hej Wiktor" - telefon sam słucha frazy (openWakeWord na urządzeniu,
+     *   offline, bez kont i opłat). Słucha tylko przy włączonym
+     *   [isWakeWordEnabled]. Domyślna.
+     * - "Hej Lens" - słuchają tylko okulary (fraza producenta), mikrofon telefonu
+     *   zostaje wolny.
+     *
+     * Wcześniejsze wersje zapisywały tu nazwy silników telefonu, które z
+     * aplikacji usunięto ("picovoice" - darmowe klucze przestały działać
+     * 30.06.2026 - i "vosk"). Oba oznaczały nasłuch telefonem, więc przechodzą na
+     * "Hej Wiktor"; razem z nimi znikają ich osierocone ustawienia, w tym
+     * zapisany klucz dostępu.
      */
-    fun getWakeEngine(): String = prefs.getString(KEY_WAKE_ENGINE, WAKE_ENGINE_PICOVOICE)
-        ?: WAKE_ENGINE_PICOVOICE
+    fun getWakeEngine(): String {
+        val stored = prefs.getString(KEY_WAKE_ENGINE, null)
+        return when (stored) {
+            WAKE_ENGINE_HEJ_WIKTOR, WAKE_ENGINE_HEJ_LENS -> stored
+            null -> {
+                // Stary domyślny silnik nie zapisywał wyboru - same jego
+                // ustawienia (np. klucz) też trzeba posprzątać.
+                if (LEGACY_WAKE_KEYS.any { prefs.contains(it) }) migrateLegacyWakeSettings()
+                WAKE_ENGINE_HEJ_WIKTOR
+            }
+            else -> {
+                migrateLegacyWakeSettings()
+                WAKE_ENGINE_HEJ_WIKTOR
+            }
+        }
+    }
 
     fun setWakeEngine(engine: String) {
-        prefs.edit().putString(KEY_WAKE_ENGINE, engine).apply()
+        val value = if (engine == WAKE_ENGINE_HEJ_LENS) WAKE_ENGINE_HEJ_LENS else WAKE_ENGINE_HEJ_WIKTOR
+        prefs.edit().putString(KEY_WAKE_ENGINE, value).apply()
     }
 
-    /** Fraza rozpoznawana przez Voska - zapisana tak, jak model ją usłyszy. */
-    fun getVoskPhrase(): String = prefs.getString(KEY_VOSK_PHRASE, DEFAULT_VOSK_PHRASE)
-        ?: DEFAULT_VOSK_PHRASE
+    /** Czy telefon ma sam nasłuchiwać "Hej Wiktor" - wybrana fraza i włączony nasłuch. */
+    fun isPhoneWakeWanted(): Boolean =
+        isWakeWordEnabled() && getWakeEngine() == WAKE_ENGINE_HEJ_WIKTOR
 
-    fun setVoskPhrase(phrase: String) {
-        prefs.edit().putString(KEY_VOSK_PHRASE, phrase.trim().lowercase()).apply()
-    }
-
-    /**
-     * Adres modelu Voska.
-     *
-     * Ustawienie, a nie stała: nazwy plików modeli zmieniają się z wersjami, a
-     * wtedy lepiej wkleić nowy adres niż czekać na nową wersję aplikacji.
-     */
-    fun getVoskModelUrl(): String =
-        prefs.getString(KEY_VOSK_MODEL_URL, null)?.takeIf { it.isNotBlank() }
-            ?: pl.victor.app.wakeword.VoskWakeWord.DEFAULT_MODEL_URL
-
-    fun setVoskModelUrl(url: String) {
-        prefs.edit().putString(KEY_VOSK_MODEL_URL, url.trim()).apply()
+    /** Przepisuje stary wybór silnika na "Hej Wiktor" i usuwa jego ustawienia. */
+    private fun migrateLegacyWakeSettings() {
+        prefs.edit().apply {
+            putString(KEY_WAKE_ENGINE, WAKE_ENGINE_HEJ_WIKTOR)
+            LEGACY_WAKE_KEYS.forEach { remove(it) }
+        }.apply()
     }
 
     /** Usuwa z pola znaki, które rozwaliłyby zapis linia-po-linii. */
@@ -1034,8 +964,8 @@ class SettingsRepository private constructor(private val context: Context) {
     /**
      * Czy okulary mają same wykrywać frazę wybudzenia.
      *
-     * Domyślnie tak - to jedyna droga do komendy głosowej, która nie wymaga
-     * konta Picovoice. Ustawienie musi być trwałe, bo po każdym połączeniu
+     * Domyślnie tak - fraza okularów ("Hej Lens") działa bez żadnego nasłuchu
+     * mikrofonem telefonu. Ustawienie musi być trwałe, bo po każdym połączeniu
      * aplikacja przesyła je do okularów; bez zapamiętania wyłączenie wracałoby
      * przy pierwszym auto-reconnect.
      */
@@ -1298,9 +1228,6 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_ROUTE_ASSIST = "route_assist"
         private const val KEY_PROACTIVE_INTERVAL = "proactive_interval_min"
         private const val KEY_HISTORY_LIMIT = "history_limit"
-        private const val KEY_WAKE_WORD = "wake_word"
-        private const val KEY_CUSTOM_WAKE_WORD = "custom_wake_word"
-        private const val KEY_PICOVOICE_KEY = "picovoice_access_key"
         private const val KEY_ACTION_MODE = "action_mode"
         private const val KEY_PROACTIVE_ENABLED = "proactive_enabled"
         private const val KEY_OWM_KEY = "owm_api_key"
@@ -1322,20 +1249,22 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_FACTS = "user_facts"
         private const val KEY_TTS_ENGINE = "tts_engine"
         private const val KEY_WAKE_ENGINE = "wake_engine"
-        private const val KEY_VOSK_PHRASE = "vosk_phrase"
-        private const val KEY_VOSK_MODEL_URL = "vosk_model_url"
 
-        const val WAKE_ENGINE_PICOVOICE = "picovoice"
-        const val WAKE_ENGINE_VOSK = "vosk"
+        /** Fraza "Hej Wiktor" - telefon słucha sam (openWakeWord). */
+        const val WAKE_ENGINE_HEJ_WIKTOR = "hej_wiktor"
+
+        /** Fraza "Hej Lens" - słuchają tylko okulary, mikrofon telefonu wolny. */
+        const val WAKE_ENGINE_HEJ_LENS = "hej_lens"
 
         /**
-         * Domyślna fraza dla Voska.
-         *
-         * "wiktor", nie "victor": model jest polski i zna polską pisownię.
-         * Zapisane "victor" model odczytałby jako coś innego niż to, co
-         * użytkownik powie - i fraza nie działałaby nigdy.
+         * Klucze usuniętych silników telefonu (Picovoice, Vosk) i ich katalogu
+         * fraz - kasowane przy migracji, patrz [getWakeEngine].
          */
-        const val DEFAULT_VOSK_PHRASE = "hej wiktor"
+        private val LEGACY_WAKE_KEYS = listOf(
+            "wake_word", "custom_wake_word", "picovoice_access_key",
+            "wake_word_keyword_path", "wake_word_model_path",
+            "vosk_phrase", "vosk_model_url"
+        )
         private const val KEY_NOTE_STYLE = "note_style"
         private const val KEY_NOTES_DOC_SYNC = "notes_doc_sync"
         private const val KEY_NOTES_DOC_ID = "notes_doc_id"
@@ -1367,7 +1296,5 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_PERSONA_ID = "persona_id"
         private const val KEY_CUSTOM_PERSONA = "custom_persona"
         private const val KEY_GLASSES_SIMULATION = "glasses_simulation"
-        private const val KEY_KEYWORD_PATH = "wake_word_keyword_path"
-        private const val KEY_MODEL_PATH = "wake_word_model_path"
     }
 }

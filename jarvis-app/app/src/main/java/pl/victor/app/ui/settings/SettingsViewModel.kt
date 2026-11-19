@@ -36,11 +36,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         webSearchEnabled = settings.isWebSearchEnabled(),
         responseLanguage = settings.getResponseLanguage(),
         wakeWordEnabled = settings.isWakeWordEnabled(),
-        wakeWordId = settings.getSelectedWakeWordId(),
-        customWakeWord = settings.getCustomWakeWord(),
-        customKeywordPath = settings.getCustomKeywordPath(),
-        customModelPath = settings.getCustomModelPath(),
-        picovoiceAccessKey = settings.getPicovoiceAccessKey(),
         captureCount = settings.getCaptureCount(),
         captureIntervalMs = settings.getCaptureIntervalMs(),
         ttsVoice = settings.getTtsVoiceName(),
@@ -175,114 +170,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     /**
-     * Włącza albo wyłącza wykrywanie komendy głosowej.
+     * Włącza albo wyłącza nasłuch frazy „Hej Wiktor” na telefonie.
      *
-     * Sam zapis preferencji nie wystarcza: detektor startuje w `MainActivity.onCreate`,
-     * więc przełącznik działałby dopiero po ponownym uruchomieniu aplikacji.
-     * Dlatego zmiana od razu podnosi albo zatrzymuje Porcupine.
+     * Sam zapis wystarcza do startu i zatrzymania: VictorApplication obserwuje
+     * ten przełącznik i prowadzi nasłuch (mikrofon jest wyłączny, więc jego
+     * cyklem życia rządzi aplikacja, nie ekran). Tutaj tylko mówimy wprost, czy
+     * nasłuch ma czym ruszyć - brak modelu wyglądałby inaczej jak "nic się nie
+     * dzieje".
      */
     fun setWakeWordEnabled(enabled: Boolean) {
         settings.setWakeWordEnabled(enabled)
         _state.value = _state.value.copy(wakeWordEnabled = enabled)
+        if (!enabled) return
+        if (settings.getWakeEngine() != SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR) return
 
         viewModelScope.launch {
-            val detector = app.wakeWordDetector
-            if (!enabled) {
-                runCatching { detector.stopListening() }
-                    .onFailure { Log.w(TAG, "Nie udało się zatrzymać wykrywania komendy", it) }
-                return@launch
+            // Pierwsze sprawdzenie wczytuje sieci - nie na wątku głównym.
+            val problem = withContext(Dispatchers.Default) {
+                runCatching { app.phoneWake.modelProblem() }
+                    .getOrElse { it.message ?: pl.victor.app.wakeword.OpenWakeWord.BRAK_MODELU }
             }
-
-            val accessKey = settings.getPicovoiceAccessKey()
-            if (accessKey.isBlank()) {
-                // Przełącznik jest zablokowany bez klucza, ale stan mógł przyjść
-                // z preferencji zapisanych wcześniej.
-                _state.value = _state.value.copy(
-                    statusMessage = "Brak klucza Picovoice - wykrywanie komendy nie ruszy."
-                )
-                return@launch
-            }
-
-            val entry = settings.getSelectedWakeWordEntry()
-            val result = runCatching {
-                detector.initialize(
-                    accessKey = accessKey,
-                    keyword = entry.porcupineKeyword ?: settings.getSelectedWakeWord(),
-                    keywordPath = settings.getCustomKeywordPath(),
-                    modelPath = settings.getCustomModelPath()
-                )
-            }.getOrElse {
-                Log.e(TAG, "Inicjalizacja Porcupine nie powiodła się", it)
-                pl.victor.app.wakeword.InitResult.Failed(it.message ?: "nieznany błąd")
-            }
-
-            if (result.isSuccess) {
-                detector.startListening()
-            }
-            // Każdy przypadek niesie własną instrukcję - inaczej użytkownik
-            // widzi tylko, że nic się nie dzieje.
-            _state.value = _state.value.copy(statusMessage = result.message())
+            _state.value = _state.value.copy(
+                statusMessage = problem ?: "Nasłuch „Hej Wiktor” włączony."
+            )
         }
-    }
-
-    /** Ścieżka do własnego modelu `.ppn` - bez niego fraza spoza listy nie ruszy. */
-    fun setCustomKeywordPath(path: String) {
-        settings.setCustomKeywordPath(path.trim())
-        _state.value = _state.value.copy(customKeywordPath = path.trim())
-    }
-
-    /** Ścieżka do modelu językowego `.pv` - tylko dla fraz nieangielskich. */
-    fun setCustomModelPath(path: String) {
-        settings.setCustomModelPath(path.trim())
-        _state.value = _state.value.copy(customModelPath = path.trim())
-    }
-
-    fun setWakeWordId(id: String) {
-        settings.setSelectedWakeWordId(id)
-        _state.value = _state.value.copy(wakeWordId = id)
-        restartWakeWord()
-    }
-
-    fun setCustomWakeWord(phrase: String) {
-        settings.setCustomWakeWord(phrase)
-        _state.value = _state.value.copy(customWakeWord = phrase)
-        restartWakeWord()
-    }
-
-    fun setPicovoiceAccessKey(key: String) {
-        settings.setPicovoiceAccessKey(key)
-        _state.value = _state.value.copy(picovoiceAccessKey = key)
-        restartWakeWord()
-    }
-
-    /**
-     * Podnosi wykrywanie komendy od nowa po ZMIANIE FRAZY.
-     *
-     * ## Czemu to jest osobna sprawa od przełącznika
-     * [setWakeWordEnabled] podnosi i zatrzymuje detektor, ale zmiana samej frazy
-     * zapisywała tylko preferencję. Stary Porcupine nasłuchiwał dalej - ze STARYM
-     * słowem i z zajętym mikrofonem. Zgłoszone: "mikrofon cały czas nasłuchuje
-     * nawet po przejściu z hej Victor na hej Lens".
-     *
-     * Bez tego nowa fraza zaczynała działać dopiero po ponownym uruchomieniu
-     * aplikacji, a do tego czasu telefon pokazywał włączony mikrofon i reagował
-     * na poprzednie słowo.
-     *
-     * Nic nie robi, gdy wykrywanie jest wyłączone - inaczej zmiana frazy
-     * włączałaby funkcję, której użytkownik nie prosił o włączenie.
-     */
-    private fun restartWakeWord() {
-        if (!settings.isWakeWordEnabled()) return
-        // Ta sama droga co przełącznik: najpierw zatrzymanie, potem start z nową
-        // frazą. Przekazujemy `true`, bo funkcja i tak zapisze tę samą wartość.
-        setWakeWordEnabled(true)
-    }
-
-    /**
-     * Backward compat - stare API
-     */
-    fun setWakeWord(phrase: String) {
-        setCustomWakeWord(phrase)
     }
 
     fun setCaptureCount(count: Int) {
@@ -377,13 +288,6 @@ data class SettingsState(
     val webSearchEnabled: Boolean,
     val responseLanguage: String,
     val wakeWordEnabled: Boolean,
-    // Wartość początkowa stanu przed pierwszym odczytem preferencji.
-    // Musi wskazywać komendę, która istnieje w katalogu.
-    val wakeWordId: String = "computer",
-    val customWakeWord: String = "",
-    val customKeywordPath: String = "",
-    val customModelPath: String = "",
-    val picovoiceAccessKey: String = "",
     val captureCount: Int,
     val captureIntervalMs: Long,
     // TTS

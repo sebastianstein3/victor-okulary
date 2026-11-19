@@ -9,7 +9,12 @@ data class OnboardingState(
     val providerId: String = "gemini",
     val apiKey: String = "",
     val openWeatherKey: String = "",
-    val picovoiceKey: String = "",
+    /**
+     * Wybrana fraza wybudzenia ([pl.victor.app.data.SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR]
+     * albo [pl.victor.app.data.SettingsRepository.WAKE_ENGINE_HEJ_LENS]);
+     * `null` - krok pominięty, ustawienia zostają, jak były.
+     */
+    val wakeEngine: String? = null,
     val city: String = "",
     /** Mikrofon - bez niego nie działa NIC, co dotyczy głosu. */
     val hasMicPermission: Boolean = false,
@@ -33,7 +38,7 @@ data class OnboardingState(
         OnboardingStep.PROVIDER -> providerId.isNotBlank()
         OnboardingStep.API_KEY -> apiKey.isNotBlank()
         OnboardingStep.WEATHER -> true  // opcjonalne
-        OnboardingStep.PICOVOICE -> true  // opcjonalne
+        OnboardingStep.WAKE_WORD -> true  // opcjonalne
         OnboardingStep.LOCATION -> true  // opcjonalne
         OnboardingStep.PERMISSIONS -> true  // uprawnienia można dać później
         OnboardingStep.GLASSES -> true  // opcjonalne
@@ -53,7 +58,7 @@ enum class OnboardingStep(val title: String, val emoji: String) {
     PROVIDER("Wybierz AI", "🧠"),
     API_KEY("Klucz API", "🔑"),
     WEATHER("Pogoda", "🌦️"),
-    PICOVOICE("Wake word", "🎙️"),
+    WAKE_WORD("Fraza wybudzenia", "🎙️"),
     LOCATION("Lokalizacja", "📍"),
     PERMISSIONS("Uprawnienia", "🔐"),
     GLASSES("Okulary", "👓"),

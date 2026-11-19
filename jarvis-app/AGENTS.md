@@ -58,7 +58,7 @@
 | Library | Purpose |
 |---------|---------|
 | **HeyCyan AAR SDK** | Vendor BLE + HTTP (387KB, /libs/) |
-| **Porcupine (Picovoice)** | Wake word ("Computer" domyślnie, "Hey Victor" po wytrenowaniu modelu) - on-device |
+| **openWakeWord (ONNX Runtime)** | Fraza "Hej Wiktor" na telefonie - on-device, offline, bez kluczy; alternatywa: "Hej Lens" w okularach |
 | **Camera2** | Fallback capture (jeśli brak HeyCyan) |
 | **Android TTS** | Synteza mowy - streaming, multi-voice |
 
@@ -169,7 +169,8 @@
         │       │   ├── QRTestActivity.kt     # UI do testów
         │       │   └── OCRReader.kt          # ML Kit Text Recognition v2
         │       ├── wakeword/
-        │       │   └── WakeWordDetector.kt   # Porcupine
+        │       │   ├── OpenWakeWord.kt       # openWakeWord: ONNX + mikrofon
+        │       │   └── OwwPipeline.kt        # strumieniowe cechy (czysta logika)
         │       ├── web/
         │       │   ├── WebContentFetcher.kt  # HTTP GET URL
         │       │   └── URLAnalyzer.kt        # Wyciąga URL z QR
@@ -321,7 +322,7 @@ Wszystkie klucze są szyfrowane AES-256-GCM. User wpisuje je przez Onboarding lu
 | **Anthropic** | Backup provider | opcjonalne |
 | **MiniMax** | Ostatnia deska ratunku | opcjonalne |
 | **OpenWeatherMap** | Pogoda + alerty | opcjonalne |
-| **Picovoice** | Wake word ("Computer" domyślnie / "Hey Victor" custom) | opcjonalne |
+| (brak) | Fraza wybudzenia działa bez klucza (openWakeWord / Hej Lens) | - |
 | **Google OAuth** | Calendar API | opcjonalne |
 
 **WAŻNE: Klucze NIGDY nie powinny być hardcoded w kodzie ani commitowane do repo!**
@@ -459,7 +460,7 @@ adb shell am start -n pl.victor.app.debug/pl.victor.app.vision.QRTestActivity
 
 - **HeyCyan firmware** - SDK z 07/2023, może wymagać aktualizacji
 - **OpenWeatherMap key** - aktywuje się do 24h po rejestracji
-- **Picovoice** - wymaga konta, darmowy tier ma limity
+- **openWakeWord** - model "Hej Wiktor" jest w assets/wakeword/ (bazowe modele Apache-2.0)
 - **Google OAuth** - trzeba skonfigurować OAuth client w Google Cloud Console
 - **HeyCyan Wi-Fi Direct** - do testów z prawdziwymi okularami
 
@@ -550,7 +551,7 @@ Jeśli przejmujesz ten projekt, zacznij od:
 ### Hot fix'y typowe
 
 - **TTS nie mówi** → sprawdź czy Android ma polski głos (Settings → System → Languages → Add)
-- **Wake word nie działa** → sprawdź klucz Picovoice, RECORD_AUDIO permission
+- **Wake word nie działa** → Ustawienia: wybrana fraza i status modelu, RECORD_AUDIO permission, wpisy „Hej Wiktor” w Diagnostyce
 - **AI error 401** → sprawdź czy klucz Gemini ma `?key=` (nowe Auth Keys od 2026)
 - **BLE nie łączy** → sprawdź Bluetooth permissions (Android 12+)
 - **WorkManager nie działa** → sprawdź czy Doze mode nie blokuje (battery optimization)

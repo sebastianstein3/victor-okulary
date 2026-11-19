@@ -69,8 +69,7 @@ import pl.victor.app.web.WebContent
 class AIOrchestrator(
     private val context: Context,
     private val settings: SettingsRepository,
-    private val history: HistoryRepository,
-    private val wakeWord: pl.victor.app.wakeword.WakeWordDetector? = null
+    private val history: HistoryRepository
 ) {
     /**
      * Ostatnia siatka bezpieczeństwa dla korutyn orkiestratora.
@@ -177,7 +176,14 @@ class AIOrchestrator(
 
     private val conversationalMode = ConversationalMode(
         audio = audio,
-        wakeWord = wakeWord,
+        // Nasłuch trybu konwersacyjnego oddaje mikrofon frazy pod własnym
+        // imieniem - koniec tego nasłuchu nie może wznowić frazy w trakcie tury.
+        pauseWakeMic = {
+            victorApp?.pauseWakeForTurn(pl.victor.app.VictorApplication.WAKE_HOLDER_CONVERSATION)
+        },
+        resumeWakeMic = {
+            victorApp?.resumeWakeAfterTurn(pl.victor.app.VictorApplication.WAKE_HOLDER_CONVERSATION)
+        },
         speechToText = speechToText,
         onUserSpoke = { text -> handleSpokenText(text) },
         onActivated = { Log.i(TAG, "Tryb konwersacyjny ON") },
@@ -983,7 +989,7 @@ class AIOrchestrator(
      * Tura bierze mikrofon frazy - z licznikiem właścicieli.
      *
      * Bez licznika stara tura (przerwana albo przekazująca pytanie dalej)
-     * wznawiała w swoim `finally` nasłuch frazy W TRAKCIE nowej tury: Vosk
+     * wznawiała w swoim `finally` nasłuch frazy W TRAKCIE nowej tury: nasłuch
      * zabierał mikrofon rozpoznawaniu mowy albo słuchał własnej odpowiedzi
      * asystenta. Każde wywołanie musi mieć dokładnie jedno [releaseMicAfterTurn].
      */
@@ -1513,12 +1519,12 @@ class AIOrchestrator(
      * Bo kolejność jest tu całą treścią. Mikrofon okularów wisi przy ustach,
      * telefon leży w kieszeni - więc DOWOLNA droga licząca na nagraniu z okularów
      * jest lepsza od najlepszego nasłuchu telefonu. Do tej pory tak nie było:
-     * chmura wyprzedzała telefon, ale rozpoznawanie systemowe i Vosk czekały w
+     * chmura wyprzedzała telefon, ale rozpoznawanie systemowe czekało w
      * gałęzi ciszy, czyli wchodziły dopiero wtedy, gdy telefon nie usłyszał NIC.
      *
      * Kto nie wpisał klucza OpenAI, nie dostawał więc żadnej poprawy: telefon
      * słyszał "coś" i to "coś" wygrywało. Teraz bez klucza wchodzi rozpoznawanie
-     * systemowe na tym samym nagraniu, a gdy i jego nie ma - Vosk.
+     * systemowe na tym samym nagraniu.
      *
      * @return tekst albo `null`, gdy żadna droga nie dała rady
      */
@@ -1547,15 +1553,14 @@ class AIOrchestrator(
 
     /**
      * Czy da się przepisać nagranie JAKĄKOLWIEK drogą (chmura, rozpoznawanie na
-     * urządzeniu, Vosk) - sprawdzane przed startem notatek ze spotkania, żeby nie
+     * urządzeniu) - sprawdzane przed startem notatek ze spotkania, żeby nie
      * nagrywać godziny, po której nic się nie przepisze.
      */
     fun canTranscribeRecordings(): Boolean =
         (settings.isCloudTranscriptionEnabled() && cloudSpeechService() != null) ||
-            speechToText.isOnDeviceAvailable() ||
-            runCatching { VictorApplication.get().voskWakeWord.isModelReady() }.getOrDefault(false)
+            speechToText.isOnDeviceAvailable()
 
-    /** Przepisuje PCM 16 kHz mono: chmura -> urządzenie -> Vosk. */
+    /** Przepisuje PCM 16 kHz mono: chmura -> rozpoznawanie systemowe na urządzeniu. */
     private suspend fun transcribeSpeechPcm(speechPcm: ByteArray, languageTag: String): String? {
         val rate = pl.victor.app.audio.PcmResampler.SPEECH_SAMPLE_RATE
 
@@ -1569,16 +1574,6 @@ class AIOrchestrator(
         }.getOrNull()?.takeIf { it.isNotBlank() }?.let {
             Log.i(TAG, "Transkrypcja systemowa z nagrania okularów: \"$it\"")
             _lastTranscriptionSource.value = SOURCE_ON_DEVICE
-            return it
-        }
-
-        // Vosk liczy offline i nie stawia żadnych warunków - za to myli słowa.
-        // Ostatnia droga do TEKSTU, zanim zostanie już tylko samo nagranie.
-        runCatching {
-            pl.victor.app.VictorApplication.get().transcribeWithVosk(speechPcm, rate)
-        }.getOrNull()?.takeIf { it.isNotBlank() }?.let {
-            Log.i(TAG, "Transkrypcja Voskiem z nagrania okularów: \"$it\"")
-            _lastTranscriptionSource.value = SOURCE_VOSK
             return it
         }
         return null
@@ -1685,8 +1680,8 @@ class AIOrchestrator(
      * Która droga przepisała ostatnie pytanie na tekst.
      *
      * ## Po co to w ogóle jest
-     * Bo dróg jest teraz pięć - chmura, rozpoznawanie systemowe na urządzeniu,
-     * Vosk, nasłuch telefonu i nagranie wprost do modelu - a z zewnątrz wszystkie
+     * Bo dróg jest teraz cztery - chmura, rozpoznawanie systemowe na urządzeniu,
+     * nasłuch telefonu i nagranie wprost do modelu - a z zewnątrz wszystkie
      * wyglądają tak samo: asystent po prostu odpowiada. Gdy odpowiada źle, nie da
      * się zgadnąć, którą poszedł, a od tego zależy CAŁA diagnoza. Do tej pory i ja,
      * i użytkownik zgadywaliśmy.
@@ -1722,7 +1717,7 @@ class AIOrchestrator(
     private var silentScoTurns = 0
 
     /**
-     * Aplikacja jako właściciel nasłuchu Voska - patrz [pauseWakeWordMic].
+     * Aplikacja jako właściciel nasłuchu frazy - patrz [pauseWakeWordMic].
      * Nullable, bo w testach i podglądach Compose kontekst bywa inny.
      */
     private val victorApp: pl.victor.app.VictorApplication?
@@ -1731,13 +1726,12 @@ class AIOrchestrator(
     /**
      * Oddaje mikrofon zajęty przez wykrywanie frazy.
      *
-     * Porcupine zwalnia go sam przez tryb konwersacyjny; Vosk trzyma własny
-     * AudioRecord i nie wie o niczym, więc trzeba mu powiedzieć wprost.
-     * Bez tego rozpoznawanie mowy dostaje zajęty mikrofon i tura kończy się
-     * komunikatem "nie mogę rozpoznać nagrania".
+     * Nasłuch "Hej Wiktor" trzyma własny AudioRecord i nie wie o niczym, więc
+     * trzeba mu powiedzieć wprost. Bez tego rozpoznawanie mowy dostaje zajęty
+     * mikrofon i tura kończy się komunikatem "nie mogę rozpoznać nagrania".
      */
     private fun pauseWakeWordMic() {
-        runCatching { victorApp?.pauseVoskForTurn() }
+        runCatching { victorApp?.pauseWakeForTurn() }
         // Spotkanie oddaje mikrofon na czas tury - inaczej pytanie (w tym
         // "zakończ spotkanie") dostaje ciszę. Bieg 160: po "nagrywaj
         // spotkanie" każda tura kończyła się "MIKROFON NIE RUSZYŁ".
@@ -1751,7 +1745,7 @@ class AIOrchestrator(
         // sam, gdy się kończy.
         if (meetingCreated && !_earTranslation.value) meeting.wznów()
         if (meetingHoldsMic() || _earTranslation.value) return
-        runCatching { victorApp?.resumeVoskAfterTurn() }
+        runCatching { victorApp?.resumeWakeAfterTurn() }
     }
 
     private fun meetingHoldsMic(): Boolean = meetingCreated && meeting.nagrywa
@@ -2029,7 +2023,7 @@ class AIOrchestrator(
         pl.victor.app.features.meeting.MeetingRecorder(
             context = context,
             scope = scope,
-            // Ta sama łańcuszek co pytania z okularów: chmura -> urządzenie -> Vosk.
+            // Ten sam łańcuszek co pytania z okularów: chmura -> urządzenie.
             // Samo rozpoznawanie na urządzeniu wymaga Androida 13+ i pakietu języka,
             // a bez niego spotkanie "nagrywało" bez jednego słowa tekstu.
             przepisz = { pcm ->
@@ -3104,7 +3098,7 @@ class AIOrchestrator(
      * jest pogoda") oddaje modelowi samo pytanie.
      */
     private fun handleSpokenText(text: String): Boolean {
-        val configured = listOf(settings.getSelectedWakeWord())
+        val configured = pl.victor.app.conversation.WakePhrase.PHONE_PHRASES
         // BEZ FRAZY I POZA ROZMOWĄ - NIE ODPOWIADAMY.
         //
         // Tryb konwersacyjny wstaje razem z aplikacją i od tej chwili słucha bez
@@ -3733,9 +3727,6 @@ class AIOrchestrator(
                             // do pobrania w ustawieniach Androida.
                             mapOf(
                                 "rozpoznawanieNaUrządzeniu" to speechToText.isOnDeviceAvailable(),
-                                "voskGotowy" to runCatching {
-                                    VictorApplication.get().voskWakeWord.isModelReady()
-                                }.getOrDefault(false),
                                 "chmura" to settings.isCloudTranscriptionEnabled()
                             )
                         } else {
@@ -8084,7 +8075,6 @@ class AIOrchestrator(
         const val SOURCE_CLOUD = "Chmura (Whisper)"
         const val SOURCE_PHONE = "Nasłuch telefonu"
         const val SOURCE_ON_DEVICE = "Rozpoznawanie systemowe (offline)"
-        const val SOURCE_VOSK = "Vosk (offline, słabszy)"
         const val SOURCE_AUDIO_TO_MODEL = "Bez transkrypcji - nagranie do modelu"
 
         /**
