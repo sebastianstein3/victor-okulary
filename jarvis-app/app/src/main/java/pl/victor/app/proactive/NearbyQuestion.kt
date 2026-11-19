@@ -18,7 +18,7 @@ object NearbyQuestion {
     fun dotyczyOkolicy(pytanie: String): Boolean {
         val q = pytanie.lowercase()
         return OKOLICA.any { q.contains(it) } || GDZIE_CZYNNOŚĆ.containsMatchIn(q) ||
-            jestPrzewodnikiem(pytanie)
+            jestPrzewodnikiem(pytanie) || OsmPlaces.szukaMiejsca(pytanie)
     }
 
     /** "Co ciekawego w okolicy", "opowiedz o tym miejscu", "co tu warto zobaczyć". */

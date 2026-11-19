@@ -699,6 +699,33 @@ class AIOrchestrator(
                     mapsLocationForTurn = it.lat to it.lon
                 }
             }
+            // MODEL BEZ MAP GOOGLE dostaje listę miejsc z OpenStreetMap - inaczej
+            // o Biedronce za rogiem mógłby tylko zgadywać. Gemini z Mapami jej
+            // nie potrzebuje (ma więcej, z opiniami), więc nie płaci czasem.
+            val mapyGoogle = settings.getActiveProvider() == "gemini" && settings.isMapsGroundingEnabled()
+            if (naprawdęCel == pl.victor.app.proactive.LocationContext.Cel.OKOLICA && !mapyGoogle &&
+                settings.isOsmPlacesEnabled()
+            ) {
+                val tu = pl.victor.app.proactive.LocationContext.ostatnia
+                val od = System.currentTimeMillis()
+                val miejsca = tu?.let {
+                    withTimeoutOrNull(OSM_PLACES_MS) {
+                        pl.victor.app.proactive.OsmPlacesClient.kontekst(question, it.lat, it.lon)
+                    }
+                }
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.KONTEKST, "miejsca z OpenStreetMap",
+                        mapOf(
+                            "ms" to (System.currentTimeMillis() - od),
+                            "są" to (miejsca != null),
+                            "rodzaj" to (pl.victor.app.proactive.OsmPlaces.marka(question)
+                                ?: pl.victor.app.proactive.OsmPlaces.rodzaj(question)?.nazwa)
+                        )
+                    )
+                }
+                if (miejsca != null) return opis + "\n\n" + miejsca
+            }
             return opis
         }
         if (!oOkolicę) return null
@@ -8150,6 +8177,9 @@ class AIOrchestrator(
 
         /** Tyle najdłużej czeka przekład Twojego zdania z modelu, potem tłumacz w telefonie. */
         private const val MY_TURN_MODEL_MS = 6_000L
+
+        /** Najdłużej tyle czeka lista miejsc z OpenStreetMap (wspólny termin kontekstów i tak obowiązuje). */
+        private const val OSM_PLACES_MS = 4_000L
 
         /** Tyle zapowiedź skrętu czeka na koniec bieżącej wypowiedzi. */
         private const val NAV_WAIT_MS = 4_000L

@@ -37,6 +37,26 @@ internal fun MapsGroundingSection() {
                 settings.setMapsGroundingEnabled(it)
             })
         }
+        var osm by remember { mutableStateOf(settings.isOsmPlacesEnabled()) }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Miejsca z OpenStreetMap", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Gdy model nie ma Map Google (OpenAI, Claude albo wyłączone Mapy), przy " +
+                        "pytaniu o okolicę dostaje listę najbliższych sklepów, lokali, aptek i " +
+                        "bankomatów z adresami i godzinami otwarcia - za darmo, bez opinii. " +
+                        "Do serwera OpenStreetMap idą same współrzędne.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Switch(checked = osm, onCheckedChange = {
+                osm = it
+                settings.setOsmPlacesEnabled(it)
+            })
+        }
         var nav by remember { mutableStateOf(settings.isNavPromptsEnabled()) }
         Row(
             verticalAlignment = Alignment.CenterVertically,

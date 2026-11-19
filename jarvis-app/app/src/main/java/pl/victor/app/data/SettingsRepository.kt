@@ -339,6 +339,16 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_NAV_PROMPTS, enabled).apply()
     }
 
+    /**
+     * Lista miejsc z OpenStreetMap przy pytaniach o okolicę, gdy model nie ma
+     * Map Google (OpenAI, Claude...). Darmowa; do serwera idą same współrzędne.
+     */
+    fun isOsmPlacesEnabled(): Boolean = prefs.getBoolean(KEY_OSM_PLACES, true)
+
+    fun setOsmPlacesEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_OSM_PLACES, enabled).apply()
+    }
+
     /** Mapy Google dla pytań o okolicę (opinie, godziny otwarcia) - tylko Gemini 3+. */
     fun isMapsGroundingEnabled(): Boolean = prefs.getBoolean(KEY_MAPS_GROUNDING, true)
 
@@ -1217,6 +1227,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
         private const val KEY_LIVE_EAR_TRANSLATION = "live_ear_translation"
         private const val KEY_NAV_PROMPTS = "nav_prompts"
+        private const val KEY_OSM_PLACES = "osm_places"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"
         private const val KEY_CAMERA_FREE = "camera_free"
         private const val KEY_THEME_MODE = "theme_mode"
