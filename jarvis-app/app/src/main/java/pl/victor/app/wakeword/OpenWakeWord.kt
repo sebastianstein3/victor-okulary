@@ -29,14 +29,15 @@ import java.nio.FloatBuffer
  *
  * ## Modele (w APK, katalog assets `wakeword/`)
  * - `melspectrogram.onnx` i `embedding_model.onnx` - modele bazowe openWakeWord
- *   (github.com/dscripka/openWakeWord, wydanie v0.5.1), licencja Apache-2.0.
- *   Model osadzeń pochodzi od modelu `speech_embedding` Google (także
- *   Apache-2.0). Apache-2.0 wymaga dołączenia tekstu licencji i informacji o
- *   autorach przy dystrybucji - jeśli aplikacja dostanie ekran licencji, te dwa
- *   pliki muszą się na nim znaleźć.
- * - `hej_wiktor.onnx` - klasyfikator frazy, trenowany osobno. Dopóki go nie ma,
- *   [start] odmawia z komunikatem "brak modelu", aplikacja działa dalej (fraza
- *   okularów i przycisk), a Ustawienia pokazują ten stan.
+ *   (github.com/dscripka/openWakeWord, wydanie v0.5.1). Kod openWakeWord jest
+ *   na Apache-2.0, ale jego README obejmuje dołączone modele licencją
+ *   CC BY-NC-SA 4.0 (użytek niekomercyjny, na tych samych warunkach).
+ * - `hej_wiktor.onnx` - nasz klasyfikator frazy (skrypt i pomiary:
+ *   tools/wakeword/). Uczony na cechach openwakeword_features (CC BY-NC-SA 4.0)
+ *   i głosach Piper - traktujemy go jak niekomercyjny. Aplikacja komercyjna
+ *   musiałaby wytrenować go na danych o swobodnej licencji.
+ *   Gdy pliku nie ma, [start] odmawia z komunikatem "brak modelu", aplikacja
+ *   działa dalej (fraza okularów i przycisk), a Ustawienia pokazują ten stan.
  *
  * ## Wątki
  * Mikrofon czyta osobny wątek - jeden na każde [start]. Każdy start ma własną
@@ -268,6 +269,11 @@ class OpenWakeWord(private val context: Context) {
                 embed = { okno -> uruchomOsadzenie(m, okno) },
                 classify = { cechy -> uruchomKlasyfikator(m, cechy) },
                 featureWindow = m.oknoKlasyfikatora,
+                // Pomiar z treningu (tools/wakeword/README.md): próg 0,5 i DWIE
+                // kolejne ramki (160 ms) to ~83% wykryć przy ~0,65 fałszywego
+                // wybudzenia na godzinę; jedna ramka - 88% i 1,3/h.
+                threshold = OwwPipeline.DEFAULT_THRESHOLD,
+                wymaganeRamki = WYMAGANE_RAMKI,
                 onDetected = { wynik ->
                     Log.i(tag, "Wykryto frazę (wynik=$wynik)")
                     onDiag?.invoke("wykryto „Hej Wiktor”", mapOf("wynik" to "%.2f".format(wynik)))
@@ -393,6 +399,8 @@ class OpenWakeWord(private val context: Context) {
     }
 
     companion object {
+        /** Ile kolejnych ramek nad progiem uznajemy za frazę - patrz pomiar wyżej. */
+        const val WYMAGANE_RAMKI = 2
         const val ASSET_DIR = "wakeword"
         const val MEL_ASSET = "melspectrogram.onnx"
         const val EMBEDDING_ASSET = "embedding_model.onnx"
