@@ -2223,9 +2223,15 @@ class AIOrchestrator(
             mojaKolej = true
             earListenJob?.cancel()
             val mój = settings.getEarTranslationTo()
-            val jegoJęzyk = settings.getEarTranslationFrom()
+            // Język, którym rozmówca NAPRAWDĘ mówi (wykryty na żywo), a dopiero
+            // bez niego - ten z ustawień.
+            val wykryty = językRozmówcy?.pewny
+            val jegoJęzyk = wykryty ?: settings.getEarTranslationFrom()
             try {
-                diag.event(DiagFormat.Phase.NASŁUCH, "rozmowa: moja kolej", mapOf("zOkularów" to zOkularów))
+                diag.event(
+                    DiagFormat.Phase.NASŁUCH, "rozmowa: moja kolej",
+                    mapOf("zOkularów" to zOkularów, "naJęzyk" to jegoJęzyk, "wykryty" to (wykryty != null))
+                )
                 // TELEFON SŁUCHA TEŻ, PO POLSKU - NIE TYLKO OKULARY.
                 //
                 // Dotąd kliknięcie na oprawce brało WYŁĄCZNIE nagranie z
@@ -2283,14 +2289,17 @@ class AIOrchestrator(
                     audio.speak("Kończę tłumaczenie rozmowy.", language = mój)
                     return@launch
                 }
-                val przekład = runCatching { translator.translate(tekst, mój, jegoJęzyk) }.getOrNull()
+                val (przekład, tłumacz) = przetłumaczMojeZdanie(tekst, mój, jegoJęzyk)
                 if (przekład.isNullOrBlank() || przekład == tekst) {
                     audio.speakAndAwait("Nie udało się przetłumaczyć.", language = mój)
                     return@launch
                 }
                 diag.event(
                     DiagFormat.Phase.NASŁUCH, "rozmowa: moje zdanie",
-                    mapOf("powiedziane" to tekst.take(60), "przekład" to przekład.take(60), "źródło" to źródło)
+                    mapOf(
+                        "powiedziane" to tekst.take(60), "przekład" to przekład.take(60),
+                        "źródło" to źródło, "tłumacz" to tłumacz, "na" to jegoJęzyk
+                    )
                 )
                 _earTranscript.value = _earTranscript.value.zSegmentem(
                     pl.victor.app.translation.TwoWay.mojeZdanie(tekst), przekład, System.currentTimeMillis()
@@ -2309,6 +2318,32 @@ class AIOrchestrator(
             }
         }
     }
+
+    /**
+     * Twoje zdanie w rozmowie na język rozmówcy.
+     *
+     * Przy włączonym tłumaczeniu na żywo i kluczu wybranego dostawcy tłumaczy
+     * MODEL (Gemini przy Gemini, GPT przy OpenAI) - rozmówca słyszy to z
+     * głośnika, więc zdanie ma brzmieć naturalnie, a nie słowo w słowo. Bez
+     * sieci, bez klucza albo po [MY_TURN_MODEL_MS] - tłumacz w telefonie.
+     *
+     * @return przekład (albo `null`) i kto tłumaczył - do dziennika
+     */
+    private suspend fun przetłumaczMojeZdanie(tekst: String, z: String, na: String): Pair<String?, String> {
+        if (settings.isLiveEarTranslationEnabled() && settings.hasApiKey(settings.getActiveProvider())) {
+            val zModelu = withTimeoutOrNull(MY_TURN_MODEL_MS) {
+                askModelPlain(pl.victor.app.translation.TwoWay.polecenieTłumaczenia(tekst, z, na))
+            }
+            pl.victor.app.translation.TwoWay.oczyśćPrzekład(zModelu)
+                ?.takeIf { it != tekst }
+                ?.let { return it to "model" }
+        }
+        return runCatching { translator.translate(tekst, z, na) }.getOrNull() to "telefon"
+    }
+
+    /** Język rozmówcy wykrywany w trakcie tłumaczenia na żywo - patrz [earLiveLoop]. */
+    @Volatile
+    private var językRozmówcy: pl.victor.app.translation.JęzykRozmówcy? = null
 
     private val _earTranslation = kotlinx.coroutines.flow.MutableStateFlow(false)
 
@@ -2410,6 +2445,8 @@ class AIOrchestrator(
             return
         }
         earSession.wyzeruj()
+        // Wykryty język rozmówcy należy do JEDNEJ rozmowy - nowa zaczyna od ustawień.
+        językRozmówcy = null
         _earTranscript.value = _earTranscript.value.start(from, to)
         _earTranslation.value = true
         startEarPartialTranslation(from, to)
@@ -2790,6 +2827,8 @@ class AIOrchestrator(
             kluczOpenAi = settings.getApiKey("openai")
         ) ?: return false
         val sesja = pl.victor.app.translation.LiveTranslationSession(context, usługa, klucz, to)
+        val wykrywanie = pl.victor.app.translation.JęzykRozmówcy(to)
+        językRozmówcy = wykrywanie
         val od = System.currentTimeMillis()
         var wysłane = 0
         var przekłady = 0
@@ -2881,6 +2920,17 @@ class AIOrchestrator(
                             if (mówić) doZagrania.trySend(z.pcm)
                         is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Oryginał -> {
                             bufor.dodajOryginał(z.tekst, teraz)
+                            val przed = wykrywanie.pewny
+                            wykrywanie.usłyszany(z.język)
+                            if (wykrywanie.pewny != przed) {
+                                wykrywanie.pewny?.let { _earTranscript.value = _earTranscript.value.copy(z = it) }
+                                runCatching {
+                                    diag.event(
+                                        DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: język rozmówcy",
+                                        mapOf("język" to wykrywanie.pewny)
+                                    )
+                                }
+                            }
                             if (pl.victor.app.translation.EarTranslation.toKoniec(bufor.oryginałTeraz)) {
                                 stopEarTranslation("polecenie głosowe (na żywo)")
                                 audio.speak("Kończę tłumaczenie.", language = to)
@@ -8061,6 +8111,9 @@ class AIOrchestrator(
          * krócej znaczyłoby wyłączać się w przerwie w rozmowie.
          */
         private const val EAR_MAX_PUSTYCH = 5
+
+        /** Tyle najdłużej czeka przekład Twojego zdania z modelu, potem tłumacz w telefonie. */
+        private const val MY_TURN_MODEL_MS = 6_000L
 
         /** Ile czekamy na gotowość sesji na żywo, zanim przejdziemy na telefon. */
         private const val EAR_LIVE_CONNECT_MS = 8_000L

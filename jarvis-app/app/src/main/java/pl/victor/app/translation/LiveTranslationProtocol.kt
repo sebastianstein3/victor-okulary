@@ -56,8 +56,11 @@ object LiveTranslationProtocol {
         object Gotowe : Zdarzenie()
         /** Kawałek przekładu do odtworzenia (PCM 24 kHz). */
         class Dźwięk(val pcm: ByteArray) : Zdarzenie()
-        /** Przyrost tekstu tego, co powiedziano (oryginał). */
-        data class Oryginał(val tekst: String) : Zdarzenie()
+        /**
+         * Przyrost tekstu tego, co powiedziano (oryginał), z językiem, jeśli
+         * usługa go podała (Gemini podaje, OpenAI - nie).
+         */
+        data class Oryginał(val tekst: String, val język: String? = null) : Zdarzenie()
         /** Przyrost tekstu przekładu. */
         data class Przekład(val tekst: String) : Zdarzenie()
         /** Koniec wypowiedzi - pora zamknąć zdanie w panelu. */
@@ -188,8 +191,10 @@ object LiveTranslationProtocol {
         o["error"].obj()?.let { wynik += Zdarzenie.Błąd(it["message"].str() ?: it.toString().take(160)) }
         o["goAway"].obj()?.let { wynik += Zdarzenie.Zamknięte }
         val sc = o["serverContent"].obj() ?: return wynik
-        sc["inputTranscription"].obj()?.get("text").str()
-            ?.takeIf { it.isNotEmpty() }?.let { wynik += Zdarzenie.Oryginał(it) }
+        sc["inputTranscription"].obj()?.let { wejście ->
+            wejście["text"].str()?.takeIf { it.isNotEmpty() }
+                ?.let { wynik += Zdarzenie.Oryginał(it, wejście["languageCode"].str()) }
+        }
         sc["outputTranscription"].obj()?.get("text").str()
             ?.takeIf { it.isNotEmpty() }?.let { wynik += Zdarzenie.Przekład(it) }
         sc["modelTurn"].obj()?.get("parts")?.let { parts ->

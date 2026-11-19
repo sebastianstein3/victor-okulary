@@ -114,3 +114,42 @@ class LiveTranslationProtocolTest {
         assertNull(b.zamknij())
     }
 }
+
+class TwoWayTranslationTest {
+
+    @Test
+    fun `jezyk rozmowcy zmienia sie dopiero po kilku zgodnych wykryciach`() {
+        val j = JęzykRozmówcy("pl")
+        j.usłyszany("de-DE")
+        j.usłyszany("pl-PL") // Twoje słowa nie liczą się ani nie przerywają serii
+        j.usłyszany("de")
+        assertNull(j.pewny)
+        j.usłyszany("de")
+        assertEquals("de", j.pewny)
+        // Jedno pomylone wykrycie nie przestawia rozmowy.
+        j.usłyszany("nl")
+        assertEquals("de", j.pewny)
+        j.usłyszany(null)
+        j.usłyszany("")
+        assertEquals("de", j.pewny)
+    }
+
+    @Test
+    fun `polecenie i czyszczenie przekladu`() {
+        val p = TwoWay.polecenieTłumaczenia("Ile to kosztuje?", "pl", "de")
+        assertTrue(p.contains("polski") && p.contains("niemiecki") && p.endsWith("Ile to kosztuje?"))
+        assertEquals("Wie viel kostet das?", TwoWay.oczyśćPrzekład("Przekład: \"Wie viel kostet das?\""))
+        assertEquals("Hello", TwoWay.oczyśćPrzekład("  „Hello”  "))
+        assertNull(TwoWay.oczyśćPrzekład("  "))
+        assertNull(TwoWay.oczyśćPrzekład(null))
+    }
+
+    @Test
+    fun `gemini podaje jezyk oryginalu`() {
+        val z = LiveTranslationProtocol.rozbierz(
+            Usługa.GEMINI,
+            """{"serverContent":{"inputTranscription":{"text":"Guten Tag","languageCode":"de-DE"}}}"""
+        )
+        assertEquals(listOf(Zdarzenie.Oryginał("Guten Tag", "de-DE")), z)
+    }
+}
