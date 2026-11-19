@@ -1424,6 +1424,17 @@ class AIOrchestrator(
      * dzienniku, żeby dało się to potwierdzić na sprzęcie.
      */
     private fun handleGlassesPhoto(aiVision: Boolean) {
+        // Tryb bez kamery: okulary zdjęcie i tak zrobiły (tego telefon nie
+        // wyłączy), ale aplikacja go nie pobiera ani nie opisuje.
+        if (settings.isCameraFree()) {
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.ZDJĘCIE, "zdjęcie z przycisku pominięte - tryb bez kamery",
+                    mapOf("opisz" to aiVision)
+                )
+            }
+            return
+        }
         // W trybie czytania przycisk znaczy "czytaj to, na co patrzę", a nie
         // "zacznij rozmowę o zdjęciu". To jest ten moment, w którym użytkownik
         // przewrócił stronę - i jedyny, w którym ma sens nowe zdjęcie.
@@ -4188,6 +4199,30 @@ class AIOrchestrator(
                 return
             }
         }
+        // TRYB BEZ KAMERY: gesty aparatu dostają nowe znaczenie. Dwa kliknięcia -
+        // nowe wiadomości, trzy - "mój dzień" (kalendarz, pogoda, poczta). Klik
+        // włącza okulary w nasłuch, więc od razu go kończymy - inaczej wybudzenie
+        // z dźwięku odpaliłoby turę z przypadkowym pytaniem.
+        if (settings.isCameraFree()) {
+            when (action) {
+                ButtonAction.LOOK_AND_DESCRIBE -> {
+                    glassesManager.stopGlassesListening()
+                    readNewMessages()
+                    return
+                }
+                ButtonAction.READ_AND_TRANSLATE -> {
+                    glassesManager.stopGlassesListening()
+                    runBriefing()
+                    return
+                }
+                ButtonAction.SCAN_QR -> {
+                    glassesManager.stopGlassesListening()
+                    audio.speak(CAMERA_OFF_SPEECH, language = settings.getResponseLanguage())
+                    return
+                }
+                else -> Unit
+            }
+        }
         when (action) {
             // Pojedyncze kliknięcie = "chcę o coś zapytać", więc SŁUCHAMY, a nie
             // od razu robimy zdjęcie. Ma to dodatkowe, bardzo praktyczne
@@ -4699,6 +4734,16 @@ class AIOrchestrator(
                             mapOf("gest" to gest::class.simpleName)
                         )
                     }
+                    // Tryb bez kamery przestawia znaczenie KLIKNIĘĆ (2 = wiadomości,
+                    // 3 = mój dzień), nie słów: "przetłumacz to" powiedziane głosem
+                    // to nadal prośba o obraz, nie o briefing.
+                    if (settings.isCameraFree() && gest != ButtonAction.QUICK_QUESTION &&
+                        gest != ButtonAction.NEW_CONVERSATION
+                    ) {
+                        audio.speak(CAMERA_OFF_SPEECH, language = settings.getResponseLanguage())
+                        _state.value = OrchestratorState.Completed(CAMERA_OFF_SPEECH)
+                        return
+                    }
                     handleButtonAction(gest)
                     return
                 }
@@ -4768,7 +4813,18 @@ class AIOrchestrator(
             pl.victor.app.vision.EanFromText.find(textQuestion) == null &&
             pl.victor.app.vision.EanFromText.zMowy(textQuestion) == null
 
-        val useVision = forceVision || trigger == TriggerSource.BUTTON || wantsToLook || wantsCode
+        // TRYB BEZ KAMERY: wyraźna prośba o obraz (przycisk, "zrób zdjęcie",
+        // notatka z tego, co widać) dostaje krótką odpowiedź zamiast migawki,
+        // a wzorce widzenia i kodów nie uruchamiają aparatu w ogóle.
+        val kameraWyłączona = settings.isCameraFree()
+        if (kameraWyłączona && forceVision) {
+            diag.event(DiagFormat.Phase.ZDJĘCIE, "prośba o obraz w trybie bez kamery - nie robię zdjęcia")
+            audio.speak(CAMERA_OFF_SPEECH, language = settings.getResponseLanguage())
+            _state.value = OrchestratorState.Completed(CAMERA_OFF_SPEECH)
+            return
+        }
+        val useVision = !kameraWyłączona &&
+            (forceVision || trigger == TriggerSource.BUTTON || wantsToLook || wantsCode)
         diag.event(
             DiagFormat.Phase.ZDJĘCIE, if (useVision) "robię zdjęcie" else "bez zdjęcia",
             mapOf(
@@ -5274,6 +5330,10 @@ class AIOrchestrator(
                 // ogóle ma jak go dostać - inaczej albo prosi o zdjęcie, które już
                 // ma, albo prosi o nie przy odłączonych okularach.
                 val visionStatus = when {
+                    settings.isCameraFree() ->
+                        "\n\nOBRAZ: użytkownik wyłączył kamerę w ustawieniach (tryb bez " +
+                            "kamery). Nie używaj take_photo i nie proponuj zdjęć. Gdy pyta o to, " +
+                            "co widać, powiedz krótko, że kamera jest wyłączona w ustawieniach."
                     photos.isNotEmpty() || (video != null && video.isNotEmpty()) ->
                         // "Zrobione przed chwilą" jest tu kluczowe. Dziennik
                         // z 18:29 (tura 2011): "zrób zdjęcie tej wódki i..."
@@ -5931,7 +5991,9 @@ class AIOrchestrator(
                 // jeszcze raz, już z obrazem. Ta odpowiedź ("Chwila, spojrzę.")
                 // celowo nie trafia do historii ani do kontekstu rozmowy - to nie
                 // odpowiedź, tylko prośba o obraz.
-                val wantsPhoto = aiDetectedActions.any {
+                // W trybie bez kamery prośbę modelu o obraz po prostu pomijamy -
+                // polecenie mówi mu, że kamery nie ma, ale model bywa uparty.
+                val wantsPhoto = !settings.isCameraFree() && aiDetectedActions.any {
                     it.type == pl.victor.app.actions.ActionType.TAKE_PHOTO
                 }
                 val executableActions = aiDetectedActions.filterNot {
@@ -6338,6 +6400,10 @@ class AIOrchestrator(
         }
         when (komenda) {
             is pl.victor.app.conversation.GlassesCommand.VideoStart -> {
+                if (settings.isCameraFree()) {
+                    powiedz(CAMERA_OFF_SPEECH)
+                    return true
+                }
                 if (glassesManager.videoRecording.value) {
                     powiedz("Już nagrywam. Powiedz: zatrzymaj nagrywanie.")
                     return true
@@ -6393,6 +6459,19 @@ class AIOrchestrator(
             }
         }
         return true
+    }
+
+    /** Kafelek "Zakończ" przy filmie na ekranie głównym - ta sama droga co głos. */
+    fun stopVideoFromUi() {
+        if (glassesManager.videoRecording.value) stopVideoOnCommand(automatycznie = false)
+    }
+
+    /**
+     * Kafelek "Wiadomości": nowe wiadomości na głos - przez zwykłą turę, bo
+     * model ma już kontekst skrzynki i umie streścić kilka naraz.
+     */
+    fun readNewMessages() {
+        handleUserTrigger(TriggerSource.TEXT_INPUT, READ_MESSAGES_PROMPT)
     }
 
     /**
@@ -6875,9 +6954,24 @@ class AIOrchestrator(
         }
 
         // Obsługa accessibility (nie wymaga trybu DIRECT/SAFE)
-        val accessibilityActions = actions.filter {
+        val wszystkieDostępności = actions.filter {
             it is Action.ReadText || it is Action.DescribeScene ||
             it is Action.StartNavigation || it is Action.StopAccessibility
+        }
+        // Tryby dla niewidomych patrzą kamerą - w trybie bez kamery zostaje
+        // tylko ich wyłączenie.
+        val accessibilityActions = if (settings.isCameraFree()) {
+            wszystkieDostępności.filter { it is Action.StopAccessibility }
+        } else {
+            wszystkieDostępności
+        }
+        if (accessibilityActions.size < wszystkieDostępności.size) {
+            audio.speak(CAMERA_OFF_SPEECH, language = settings.getResponseLanguage())
+            if (actions.size == wszystkieDostępności.size && accessibilityActions.isEmpty()) {
+                _state.value = OrchestratorState.Completed(CAMERA_OFF_SPEECH)
+                conversationalMode.onAiFinishedSpeaking()
+                return
+            }
         }
 
         if (accessibilityActions.isNotEmpty()) {
@@ -6920,7 +7014,9 @@ class AIOrchestrator(
         //
         // Włączamy przed odpaleniem map, bo za chwilę na wierzchu będzie cudza
         // aplikacja i nasz kod nie dostanie już okazji.
-        if (actions.any { it is Action.Navigate && it.assist == RouteAssist.ON }) {
+        if (!settings.isCameraFree() &&
+            actions.any { it is Action.Navigate && it.assist == RouteAssist.ON }
+        ) {
             scope.launch { accessibility.enableNavigate() }
         }
 
@@ -7227,6 +7323,7 @@ class AIOrchestrator(
      * po strumień nie sięgnie, gasimy go sami po [CODE_WARMUP_MAX_MS].
      */
     private fun warmUpStreamForCode(heard: String) {
+        if (settings.isCameraFree()) return
         if (!pl.victor.app.ai.VisionDetail.isAboutCode(heard)) return
         if (codeStreamWarmup != null || glassesManager.isLiveVisionRunning) return
         if (!glassesManager.isConnected()) return
@@ -7852,6 +7949,13 @@ class AIOrchestrator(
         /** Nazwy właścicieli blokady - patrz [pl.victor.app.power.WakelockHelper]. */
         /** Nie częściej mówimy o pełnej pamięci okularów. */
         private const val LOW_MEMORY_ANNOUNCE_EVERY_MS = 6 * 60 * 60 * 1000L
+
+        /** Odpowiedź na prośbę o obraz w trybie bez kamery. */
+        const val CAMERA_OFF_SPEECH =
+            "Kamera jest wyłączona. Włączysz ją w ustawieniach, wyłączając tryb bez kamery."
+
+        /** Polecenie kafelka "Wiadomości" i podwójnego kliknięcia w trybie bez kamery. */
+        const val READ_MESSAGES_PROMPT = "Przeczytaj moje nowe wiadomości"
 
         /** Film nagrywany na komendę kończymy sami po tylu minutach. */
         private const val VIDEO_MAX_MS = 5 * 60 * 1000L
