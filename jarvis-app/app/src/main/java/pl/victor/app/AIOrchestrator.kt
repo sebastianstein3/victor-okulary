@@ -671,6 +671,38 @@ class AIOrchestrator(
      * Temat zostaje otwarty jak pogoda czy kalendarz: po "gdzie tu zjeść"
      * pytanie "a ile tam kosztuje obiad" dalej dotyczy tego samego miejsca.
      */
+    /**
+     * Prawdziwe kontakty pasujące do pytania o telefon albo wiadomość.
+     *
+     * Bieg 183: model nie widział książki adresowej, a twierdził "w kontaktach
+     * mam Sebastiana Stalmacha" - nazwisko przekręcone wcześniej przez
+     * transkrypcję, którego w telefonie nie było. Prawdziwego, zapisanego przed
+     * chwilą "Steinke" nie znał. Teraz dostaje kandydatów po BRZMIENIU (tak
+     * łapie się "Sztainke" -> "Steinke") i zakaz wymyślania.
+     */
+    private suspend fun buildContactsContext(question: String): String? {
+        if (!KONTAKT_PYTANIE.containsMatchIn(question.lowercase())) return null
+        val nazwy = contactResolver.allDisplayNames()
+        if (nazwy.isEmpty()) return null
+        val pasujące = pl.victor.app.actions.ContactMatch.podobne(question, nazwy)
+        runCatching {
+            diag.event(DiagFormat.Phase.KONTEKST, "kontakty pasujące do pytania", mapOf("ile" to pasujące.size, "wszystkich" to nazwy.size))
+        }
+        return buildString {
+            append("=== KONTAKTY Z TELEFONU (pasujące do pytania) ===\n")
+            if (pasujące.isEmpty()) {
+                append("Żaden kontakt nie brzmi jak osoba z pytania. Powiedz, że nie ma takiego ")
+                append("kontaktu, i poproś o powtórzenie nazwiska - NIE wymyślaj kontaktu.\n")
+            } else {
+                pasujące.forEach { append("- ").append(it).append('\n') }
+                append("Nazwisko w pytaniu mogło zostać przekręcone przy rozpoznawaniu mowy - wybierz ")
+                append("kontakt z tej listy, który BRZMI tak samo, i w znaczniku akcji użyj jego ")
+                append("nazwy DOKŁADNIE jak tutaj. Innych kontaktów nie znasz - nie wymyślaj ich ")
+                append("i nie opieraj się na nazwiskach z wcześniejszej rozmowy.\n")
+            }
+        }
+    }
+
     /** Pozycja dla Map Google w bieżącej turze - ustawia [buildLocationContext], czyta [buildStream]. */
     @Volatile
     private var mapsLocationForTurn: Pair<Double, Double>? = null
@@ -2361,8 +2393,18 @@ class AIOrchestrator(
                 )
                 // Telefon zaraz usłyszy własny głośnik - to echo, nie rozmówca.
                 earSession.zapamiętajWłasnąWypowiedź(przekład)
-                if (!audio.speakOnPhoneSpeaker(przekład, language = jegoJęzyk)) {
-                    audio.speakAndAwait(przekład, language = jegoJęzyk)
+                // Przekład jest DLA ROZMÓWCY - w okularach nikomu się nie przyda,
+                // więc gdy głośnik telefonu zawiedzie, nie gramy go "zastępczo" do
+                // ucha (bieg 183: wszystko szło do okularów), tylko mówimy, co się stało.
+                val zGłośnika = audio.speakOnPhoneSpeaker(przekład, language = jegoJęzyk)
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.MOWA, "rozmowa: przekład z głośnika telefonu",
+                        mapOf("ok" to zGłośnika, "trasa" to audio.ostatniaTrasaGłośnika)
+                    )
+                }
+                if (!zGłośnika) {
+                    audio.speakAndAwait("Nie udało się puścić przekładu z głośnika telefonu.", language = mój)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -2910,9 +2952,12 @@ class AIOrchestrator(
             _state.value = OrchestratorState.Listening
             noteEarMessage("Tłumaczę na żywo przez ${usługa.nazwa}.")
             val mówić = settings.isEarTranslationSpoken()
-            // Bez słuchawek przekład gra z głośnika telefonu i mikrofon słyszy
-            // go z powrotem - na ten czas wysyłamy ciszę.
+            // Do dziennika: czy przekład zagra z głośnika telefonu (brak
+            // słuchawek) - to tłumaczy ewentualne echo i głośność.
             val naGłośniku = sesja.graNaGłośnikuTelefonu()
+            runCatching {
+                diag.event(DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: wyjście", mapOf("głośnikTelefonu" to naGłośniku))
+            }
             val bufor = pl.victor.app.translation.LiveTranscriptBuffer()
             val doZagrania = kotlinx.coroutines.channels.Channel<ByteArray>(kotlinx.coroutines.channels.Channel.UNLIMITED)
 
@@ -2955,8 +3000,13 @@ class AIOrchestrator(
                             continue
                         }
                         val pcm = sesja.czytaj(kawałek) ?: break
-                        val echo = naGłośniku &&
-                            sesja.graTeraz(System.currentTimeMillis() - EAR_LIVE_ECHO_TAIL_MS)
+                        // ZAWSZE półdupleks: bieg 183 - okulary bywały podłączone
+                        // tylko w trybie rozmowy (bez A2DP), przekład grał wtedy z
+                        // głośnika telefonu i mikrofon łapał go w kółko ("wszystko
+                        // słychać po kilka razy"). Także z A2DP głośniki okularów
+                        // są otwarte, a telefon jest blisko. Na czas przekładu i
+                        // chwilę po nim usługa dostaje ciszę.
+                        val echo = sesja.graTeraz(System.currentTimeMillis() - EAR_LIVE_ECHO_TAIL_MS)
                         if (!sesja.wyślij(if (echo) cisza else pcm)) break
                         wysłane++
                     }
@@ -5046,6 +5096,19 @@ class AIOrchestrator(
                 }
             }
 
+            // Tryb bez kamery i motyw - wykonujemy sami, model nie ma czym.
+            pl.victor.app.conversation.SettingsVoiceCommands.rozpoznaj(textQuestion)?.let { p ->
+                when (p) {
+                    is pl.victor.app.conversation.SettingsVoiceCommands.Polecenie.BezKamery -> settings.setCameraFree(p.włącz)
+                    is pl.victor.app.conversation.SettingsVoiceCommands.Polecenie.Motyw -> settings.setThemeMode(p.tryb)
+                }
+                val odp = pl.victor.app.conversation.SettingsVoiceCommands.potwierdzenie(p)
+                runCatching { diag.event(DiagFormat.Phase.AKCJA, "ustawienie głosem", mapOf("co" to p.toString())) }
+                audio.speak(odp, language = settings.getResponseLanguage())
+                _state.value = OrchestratorState.Completed(odp)
+                return
+            }
+
             // "Ile jeszcze?", "gdzie skręcam?" w trakcie prowadzenia Map -
             // odpowiedź jest w powiadomieniu, model niczego tu nie doda.
             pl.victor.app.navigation.NavPytania.odpowiedź(
@@ -5724,6 +5787,7 @@ class AIOrchestrator(
                 val audioTurn = audioQuestion != null
                 val notesContext = buildNotesContext(textQuestion, force = audioTurn)
                 val messagesContext = messages.kontekst(textQuestion, wymuszone = audioTurn)
+                val contactsContext = runCatching { buildContactsContext(textQuestion) }.getOrNull()
 
                 // Fakty o użytkowniku idą do modelu ZAWSZE, bez bramki słów
                 // kluczowych - inaczej asystent, który wie, jak masz na imię,
@@ -5858,6 +5922,7 @@ class AIOrchestrator(
                         append("\n\n")
                     }
                     pl.victor.app.navigation.MapsNavigation.kontekstDlaModelu()?.let { append(it).append("\n\n") }
+                    contactsContext?.let { append(it).append("\n\n") }
                     steps.kontekst()?.let { append(it).append("\n") }
                     if (notesContext != null) {
                         append(notesContext)
@@ -8181,6 +8246,11 @@ class AIOrchestrator(
         /** Najdłużej tyle czeka lista miejsc z OpenStreetMap (wspólny termin kontekstów i tak obowiązuje). */
         private const val OSM_PLACES_MS = 4_000L
 
+        /** Pytanie o telefon albo wiadomość do kogoś - patrz [buildContactsContext]. */
+        private val KONTAKT_PYTANIE = Regex(
+            """(zadzwo|dzwo[nń]|po[lł][aą]cz (si[eę] )?z|wybierz numer|napisz|wy[sś]lij|sms|esemes|wiadomo[sś][cć] do|odpisz|numer (do|telefonu)|kontakt)"""
+        )
+
         /** Tyle zapowiedź skrętu czeka na koniec bieżącej wypowiedzi. */
         private const val NAV_WAIT_MS = 4_000L
 
@@ -8191,7 +8261,7 @@ class AIOrchestrator(
         private const val EAR_LIVE_POLL_MS = 250L
 
         /** Po przekładzie z głośnika telefonu mikrofon milczy jeszcze tyle (pogłos). */
-        private const val EAR_LIVE_ECHO_TAIL_MS = 400L
+        private const val EAR_LIVE_ECHO_TAIL_MS = 700L
 
         /** Jak często pętla tłumaczenia sprawdza, czy skończyła się Twoja kolej. */
         private const val EAR_TURN_POLL_MS = 200L

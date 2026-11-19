@@ -34,6 +34,30 @@ class ContactResolver(private val context: Context) {
      * faktycznie poszedł SMS. Przy dwóch podobnych kontaktach to jest cała
      * różnica między „wysłano do Ani" a „wysłano do Ani Kowalskiej".
      */
+    /**
+     * Wszystkie nazwy z książki adresowej - czytane za każdym razem, bo
+     * kontakt zapisany przed chwilą ma być widoczny od razu (bieg 183).
+     * Pusta lista bez uprawnienia.
+     */
+    suspend fun allDisplayNames(): List<String> = withContext(Dispatchers.IO) {
+        try {
+            val nazwy = mutableListOf<String>()
+            context.contentResolver.query(
+                ContactsContract.Contacts.CONTENT_URI,
+                arrayOf(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY),
+                "${ContactsContract.Contacts.HAS_PHONE_NUMBER} = 1", null, null
+            )?.use { c ->
+                while (c.moveToNext()) c.getString(0)?.takeIf { it.isNotBlank() }?.let { nazwy += it }
+            }
+            nazwy
+        } catch (e: SecurityException) {
+            emptyList()
+        } catch (e: Exception) {
+            Log.w(tag, "Nie udało się odczytać kontaktów", e)
+            emptyList()
+        }
+    }
+
     suspend fun findContact(name: String): Resolved? = withContext(Dispatchers.IO) {
         try {
             val normalized = ContactMatch.normalize(name)

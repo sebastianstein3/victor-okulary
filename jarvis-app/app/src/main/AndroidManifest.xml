@@ -35,6 +35,11 @@
 
     <!-- Mikrofon (V.I.C.T.O.R.) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Przekład dla rozmówcy na GŁOŚNIK TELEFONU przy podłączonych okularach:
+         tryb komunikacji i wybór urządzenia (AudioManager.setMode /
+         setCommunicationDevice) wymagają tego uprawnienia; jest normalne,
+         system nadaje je bez pytania. -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <!-- Kamera (jeśli używamy kamery telefonu jako fallback) -->
     <uses-permission android:name="android.permission.CAMERA" />

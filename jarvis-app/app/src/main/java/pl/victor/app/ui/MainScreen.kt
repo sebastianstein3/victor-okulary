@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MenuBook
@@ -207,6 +208,42 @@ fun MainScreen(
                                 "$battery%",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    // NASŁUCH TELEFONU - jeden przycisk, który go zatrzymuje.
+                    // Bieg 183: w trakcie tłumaczenia świeciła systemowa ikona
+                    // mikrofonu i nie było czym jej zgasić. Dotknięcie kończy
+                    // tłumaczenie ze słuchu i wyłącza "Hej Wiktor" na telefonie;
+                    // przy wyłączonym - włącza "Hej Wiktor" z powrotem.
+                    val app = pl.victor.app.VictorApplication.get()
+                    val orchestrator = app.orchestrator
+                    val tłumaczy by orchestrator.earTranslation.collectAsState()
+                    val słuchaFrazy by app.settings.wakeWordEnabledFlow.collectAsState()
+                    val frazaTelefonu = app.settings.getWakeEngine() ==
+                        pl.victor.app.data.SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR
+                    val słucha = tłumaczy || (słuchaFrazy && frazaTelefonu)
+                    if (słucha || frazaTelefonu) {
+                        IconButton(onClick = {
+                            if (słucha) {
+                                if (tłumaczy) orchestrator.stopEarTranslation("przycisk nasłuchu w nagłówku")
+                                app.settings.setWakeWordEnabled(false)
+                                android.widget.Toast.makeText(
+                                    context, "Telefon przestał nasłuchiwać", android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                app.settings.setWakeWordEnabled(true)
+                                android.widget.Toast.makeText(
+                                    context, "Telefon słucha frazy „Hej Wiktor”", android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            app.refreshWake()
+                        }) {
+                            Icon(
+                                if (słucha) Icons.Default.Mic else Icons.Default.MicOff,
+                                contentDescription = if (słucha) "Zatrzymaj nasłuch telefonu" else "Włącz nasłuch „Hej Wiktor”",
+                                tint = if (słucha) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }

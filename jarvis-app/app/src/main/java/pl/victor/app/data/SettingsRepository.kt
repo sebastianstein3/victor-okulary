@@ -109,9 +109,25 @@ class SettingsRepository private constructor(private val context: Context) {
      * wywołaniu usługi z każdego miejsca, które przełącza wake word (onboarding,
      * ustawienia, automatyczny PowerManager), co łatwo pominąć.
      */
-    private val _wakeWordEnabledFlow = MutableStateFlow(
-        prefs.getBoolean(KEY_WAKE_WORD_ENABLED, false)
-    )
+    private val _wakeWordEnabledFlow = MutableStateFlow(wakeEnabledPoNaprawie())
+
+    /**
+     * Jednorazowa naprawa z biegu 184: wybór "Hej Wiktor" nie włączał nasłuchu
+     * telefonu (osobny przełącznik, domyślnie wyłączony), więc fraza nie
+     * działała. Kto ma zapisane "Hej Wiktor", dostaje nasłuch włączony - raz;
+     * późniejsze wyłączenie zostaje uszanowane.
+     */
+    private fun wakeEnabledPoNaprawie(): Boolean {
+        if (!prefs.getBoolean(KEY_WAKE_FIX_184, false)) {
+            val wybranoTelefon = prefs.getString(KEY_WAKE_ENGINE, null) == WAKE_ENGINE_HEJ_WIKTOR
+            prefs.edit().apply {
+                putBoolean(KEY_WAKE_FIX_184, true)
+                if (wybranoTelefon) putBoolean(KEY_WAKE_WORD_ENABLED, true)
+            }.apply()
+            if (wybranoTelefon) return true
+        }
+        return prefs.getBoolean(KEY_WAKE_WORD_ENABLED, false)
+    }
     val wakeWordEnabledFlow: StateFlow<Boolean> = _wakeWordEnabledFlow.asStateFlow()
 
     /**
@@ -1207,6 +1223,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_WEB_SEARCH = "web_search_enabled"
         private const val KEY_RESPONSE_LANG = "response_lang"
         private const val KEY_WAKE_WORD_ENABLED = "wake_word_enabled"
+        private const val KEY_WAKE_FIX_184 = "wake_enabled_fix_184"
         private const val KEY_WAKE_WORD_GLASSES_MIC = "wake_word_glasses_mic"
         private const val KEY_CLOUD_TRANSCRIPTION = "cloud_transcription"
         private const val KEY_PHOTO_SOURCE = "photo_source"

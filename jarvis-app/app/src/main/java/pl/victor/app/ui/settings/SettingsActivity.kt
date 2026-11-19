@@ -303,8 +303,12 @@ fun SettingsScreen(
             ) {
                 // Te dwie sekcje leżały na dwóch końcach ekranu, choć jedna
                 // jest ustawieniem drugiej.
+                // Stan z ustawień, a nie z modelu ekranu: wybór frazy niżej i
+                // przełącznik w nagłówku też go zmieniają.
+                val nasłuchTelefonu by pl.victor.app.VictorApplication.get().settings
+                    .wakeWordEnabledFlow.collectAsState()
                 WakeEngineSection(
-                    enabled = state.wakeWordEnabled,
+                    enabled = nasłuchTelefonu,
                     onEnabledChange = { viewModel.setWakeWordEnabled(it) }
                 )
                 HorizontalDivider()
@@ -1254,6 +1258,10 @@ private fun WakeEngineSection(
     val wybierz: (String) -> Unit = { id ->
         engine = id
         settings.setWakeEngine(id)
+        // Wybór "Hej Wiktor" ZNACZY "niech telefon słucha" - osobny przełącznik,
+        // domyślnie wyłączony, zostawiał frazę martwą (bieg 183: wybrana,
+        // a w dzienniku ani jednego wpisu nasłuchu). "Hej Lens" - telefon milczy.
+        settings.setWakeWordEnabled(id == pl.victor.app.data.SettingsRepository.WAKE_ENGINE_HEJ_WIKTOR)
         // Start albo zatrzymanie nasłuchu i odświeżenie usługi w tle od razu -
         // wybór frazy nie jest strumieniem, który aplikacja obserwuje.
         app.refreshWake()

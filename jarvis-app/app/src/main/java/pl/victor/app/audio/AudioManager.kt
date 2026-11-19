@@ -1108,16 +1108,50 @@ class AudioManager(
         }
     }
 
+    /**
+     * Którędy naprawdę poszedł ostatni dźwięk "na głośnik telefonu" - do
+     * dziennika (np. "głośnik telefonu (tryb rozmowy)" albo "W610T_A6BA").
+     */
+    @Volatile
+    var ostatniaTrasaGłośnika: String? = null
+        private set
+
+    /**
+     * Odtwarza plik Z GŁOŚNIKA TELEFONU, także przy podłączonych okularach.
+     *
+     * ## Czemu tryb rozmowy, a nie sam "preferowany głośnik"
+     * Bieg 183: przekład dla rozmówcy grał w OKULARACH, choć odtwarzacz prosił
+     * o głośnik telefonu. Multimedia (USAGE_MEDIA) przy aktywnym Bluetoothu
+     * Samsung kieruje do słuchawek mimo setPreferredDevice. Jedyna droga, którą
+     * Android gwarantuje (od 12), to dźwięk ROZMOWY z urządzeniem komunikacji
+     * ustawionym na wbudowany głośnik - tak działa "głośnik" w połączeniu.
+     * Po odtworzeniu przywracamy poprzednie urządzenie i tryb, bo z trybu
+     * rozmowy korzysta też nasłuch przez mikrofon okularów.
+     */
     private suspend fun odtwórzNaGłośniku(plik: java.io.File): Boolean {
         val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
         val głośnik = am.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
             .firstOrNull { it.type == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+        val nowyAndroid = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
+        val poprzedniTryb = am.mode
+        val poprzednieUrządzenie = if (nowyAndroid) runCatching { am.communicationDevice }.getOrNull() else null
+        var wymuszone = false
+        if (nowyAndroid && głośnik != null) {
+            wymuszone = runCatching {
+                am.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
+                am.setCommunicationDevice(głośnik)
+            }.getOrDefault(false)
+            if (!wymuszone) runCatching { am.mode = poprzedniTryb }
+        }
         val koniec = CompletableDeferred<Boolean>()
         val player = android.media.MediaPlayer()
         return try {
             player.setAudioAttributes(
                 android.media.AudioAttributes.Builder()
-                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                    .setUsage(
+                        if (wymuszone) android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION
+                        else android.media.AudioAttributes.USAGE_MEDIA
+                    )
                     .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
             )
@@ -1128,12 +1162,30 @@ class AudioManager(
             player.setOnErrorListener { _, _, _ -> koniec.complete(false); true }
             _speaking.value = true
             player.start()
+            ostatniaTrasaGłośnika = runCatching {
+                val d = player.routedDevice
+                when {
+                    d == null -> "nieznana"
+                    d.type == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER ->
+                        "głośnik telefonu" + if (wymuszone) " (tryb rozmowy)" else ""
+                    else -> d.productName?.toString() ?: "urządzenie typu ${d.type}"
+                }
+            }.getOrNull()
             withTimeoutOrNull(player.duration.toLong() + 3_000L) { koniec.await() } ?: false
         } catch (e: Exception) {
             Log.w(tag, "Odtwarzanie na głośniku telefonu nie wyszło", e)
             false
         } finally {
             runCatching { player.release() }
+            if (wymuszone) {
+                runCatching {
+                    val wróć = poprzednieUrządzenie?.takeIf {
+                        it.type != android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+                    }
+                    if (wróć != null) am.setCommunicationDevice(wróć) else am.clearCommunicationDevice()
+                    am.mode = poprzedniTryb
+                }
+            }
             if (runCatching { tts?.isSpeaking }.getOrNull() != true) _speaking.value = false
         }
     }

@@ -508,9 +508,14 @@ class GeminiProvider(
     }
 
     private fun narzędzia(search: Boolean, maps: Boolean): List<GeminiTool>? {
+        // Mapy ALBO wyszukiwarka - nie oba. Bieg 183: Gemini 3.5 Flash-Lite
+        // odrzucał takie zapytanie ("'google_maps' and 'google_search' cannot be
+        // combined"), ponowienie szło bez map, a mapy wyłączały się na dłużej -
+        // pytanie "gdzie tu zjem" kończyło się zgadywaniem z wyszukiwarki.
+        // Przy pytaniu o okolicę mapy mają pierwszeństwo.
         val lista = buildList {
-            if (search) add(GeminiTool(googleSearch = GoogleSearchTool()))
             if (maps) add(GeminiTool(googleMaps = GoogleMapsTool()))
+            else if (search) add(GeminiTool(googleSearch = GoogleSearchTool()))
         }
         return lista.ifEmpty { null }
     }

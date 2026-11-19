@@ -1280,8 +1280,7 @@ class VictorManager private constructor(context: Context) {
             // odpowiedź na to pytanie SDK parsuje bez sprawdzania długości
             // (patrz [canSetVolume]) - niepotrzebne ryzyko za dane, które już mamy.
 
-            runCatching { largeDataHandler.syncBattery() }
-                .onFailure { Log.w(tag, "syncBattery nie powiodło się", it) }
+            zapytajOBaterię()
 
             // Liczba plików na okularach - u producenta ostatni krok powitania.
             // Przy okazji jest to pierwszy DOWÓD, że okulary przyjmują komendy:
@@ -3497,6 +3496,26 @@ class VictorManager private constructor(context: Context) {
             sim.requestBattery()
             return
         }
+        zapytajOBaterię()
+    }
+
+    /**
+     * Pytanie o baterię Z ODBIORCĄ odpowiedzi.
+     *
+     * Bieg 183: syncBattery szło przy każdym połączeniu, a w dzienniku nie było
+     * ani jednego wiersza o baterii, więc nagłówek nie miał czego pokazać. SDK
+     * oddaje tę odpowiedź WYŁĄCZNIE przez addBatteryCallBack - bez niego trafiała
+     * w próżnię. Wynik idzie tą samą drogą co samorzutna ramka 0x05 okularów.
+     */
+    private fun zapytajOBaterię() {
+        runCatching {
+            largeDataHandler.addBatteryCallBack(BATTERY_CALLBACK_KEY) { _, odp ->
+                val poziom = runCatching { odp?.battery }.getOrNull()
+                if (poziom != null && poziom in 0..100) {
+                    handleNotify(GlassesProtocol.batteryFrame(poziom, runCatching { odp.isCharging }.getOrDefault(false)))
+                }
+            }
+        }.onFailure { Log.w(tag, "addBatteryCallBack nie powiodło się", it) }
         runCatching { largeDataHandler.syncBattery() }
             .onFailure { Log.w(tag, "syncBattery nie powiodło się", it) }
     }
@@ -5229,6 +5248,8 @@ class VictorManager private constructor(context: Context) {
     }
 
     companion object {
+        /** Klucz naszego odbiorcy odpowiedzi o baterii w SDK. */
+        private const val BATTERY_CALLBACK_KEY = "victor-battery"
         private const val TAG = "VictorManager"
 
 
