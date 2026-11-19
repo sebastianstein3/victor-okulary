@@ -1276,6 +1276,24 @@ class AIOrchestrator(
                     // zabijało nasłuch, zdjęcie w trakcie robienia i tryb
                     // tłumaczenia. W tłumaczeniu producent tę ramkę pomija
                     // całkowicie - wychodzi się z niego przyciskiem.
+                    // W ROZMOWIE W DWIE STRONY dotknięcie zausznika = "moja kolej".
+                    // Bieg 185: w całej rozmowie nie przyszła ANI JEDNA ramka
+                    // przycisku, za to przychodziły ramki dotyku - okulary
+                    // podłączone tylko w trybie rozmowy zgłaszają naciśnięcie
+                    // właśnie tak, a my je tu pomijaliśmy. Odsiewamy tylko echo
+                    // naszej własnej komendy "zaczynam/kończę mówić".
+                    if (_earTranslation.value && _earTwoWay.value) {
+                        val odKomendy = glassesManager.msSincePlaybackEdge()
+                        val echo = odKomendy < PLAYBACK_ECHO_WINDOW_MS
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.WAKE, "rozmowa: dotknięcie zausznika",
+                                mapOf("mojaKolej" to (!echo && !mojaKolej), "echo" to echo, "msOdKomendy" to odKomendy)
+                            )
+                        }
+                        if (!echo && !mojaKolej) myTurn(zOkularów = false)
+                        return@bezpiecznie
+                    }
                     val mówimy = audio.speaking.value
                     if (_earTranslation.value || !mówimy) {
                         Log.i(TAG, "Okulary: 'ucisz' pominięte (tłumaczenie=${_earTranslation.value}, mówię=$mówimy)")

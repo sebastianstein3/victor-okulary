@@ -6,7 +6,7 @@ object TwoWay {
     /** Zapowiedź po polsku - mówi, jak oddać sobie głos. */
     fun zapowiedź(nazwaJęzykaRozmówcy: String): String =
         "Tłumaczę rozmowę. Rozmówcę słyszysz po polsku w okularach. Gdy chcesz coś " +
-            "powiedzieć, kliknij raz przycisk na oprawce i mów po polsku - przekład " +
+            "powiedzieć, kliknij raz przycisk na oprawce albo dotknij zausznika i mów po polsku - przekład " +
             "na $nazwaJęzykaRozmówcy przeczyta głośnik telefonu. Dwa kliknięcia kończą."
 
     /** Twoje zdanie w historii panelu - odróżnione od słów rozmówcy. */
