@@ -175,7 +175,7 @@ class SettingsRepository private constructor(private val context: Context) {
      * ## Domyślnie WŁĄCZONE, ale bez klucza i tak nic nie wysyła
      * Rozpoznawanie lokalne myli słowa na tyle, że model odpowiada pewnie i nie na
      * temat - a to jest gorsze niż brak odpowiedzi. Dlatego droga przez chmurę
-     * jest domyślna, gdy klucz OpenAI jest już w ustawieniach.
+     * jest domyślna, gdy klucz Gemini albo OpenAI jest już w ustawieniach.
      *
      * Kto nie chce wysyłać nagrań poza telefon, wyłącza to i zostaje przy
      * rozpoznawaniu systemowym oraz Vosku. Nagranie głosu to dane wrażliwe, więc
@@ -311,6 +311,21 @@ class SettingsRepository private constructor(private val context: Context) {
 
     fun setEarTranslationSpoken(spoken: Boolean) {
         prefs.edit().putBoolean(KEY_EAR_TRANSLATION_SPOKEN, spoken).apply()
+    }
+
+    /**
+     * Czy tłumaczenie ze słuchu ma iść NA ŻYWO przez chmurę (Gemini albo
+     * OpenAI - jak wybrany dostawca), zamiast zdanie po zdaniu w telefonie.
+     *
+     * Domyślnie tak, gdy jest klucz: przekład słychać w trakcie mówienia, a
+     * nie po całym zdaniu, i jest wyraźnie lepszy od ML Kitu. Kosztuje ok.
+     * 3-4 centy za minutę. Bez klucza albo bez sieci tryb sam wraca do
+     * tłumaczenia w telefonie.
+     */
+    fun isLiveEarTranslationEnabled(): Boolean = prefs.getBoolean(KEY_LIVE_EAR_TRANSLATION, true)
+
+    fun setLiveEarTranslationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_LIVE_EAR_TRANSLATION, enabled).apply()
     }
 
     /** Mapy Google dla pytań o okolicę (opinie, godziny otwarcia) - tylko Gemini 3+. */
@@ -1259,6 +1274,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_FROM = "ear_translation_from"
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
+        private const val KEY_LIVE_EAR_TRANSLATION = "live_ear_translation"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"
         private const val KEY_CAMERA_FREE = "camera_free"
         private const val KEY_THEME_MODE = "theme_mode"

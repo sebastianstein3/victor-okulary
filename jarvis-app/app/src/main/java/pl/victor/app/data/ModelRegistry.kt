@@ -24,7 +24,7 @@ object ModelRegistry {
      */
     val DEFAULT_MODELS = mapOf(
         "gemini" to "gemini-3.5-flash-lite",
-        "openai" to "gpt-4o-mini",
+        "openai" to "gpt-6-luna",
         "claude" to "claude-sonnet-5-5",
         "minimax" to "MiniMax-Text-01",
         "deepseek" to "deepseek-chat"
@@ -102,7 +102,9 @@ object ModelRegistry {
             supportsVision = true,
             supportsAudio = true,
             supportsWebSearch = true,
-            description = "Najnowszy Flash - dobry do instrukcji krok po kroku i analizy zdjęć"
+            // Cennik Google (19.11.2026): $0,75 / $3,75 za 1 mln tokenów, od
+            // 1.01.2027 dwa razy tyle. Na co dzień wystarcza 3.5 Flash-Lite.
+            description = "Najnowszy Flash - do trudnych zdjęć; od 1.01.2027 dwa razy droższy"
         ),
         ModelInfo(
             id = "gemini-2.5-flash",
@@ -111,19 +113,18 @@ object ModelRegistry {
             releaseDate = "2025-06",
             deprecated = true,
             replacementId = "gemini-3.5-flash-lite",
-            deprecationDate = "2026-09",
-            description = "Starszy - Google ogranicza dostęp, użyj 3.5 Flash-Lite"
+            deprecationDate = "2026-12-01",
+            description = "Wycofywany 1.12.2026 - Google przekieruje na 3.5 Flash-Lite"
         ),
         ModelInfo(
             id = "gemini-2.5-pro",
             displayName = "Gemini 2.5 Pro",
             providerId = "gemini",
             releaseDate = "2025-06",
-            contextWindow = 2_000_000,
-            supportsVision = true,
-            supportsAudio = true,
-            supportsWebSearch = true,
-            description = "Najlepszy model Google, głęboka analiza, dłuższe odpowiedzi"
+            deprecated = true,
+            replacementId = "gemini-3.8-flash",
+            deprecationDate = "2026-12-01",
+            description = "Wycofywany 1.12.2026 - Google przekieruje na 3.8 Flash"
         ),
         ModelInfo(
             id = "gemini-2.5-flash-lite",
@@ -152,12 +153,34 @@ object ModelRegistry {
             providerId = "gemini",
             releaseDate = "2024-05",
             deprecated = true,
-            replacementId = "gemini-2.5-pro",
+            replacementId = "gemini-3.8-flash",
             deprecationDate = "2025-09",
-            description = "Wycofywany - przejdź na 2.5 Pro"
+            description = "Wycofany - przejdź na 3.8 Flash"
         ),
 
         // ========== OPENAI ==========
+        // Stan na 19.11.2026: GPT-6 Luna to tani model OpenAI na co dzień
+        // (zdjęcia, strumień, Chat Completions; $0,10 / $0,50 za 1 mln
+        // tokenów) - taniej niż 4o-mini i nowszy. gpt-5-mini i gpt-5-nano
+        // OpenAI wyłącza 11.12.2026 (następcy: 6.1 Terra i 6 Luna).
+        ModelInfo(
+            id = "gpt-6-luna",
+            displayName = "GPT-6 Luna",
+            providerId = "openai",
+            releaseDate = "2026-06",
+            contextWindow = 1_050_000,
+            supportsVision = true,
+            description = "Domyślny - najtańszy aktualny model OpenAI, przyjmuje zdjęcia"
+        ),
+        ModelInfo(
+            id = "gpt-6.1-terra",
+            displayName = "GPT-6.1 Terra",
+            providerId = "openai",
+            releaseDate = "2026-09",
+            contextWindow = 1_050_000,
+            supportsVision = true,
+            description = "Szybki, mocniejszy w analizie zdjęć - około 10x droższy od Luny"
+        ),
         ModelInfo(
             id = "gpt-4o-mini",
             displayName = "GPT-4o Mini",
@@ -166,7 +189,7 @@ object ModelRegistry {
             contextWindow = 128_000,
             supportsVision = true,
             supportsAudio = true,
-            description = "Tani, szybki, dobry do prostych zadań"
+            description = "Starszy tani model - lepiej GPT-6 Luna"
         ),
         ModelInfo(
             id = "gpt-4o",

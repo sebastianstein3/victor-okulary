@@ -145,8 +145,8 @@ class SmartModelResolverTest {
             availableFromProvider = emptyList()
         )
 
-        // OpenAI default to gpt-4o-mini
-        assertEquals("gpt-4o-mini", result.modelId)
+        // OpenAI default to gpt-6-luna
+        assertEquals("gpt-6-luna", result.modelId)
         assertEquals(ModelSource.DEFAULT, result.source)
     }
 
@@ -175,12 +175,12 @@ class SmartModelResolverTest {
             availableFromProvider = listOf("gpt-4o-mini", "gpt-4o")
         )
 
-        assertEquals("gpt-4o-mini", result.modelId)
+        assertEquals("gpt-6-luna", result.modelId)
         assertEquals(ModelSource.FALLBACK, result.source)
         assertTrue(result.warning is ModelWarning.ModelNotFound)
         val warning = result.warning as ModelWarning.ModelNotFound
         assertEquals("gpt-99-imaginary", warning.modelId)
-        assertEquals("gpt-4o-mini", warning.fallbackId)
+        assertEquals("gpt-6-luna", warning.fallbackId)
     }
 
     // === PRZYPADEK 7: Różne providery ===

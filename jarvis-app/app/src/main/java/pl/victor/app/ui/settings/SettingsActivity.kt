@@ -1382,7 +1382,13 @@ private fun SpeechSection() {
     val settings = remember { (context.applicationContext as pl.victor.app.VictorApplication).settings }
     var cloud by remember { mutableStateOf(settings.isCloudTranscriptionEnabled()) }
     var glassesMic by remember { mutableStateOf(settings.isWakeWordOverGlassesMic()) }
-    val hasOpenAiKey = remember { settings.hasApiKey("openai") }
+    val usługa = remember {
+        pl.victor.app.conversation.CloudSpeechToText.wybierz(
+            aktywny = settings.getActiveProvider(),
+            kluczGemini = settings.getApiKey("gemini"),
+            kluczOpenAi = settings.getApiKey("openai")
+        )?.first
+    }
     val app = context.applicationContext as pl.victor.app.VictorApplication
     val onDeviceReady = remember {
         runCatching { pl.victor.app.conversation.SpeechToText(context).isOnDeviceAvailable() }
@@ -1404,7 +1410,9 @@ private fun SpeechSection() {
                     Text(
                         "Znacznie dokładniejsza po polsku niż rozpoznawanie w telefonie " +
                             "i działa przy zablokowanym ekranie. Wysyła nagranie pytania " +
-                            "do OpenAI - używa klucza, który masz już w ustawieniach.\n\n" +
+                            "do dostawcy wybranego w ustawieniach: przy Gemini do Google, " +
+                            "przy OpenAI do OpenAI - na kluczu, który już masz." +
+                            (usługa?.let { "\nTeraz: ${it.nazwa}." } ?: "") + "\n\n" +
                             "Dotyczy pytań zadawanych PRZEZ OKULARY (telefon w kieszeni " +
                             "słyszy gorzej). Pytania zadane do telefonu idą jak dawniej i " +
                             "nic nie kosztują. Rozliczenie jest za czas nagrania, nie za " +
@@ -1413,9 +1421,9 @@ private fun SpeechSection() {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (!hasOpenAiKey) {
+                    if (usługa == null) {
                         Text(
-                            "⚠️ Brak klucza OpenAI - nic nie jest wysyłane. Pytanie " +
+                            "⚠️ Brak klucza Gemini i OpenAI - nic nie jest wysyłane. Pytanie " +
                                 "z okularów i tak jest przepisywane z ICH mikrofonu, " +
                                 "rozpoznawaniem offline poniżej - to nadal lepiej niż " +
                                 "nasłuch telefonu z kieszeni.",
@@ -3595,6 +3603,14 @@ private fun TranslationSection() {
     var translationTarget by remember { mutableStateOf(settings.getTranslationTarget()) }
     var earFrom by remember { mutableStateOf(settings.getEarTranslationFrom()) }
     var earTo by remember { mutableStateOf(settings.getEarTranslationTo()) }
+    var earLive by remember { mutableStateOf(settings.isLiveEarTranslationEnabled()) }
+    val liveUsługa = remember {
+        pl.victor.app.translation.LiveTranslationProtocol.wybierz(
+            aktywny = settings.getActiveProvider(),
+            kluczGemini = settings.getApiKey("gemini"),
+            kluczOpenAi = settings.getApiKey("openai")
+        )?.first
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
             // Tłumacz - wybór języka docelowego
@@ -3664,10 +3680,35 @@ private fun TranslationSection() {
                             "przetłumaczone, a w panelu tłumaczenia widać tekst i " +
                             "przekład. Włączasz mówiąc „tłumaczenie na żywo” albo " +
                             "w panelu, wyłączasz przyciskiem na okularach albo w " +
-                            "panelu. Tłumaczy na urządzeniu i nie zużywa tokenów.",
+                            "panelu.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(Modifier.size(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("⚡ Na żywo przez chmurę", fontWeight = FontWeight.Medium)
+                            Text(
+                                if (liveUsługa == null) {
+                                    "Potrzebny klucz Gemini albo OpenAI. Bez niego tłumaczę " +
+                                        "w telefonie, zdanie po zdaniu, bez kosztów."
+                                } else {
+                                    "Przekład słychać w trakcie mówienia, nie po całym zdaniu, " +
+                                        "i jest dokładniejszy. Usługa: ${liveUsługa.nazwa} " +
+                                        "(jak wybrany dostawca), ok. 3-4 centy za minutę. " +
+                                        "Wyłączone albo bez sieci - tłumaczę w telefonie, " +
+                                        "bez kosztów."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = earLive && liveUsługa != null,
+                            enabled = liveUsługa != null,
+                            onCheckedChange = { earLive = it; settings.setLiveEarTranslationEnabled(it) }
+                        )
+                    }
                     Spacer(Modifier.size(8.dp))
                     OutlinedButton(
                         onClick = {

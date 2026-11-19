@@ -1551,7 +1551,7 @@ class AIOrchestrator(
      * nagrywać godziny, po której nic się nie przepisze.
      */
     fun canTranscribeRecordings(): Boolean =
-        (settings.isCloudTranscriptionEnabled() && !settings.getApiKey("openai").isNullOrBlank()) ||
+        (settings.isCloudTranscriptionEnabled() && cloudSpeechService() != null) ||
             speechToText.isOnDeviceAvailable() ||
             runCatching { VictorApplication.get().voskWakeWord.isModelReady() }.getOrDefault(false)
 
@@ -1642,20 +1642,44 @@ class AIOrchestrator(
      */
     private suspend fun transcribeInCloud(pcm: ByteArray, languageTag: String): String? {
         if (!settings.isCloudTranscriptionEnabled()) return null
-        val key = settings.getApiKey("openai")?.takeIf { it.isNotBlank() } ?: return null
+        val (usługa, key) = cloudSpeechService() ?: return null
+        val stt = pl.victor.app.conversation.CloudSpeechToText(usługa, key)
+        val od = System.currentTimeMillis()
         val heard = runCatching {
-            pl.victor.app.conversation.CloudSpeechToText(key).transcribe(
+            stt.transcribe(
                 pcm = pcm,
                 sampleRate = pl.victor.app.audio.PcmResampler.SPEECH_SAMPLE_RATE,
                 languageTag = languageTag
             )
         }.onFailure { Log.w(TAG, "Transkrypcja w chmurze nie powiodła się", it) }.getOrNull()
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.NASŁUCH, "transkrypcja w chmurze",
+                mapOf(
+                    "usługa" to usługa.nazwa,
+                    "ms" to (System.currentTimeMillis() - od),
+                    "znaków" to (heard?.length ?: 0),
+                    "błąd" to stt.ostatniBłąd
+                )
+            )
+        }
         if (heard != null) {
-            Log.i(TAG, "Transkrypcja z chmury: \"$heard\"")
+            Log.i(TAG, "Transkrypcja z chmury (${usługa.nazwa}): \"$heard\"")
             _lastTranscriptionSource.value = SOURCE_CLOUD
         }
         return heard
     }
+
+    /**
+     * Kto przepisuje nagranie w chmurze - dostawca wybrany w ustawieniach
+     * (Gemini -> Google, OpenAI -> OpenAI), a przy pozostałych ten z dwóch
+     * kluczy, który jest. Patrz [pl.victor.app.conversation.CloudSpeechToText.wybierz].
+     */
+    private fun cloudSpeechService() = pl.victor.app.conversation.CloudSpeechToText.wybierz(
+        aktywny = settings.getActiveProvider(),
+        kluczGemini = settings.getApiKey("gemini"),
+        kluczOpenAi = settings.getApiKey("openai")
+    )
 
     /**
      * Która droga przepisała ostatnie pytanie na tekst.
@@ -2352,7 +2376,7 @@ class AIOrchestrator(
      *
      * ## Czego tu NIE robimy
      * Nie pytamy modelu. Tłumaczy [pl.victor.app.translation.SimultaneousTranslator]
-     * (ML Kit, na urządzeniu), więc tryb działa bez sieci i nie zużywa tokenów -
+     * (ML Kit, na urządzeniu) - chyba że działa tryb NA ŻYWO ([earLiveLoop]) - więc tryb działa bez sieci i nie zużywa tokenów -
      * a przy mowie ciągłej zapytanie do modelu za każdym zdaniem byłoby i
      * wolniejsze, i kosztowne.
      *
@@ -2533,6 +2557,10 @@ class AIOrchestrator(
         // tylko w logu"). Liczymy je więc i poddajemy się dopiero po serii.
         var zRzędu = 0
         try {
+            // NA ŻYWO PRZEZ CHMURĘ, gdy się da - patrz [earLiveLoop]. Gdy nie
+            // (brak klucza, sieci, zerwana sesja), dalej idzie dotychczasowa
+            // pętla w telefonie, bez wyłączania trybu.
+            if (earLiveLoop(to, mójJob)) return
             // `earJob === mójJob`: po szybkim "wyłącz i włącz" flaga jest znowu
             // prawdą, ale należy już do NOWEJ sesji - stara pętla ma wtedy
             // skończyć, a nie słuchać równolegle z nową.
@@ -2735,6 +2763,173 @@ class AIOrchestrator(
                 earPartialJob = null
                 _earTranscript.value = _earTranscript.value.stop()
                 _state.value = OrchestratorState.Idle
+            }
+        }
+    }
+
+    /**
+     * Tłumaczenie ze słuchu NA ŻYWO - model mowa-na-mowę w chmurze.
+     *
+     * Telefon słucha rozmówcy, dźwięk płynie do usługi kawałkami po 100 ms, a
+     * przekład wraca głosem w trakcie mówienia - do okularów, tą samą drogą co
+     * mowa asystenta. Usługa: Gemini przy wybranym Gemini, OpenAI przy OpenAI
+     * (patrz [pl.victor.app.translation.LiveTranslationProtocol]).
+     *
+     * W rozmowie dwustronnej "moja kolej" działa jak dotąd: na jej czas
+     * oddajemy mikrofon rozpoznawaniu telefonu i wysyłamy ciszę, żeby sesja
+     * nie wygasła.
+     *
+     * @return `true` - tryb się skończył (wyłączony albo "koniec tłumaczenia");
+     *   `false` - na żywo się nie da i trzeba tłumaczyć w telefonie
+     */
+    private suspend fun earLiveLoop(to: String, mójJob: kotlinx.coroutines.Job?): Boolean {
+        if (!settings.isLiveEarTranslationEnabled()) return false
+        val (usługa, klucz) = pl.victor.app.translation.LiveTranslationProtocol.wybierz(
+            aktywny = settings.getActiveProvider(),
+            kluczGemini = settings.getApiKey("gemini"),
+            kluczOpenAi = settings.getApiKey("openai")
+        ) ?: return false
+        val sesja = pl.victor.app.translation.LiveTranslationSession(context, usługa, klucz, to)
+        val od = System.currentTimeMillis()
+        var wysłane = 0
+        var przekłady = 0
+        try {
+            val połączona = sesja.połącz(EAR_LIVE_CONNECT_MS)
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: połączenie",
+                    mapOf(
+                        "usługa" to usługa.nazwa, "model" to usługa.model, "na" to to,
+                        "ok" to połączona, "ms" to (System.currentTimeMillis() - od),
+                        "powód" to sesja.powódZamknięcia
+                    )
+                )
+            }
+            if (!połączona) {
+                noteEarMessage("Tłumaczenie na żywo (${usługa.nazwa}) niedostępne - tłumaczę w telefonie.")
+                return false
+            }
+            if (!kotlinx.coroutines.withContext(Dispatchers.IO) { sesja.otwórzMikrofon() }) {
+                runCatching { diag.event(DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: mikrofon zajęty") }
+                return false
+            }
+            _state.value = OrchestratorState.Listening
+            noteEarMessage("Tłumaczę na żywo przez ${usługa.nazwa}.")
+            val mówić = settings.isEarTranslationSpoken()
+            // Bez słuchawek przekład gra z głośnika telefonu i mikrofon słyszy
+            // go z powrotem - na ten czas wysyłamy ciszę.
+            val naGłośniku = sesja.graNaGłośnikuTelefonu()
+            val bufor = pl.victor.app.translation.LiveTranscriptBuffer()
+            val doZagrania = kotlinx.coroutines.channels.Channel<ByteArray>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+
+            fun pokażCzęściowe() {
+                _earTranscript.value = _earTranscript.value.copy(
+                    częściowyOryginał = bufor.oryginałTeraz,
+                    częściowyPrzekład = bufor.przekładTeraz
+                )
+            }
+
+            fun zamknijZdanie() {
+                val (oryginał, przekład) = bufor.zamknij() ?: run { pokażCzęściowe(); return }
+                przekłady++
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo",
+                        mapOf("usłyszane" to oryginał.take(60), "przekład" to przekład.take(60))
+                    )
+                }
+                _earTranscript.value = _earTranscript.value.zSegmentem(oryginał, przekład, System.currentTimeMillis())
+            }
+
+            return coroutineScope {
+                val odtwarzanie = launch(Dispatchers.IO) {
+                    for (pcm in doZagrania) sesja.graj(pcm)
+                }
+                val nadawanie = launch(Dispatchers.IO) {
+                    val cisza = ByteArray(sesja.bajtówKawałka)
+                    val kawałek = ByteArray(sesja.bajtówKawałka)
+                    while (true) {
+                        currentCoroutineContext().ensureActive()
+                        if (mojaKolej) {
+                            sesja.zamknijMikrofon()
+                            sesja.wyślij(cisza)
+                            delay(pl.victor.app.translation.LiveTranslationProtocol.KAWAŁEK_MS.toLong())
+                            continue
+                        }
+                        if (!sesja.otwórzMikrofon()) {
+                            delay(EAR_TURN_POLL_MS)
+                            continue
+                        }
+                        val pcm = sesja.czytaj(kawałek) ?: break
+                        val echo = naGłośniku &&
+                            sesja.graTeraz(System.currentTimeMillis() - EAR_LIVE_ECHO_TAIL_MS)
+                        if (!sesja.wyślij(if (echo) cisza else pcm)) break
+                        wysłane++
+                    }
+                }
+                var wynik: Boolean? = null
+                while (wynik == null) {
+                    if (!_earTranslation.value || earJob !== mójJob) {
+                        wynik = true
+                        break
+                    }
+                    val odebrane = withTimeoutOrNull(EAR_LIVE_POLL_MS) { sesja.zdarzenia.receiveCatching() }
+                    val teraz = System.currentTimeMillis()
+                    val z = odebrane?.let { it.getOrNull() ?: pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Zamknięte }
+                    when (z) {
+                        is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Dźwięk ->
+                            if (mówić) doZagrania.trySend(z.pcm)
+                        is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Oryginał -> {
+                            bufor.dodajOryginał(z.tekst, teraz)
+                            if (pl.victor.app.translation.EarTranslation.toKoniec(bufor.oryginałTeraz)) {
+                                stopEarTranslation("polecenie głosowe (na żywo)")
+                                audio.speak("Kończę tłumaczenie.", language = to)
+                                wynik = true
+                            } else {
+                                pokażCzęściowe()
+                            }
+                        }
+                        is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Przekład -> {
+                            bufor.dodajPrzekład(z.tekst, teraz)
+                            pokażCzęściowe()
+                        }
+                        pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.KoniecTury -> zamknijZdanie()
+                        pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Zamknięte -> wynik = false
+                        else -> Unit
+                    }
+                    if (wynik == null && bufor.czasZamknąć(teraz)) zamknijZdanie()
+                    if (wynik == null && !nadawanie.isActive) wynik = false
+                }
+                nadawanie.cancel()
+                doZagrania.close()
+                odtwarzanie.cancel()
+                zamknijZdanie()
+                if (wynik == false && _earTranslation.value && earJob === mójJob) {
+                    // Sesja padła w trakcie - tryb trwa dalej, tylko w telefonie.
+                    val komunikat = "Tłumaczenie w chmurze przerwane. Tłumaczę dalej w telefonie."
+                    noteEarMessage(komunikat)
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: przerwane",
+                            mapOf("powód" to (sesja.powódZamknięcia ?: "mikrofon"))
+                        )
+                    }
+                    audio.speakAndAwait(komunikat, language = settings.getResponseLanguage())
+                }
+                wynik == true
+            }
+        } finally {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) { sesja.zamknij() }
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: koniec sesji",
+                    mapOf(
+                        "usługa" to usługa.nazwa,
+                        "sekund" to ((System.currentTimeMillis() - od) / 1000),
+                        "kawałków" to wysłane,
+                        "zdań" to przekłady
+                    )
+                )
             }
         }
     }
@@ -7866,6 +8061,15 @@ class AIOrchestrator(
          * krócej znaczyłoby wyłączać się w przerwie w rozmowie.
          */
         private const val EAR_MAX_PUSTYCH = 5
+
+        /** Ile czekamy na gotowość sesji na żywo, zanim przejdziemy na telefon. */
+        private const val EAR_LIVE_CONNECT_MS = 8_000L
+
+        /** Co ile pętla na żywo zagląda, czy tryb wciąż trwa. */
+        private const val EAR_LIVE_POLL_MS = 250L
+
+        /** Po przekładzie z głośnika telefonu mikrofon milczy jeszcze tyle (pogłos). */
+        private const val EAR_LIVE_ECHO_TAIL_MS = 400L
 
         /** Jak często pętla tłumaczenia sprawdza, czy skończyła się Twoja kolej. */
         private const val EAR_TURN_POLL_MS = 200L

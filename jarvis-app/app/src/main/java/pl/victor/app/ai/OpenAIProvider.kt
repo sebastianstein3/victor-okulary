@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit
  */
 class OpenAIProvider(
     private val apiKey: String,
-    val model: String = "gpt-4o-mini"
+    val model: String = "gpt-6-luna"
 ) : AIProvider {
 
     override val id = "openai"
@@ -133,6 +133,7 @@ class OpenAIProvider(
                 // niestandardową temperaturę kodem 400 - model wybrany z listy API
                 // kończył się błędem w każdej turze (audyt 28.10).
                 put("max_completion_tokens", MAX_ANSWER_TOKENS)
+                OpenAiModels.reasoningEffort(model)?.let { put("reasoning_effort", it) }
             } else {
                 put("max_tokens", MAX_ANSWER_TOKENS)
                 put("temperature", 0.7)
