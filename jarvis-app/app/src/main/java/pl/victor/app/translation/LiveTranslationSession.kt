@@ -151,6 +151,15 @@ class LiveTranslationSession(
             rec.release()
             return false
         }
+        // MIKROFON TELEFONU, wprost. Gdy okulary są podłączone tylko w trybie
+        // rozmowy, Android potrafi oddać nagranie z ICH mikrofonu (daleko od
+        // rozmówcy) - a tu słuchamy osoby naprzeciwko.
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        runCatching {
+            am.getDevices(android.media.AudioManager.GET_DEVICES_INPUTS)
+                .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
+                ?.let { rec.setPreferredDevice(it) }
+        }
         return runCatching { rec.startRecording() }.isSuccess.also { ok ->
             if (ok) mikrofon = rec else rec.release()
         }
@@ -184,6 +193,12 @@ class LiveTranslationSession(
 
     fun graTeraz(terazMs: Long = System.currentTimeMillis()): Boolean = terazMs < graDoMs
 
+    /** Z jakiego urządzenia naprawdę nagrywamy - do dziennika. */
+    fun źródłoMikrofonu(): String = runCatching {
+        val d = mikrofon?.routedDevice ?: return "nieznane"
+        if (d.type == AudioDeviceInfo.TYPE_BUILTIN_MIC) "mikrofon telefonu" else (d.productName?.toString() ?: "typ ${d.type}")
+    }.getOrDefault("nieznane")
+
     /**
      * Gra kawałek przekładu. Wołać z jednego wątku roboczego - zapis do
      * AudioTrack blokuje, dopóki w buforze nie zrobi się miejsca.
@@ -192,8 +207,31 @@ class LiveTranslationSession(
         val track = odtwarzacz ?: nowyOdtwarzacz()?.also { odtwarzacz = it } ?: return
         val teraz = System.currentTimeMillis()
         val ms = pcm.size / 2 * 1000L / LiveTranslationProtocol.PRÓBKOWANIE_WYJŚCIA
-        graDoMs = maxOf(graDoMs, teraz) + ms
+        // Tylko SŁYSZALNY przekład wycisza mikrofon. Bieg 184: usługa przysyła
+        // dźwięk niemal bez przerwy (także ciszę), a każdy kawałek przedłużał
+        // wyciszenie - mikrofon telefonu milczał na stałe i rozmówca "nie był
+        // słyszany" przez całe minuty.
+        if (poziom(pcm) >= SŁYSZALNE) graDoMs = maxOf(graDoMs, teraz) + ms
+        wyjścieKawałków++
         runCatching { track.write(pcm, 0, pcm.size) }
+    }
+
+    /** Ile kawałków przekładu przyszło - do podsumowania w dzienniku. */
+    @Volatile
+    var wyjścieKawałków = 0
+
+    /** Średni poziom (RMS) PCM 16-bit, 0..32767. */
+    fun poziom(pcm: ByteArray, długość: Int = pcm.size): Int {
+        val próbek = długość / 2
+        if (próbek == 0) return 0
+        var suma = 0.0
+        var i = 0
+        while (i + 1 < długość) {
+            val v = ((pcm[i + 1].toInt() shl 8) or (pcm[i].toInt() and 0xFF)).toShort().toDouble()
+            suma += v * v
+            i += 2
+        }
+        return Math.sqrt(suma / próbek).toInt()
     }
 
     private fun nowyOdtwarzacz(): AudioTrack? = runCatching {
@@ -256,5 +294,10 @@ class LiveTranslationSession(
         socket = null
         zdarzenia.close()
         client.dispatcher.executorService.shutdown()
+    }
+
+    companion object {
+        /** Poziom RMS, od którego przekład uznajemy za słyszalny (~ -50 dBFS). */
+        const val SŁYSZALNE = 100
     }
 }

@@ -2987,6 +2987,13 @@ class AIOrchestrator(
                 val nadawanie = launch(Dispatchers.IO) {
                     val cisza = ByteArray(sesja.bajtówKawałka)
                     val kawałek = ByteArray(sesja.bajtówKawałka)
+                    // Podsumowanie co 10 s - bieg 184: minuty bez jednego zdania
+                    // i nic w dzienniku, co by mówiło dlaczego.
+                    var odPodsumowania = System.currentTimeMillis()
+                    var wysłaneOkno = 0
+                    var wyciszoneOkno = 0
+                    var maksPoziom = 0
+                    var wyciszaOd = 0L
                     while (true) {
                         currentCoroutineContext().ensureActive()
                         if (mojaKolej) {
@@ -3000,14 +3007,43 @@ class AIOrchestrator(
                             continue
                         }
                         val pcm = sesja.czytaj(kawałek) ?: break
+                        val teraz = System.currentTimeMillis()
+                        maksPoziom = maxOf(maksPoziom, sesja.poziom(pcm))
+                        if (teraz - odPodsumowania >= EAR_LIVE_SUMMARY_MS) {
+                            val źródło = sesja.źródłoMikrofonu()
+                            runCatching {
+                                diag.event(
+                                    DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: mikrofon",
+                                    mapOf(
+                                        "wysłane" to wysłaneOkno, "wyciszone" to wyciszoneOkno,
+                                        "maksPoziom" to maksPoziom, "źródło" to źródło,
+                                        "przekładKawałków" to sesja.wyjścieKawałków
+                                    )
+                                )
+                            }
+                            odPodsumowania = teraz
+                            wysłaneOkno = 0
+                            wyciszoneOkno = 0
+                            maksPoziom = 0
+                        }
                         // ZAWSZE półdupleks: bieg 183 - okulary bywały podłączone
                         // tylko w trybie rozmowy (bez A2DP), przekład grał wtedy z
                         // głośnika telefonu i mikrofon łapał go w kółko ("wszystko
                         // słychać po kilka razy"). Także z A2DP głośniki okularów
                         // są otwarte, a telefon jest blisko. Na czas przekładu i
                         // chwilę po nim usługa dostaje ciszę.
-                        val echo = sesja.graTeraz(System.currentTimeMillis() - EAR_LIVE_ECHO_TAIL_MS)
+                        // Bezpiecznik: wyciszenie dłużej niż EAR_LIVE_MAX_MUTE_MS z
+                        // rzędu to już nie echo jednego zdania, tylko błąd - wtedy
+                        // lepiej słuchać z echem niż wcale.
+                        var echo = sesja.graTeraz(teraz - EAR_LIVE_ECHO_TAIL_MS)
+                        if (echo) {
+                            if (wyciszaOd == 0L) wyciszaOd = teraz
+                            if (teraz - wyciszaOd > EAR_LIVE_MAX_MUTE_MS) echo = false
+                        } else {
+                            wyciszaOd = 0L
+                        }
                         if (!sesja.wyślij(if (echo) cisza else pcm)) break
+                        if (echo) wyciszoneOkno++ else wysłaneOkno++
                         wysłane++
                     }
                 }
@@ -8262,6 +8298,12 @@ class AIOrchestrator(
 
         /** Po przekładzie z głośnika telefonu mikrofon milczy jeszcze tyle (pogłos). */
         private const val EAR_LIVE_ECHO_TAIL_MS = 700L
+
+        /** Najdłuższe wyciszenie mikrofonu tłumacza z rzędu - patrz bezpiecznik w [earLiveLoop]. */
+        private const val EAR_LIVE_MAX_MUTE_MS = 10_000L
+
+        /** Co ile podsumowanie mikrofonu tłumacza w dzienniku. */
+        private const val EAR_LIVE_SUMMARY_MS = 10_000L
 
         /** Jak często pętla tłumaczenia sprawdza, czy skończyła się Twoja kolej. */
         private const val EAR_TURN_POLL_MS = 200L
