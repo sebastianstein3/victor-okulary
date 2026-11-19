@@ -531,21 +531,6 @@ class DiagnosticsViewModel(application: Application) : AndroidViewModel(applicat
         val settings = app.settings
         val providerId = settings.getActiveProvider()
 
-        // Model lokalny nie ma klucza ani listy modeli u providera - dla niego
-        // "gotowy" znaczy "plik pobrany". Bez tej gałęzi sprawdzenie mówiło
-        // użytkownikowi trybu offline, że brakuje mu klucza API, którego z
-        // definicji nie potrzebuje.
-        if (providerId == pl.victor.app.ai.AIProviderFactory.LOCAL_PROVIDER_ID) {
-            val entry = pl.victor.app.localmodel.LocalModelCatalog.QWEN_0_8B
-            val ready = pl.victor.app.localmodel.LocalModelStorage.isDownloaded(app, entry)
-            return if (ready) {
-                "✅ 6. Model lokalny (${entry.displayName}) pobrany i gotowy"
-            } else {
-                "❌ 6. Model lokalny nie jest pobrany.\n" +
-                    "   → Ustawienia > Model AI > pobierz model offline."
-            }
-        }
-
         val key = settings.getApiKey(providerId)
         if (key.isNullOrBlank()) {
             return "❌ 6. Brak klucza API dla providera \"$providerId\".\n" +

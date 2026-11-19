@@ -13,8 +13,9 @@ plugins {
  * 113,7 MB -> 106 MB. Siedem megabajtów, czyli circa 7%.
  *
  * Zakładałem circa połowę, bo wychodziłem z założenia, że ciężar APK to
- * biblioteki natywne powielone w czterech architekturach (llama.cpp, ML Kit
- * i ówczesne dwa silniki frazy wybudzenia). Pomiar to obalił - te biblioteki są tylko ułamkiem pliku.
+ * biblioteki natywne powielone w czterech architekturach (ówczesny llama.cpp
+ * modelu lokalnego - dziś usunięty - ML Kit i dwa silniki frazy wybudzenia).
+ * Pomiar to obalił - te biblioteki są tylko ułamkiem pliku.
  * Gdzie siedzi reszta, wypisuje teraz krok "Rozmiar i skład APK" w build.yml;
  * dalsze cięcie ma sens dopiero na podstawie tej listy, nie kolejnej hipotezy.
  *
@@ -236,19 +237,6 @@ dependencies {
 
     // Encrypted storage
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-
-    // Lokalny model AI (offline) - wiązanie Kotlin do llama.cpp (repo JitPack,
-    // patrz settings.gradle.kts). Pinowane na sztywno - nowsze wersje zmieniały
-    // kształt API (patrz LlamaCppInferenceEngine).
-    //
-    // Wyklucza własne androidx.core/core-ktx tej biblioteki (ciągnie 1.18.0,
-    // które wymaga compileSdk 36 + AGP 8.9.1 - projekt ma 35/8.5.0) - zostaje
-    // jawna, już sprawdzona wersja 1.13.1 z tego pliku. To mały wrapper JNI,
-    // korzysta z core-ktx co najwyżej po wierzchu, nie z czegoś nowego w 1.18.
-    implementation("io.github.ljcamargo:llamacpp-kotlin:0.4.0") {
-        exclude(group = "androidx.core", module = "core-ktx")
-        exclude(group = "androidx.core", module = "core")
-    }
 
     // Room
     // 2.8.4, nie 2.6.1: room-compiler:2.6.1 niesie wewnątrz (shaded) przestarzałą

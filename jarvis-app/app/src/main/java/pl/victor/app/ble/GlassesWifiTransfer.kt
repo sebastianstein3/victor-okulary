@@ -534,11 +534,11 @@ class GlassesWifiTransfer(context: Context) {
      *     21:02:22  przechwycone  bajtów=161207 pełnaRozdzielczość=true
      *     21:02:23  gemini   -> Unable to resolve host
      *     21:02:23  deepseek -> Unable to resolve host
-     *     21:02:23  local    -> 20 s i porażka
+     *     21:02:23  local    -> 20 s i porażka   (model lokalny, dziś usunięty)
      *
      * Sekunda po zwolnieniu sieci to za mało. Skutek jest dla użytkownika
-     * dotkliwy i mylący: zdjęcie WYSZŁO, ostre, a asystent mówi, że przechodzi
-     * na model lokalny, bo nie ma internetu.
+     * dotkliwy i mylący: zdjęcie WYSZŁO, ostre, a asystent mówi, że nie ma
+     * internetu.
      *
      * @return `true`, gdy internet wrócił w limicie
      */

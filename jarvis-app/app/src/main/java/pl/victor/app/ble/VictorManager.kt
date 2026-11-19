@@ -5199,10 +5199,10 @@ class VictorManager private constructor(context: Context) {
             //     21:02:22  przechwycone  bajtów=161207 pełnaRozdzielczość=true
             //     21:02:23  gemini   -> Unable to resolve host
             //     21:02:23  deepseek -> Unable to resolve host
-            //     21:02:23  local    -> 20 s i porażka
+            //     21:02:23  local    -> 20 s i porażka   (model lokalny, dziś usunięty)
             //
-            // Zdjęcie WYSZŁO, ostre - a asystent powiedział, że przechodzi na
-            // model lokalny, bo nie ma internetu. Dla użytkownika wygląda to
+            // Zdjęcie WYSZŁO, ostre - a asystent powiedział, że nie ma
+            // internetu. Dla użytkownika wygląda to
             // jak awaria aparatu, a jest awarią sieci, i to przez nas.
             //
             // PROSTUJĘ przy okazji własne zdanie sprzed dwóch dni: pisałem, że

@@ -251,8 +251,6 @@ fun SettingsScreen(
                     onTestProvider = { viewModel.testConnection(it) }
                 )
                 HorizontalDivider()
-                LocalModelSection()
-                HorizontalDivider()
                 AIOptionsSection(
                     webSearchEnabled = state.webSearchEnabled,
                     onWebSearchChange = { viewModel.setWebSearchEnabled(it) },
@@ -618,12 +616,6 @@ private fun ModelSection(
     selectedModelId: String?,
     onModelSelected: (String?) -> Unit
 ) {
-    if (providerId == pl.victor.app.ai.AIProviderFactory.LOCAL_PROVIDER_ID) {
-        // Model lokalny ma dziś jeden wpis w katalogu, nie listę wersji do
-        // wyboru jak providerzy chmurowi - wybór modelu/pobieranie jest
-        // niżej, w LocalModelSection.
-        return
-    }
     // Lista modeli przychodzi Z API PROVIDERA, nie z naszego katalogu.
     //
     // Wpisana na sztywno starzeje się w tygodniach: nazwy się zmieniają,
@@ -949,8 +941,7 @@ private fun ProviderKeysSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        // Model lokalny nie ma klucza API - jego karta jest niżej, w LocalModelSection.
-        providers.filter { it.id != pl.victor.app.ai.AIProviderFactory.LOCAL_PROVIDER_ID }.forEach { provider ->
+        providers.forEach { provider ->
             var keyValue by remember(provider.id) {
                 mutableStateOf(getKey(provider.id))
             }

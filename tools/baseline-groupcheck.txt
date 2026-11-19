@@ -251,26 +251,6 @@ jarvis-app/app/src/main/java/pl/victor/app/livestream/LiveStreamLab.kt:193:21: e
                     override fun onPlayerError(error: PlaybackException) {
 jarvis-app/app/src/main/java/pl/victor/app/livestream/LiveStreamLab.kt:193:55: error: unresolved reference: PlaybackException
                     override fun onPlayerError(error: PlaybackException) {
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:8:12: error: unresolved reference: nehuatl
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:31:25: error: unresolved reference: LlamaAndroid
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:47:72: error: unresolved reference: it
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:68:21: error: unresolved reference: it
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:68:49: error: unresolved reference: it
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:136:49: error: unresolved reference: launchCompletion
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:141:59: error: unresolved reference. None of the following candidates is applicable because of receiver type mismatch: 
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:149:33: error: unresolved reference: stopCompletion
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:157:39: error: unresolved reference: LlamaAndroid
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LlamaCppInferenceEngine.kt:158:9: error: unresolved reference: LlamaAndroid
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelCatalog.kt:39:18: error: variable 'ENGINE_LLAMA_CPP' must be initialized
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:12:8: error: unresolved reference: androidx
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:13:8: error: unresolved reference: androidx
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:20:22: error: unresolved reference: R
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:21:22: error: unresolved reference: ui
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:78:35: error: unresolved reference: MainActivity
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:80:16: error: unresolved reference: NotificationCompat
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:83:27: error: unresolved reference: R
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:87:26: error: unresolved reference: NotificationCompat
-jarvis-app/app/src/main/java/pl/victor/app/localmodel/LocalModelDownloadService.kt:128:13: error: unresolved reference: ContextCompat
 jarvis-app/app/src/main/java/pl/victor/app/proactive/CalendarService.kt:10:8: error: unresolved reference: androidx
 jarvis-app/app/src/main/java/pl/victor/app/proactive/CalendarService.kt:29:16: error: unresolved reference: ContextCompat
 jarvis-app/app/src/main/java/pl/victor/app/proactive/DailyBriefingWorker.kt:5:8: error: unresolved reference: androidx

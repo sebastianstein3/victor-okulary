@@ -470,10 +470,16 @@ adb shell am start -n pl.victor.app.debug/pl.victor.app.vision.QRTestActivity
 |--------|----------|-----------|
 | Lokalny Whisper (offline STT) | ⭐⭐⭐⭐ | wysoki |
 | Voice cloning (ElevenLabs) | ⭐⭐ | średni |
-| Lokalne LLM (Llama 3 8B) | ⭐⭐⭐⭐⭐ | niski |
 | Outlook Calendar | ⭐⭐ | średni |
 | AirDrop iPhone | ⭐⭐⭐ | niski |
 | Skróty gestów | ⭐⭐ | średni |
+
+**Lokalne LLM - sprawdzone i odrzucone.** Model lokalny (llama.cpp + Qwen 0.8B,
+circa 560 MB do pobrania) był w aplikacji i został usunięty: na Galaxy A23 bez
+sieci wczytywał się 13,8 s, generował 19 s i nie oddał ani jednego tokena. Bez
+sieci asystent wykonuje teraz polecenia wzorcami (warstwa 2,
+`SmartActionDetector.detect`) i mówi, że nie ma internetu - patrz
+`ai/OfflineFallback.kt`. Nie wracać do tego bez pomiaru na tym telefonie.
 
 ---
 

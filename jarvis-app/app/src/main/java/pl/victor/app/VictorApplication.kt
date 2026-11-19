@@ -110,6 +110,12 @@ class VictorApplication : Application() {
         pl.victor.app.utils.CrashReporter.install(this)
 
         settings = SettingsRepository.getInstance(this)
+        // PRZED nagłówkiem dziennika: ten wypisuje "dostawca AI", a u osoby,
+        // która miała wybrany usunięty model lokalny, stałoby tam jeszcze
+        // "local" - czyli dostawca, którego aplikacja już nie zna.
+        val localModelCleanup = settings.removeLocalModelSettings(
+            pl.victor.app.ai.AIProviderFactory.supportedProviders().map { it.id }
+        )
         if (settings.isDiagnosticLogEnabled()) {
             diag.startSession(
                 listOf(
@@ -172,32 +178,7 @@ class VictorApplication : Application() {
         // (async, nie blokuje UI)
         modelDiscovery.checkActive()
 
-        // MODEL LOKALNY WCZYTUJEMY ZAWCZASU, NIE PRZY PIERWSZYM PYTANIU.
-        //
-        // Zgłoszone dwa razy: "model lokalny w ogóle nie działa". W dzienniku z
-        // 13 września między "wysyłam pytanie dostawca=local" a "dostawca nie
-        // odpowiedział w czasie" mija sto dziesięć sekund przy limicie
-        // czterdziestu pięciu - czyli limit nie zdołał niczego przerwać, bo
-        // wczytywanie modelu to blokujące wywołanie natywne.
-        //
-        // Pierwsze pytanie płaciło więc za wczytanie całego pliku modelu i z
-        // tego powodu padało ZAWSZE, choć z odpowiadaniem nie miało to nic
-        // wspólnego. Do drugiej próby rzadko kto dochodzi.
-        //
-        // Tylko gdy to model lokalny jest dostawcą: trzymanie go w pamięci
-        // kosztuje kilkaset megabajtów, których nie ma po co zajmować komuś,
-        // kto korzysta z chmury.
-        if (settings.getActiveProvider() == LOCAL_PROVIDER_ID) {
-            appScope.launch {
-                val warmed = pl.victor.app.ai.LocalAIProvider(this@VictorApplication).warmUp()
-                Log.i(
-                    TAG,
-                    if (warmed.isSuccess) "Model lokalny wczytany zawczasu"
-                    else "Nie udało się wczytać modelu lokalnego zawczasu: " +
-                        "${warmed.exceptionOrNull()?.message}"
-                )
-            }
-        }
+        removeLocalModelLeftovers(localModelCleanup)
 
         // Nasłuch "Hej Wiktor" startuje przez refreshBackgroundService() niżej:
         // pierwszy odczyt każdego z obserwowanych StateFlow woła refreshPhoneWake().
@@ -221,6 +202,56 @@ class VictorApplication : Application() {
         registerUnlockReceiver()
 
         Log.d(TAG, "VictorApplication initialized (HeyCyan SDK + DB + Discovery ready)")
+    }
+
+    /**
+     * Usuwa z pamięci aplikacji plik usuniętego modelu lokalnego (circa 560 MB)
+     * i kanał powiadomień jego pobierania - patrz [pl.victor.app.data.LocalModelLeftovers].
+     *
+     * Przy każdym starcie, ale w praktyce raz: po pierwszym przebiegu katalogu
+     * już nie ma, a sprawdzenie, czy istnieje, nic nie kosztuje. Na wątku IO,
+     * bo kasowanie pół gigabajta na wolnej pamięci flash potrafi chwilę trwać,
+     * a start aplikacji nie ma na to czekać.
+     *
+     * @param settingsCleanup wynik sprzątania ustawień - trafia do tego samego
+     *   wpisu w dzienniku, żeby całe sprzątanie było w jednym wierszu
+     */
+    private fun removeLocalModelLeftovers(
+        settingsCleanup: pl.victor.app.data.LocalModelLeftovers.Cleanup?
+    ) {
+        appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val dir = java.io.File(filesDir, pl.victor.app.data.LocalModelLeftovers.MODELS_DIR)
+            val bytes = if (dir.exists()) {
+                dir.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+            } else 0L
+            val fileRemoved = dir.exists() && dir.deleteRecursively()
+            val channelRemoved = runCatching {
+                val nm = getSystemService(android.app.NotificationManager::class.java)
+                // minSdk 26, więc kanały powiadomień są zawsze dostępne.
+                if (nm?.getNotificationChannel(pl.victor.app.data.LocalModelLeftovers.DOWNLOAD_CHANNEL_ID) != null) {
+                    nm.deleteNotificationChannel(pl.victor.app.data.LocalModelLeftovers.DOWNLOAD_CHANNEL_ID)
+                    true
+                } else false
+            }.getOrDefault(false)
+            if (settingsCleanup == null && !fileRemoved && !channelRemoved && !dir.exists()) return@launch
+            Log.i(TAG, "Sprzątanie po modelu lokalnym: plik=$fileRemoved ($bytes B), kanał=$channelRemoved")
+            runCatching {
+                diag.event(
+                    pl.victor.app.diagnostics.DiagFormat.Phase.SESJA,
+                    "usunięte pozostałości modelu lokalnego",
+                    mapOf(
+                        "nowyDostawca" to settingsCleanup?.newProvider,
+                        "kluczeUstawień" to settingsCleanup?.removedKeys?.joinToString(",")?.ifBlank { null },
+                        "plikUsunięty" to fileRemoved,
+                        "zwolnioneMB" to (bytes / 1_000_000).takeIf { fileRemoved },
+                        // Prawda tylko, gdy kasowanie się nie udało - wtedy
+                        // spróbujemy znowu przy następnym starcie.
+                        "plikZostał" to dir.exists().takeIf { it },
+                        "kanałPowiadomień" to channelRemoved.takeIf { it }
+                    )
+                )
+            }
+        }
     }
 
     /**
@@ -394,9 +425,6 @@ class VictorApplication : Application() {
 
         /** Właściciel mikrofonu frazy: nasłuch trybu konwersacyjnego. */
         const val WAKE_HOLDER_CONVERSATION = "rozmowa"
-
-        /** Identyfikator dostawcy „model lokalny" - patrz [pl.victor.app.ai.LocalAIProvider.id]. */
-        private const val LOCAL_PROVIDER_ID = "local"
 
         private var instance: VictorApplication? = null
 

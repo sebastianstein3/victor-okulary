@@ -82,7 +82,7 @@ class WeatherContextTest {
         val note = WeatherContext.scopeNote("Toruń")
         assertTrue(note.contains("WYŁĄCZNIE miejscowości Toruń"))
         assertTrue("ma kazać sprawdzić w internecie", note.contains("wyszukiwarce internetowej"))
-        // Model bez wyszukiwarki (zapasowy, lokalny) nie może zmyślać prognozy.
+        // Model bez wyszukiwarki (zapasowy) nie może zmyślać prognozy.
         assertTrue(note.contains("jeśli nie masz do niej dostępu"))
     }
 

@@ -4697,10 +4697,11 @@ class AIOrchestrator(
      *   samo odpowiada, samo prosi o narzędzia znacznikiem `[[ACTION: ...]]`
      *   (patrz [SmartActionDetector.AI_ACTION_CAPABILITIES_PROMPT]) i samo prosi
      *   o zdjęcie (`take_photo`), gdy bez obrazu nie odpowie.
-     * - **Warstwa 2 - awaria.** Gdy AI jest niedostępne (brak klucza, brak
-     *   pobranego modelu lokalnego), wracamy do pełnej detekcji wzorcami
-     *   [SmartActionDetector.detect]. Lepsza niedoskonała komenda niż komunikat
-     *   o błędzie.
+     * - **Warstwa 2 - awaria.** Gdy AI jest niedostępne (brak klucza albo -
+     *   po nieudanej warstwie 1 - brak sieci u wszystkich dostawców), wracamy
+     *   do pełnej detekcji wzorcami [SmartActionDetector.detect]. Lepsza
+     *   niedoskonała komenda niż komunikat o błędzie. Patrz
+     *   [pl.victor.app.ai.OfflineFallback].
      *
      * @param forceVision wymusza zrobienie zdjęcia niezależnie od źródła triggera.
      *   Używane, gdy warstwa 1 poprosiła o obraz - patrz obsługa [Action.TakePhoto].
@@ -6153,6 +6154,10 @@ class AIOrchestrator(
 
                 var attemptIndex = 0
                 val modelStartedAt = System.currentTimeMillis()
+                // Treści błędów kolejnych prób - po to, żeby po ostatniej
+                // rozstrzygnąć, czy WSZYSCY padli z braku sieci (patrz
+                // [pl.victor.app.ai.OfflineFallback]).
+                val attemptFailures = mutableListOf<String?>()
                 while (true) {
                     val attemptProviderId = candidates[attemptIndex]
                     diag.event(
@@ -6165,11 +6170,6 @@ class AIOrchestrator(
                             "znakówPromptu" to enhancedPrompt.length
                         )
                     )
-                    if (attemptIndex > 0 && attemptProviderId == AIProviderFactory.LOCAL_PROVIDER_ID) {
-                        // Cichy fallback na model lokalny byłby mylący - to realny spadek
-                        // jakości (mały model offline), user powinien wiedzieć, że o to chodzi.
-                        audio.speak("Przechodzę na model lokalny, offline.", language = settings.getResponseLanguage())
-                    }
                     // Po identyfikatorze, nie po numerze próby: kolejka stawia
                     // dostawcę z martwym modelem NA KOŃCU, więc pierwsza próba
                     // bywa innym dostawcą niż główny. Numer próby wysyłał wtedy
@@ -6220,10 +6220,8 @@ class AIOrchestrator(
                                     // identycznie - a to są dwie zupełnie różne
                                     // awarie i dwie różne naprawy.
                                     //
-                                    // Podejrzenie pada na model lokalny (mały,
-                                    // offline, potrafi produkować właśnie takie
-                                    // angielskie ciągi), ale bez nazwy dostawcy
-                                    // przy TEJ odpowiedzi to jest zgadywanie.
+                                    // Bez nazwy dostawcy przy TEJ odpowiedzi
+                                    // wskazanie winnego to zgadywanie.
                                     // Początek tekstu rozstrzyga jedno i drugie.
                                     mapOf(
                                         "dostawca" to attemptProviderId,
@@ -6285,15 +6283,6 @@ class AIOrchestrator(
                                     "znakówOdpowiedzi" to accumulatedText.length
                                 )
                             )
-                            // Limit przerywa KORUTYNĘ, nie pracę silnika. Model
-                            // lokalny liczył dalej jeszcze 52 sekundy po
-                            // wygaśnięciu limitu (dziennik z 15 września, 20:45:51)
-                            // - procesor i bateria wydane na odpowiedź, której
-                            // nikt już nie odbierze, w dodatku spowalniające
-                            // turę, która właśnie ruszyła w to miejsce.
-                            if (attemptProviderId == AIProviderFactory.LOCAL_PROVIDER_ID) {
-                                pl.victor.app.ai.LocalAIProvider.cancelOngoing()
-                            }
                             if (accumulatedText.isBlank()) {
                                 throw IllegalStateException(
                                     "Dostawca $attemptProviderId nie odpowiedział w " +
@@ -6309,8 +6298,8 @@ class AIOrchestrator(
                         //
                         // Dziennik z 18:37 (tura 28d1): użytkownik przerwał,
                         // a pętla uznała to za trzy awarie z rzędu - Gemini
-                        // "odmówił", potem DeepSeek, potem model lokalny, z
-                        // zapowiedzią "Przechodzę na model lokalny" już po
+                        // "odmówił", potem DeepSeek, potem ówczesny model
+                        // lokalny, z zapowiedzią przejścia na niego już po
                         // przerwaniu. Sprawdzenie typu wyjątku nie wystarcza:
                         // Gemini opakowuje anulowanie we własny wyjątek
                         // ("Streaming error: StandaloneCoroutine was
@@ -6368,6 +6357,7 @@ class AIOrchestrator(
                                 )
                             }
                         }
+                        attemptFailures += e.message
                         // Bezpieczne do ponowienia tylko, gdy nic jeszcze nie zostało
                         // powiedziane - inaczej user usłyszałby dwa zaczątki odpowiedzi.
                         val canRetryWithNext = firstChunk && attemptIndex < candidates.lastIndex
@@ -6375,6 +6365,45 @@ class AIOrchestrator(
                             Log.w(TAG, "Provider $attemptProviderId zawiódł przed pierwszym fragmentem " +
                                 "(próba ${attemptIndex + 1}/${candidates.size}), próbuję kolejnego", e)
                             attemptIndex++
+                        } else if (firstChunk &&
+                            pl.victor.app.ai.OfflineFallback.allFailedOffline(attemptFailures)
+                        ) {
+                            // === BEZ SIECI: WARSTWA 2 ZAMIAST MODELU LOKALNEGO ===
+                            //
+                            // Wcześniej kolejka kończyła się modelem lokalnym. Na
+                            // Galaxy A23 wczytywał się 13,8 s, liczył 19 s i nie
+                            // oddał ani tokena - pół minuty ciszy. Teraz: ten sam
+                            // awaryjny detektor poleceń co przy braku klucza (timer,
+                            // budzik, telefon do kontaktu rozpoznaje tylko on), a gdy
+                            // nic nie pasuje - krótko, że nie ma internetu i co
+                            // działa bez niego. Te same strażniki co warstwa 0:
+                            // instrukcja dla modelu (nagranie, prompt wewnętrzny,
+                            // powtórka ze zdjęciem) to nie słowa użytkownika.
+                            val offlineActions = if (!forceVision && textIsQuestion) {
+                                actionDetector.detect(textQuestion)
+                            } else emptyList()
+                            diag.event(
+                                DiagFormat.Phase.MODEL, "brak sieci u wszystkich dostawców",
+                                mapOf(
+                                    "prób" to attemptFailures.size,
+                                    "poMs" to (System.currentTimeMillis() - modelStartedAt),
+                                    "poleceniaBezSieci" to offlineActions
+                                        .joinToString(",") { it.type.name }.ifBlank { null },
+                                    "pytanieTekstem" to textIsQuestion
+                                )
+                            )
+                            if (offlineActions.isNotEmpty()) {
+                                Log.i(TAG, "Warstwa 2 (brak sieci): ${offlineActions.joinToString { it.type.name }}")
+                                _state.value = OrchestratorState.Completed("")
+                                handleActions(offlineActions, textQuestion)
+                            } else {
+                                _state.value = OrchestratorState.Error(pl.victor.app.ai.OfflineFallback.SPEECH)
+                                announceTurnFailure(trigger, pl.victor.app.ai.OfflineFallback.SPEECH)
+                                // Jak w bloku catch niżej: błąd nie może zostawić
+                                // trybu konwersacyjnego głuchym na stałe.
+                                conversationalMode.onAiFinishedSpeaking()
+                            }
+                            return@launchTurn
                         } else {
                             throw e
                         }
@@ -7946,32 +7975,14 @@ class AIOrchestrator(
      */
     fun publishConfiguredModel() {
         val providerId = settings.getActiveProvider()
-        _currentModelId.value = if (providerId == AIProviderFactory.LOCAL_PROVIDER_ID) {
-            pl.victor.app.localmodel.LocalModelCatalog.QWEN_0_8B.id
-        } else {
-            settings.getSelectedModel(providerId)
-                ?: pl.victor.app.data.ModelRegistry.defaultFor(providerId)?.id
-        }
+        _currentModelId.value = settings.getSelectedModel(providerId)
+            ?: pl.victor.app.data.ModelRegistry.defaultFor(providerId)?.id
     }
 
     // === Private ===
 
     private suspend fun getOrCreateProvider(): AIProvider {
         val providerId = settings.getActiveProvider()
-
-        if (providerId == AIProviderFactory.LOCAL_PROVIDER_ID) {
-            // Bez klucza, bez walidacji modeli u zdalnego providera - po co
-            // próbować sieci dla trybu, którego cały sens to działanie offline.
-            if (currentProviderId != providerId) {
-                currentProvider = AIProviderFactory.create(providerId, "", context).provider
-                currentProviderId = providerId
-                activeModelId = null
-            }
-            // Publikuj realny model lokalny, nie null. Przy null badge na ekranie głównym
-            // wpadał w swój fallback i pokazywał Gemini, mimo że aktywny był model offline.
-            _currentModelId.value = pl.victor.app.localmodel.LocalModelCatalog.QWEN_0_8B.id
-            return currentProvider!!
-        }
 
         val apiKey = settings.getApiKey(providerId)
             ?: throw AIProviderException(
@@ -8061,10 +8072,6 @@ class AIOrchestrator(
      * konkretnego zapytania - nie zmienia trwale wybranego providera usera.
      */
     private suspend fun buildProviderForFallback(providerId: String): AIProvider {
-        if (providerId == AIProviderFactory.LOCAL_PROVIDER_ID) {
-            return AIProviderFactory.create(providerId, "", context).provider
-        }
-
         val apiKey = settings.getApiKey(providerId)
             ?: throw AIProviderException(
                 "Brak klucza API dla $providerId",

@@ -259,8 +259,7 @@ object Notes {
      * modelu przy każdym pytaniu, które ich dotknęło. Przy kilku to nic nie
      * kosztuje i tak jest dziś. Przy trzystu koszt rośnie liniowo, ale gorsze
      * jest co innego - jakość siada wcześniej niż cena, bo model ma znaleźć tę
-     * jedną właściwą notatkę wśród trzystu. Model lokalny obrywa jeszcze
-     * wcześniej: ma własny budżet znaków i po cichu przycina kontekst.
+     * jedną właściwą notatkę wśród trzystu.
      *
      * ## Dwa limity, nie jeden
      * Liczba notatek nie mówi nic o ich długości - jedna notatka na trzy tysiące

@@ -113,6 +113,10 @@ jobs:
       # pobierać wszystkie.
       #
       # To NIE zmniejsza tego, co CI sprawdza - kompiluje się dokładnie to samo.
+      #
+      # Test dymny ma własny klucz (`gradle-emu-...`) z zależnościami testów
+      # instrumentacyjnych - patrz zadanie `emulator`. `restore-keys: gradle-`
+      # łapie i jego pamięć; to nadzbiór tej tutaj, więc nic nie szkodzi.
       - name: Pamięć podręczna Gradle'a
         uses: actions/cache@v4
         with:
@@ -399,18 +403,76 @@ jobs:
           echo "--- po sprzątaniu ---"
           df -h /
 
-      # Tu z tego samego powodu co w zadaniu budującym: `connectedDebugAndroidTest`
-      # też kompiluje projekt, więc bez pamięci podręcznej płacimy drugi raz za
-      # to samo pobieranie zależności w tym samym biegu.
-      - name: Pamięć podręczna Gradle'a
-        uses: actions/cache@v4
+      # PAMIĘĆ PODRĘCZNA GRADLE'A - WŁASNY KLUCZ, ODCZYT I ZAPIS OSOBNO.
+      #
+      # Test dymny padał na:
+      #
+      #   Could not GET 'https://repo.maven.apache.org/.../hamcrest-library-1.3.pom'.
+      #   Received status code 429 from server: Too Many Requests
+      #
+      # Wcześniej to zadanie dzieliło z budującym JEDEN klucz `gradle-<hash>`.
+      # Budujący zapisuje pod nim to, czego sam potrzebuje: zależności aplikacji i
+      # testów jednostkowych. Zależności testów INSTRUMENTACYJNYCH (espresso,
+      # androidx.test, hamcrest) rozwiązuje dopiero ten job - a `actions/cache`
+      # przy trafieniu w istniejący klucz niczego nie zapisuje (klucze są
+      # niezmienne). Skutek: hamcrest i spółka szły z Maven Central OD ZERA w
+      # każdym biegu emulatora, aż Maven Central odpowiedział limitem.
+      #
+      # Teraz emulator ma własny klucz `gradle-emu-<hash>`. Odczyt najpierw szuka
+      # własnej pamięci (choćby sprzed zmiany zależności - testowe zmieniają się
+      # rzadko), potem pamięci zadania budującego z tego samego biegu. Zapis idzie
+      # osobnym krokiem niżej, po rozgrzewce, także gdy sam test dymny padnie -
+      # zwykłe `actions/cache` zapisuje tylko przy zielonym zadaniu, a czerwony
+      # test to dokładnie ten bieg, po którym chcemy szybkiej i pewnej powtórki.
+      - name: Pamięć podręczna Gradle'a (odczyt)
+        id: gradle-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('jarvis-app/**/*.gradle*', 'jarvis-app/**/gradle-wrapper.properties') }}
+          key: gradle-emu-${{ hashFiles('jarvis-app/**/*.gradle*', 'jarvis-app/**/gradle-wrapper.properties') }}
           restore-keys: |
+            gradle-emu-
+            gradle-${{ hashFiles('jarvis-app/**/*.gradle*', 'jarvis-app/**/gradle-wrapper.properties') }}
             gradle-
+
+      # ROZGRZEWKA: POBRANIE ZALEŻNOŚCI I OBA APK, ZANIM WSTANIE EMULATOR.
+      #
+      # Dwie korzyści. Po pierwsze błąd sieci przy pobieraniu wychodzi tu, w
+      # zwykłym kroku, a nie w środku `android-emulator-runner`, gdzie kosztował
+      # start emulatora i jego powtórkę na świeżym AVD - która na limit Maven
+      # Central nic nie pomoże. Po drugie `connectedDebugAndroidTest` zastaje
+      # skompilowane APK i od razu instaluje.
+      #
+      # Ponawiamy WYŁĄCZNIE błędy sieci (limit 429, 5xx, zerwane połączenie,
+      # brak DNS), do trzech prób, z rosnącą przerwą - limit Maven Central mija
+      # po chwili. Błąd kompilacji czy brakująca zależność (404) przerywa od
+      # razu: powtarzanie ich to tylko spalone minuty. Żadnego
+      # `--refresh-dependencies` - to wymusiłoby pobranie WSZYSTKIEGO od nowa,
+      # czyli więcej zapytań do serwera, który właśnie kazał zwolnić.
+      - name: Rozgrzewka - zależności i APK testowe (z ponowieniem przy błędach sieci)
+        id: warm
+        working-directory: jarvis-app
+        run: |
+          set -o pipefail
+          for attempt in 1 2 3; do
+            echo "======== próba $attempt/3 ========"
+            if ./gradlew assembleDebug assembleDebugAndroidTest --no-daemon 2>&1 | tee warm.log; then
+              exit 0
+            fi
+            if ! grep -qE 'Received status code (429|5[0-9][0-9])|Connection reset|[Rr]ead timed out|[Cc]onnect timed out|Remote host terminated the handshake|Temporary failure in name resolution|Network is unreachable|java\.net\.(SocketTimeoutException|UnknownHostException|ConnectException)' warm.log; then
+              echo "Błąd nie wygląda na sieć - nie ponawiam."
+              exit 1
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              delay=$((attempt * 60))
+              echo "::warning title=Błąd sieci przy pobieraniu zależności::Próba $attempt/3 padła na sieci (np. 429 z Maven Central). Ponawiam za $delay s."
+              sleep "$delay"
+            fi
+          done
+          echo "::error title=Zależności niedostępne::Trzy próby pobrania zależności padły na błędach sieci."
+          exit 1
 
       - name: Cache obrazu AVD
         uses: actions/cache@v4
@@ -457,6 +519,21 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           working-directory: jarvis-app
           script: ./gradlew connectedDebugAndroidTest --no-daemon
+
+      # ZAPIS PAMIĘCI - po testach, żeby objął też to, co Gradle dociąga dopiero
+      # przy uruchamianiu testów na urządzeniu (platforma testowa AGP), ale tylko
+      # gdy rozgrzewka przeszła. Po nieudanej zapisalibyśmy pamięć niepełną pod
+      # kluczem, którego potem nie da się nadpisać - i braki szłyby z sieci w
+      # każdym kolejnym biegu. `!cancelled()`, a nie `always()`: przerwany bieg
+      # nie ma czekać na wysyłkę kilkuset megabajtów.
+      - name: Pamięć podręczna Gradle'a (zapis)
+        if: ${{ !cancelled() && steps.warm.outcome == 'success' && steps.gradle-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
 
       - name: Podsumowanie błędów testów
         if: failure()

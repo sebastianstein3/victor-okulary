@@ -80,6 +80,27 @@ object ProviderFailure {
     }
 
     /**
+     * Czy dostawca padł Z BRAKU SIECI - a nie przez konto, klucz czy model.
+     *
+     * ## Po co osobne pytanie
+     * Bo od tego zależy, co asystent zrobi, gdy padną wszyscy dostawcy: przy
+     * braku sieci uruchamia polecenia działające offline i mówi, jakie to
+     * są (patrz [OfflineFallback]); przy pustym koncie czy złym kluczu taka
+     * podpowiedź myliłaby trop - internet jest, problem leży gdzie indziej.
+     *
+     * Kolejność sprawdzeń ta sama co w [describe]: odpowiedź serwera o
+     * środkach, limicie albo kluczu oznacza, że sieć DZIAŁA, nawet jeśli w tym
+     * samym komunikacie pada słowo "timeout".
+     */
+    fun isNoNetwork(message: String?): Boolean {
+        val text = (message ?: "").lowercase()
+        if (isTransientQuota(text) || NO_FUNDS.any { it in text } ||
+            RATE_LIMITED.any { it in text } || BAD_KEY.any { it in text }
+        ) return false
+        return NO_NETWORK.any { it in text }
+    }
+
+    /**
      * Czy ponawianie tego zapytania NIE MA SENSU, dopóki człowiek czegoś nie zmieni.
      *
      * ## Po co to rozróżnienie
@@ -121,8 +142,8 @@ object ProviderFailure {
      *
      * Z dziennika z 15 września: w ustawieniach siedziały `deepseek-flash` i
      * `gemini-3.8-flash`. Obie próby padały po 70 MILISEKUNDACH - tyle trwa
-     * odrzucenie przez serwer - aplikacja schodziła na model lokalny, a ten
-     * potrzebował 94 sekund na pierwszy token. Z zewnątrz: „AI myśli" i nic.
+     * odrzucenie przez serwer - aplikacja schodziła na ówczesny model lokalny,
+     * a ten potrzebował 94 sekund na pierwszy token. Z zewnątrz: „AI myśli" i nic.
      *
      * Powód był do odczytania z odpowiedzi HTTP przez cały czas; nikt go tylko
      * nie pokazywał. To jest dokładnie ten rodzaj awarii, z którym człowiek
@@ -144,6 +165,9 @@ object ProviderFailure {
     private val TRUNCATED = listOf("finish_reason=length", "finish_reason\":\"length")
     private val NO_NETWORK = listOf(
         "timeout", "timed out", "unable to resolve host", "failed to connect",
-        "network is unreachable", "no address associated", "connection reset"
+        "network is unreachable", "no address associated", "connection reset",
+        // Zerwanie sieci W TRAKCIE połączenia (wyjście z zasięgu, wyłączone
+        // dane) - Android zgłasza je tymi słowami, nie żadnym z powyższych.
+        "no route to host", "software caused connection abort"
     )
 }

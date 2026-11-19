@@ -30,6 +30,24 @@ class ProviderFailureTest {
     }
 
     @Test
+    fun `brak DNS to brak sieci`() {
+        assertTrue(
+            ProviderFailure.isNoNetwork(
+                "Streaming error: Unable to resolve host \"generativelanguage.googleapis.com\""
+            )
+        )
+    }
+
+    @Test
+    fun `odpowiedz serwera to nie brak sieci, nawet ze slowem timeout`() {
+        // Serwer odpowiedział - internet jest; o limicie mówi [describe].
+        assertFalse(ProviderFailure.isNoNetwork("HTTP 429 Too Many Requests: upstream timeout"))
+        assertFalse(ProviderFailure.isNoNetwork("HTTP 401: invalid api key"))
+        assertFalse(ProviderFailure.isNoNetwork("HTTP 402: Insufficient Balance"))
+        assertFalse(ProviderFailure.isNoNetwork(null))
+    }
+
+    @Test
     fun `brak sieci mowi o sieci`() {
         val text = ProviderFailure.describe(
             "java.net.UnknownHostException: Unable to resolve host \"api.deepseek.com\""
