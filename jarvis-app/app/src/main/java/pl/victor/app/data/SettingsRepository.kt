@@ -314,6 +314,19 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_WAKE_WORD_GLASSES_MIC, enabled).apply()
     }
 
+    /**
+     * "Tylko mój głos" dla „Hej Wiktor” - budzi wyłącznie fraza potwierdzona
+     * przez weryfikator nauczony na nagraniach właściciela
+     * ([pl.victor.app.wakeword.DecyzjaWybudzenia]). Bez nagrań nie ma znaczenia.
+     * Funkcja darmowa (wszystko na telefonie), domyślnie wyłączona: weryfikator
+     * uczy się na kilku nagraniach i ostrzejszy tryb ma być świadomym wyborem.
+     */
+    fun isWakeOnlyMyVoice(): Boolean = prefs.getBoolean(KEY_WAKE_ONLY_MY_VOICE, false)
+
+    fun setWakeOnlyMyVoice(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_WAKE_ONLY_MY_VOICE, enabled).apply()
+    }
+
     fun isWakeWordEnabled(): Boolean = _wakeWordEnabledFlow.value
 
     fun setWakeWordEnabled(enabled: Boolean) {
@@ -1377,6 +1390,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_WAKE_WORD_ENABLED = "wake_word_enabled"
         private const val KEY_WAKE_FIX_184 = "wake_enabled_fix_184"
         private const val KEY_WAKE_WORD_GLASSES_MIC = "wake_word_glasses_mic"
+        private const val KEY_WAKE_ONLY_MY_VOICE = "wake_only_my_voice"
         private const val KEY_CLOUD_TRANSCRIPTION = "cloud_transcription"
         private const val KEY_SPEECH_END_WAIT = "speech_end_wait"
         private const val KEY_MEDIA_MODE_HINT_OFF = "media_mode_hint_off"

@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import java.nio.FloatBuffer
 
 /**
@@ -52,6 +53,15 @@ import java.nio.FloatBuffer
  * wątek najpierw prosi [pl.victor.app.audio.BluetoothAudioRouter] o łącze
  * rozmowy i nagrywa przez nie; bez zestawu wraca na mikrofon telefonu. Koszt
  * (okulary w trybie rozmowy przez cały czas) jest opisany przy tym ustawieniu.
+ * Nauka głosu ([nagraj]) nagrywa TYM SAMYM mikrofonem i źródłem, co nasłuch -
+ * weryfikator ma znać dźwięk dokładnie taki, jaki potem dostaje.
+ *
+ * ## Weryfikator głosu właściciela
+ * Gdy użytkownik nagrał swoje „Hej Wiktor” (Ustawienia, "Naucz mój głos" -
+ * [NaukaGlosu]), w [MagazynGlosu] leży [WeryfikatorGlosu], a o wybudzeniu
+ * decyduje [DecyzjaWybudzenia]: niższy próg dla potwierdzonego głosu
+ * właściciela, weto dla dźwięków, które weryfikator mocno odrzuca. Bez
+ * nagrań wszystko działa jak dawniej.
  */
 class OpenWakeWord(private val context: Context) {
 
@@ -109,6 +119,55 @@ class OpenWakeWord(private val context: Context) {
      */
     @Volatile
     var onDiag: ((String, Map<String, Any?>) -> Unit)? = null
+
+    /** Pliki nauczonego głosu - patrz [NaukaGlosu]. */
+    val magazynGlosu = MagazynGlosu(File(context.filesDir, MagazynGlosu.KATALOG))
+
+    /**
+     * Weryfikator z [magazynGlosu] albo `null`. Czytany przy każdej porcji, więc
+     * [przeladujWeryfikator] działa od razu, także w trakcie nasłuchu.
+     */
+    @Volatile
+    private var weryfikator: WeryfikatorGlosu? = null
+
+    @Volatile
+    private var weryfikatorWczytany = false
+
+    /** Weryfikator, którego używa nasłuch, albo `null` (brak nagrań albo jeszcze nie wczytany). */
+    val aktualnyWeryfikator: WeryfikatorGlosu? get() = weryfikator
+
+    /**
+     * Ostatnie wykrycie - do przycisku "To było fałszywe wybudzenie": wynik,
+     * decyzja i okna cech, które je dały (kopie). `null` po oznaczeniu.
+     */
+    class OstatnieWybudzenie(
+        val czasMs: Long,
+        val wynik: Float,
+        val weryfikator: Float?,
+        val decyzja: DecyzjaWybudzenia.Decyzja,
+        val okna: List<FloatArray>
+    )
+
+    @Volatile
+    var ostatnieWybudzenie: OstatnieWybudzenie? = null
+
+    /**
+     * Wczytuje weryfikator od nowa - po nauce, korekcie albo usunięciu nagrań.
+     * Wolno wołać z dowolnego wątku (plik ma kilkanaście kB).
+     */
+    fun przeladujWeryfikator(): WeryfikatorGlosu? {
+        val w = magazynGlosu.wczytajWeryfikator()
+        weryfikator = w
+        weryfikatorWczytany = true
+        onDiag?.invoke(
+            "weryfikator głosu " + if (w != null) "wczytany" else "nieaktywny (brak nagrań)",
+            mapOf(
+                "tylkoMójGłos" to (settings.isWakeOnlyMyVoice() && w != null),
+                "wymiar" to w?.wymiar
+            )
+        )
+        return w
+    }
 
     /** Czy wszystkie trzy pliki modeli są w APK (bez wczytywania). */
     fun hasModelFiles(): Boolean {
@@ -226,6 +285,7 @@ class OpenWakeWord(private val context: Context) {
             return
         }
         val m = modele ?: return
+        if (!weryfikatorWczytany) przeladujWeryfikator()
 
         val bluetooth = settings.isWakeWordOverGlassesMic() &&
             runCatching { runBlocking { bluetoothRouter.acquire() } }.getOrDefault(false)
@@ -234,22 +294,8 @@ class OpenWakeWord(private val context: Context) {
             // stop() w trakcie negocjowania łącza - nie zaczynamy nagrywać.
             if (!s.aktywna) return
 
-            val zrodlo = if (bluetooth) {
-                MediaRecorder.AudioSource.VOICE_COMMUNICATION
-            } else {
-                MediaRecorder.AudioSource.VOICE_RECOGNITION
-            }
-            val minBufor = AudioRecord.getMinBufferSize(
-                OwwPipeline.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
-            )
             val rec = try {
-                AudioRecord(
-                    zrodlo,
-                    OwwPipeline.SAMPLE_RATE,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    maxOf(minBufor, OwwPipeline.CHUNK * 2 * 4)
-                )
+                utworzRecorder(bluetooth)
             } catch (e: SecurityException) {
                 lastError = "Brak zgody na mikrofon."
                 return
@@ -264,7 +310,11 @@ class OpenWakeWord(private val context: Context) {
             s.nagrywa = true
             Log.i(tag, "Nasłuch „Hej Wiktor” ruszył" + if (bluetooth) " (mikrofon okularów)" else "")
 
-            val potok = OwwPipeline(
+            // Statystyki weryfikatora do podsumowania co DIAG_INTERVAL_MS.
+            var weryfikacji = 0
+            var maksWer = 0f
+            lateinit var potok: OwwPipeline
+            potok = OwwPipeline(
                 melspec = { probki -> uruchomMel(m, probki) },
                 embed = { okno -> uruchomOsadzenie(m, okno) },
                 classify = { cechy -> uruchomKlasyfikator(m, cechy) },
@@ -274,11 +324,38 @@ class OpenWakeWord(private val context: Context) {
                 // wybudzenia na godzinę; jedna ramka - 88% i 1,3/h.
                 threshold = OwwPipeline.DEFAULT_THRESHOLD,
                 wymaganeRamki = WYMAGANE_RAMKI,
-                onDetected = { wynik ->
-                    Log.i(tag, "Wykryto frazę (wynik=$wynik)")
-                    onDiag?.invoke("wykryto „Hej Wiktor”", mapOf("wynik" to "%.2f".format(wynik)))
-                    mainHandler.post { if (s.aktywna) onDetected() }
-                }
+                verify = verify@{ cechy ->
+                    val w = weryfikator ?: return@verify null
+                    // Weryfikator z innym oknem (inny klasyfikator w APK) - pomijamy.
+                    if (w.wymiar != cechy.size * (cechy.firstOrNull()?.size ?: 0)) return@verify null
+                    w.ocen(cechy).also {
+                        weryfikacji++
+                        if (it > maksWer) maksWer = it
+                    }
+                },
+                tylkoMojGlos = { settings.isWakeOnlyMyVoice() },
+                onDecision = { decyzja, wynik, wer ->
+                    val pola = mapOf(
+                        "wynik" to "%.2f".format(wynik),
+                        "weryfikator" to wer?.let { "%.2f".format(it) },
+                        "decyzja" to decyzja.opis
+                    )
+                    if (decyzja.budzi) {
+                        Log.i(tag, "Wykryto frazę (wynik=$wynik, weryfikator=$wer, ${decyzja.opis})")
+                        ostatnieWybudzenie = OstatnieWybudzenie(
+                            czasMs = System.currentTimeMillis(),
+                            wynik = wynik,
+                            weryfikator = wer,
+                            decyzja = decyzja,
+                            okna = potok.recentWindows(OKNA_KOREKTY).map { WeryfikatorGlosu.splaszcz(it) }
+                        )
+                        onDiag?.invoke("wykryto „Hej Wiktor”", pola)
+                    } else {
+                        Log.i(tag, "Weryfikator zawetował wykrycie (wynik=$wynik, weryfikator=$wer)")
+                        onDiag?.invoke("odrzucono „Hej Wiktor” - weryfikator głosu", pola)
+                    }
+                },
+                onDetected = { mainHandler.post { if (s.aktywna) onDetected() } }
             )
 
             val bufor = ShortArray(OwwPipeline.CHUNK)
@@ -305,11 +382,17 @@ class OpenWakeWord(private val context: Context) {
                         mapOf(
                             "maksWynik" to "%.2f".format(maks),
                             "porcji" to porcje,
-                            "wykryć" to potok.detections
+                            "wykryć" to potok.detections,
+                            // Pola weryfikatora tylko, gdy jest nauczony głos.
+                            "weryfikacji" to weryfikacji.takeIf { weryfikator != null },
+                            "maksWeryfikator" to "%.2f".format(maksWer).takeIf { weryfikacji > 0 },
+                            "odrzuceń" to potok.vetoes.takeIf { weryfikator != null }
                         )
                     )
                     maks = 0f
                     porcje = 0
+                    weryfikacji = 0
+                    maksWer = 0f
                     odDiag = teraz
                 }
             }
@@ -326,6 +409,115 @@ class OpenWakeWord(private val context: Context) {
             // synteza) - zwalniamy dokładnie to jedno odwołanie, które wzięliśmy.
             if (bluetooth) runCatching { runBlocking { bluetoothRouter.release() } }
         }
+    }
+
+    /**
+     * Mikrofon nasłuchu: przez łącze rozmowy okularów albo mikrofon telefonu
+     * w trybie rozpoznawania mowy (bez systemowej obróbki rozmowy).
+     *
+     * @throws SecurityException bez zgody na mikrofon
+     */
+    private fun utworzRecorder(bluetooth: Boolean): AudioRecord {
+        val zrodlo = if (bluetooth) {
+            MediaRecorder.AudioSource.VOICE_COMMUNICATION
+        } else {
+            MediaRecorder.AudioSource.VOICE_RECOGNITION
+        }
+        val minBufor = AudioRecord.getMinBufferSize(
+            OwwPipeline.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
+        )
+        return AudioRecord(
+            zrodlo,
+            OwwPipeline.SAMPLE_RATE,
+            AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+            maxOf(minBufor, OwwPipeline.CHUNK * 2 * 4)
+        )
+    }
+
+    /** Wynik [nagraj]: próbki i opis mikrofonu albo błąd. */
+    class Nagranie(val probki: ShortArray, val mikrofon: String, val blad: String? = null)
+
+    /**
+     * Nagrywa próbkę do nauki głosu tym samym mikrofonem i źródłem co nasłuch.
+     * Blokuje - wołać poza wątkiem głównym, przy zatrzymanym nasłuchu
+     * (mikrofon jest wyłączny; [NaukaGlosu] zatrzymuje go na czas nauki).
+     *
+     * @param maksMs najdłuższy czas nagrania
+     * @param czyPrzerwac sprawdzane co porcję; `true` kończy nagranie wcześniej
+     *   (to, co nagrano, wraca normalnie)
+     * @param naStart wołane z wątku nagrywania, gdy mikrofon już nagrywa - stąd
+     *   UI liczy czas do napisu "Mów teraz"
+     * @param postep wołane co porcję z liczbą nagranych ms
+     */
+    fun nagraj(
+        maksMs: Long,
+        czyPrzerwac: () -> Boolean = { false },
+        naStart: () -> Unit = {},
+        postep: (Long) -> Unit = {}
+    ): Nagranie {
+        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return Nagranie(ShortArray(0), "", "Brak zgody na mikrofon.")
+        }
+        val bluetooth = settings.isWakeWordOverGlassesMic() &&
+            runCatching { runBlocking { bluetoothRouter.acquire() } }.getOrDefault(false)
+        val mikrofon = if (bluetooth) MIKROFON_OKULARY else MIKROFON_TELEFON
+        var recorder: AudioRecord? = null
+        try {
+            val rec = utworzRecorder(bluetooth)
+            recorder = rec
+            if (rec.state != AudioRecord.STATE_INITIALIZED) {
+                return Nagranie(ShortArray(0), mikrofon, "Mikrofon niedostępny (zajęty przez inną aplikację?).")
+            }
+            val maksProbek = (maksMs * OwwPipeline.SAMPLE_RATE / 1000).toInt()
+            val wynik = ShortArray(maksProbek)
+            var n = 0
+            rec.startRecording()
+            naStart()
+            while (n < maksProbek && !czyPrzerwac()) {
+                val r = rec.read(wynik, n, minOf(OwwPipeline.CHUNK, maksProbek - n))
+                if (r < 0) return Nagranie(wynik.copyOf(n), mikrofon, "Odczyt z mikrofonu nie powiódł się (kod $r).")
+                n += r
+                postep(n * 1000L / OwwPipeline.SAMPLE_RATE)
+            }
+            return Nagranie(wynik.copyOf(n), mikrofon)
+        } catch (e: SecurityException) {
+            return Nagranie(ShortArray(0), mikrofon, "Brak zgody na mikrofon.")
+        } catch (e: Throwable) {
+            Log.e(tag, "Nagranie do nauki głosu przerwane", e)
+            return Nagranie(ShortArray(0), mikrofon, "Nagranie przerwane: ${e.message ?: e::class.java.simpleName}")
+        } finally {
+            recorder?.let { rec ->
+                runCatching { rec.stop() }
+                runCatching { rec.release() }
+            }
+            if (bluetooth) runCatching { runBlocking { bluetoothRouter.release() } }
+        }
+    }
+
+    /**
+     * Przepuszcza nagranie przez te same sieci co nasłuch i zwraca wszystkie
+     * okna cech z wynikiem klasyfikatora - surowce dla [NaukaGlosuDane].
+     * Blokuje (ok. 10 ms na porcję); `null`, gdy modele się nie wczytały.
+     */
+    fun analizuj(probki: ShortArray): List<OknoCech>? {
+        if (ensureLoaded() != null) return null
+        val m = modele ?: return null
+        val okna = mutableListOf<OknoCech>()
+        val potok = OwwPipeline(
+            melspec = { p -> uruchomMel(m, p) },
+            embed = { okno -> uruchomOsadzenie(m, okno) },
+            // Wynik surowy, bez zerowania rozgrzewki - pierwsze okna i tak
+            // pomija NaukaGlosuDane.POMIN_POCZATKOWE_OKNA.
+            classify = { cechy ->
+                uruchomKlasyfikator(m, cechy).also { okna += OknoCech(WeryfikatorGlosu.splaszcz(cechy), it) }
+            },
+            featureWindow = m.oknoKlasyfikatora
+        )
+        potok.feed(probki, 0L)
+        return okna
     }
 
     /** Model mel: wejście [1, N] (wartości int16 jako float), wyjście [1, 1, ramki, 32]. */
@@ -405,6 +597,12 @@ class OpenWakeWord(private val context: Context) {
         const val MEL_ASSET = "melspectrogram.onnx"
         const val EMBEDDING_ASSET = "embedding_model.onnx"
         const val CLASSIFIER_ASSET = "hej_wiktor.onnx"
+
+        /** Ile ostatnich okien zapamiętać przy wykryciu - do korekty fałszywego wybudzenia. */
+        const val OKNA_KOREKTY = 3
+
+        const val MIKROFON_TELEFON = "telefon"
+        const val MIKROFON_OKULARY = "okulary (Bluetooth)"
 
         /** Komunikat, gdy klasyfikatora frazy jeszcze nie ma w APK. */
         const val BRAK_MODELU = "Brak modelu hej_wiktor - fraza „Hej Wiktor” jeszcze nie działa."

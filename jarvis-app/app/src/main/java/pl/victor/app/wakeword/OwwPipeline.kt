@@ -35,6 +35,15 @@ package pl.victor.app.wakeword
  * progiem - bez tej przerwy jedno "Hej Wiktor" otwierałoby kilka tur), a
  * bufory liczą się dalej, żeby po przerwie nie zaczynać od zera.
  *
+ * ## Weryfikator głosu właściciela
+ * Gdy podany jest [verify] (użytkownik nagrał swoje „Hej Wiktor” - patrz
+ * [WeryfikatorGlosu]), o trafieniu porcji decyduje [DecyzjaWybudzenia]:
+ * weryfikator liczony jest tylko dla wyników od [DecyzjaWybudzenia.PROG_NISKI],
+ * może obudzić przy niższym wyniku i może zawetować wysoki. Zawetowane
+ * wykrycie (tyle samo porcji z rzędu co wykrycie) zgłasza [onDecision] - raz
+ * na [refractoryMs], żeby jeden dźwięk nie zalał dziennika. Bez weryfikatora
+ * (albo gdy [verify] zwraca `null`) wszystko działa jak dawniej.
+ *
  * Klasa nie jest bezpieczna wątkowo - karmi ją jeden wątek nasłuchu.
  */
 class OwwPipeline(
@@ -52,6 +61,19 @@ class OwwPipeline(
     private val refractoryMs: Long = REFRACTORY_MS,
     /** Ile osadzeń bierze klasyfikator - w modelach openWakeWord zwykle 16. */
     val featureWindow: Int = FEATURE_WINDOW,
+    /**
+     * Weryfikator głosu: okno cech -> 0..1, albo `null`, gdy go nie ma. Czytany
+     * przy każdej porcji, więc podmiana weryfikatora w trakcie nasłuchu (np. po
+     * oznaczeniu fałszywego wybudzenia) działa od razu.
+     */
+    private val verify: ((Array<FloatArray>) -> Float?)? = null,
+    /** Tryb "Tylko mój głos" - patrz [DecyzjaWybudzenia]. */
+    private val tylkoMojGlos: () -> Boolean = { false },
+    /**
+     * Wywoływane w wątku [feed] przy wykryciu (przed [onDetected]) i przy
+     * zawetowanym wykryciu: decyzja, wynik ogólny, wynik weryfikatora.
+     */
+    private val onDecision: (DecyzjaWybudzenia.Decyzja, Float, Float?) -> Unit = { _, _, _ -> },
     /** Wywoływane w wątku [feed] przy wykryciu, z wynikiem, który je dał. */
     private val onDetected: (Float) -> Unit = {}
 ) {
@@ -75,6 +97,10 @@ class OwwPipeline(
     /** Ile wyników policzono od startu - do pominięcia rozgrzewki. */
     private var scoresSinceStart = 0
     private var consecutiveHits = 0
+    private var consecutiveVetoes = 0
+
+    /** Do kiedy nie zgłaszamy kolejnego zawetowanego wykrycia. */
+    private var vetoQuietUntilMs = Long.MIN_VALUE
 
     /** Koniec przerwy po ostatnim wykryciu; `Long.MIN_VALUE` = brak przerwy. */
     private var refractoryUntilMs = Long.MIN_VALUE
@@ -85,6 +111,14 @@ class OwwPipeline(
 
     /** Ile razy fraza została wykryta od startu. */
     var detections: Int = 0
+        private set
+
+    /** Ile wykryć zawetował weryfikator od startu (zgłoszonych przez [onDecision]). */
+    var vetoes: Int = 0
+        private set
+
+    /** Wynik weryfikatora z ostatniej porcji, w której był liczony, albo `null`. */
+    var lastVerifierScore: Float? = null
         private set
 
     init {
@@ -100,9 +134,27 @@ class OwwPipeline(
         featureBuffer.clear()
         scoresSinceStart = 0
         consecutiveHits = 0
+        consecutiveVetoes = 0
         refractoryUntilMs = Long.MIN_VALUE
+        vetoQuietUntilMs = Long.MIN_VALUE
         lastScore = null
+        lastVerifierScore = null
         detections = 0
+        vetoes = 0
+    }
+
+    /**
+     * Ostatnie okna cech (najstarsze pierwsze), każde [featureWindow] osadzeń -
+     * kopie. Do oznaczenia fałszywego wybudzenia: okno, które je dało, i
+     * poprzednie, przesunięte o 80 ms.
+     */
+    fun recentWindows(n: Int): List<Array<FloatArray>> {
+        val dostepne = (featureBuffer.size - featureWindow + 1).coerceAtLeast(0)
+        val ile = minOf(n, dostepne)
+        return (ile - 1 downTo 0).map { k ->
+            val koniec = featureBuffer.size - k
+            Array(featureWindow) { featureBuffer[koniec - featureWindow + it].copyOf() }
+        }
     }
 
     /** Liczba ramek mel w buforze - dla testów. */
@@ -168,18 +220,42 @@ class OwwPipeline(
 
         if (nowMs < refractoryUntilMs) {
             consecutiveHits = 0
+            consecutiveVetoes = 0
             return score
         }
-        if (score >= threshold) {
-            consecutiveHits++
-            if (consecutiveHits >= wymaganeRamki) {
-                consecutiveHits = 0
-                refractoryUntilMs = nowMs + refractoryMs
-                detections++
-                onDetected(score)
+        val v = if (verify != null && DecyzjaWybudzenia.potrzebnyWeryfikator(score)) verify.invoke(features) else null
+        if (v != null) lastVerifierScore = v
+        val decyzja = DecyzjaWybudzenia.ocen(score, v, v != null && tylkoMojGlos(), threshold)
+        when {
+            decyzja.budzi -> {
+                consecutiveVetoes = 0
+                consecutiveHits++
+                if (consecutiveHits >= wymaganeRamki) {
+                    consecutiveHits = 0
+                    refractoryUntilMs = nowMs + refractoryMs
+                    detections++
+                    onDecision(decyzja, score, v)
+                    onDetected(score)
+                }
             }
-        } else {
-            consecutiveHits = 0
+            decyzja == DecyzjaWybudzenia.Decyzja.BRAK -> {
+                consecutiveHits = 0
+                consecutiveVetoes = 0
+            }
+            else -> {
+                // Weto weryfikatora: bez wykrycia, ale zgłoszone, gdy bez weryfikatora
+                // byłoby wykryciem - to są właśnie uniknięte fałszywe wybudzenia.
+                consecutiveHits = 0
+                consecutiveVetoes++
+                if (consecutiveVetoes >= wymaganeRamki) {
+                    consecutiveVetoes = 0
+                    if (nowMs >= vetoQuietUntilMs) {
+                        vetoQuietUntilMs = nowMs + refractoryMs
+                        vetoes++
+                        onDecision(decyzja, score, v)
+                    }
+                }
+            }
         }
         return score
     }
