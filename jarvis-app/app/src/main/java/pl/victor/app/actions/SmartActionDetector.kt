@@ -259,7 +259,7 @@ class SmartActionDetector {
             .replace(ASSIST_ON_REGEX, " ")
             .replace(ASSIST_OFF_REGEX, " ")
             .replace(TRANSIT_REGEX, " ")
-        val match = NAV_REGEX.find(navText.trim()) ?: return null
+        val match = NAV_REGEX.find(navText.trim()) ?: return transitQuestion(lower, navText)
         val dest = cleanDestination(match.groupValues[2])
         if (dest.isBlank()) return null
         val verb = match.groupValues[1].lowercase()
@@ -273,6 +273,30 @@ class SmartActionDetector {
             byTransit = transit,
             // Wprost powiedziane wygrywa z ustawieniem - tak samo jak przy
             // każdej innej komendzie głosowej.
+            assist = routeAssistIn(lower)
+        )
+    }
+
+    /**
+     * "Jak dojadę TRAMWAJEM do ratusza?", "jak się dostać autobusem na dworzec",
+     * "pokaż połączenie komunikacją do Galerii" - pytanie o dojazd z NAZWĄ
+     * POJAZDU to prośba o plan podróży w Mapach, a nie temat do rozmowy.
+     *
+     * Bez nazwy pojazdu ("jak dojadę do Krakowa") zostaje modelowi: może
+     * chodzić o samochód albo o radę, a warstwa 0 ma łapać tylko to, co jest
+     * jednoznaczne. Nazwanie Jakdojade z nazwy też tu nie wchodzi - to zadanie
+     * dla tamtej aplikacji (patrz [detect]).
+     */
+    private fun transitQuestion(lower: String, navText: String): Action.Navigate? {
+        if (JAKDOJADE_APP_REGEX.containsMatchIn(lower)) return null
+        if (VEHICLE_WORDS.none { lower.contains(it) }) return null
+        val m = TRANSIT_ASK_REGEX.find(navText.replace(Regex("""\s+"""), " ").trim()) ?: return null
+        val dest = cleanDestination(m.groupValues[1])
+        if (dest.isBlank()) return null
+        return Action.Navigate(
+            destination = dest,
+            byCar = false,
+            byTransit = true,
             assist = routeAssistIn(lower)
         )
     }
@@ -398,7 +422,30 @@ class SmartActionDetector {
         // Zakotwiczone na początku: "napisz Ani SMS: przyjedź do mnie o piątej"
         // nie jest prośbą o trasę (audyt 28.10).
         """^(?:(?:prosz[eę]|a\s+teraz|teraz|dobra|ok|hej|victor)[,\s]+)*""" +
-            """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+do\s+["']?(.+?)["']?$""",
+            // "prowadź MNIE do..." - tak się mówi najczęściej, a "mnie" stało
+            // między czasownikiem a "do" i wzorzec nie łapał nic.
+            """(nawiguj|prowadz|prowadź|jedz|jedź|poprowadz|poprowadź)\s+(?:mnie\s+)?do\s+["']?(.+?)["']?$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * Nazwy pojazdów - jak [TRANSIT_WORDS], ale BEZ "jak dojadę": tutaj pytanie
+     * o dojazd jest już w samym wzorcu, a pojazd ma przesądzić, że chodzi o
+     * komunikację, a nie o samochód.
+     */
+    private val VEHICLE_WORDS = listOf(
+        "autobus", "tramwaj", "trolejbus", "pociąg", "pociag", "kolejk", "szynobus",
+        "metro", "metrem", "metra", "komunikacj", "transportem publicznym"
+    )
+
+    /** "jak (się) dojadę/dostanę/dotrę/dojechać do|na X", "pokaż połączenie do X". */
+    private val TRANSIT_ASK_REGEX = Regex(
+        """^(?:(?:prosz[eę]|a|teraz|dobra|ok|hej|victor|powiedz|sprawd[zź])[,\s]+)*""" +
+            """(?:(?:jak|kt[oó]r[eę]dy)\s+(?:mam\s+|mog[eę]\s+|najlepiej\s+)?(?:si[eę]\s+)?""" +
+            """(?:doja[dz]\S*|dojecha\S*|dotr\S*|dosta\S*|pojecha\S*|jecha\S*|jad[eę]\S*)""" +
+            // Samo "którędy (autobusem) do X" - czasownika nie trzeba.
+            """|kt[oó]r[eę]dy|poka[zż]\s+(?:mi\s+)?(?:po[lł][aą]czeni\S*|tras\S*|dojazd\S*|plan\s+podr[oó][zż]y))""" +
+            """\s+(?:si[eę]\s+)?(?:do|na)\s+["']?(.+?)["']?$""",
         RegexOption.IGNORE_CASE
     )
 
@@ -446,7 +493,8 @@ class SmartActionDetector {
         // z nazwy.
         val nazwalJakdojade = JAKDOJADE_APP_REGEX.containsMatchIn(lower)
         TRANSIT_QUESTION_REGEX.find(lower)?.let { m ->
-            val dest = cleanDestination(m.groupValues[1])
+            // Pojazd na końcu ("jak dojadę do dworca TRAMWAJEM") nie jest częścią celu.
+            val dest = cleanDestination(m.groupValues[1].replace(TRANSIT_REGEX, " "))
             if (dest.isNotBlank() && actions.none { it is Action.Navigate }) {
                 if (nazwalJakdojade) {
                     actions.add(Action.AppTask(AppTaskKind.TRANSIT_PLAN, dest))
@@ -556,7 +604,13 @@ class SmartActionDetector {
         // Czasownik niesie TRYB PODRÓŻY i to nie jest szczegół: trasa
         // samochodowa poprowadzona pieszemu każe iść obwodnicą, a piesza
         // kierowcy - przez park.
-        detectNavigation(lower)?.let { actions.add(it) }
+        // Pytanie o dojazd ("jak dojadę tramwajem do X") złapał już wzorzec
+        // wyżej - druga trasa do tego samego celu otworzyłaby Mapy dwa razy.
+        detectNavigation(lower)?.let { trasa ->
+            if (actions.none { it is Action.Navigate || (it is Action.AppTask && it.kind == AppTaskKind.TRANSIT_PLAN) }) {
+                actions.add(trasa)
+            }
+        }
 
         // === KALENDARZ ===
         // "dodaj do kalendarza spotkanie z Anną jutro o 15" / "umów spotkanie z

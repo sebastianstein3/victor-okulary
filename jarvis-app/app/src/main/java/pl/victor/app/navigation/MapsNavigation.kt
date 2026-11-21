@@ -151,7 +151,7 @@ class NavZapowiedzi {
      * jest powód, żeby gadać.
      */
     fun decyzja(stan: MapsNavigation.Stan): String? {
-        val klucz = stan.manewr.lowercase()
+        val klucz = kluczManewru(stan.manewr)
         if (klucz != ostatniManewr) {
             ostatniManewr = klucz
             val blisko = stan.dystansM != null && stan.dystansM <= BLISKO_M
@@ -173,6 +173,21 @@ class NavZapowiedzi {
     companion object {
         /** Od tej odległości mówimy "teraz" - dla pieszego to kilkanaście kroków. */
         const val BLISKO_M = 40
+
+        /** "za 5 min", "o 12:40", "3 min" - w kluczu manewru bez liczb. */
+        private val ZEGAR = Regex("""(za\s+)?\d+\s*min\S*|\d{1,2}:\d{2}""")
+
+        /**
+         * Klucz "tego samego" manewru.
+         *
+         * Przy komunikacji miejskiej Mapy odliczają w powiadomieniu minuty do
+         * odjazdu ("Autobus 175 za 5 min" -> "za 4 min"). Bez tego asystent
+         * mówiłby co minutę, stojąc na przystanku. Przystanki do wysiadki
+         * ("Wysiądź za 2 przystanki" -> "za 1 przystanek") zostają w kluczu -
+         * to jest dokładnie to, co warto usłyszeć.
+         */
+        fun kluczManewru(manewr: String): String =
+            manewr.lowercase().replace(ZEGAR, "#").replace(Regex("""\s+"""), " ").trim()
     }
 }
 
@@ -224,9 +239,20 @@ object NavPytania {
     private val ILE = Regex("""\b(ile (jeszcze|zostało|zostalo|mi zostało)|daleko (jeszcze|do celu)|kiedy (będę|dojdę|dojadę|dotrę)|o której (będę|dojdę|dojadę|dotrę))""")
     private val GDZIE = Regex("""\b(gdzie (teraz )?(skręcam|skrecam|mam skręcić|skręcić)|co dalej|następny (skręt|manewr)|jaki (jest )?następny|powtórz (wskazówkę|kierunek|to)?|którędy)""")
 
+    /**
+     * Komunikacja miejska: "ile jeszcze przystanków?", "kiedy wysiadam?" - w
+     * powiadomieniu Map stoi wtedy "Wysiądź za 2 przystanki", a nie odległość.
+     * Sprawdzane PRZED [ILE], bo "ile jeszcze" złapałoby to jako pytanie o czas.
+     */
+    private val WYSIADKA = Regex(
+        """(ile\s+(jeszcze\s+|mi\s+)?(zosta[lł]o\s+)?przystank|(kiedy|gdzie)\s+(mam\s+)?(si[eę]\s+)?(wysi|przesi)|""" +
+            """wysiadam|przesiadam|na\s+kt[oó]rym\s+przystanku)"""
+    )
+
     fun odpowiedź(pytanie: String, stan: MapsNavigation.Stan?): String? {
         stan ?: return null
         val t = pytanie.lowercase().trim()
+        if (WYSIADKA.containsMatchIn(t)) return NavMowa.zapowiedź(stan)
         if (ILE.containsMatchIn(t)) {
             return stan.doCelu?.let { "Do celu: ${NavMowa.doCelu(it)}." }
                 ?: "Mapy nie podają teraz, ile zostało. ${NavMowa.zapowiedź(stan)}"
