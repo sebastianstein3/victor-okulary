@@ -1327,6 +1327,10 @@ private fun WakeEngineSection(
                 }
                 Switch(checked = enabled, onCheckedChange = onEnabledChange)
             }
+            // Personalizacja frazy nagraniami właściciela - darmowa, na telefonie.
+            // Tylko przy "Hej Wiktor": fraza okularów to model producenta, na
+            // który aplikacja nie ma wpływu.
+            NaukaGlosuSection()
         } else {
             Text(
                 "Mikrofon telefonu zostaje wolny. Fraza okularów musi być włączona " +
