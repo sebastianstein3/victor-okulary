@@ -294,6 +294,9 @@ class AudioManager(
     /** Ile trwało ostatnie czekanie na łącze rozmowy - do dziennika. */
     fun lastConversationLinkWaitMs(): Long = bluetoothRouter.lastLinkWaitMs
 
+    /** Czy łącze SCO faktycznie stoi - patrz [BluetoothAudioRouter.isScoLinkUp]. */
+    fun isConversationLinkUp(): Boolean = bluetoothRouter.isScoLinkUp()
+
     /** Zwalnia łącze wzięte przez [beginConversationRouting]. */
     suspend fun endConversationRouting() = bluetoothRouter.release()
 

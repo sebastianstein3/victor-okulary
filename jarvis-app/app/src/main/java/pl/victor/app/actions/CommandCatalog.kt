@@ -311,6 +311,14 @@ object CommandCatalog {
             "Tłumaczenie ze słuchu",
             "Tłumaczy na bieżąco to, co słychać wokół, i czyta przekład w okularach.",
             listOf("Tłumacz po niemiecku", "Koniec tłumaczenia")
+        ),
+        ModeInfo(
+            "Rozmowa na żywo",
+            "Płynna rozmowa głosowa z asystentem przez Gemini Live - bez czekania na " +
+                "każdą odpowiedź, można wejść w słowo. Płatna za minutę (przełącznik w " +
+                "Ustawieniach), wymaga klucza Gemini. Kończy ją też dotyk skroni, przycisk " +
+                "na okularach albo 2 minuty ciszy.",
+            listOf("Porozmawiajmy", "Rozmowa na żywo", "Koniec rozmowy")
         )
     )
 }

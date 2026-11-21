@@ -36,6 +36,12 @@ import kotlinx.serialization.json.putJsonObject
  * session per direction").
  *
  * Wszystko tutaj to czyste funkcje - da się je sprawdzić testem bez telefonu.
+ *
+ * Adres, ramkę dźwięku i rozbiór wiadomości Gemini współdzieli rozmowa na
+ * żywo z asystentem ([pl.victor.app.live.LiveConversationProtocol]) - to ten
+ * sam BidiGenerateContent, tylko z innym `setup`. W rozmowie [Zdarzenie.Oryginał]
+ * to tekst tego, co powiedział użytkownik, a [Zdarzenie.Przekład] - tego, co
+ * odpowiedział asystent.
  */
 object LiveTranslationProtocol {
 
@@ -65,6 +71,13 @@ object LiveTranslationProtocol {
         data class Przekład(val tekst: String) : Zdarzenie()
         /** Koniec wypowiedzi - pora zamknąć zdanie w panelu. */
         object KoniecTury : Zdarzenie()
+        /**
+         * Użytkownik wszedł w słowo (`serverContent.interrupted`) - serwer
+         * przestał generować, a to, co już przysłał, trzeba wyciąć z
+         * odtwarzacza. W tłumaczeniu się nie zdarza (brak tur rozmowy); używa
+         * go rozmowa na żywo z asystentem ([pl.victor.app.live.LiveConversationProtocol]).
+         */
+        object Przerwane : Zdarzenie()
         /** Serwer kończy sesję. */
         object Zamknięte : Zdarzenie()
         data class Błąd(val opis: String) : Zdarzenie()
@@ -191,6 +204,10 @@ object LiveTranslationProtocol {
         o["error"].obj()?.let { wynik += Zdarzenie.Błąd(it["message"].str() ?: it.toString().take(160)) }
         o["goAway"].obj()?.let { wynik += Zdarzenie.Zamknięte }
         val sc = o["serverContent"].obj() ?: return wynik
+        // Najpierw przerwanie: wiadomość z `interrupted` nie niesie już
+        // dźwięku starej wypowiedzi, a wołający ma wyczyścić odtwarzacz,
+        // zanim cokolwiek nowego do niego wpisze.
+        if ((sc["interrupted"] as? JsonPrimitive)?.booleanOrNull == true) wynik += Zdarzenie.Przerwane
         sc["inputTranscription"].obj()?.let { wejście ->
             wejście["text"].str()?.takeIf { it.isNotEmpty() }
                 ?.let { wynik += Zdarzenie.Oryginał(it, wejście["languageCode"].str()) }

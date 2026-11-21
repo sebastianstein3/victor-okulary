@@ -230,6 +230,55 @@ object MetaCommands {
             """(spotkani[ae]|nagrywani[ae]|protok[oó][lł]u?|notatk[ię]\s+ze\s+spotkania)$"""
     )
 
+    /**
+     * Rozmowa na żywo z asystentem (Gemini Live): "porozmawiajmy", "rozmowa na
+     * żywo", "pogadaj ze mną".
+     *
+     * Cała wypowiedź, jak przy pozostałych trybach - "porozmawiajmy o pogodzie"
+     * to pytanie do modelu, nie włączenie trybu. Samo "tryb rozmowy" NIE
+     * należy tutaj: od dawna włącza tłumaczenie rozmowy w dwie strony
+     * ([twoWayCommand]), więc tu jest tylko "tryb rozmowy na żywo".
+     */
+    fun startsLiveConversation(text: String): Boolean = LIVE_CONVERSATION_START.matches(earBare(text))
+
+    /**
+     * "Koniec rozmowy" w trakcie rozmowy na żywo - sprawdzane na transkrypcji
+     * tego, co powiedział użytkownik (jedna wypowiedź).
+     *
+     * Polecenie może kończyć dłuższe zdanie ("dobra, dzięki, koniec
+     * rozmowy"), ale nie może być zaprzeczone ("nie kończymy rozmowy") ani
+     * stać w środku ("koniec rozmowy był dziwny"). Pożegnanie liczy się tylko
+     * jako cała wypowiedź - "do widzenia" w środku zdania to cytat.
+     */
+    fun endsLiveConversation(text: String): Boolean {
+        val bare = text.lowercase()
+            .replace(Regex("[.,!?…;:\"„”]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (bare.isEmpty()) return false
+        if (LIVE_CONVERSATION_FAREWELL.matches(bare)) return true
+        val m = LIVE_CONVERSATION_END.find(bare) ?: return false
+        val przed = bare.substring(0, m.range.first).trim().substringAfterLast(' ')
+        return przed != "nie"
+    }
+
+    private val LIVE_CONVERSATION_START = Regex(
+        """^((w[lł][aą]cz(my)?|uruchom|zacznij(my)?|rozpocznij(my)?)\s+)?(tryb\s+)?rozmow[aęey]\s+na\s+[zż]ywo$|""" +
+            """^((no\s+)?to\s+|dobra\s+|hej\s+)?(po)?(rozmawiajmy|gadajmy)(\s+(sobie|chwil[eę]|troch[eę]|na\s+[zż]ywo))*$|""" +
+            """^(po)?(rozmawiaj|gadaj|rozmawia[cć]|gada[cć])\s+ze\s+mn[aą](\s+(sobie|chwil[eę]|troch[eę]|na\s+[zż]ywo))*$|""" +
+            """^chc[eę]\s+(z\s+tob[aą]\s+)?(po)?(rozmawia[cć]|gada[cć])(\s+z\s+tob[aą])?$"""
+    )
+
+    private val LIVE_CONVERSATION_END = Regex(
+        """(^|\s)(koniec|zako[nń]cz(my)?|ko[nń]cz(ymy)?|sko[nń]cz(my)?|wy[lł][aą]cz|przerwij|stop)\s+""" +
+            """((t[eę]|tej|nasz[aą]|naszej)\s+)?rozmow[ęeyaą](\s+na\s+[zż]ywo)?""" +
+            """(\s+(prosz[eę]|dzi[eę]kuj[eę]|dzi[eę]ki))?$"""
+    )
+
+    private val LIVE_CONVERSATION_FAREWELL = Regex(
+        """^((dobra|ok|okej|dzi[eę]ki|dzi[eę]kuj[eę])\s+)*(do\s+widzenia|do\s+us[lł]yszenia)$"""
+    )
+
     /** Kod języka z polskiej nazwy w dowolnym przypadku ("polskiego", "angielski"). */
     fun languageCode(word: String): String? {
         val w = word.lowercase().trim()

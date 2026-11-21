@@ -1351,6 +1351,7 @@ private fun SpeechSection() {
     val settings = remember { (context.applicationContext as pl.victor.app.VictorApplication).settings }
     var cloud by remember { mutableStateOf(settings.isCloudTranscriptionEnabled()) }
     var speakers by remember { mutableStateOf(settings.isMeetingSpeakersEnabled()) }
+    var liveTalk by remember { mutableStateOf(settings.isLiveConversationEnabled()) }
     val freeOnly by settings.freeOnlyFlow.collectAsState()
     val maKluczGemini = remember { !settings.getApiKey("gemini").isNullOrBlank() }
     var glassesMic by remember { mutableStateOf(settings.isWakeWordOverGlassesMic()) }
@@ -1440,6 +1441,43 @@ private fun SpeechSection() {
                     checked = speakers && maKluczGemini && !freeOnly,
                     enabled = maKluczGemini && !freeOnly,
                     onCheckedChange = { speakers = it; settings.setMeetingSpeakersEnabled(it) }
+                )
+            }
+
+            Spacer(Modifier.size(12.dp))
+
+            // Rozmowa na żywo (Gemini Live) - płatna, więc osobny przełącznik z
+            // kosztem i respektujący "Tylko darmowe funkcje". Cennik Gemini API
+            // (listopad 2026): 0,005 $/min słuchania + 0,018 $/min odpowiedzi.
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "🎙️ Rozmowa na żywo (Gemini Live) – ok. 5–10 gr/min",
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        when {
+                            freeOnly -> "Wyłączone przez \"Tylko darmowe funkcje\" - pytasz jak zwykle, " +
+                                "po słowie wybudzenia."
+                            !maKluczGemini -> "Potrzebny klucz Gemini (niezależnie od wybranego dostawcy). " +
+                                "Bez niego pytasz jak zwykle."
+                            else -> "Płynna rozmowa głosowa bez czekania na każdą odpowiedź - można " +
+                                "wejść asystentowi w słowo. Zaczynasz mówiąc „porozmawiajmy” albo " +
+                                "kafelkiem na ekranie głównym; kończysz mówiąc „koniec rozmowy”, " +
+                                "dotykiem skroni, przyciskiem na okularach albo na ekranie. Sama " +
+                                "kończy się po 2 minutach ciszy. Płatne za minutę dźwięku: ok. " +
+                                "0,005 \$ za minutę słuchania i 0,018 \$ za minutę odpowiedzi. " +
+                                "W tym trybie asystent tylko rozmawia - zdjęcia, wiadomości i " +
+                                "alarmy zwykłym poleceniem."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = liveTalk && maKluczGemini && !freeOnly,
+                    enabled = maKluczGemini && !freeOnly,
+                    onCheckedChange = { liveTalk = it; settings.setLiveConversationEnabled(it) }
                 )
             }
 
