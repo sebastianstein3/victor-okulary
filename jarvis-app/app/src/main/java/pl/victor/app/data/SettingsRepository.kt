@@ -467,6 +467,46 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_OSM_PLACES, enabled).apply()
     }
 
+    // === Dom (Home Assistant) ===
+    //
+    // Darmowe - to własny serwer użytkownika - więc bez związku z "Tylko
+    // darmowe funkcje". Domyślnie WYŁĄCZONE: zdania o świetle i ogrzewaniu
+    // nie mogą nagle zacząć iść do serwera, którego nikt nie skonfigurował.
+
+    /** Czy polecenia o domu idą do Home Assistant. */
+    fun isHomeControlEnabled(): Boolean = prefs.getBoolean(KEY_HA_ENABLED, false)
+
+    fun setHomeControlEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HA_ENABLED, enabled).apply()
+    }
+
+    /** Adres serwera, np. `http://homeassistant.local:8123` - patrz [pl.victor.app.home.HaAdres]. */
+    fun getHomeAssistantUrl(): String = prefs.getString(KEY_HA_URL, "") ?: ""
+
+    fun setHomeAssistantUrl(url: String) {
+        prefs.edit().putString(KEY_HA_URL, url.trim()).apply()
+    }
+
+    /**
+     * Token długoterminowy HA - w tych samych szyfrowanych preferencjach co
+     * klucze API. Nie trafia do dziennika ani do modelu.
+     */
+    fun getHomeAssistantToken(): String? = prefs.getString(KEY_HA_TOKEN, null)?.takeIf { it.isNotBlank() }
+
+    fun setHomeAssistantToken(token: String) {
+        // Bez białych znaków: token wklejony z nową linią na końcu psuje
+        // nagłówek Authorization.
+        prefs.edit().putString(KEY_HA_TOKEN, token.filterNot { it.isWhitespace() }).apply()
+    }
+
+    /** Nazwy obszarów (pokoi) pobrane z HA - do rozpoznawania poleceń. */
+    fun getHomeAssistantAreas(): List<String> =
+        prefs.getString(KEY_HA_AREAS, "").orEmpty().split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+
+    fun setHomeAssistantAreas(areas: List<String>) {
+        prefs.edit().putString(KEY_HA_AREAS, areas.joinToString("\n")).apply()
+    }
+
     /** Mapy Google dla pytań o okolicę (opinie, godziny otwarcia) - tylko Gemini 3+. */
     fun isMapsGroundingEnabled(): Boolean = prefs.getBoolean(KEY_MAPS_GROUNDING, true) && !isFreeOnly()
 
@@ -1402,6 +1442,10 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_NAV_PROMPTS = "nav_prompts"
         private const val KEY_FREE_ONLY = "free_only"
         private const val KEY_OSM_PLACES = "osm_places"
+        private const val KEY_HA_ENABLED = "home_assistant_enabled"
+        private const val KEY_HA_URL = "home_assistant_url"
+        private const val KEY_HA_TOKEN = "home_assistant_token"
+        private const val KEY_HA_AREAS = "home_assistant_areas"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"
         private const val KEY_CAMERA_FREE = "camera_free"
         private const val KEY_THEME_MODE = "theme_mode"

@@ -340,7 +340,7 @@ fun SettingsScreen(
 
             SettingsGroup(
                 title = "Funkcje asystenta",
-                subtitle = "Komendy, kalendarz i poczta, alerty, dostępność"
+                subtitle = "Komendy, kalendarz i poczta, dom, alerty, dostępność"
             ) {
                 ActionsSection()
                 HorizontalDivider()
@@ -349,6 +349,8 @@ fun SettingsScreen(
                 )
                 HorizontalDivider()
                 MessagesSection()
+                HorizontalDivider()
+                HomeAssistantSection()
                 HorizontalDivider()
                 ProactiveAlertsSection()
                 DailyBriefingSection()

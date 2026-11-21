@@ -337,10 +337,8 @@ class ActionExecutor(private val context: Context) {
         if (action.byTransit) {
             val plan = Intent(
                 Intent.ACTION_VIEW,
-                Uri.parse(
-                    "https://www.google.com/maps/dir/?api=1" +
-                        "&destination=$where&travelmode=transit"
-                )
+                // Adres składa czysta logika (z testami) - patrz KomunikacjaLinki.
+                Uri.parse(pl.victor.app.navigation.KomunikacjaLinki.planPodróży(action.destination))
             )
             return launchIntent(
                 plan,

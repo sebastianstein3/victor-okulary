@@ -710,13 +710,193 @@ class AIOrchestrator(
         }
     }
 
+    /** Home Assistant użytkownika - adres i token czytane przy każdym wywołaniu. */
+    private val homeAssistant by lazy {
+        pl.victor.app.home.HomeAssistantClient(
+            adres = { settings.getHomeAssistantUrl() },
+            token = { settings.getHomeAssistantToken() }
+        )
+    }
+
+    /**
+     * Polecenie dla domu ("włącz światło w salonie", "dom, …").
+     *
+     * ## Czemu przez conversation API HA, a nie przez model
+     * HA sam rozumie polskie polecenia i zna swoje urządzenia; model musiałby
+     * dostać ich listę w każdej turze i zgadywać identyfikatory. Za darmo i
+     * szybciej - jedno zapytanie w sieci domowej.
+     *
+     * @return `true`, gdy zdanie zostało obsłużone (także komunikatem, że dom
+     *   jest wyłączony albo nieskonfigurowany)
+     */
+    private fun handleHomeCommand(trigger: TriggerSource, question: String): Boolean {
+        val włączone = settings.isHomeControlEnabled()
+        val p = pl.victor.app.home.DomPolecenia.rozpoznaj(
+            question, if (włączone) settings.getHomeAssistantAreas() else emptyList()
+        ) ?: return false
+        if (!włączone || !homeAssistant.skonfigurowany()) {
+            // Bez domu "włącz światło" idzie dalej jak dotąd. Tylko jawne
+            // "dom, …" dostaje wyjaśnienie, czemu nic się nie stało.
+            if (!włączone && !p.jawne) return false
+            val mowa = if (!włączone) pl.victor.app.home.HaMowa.WYŁĄCZONE else pl.victor.app.home.HaMowa.BRAK_KONFIGURACJI
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "dom: polecenie bez połączenia",
+                    mapOf("włączone" to włączone, "tekst" to p.tekst.take(120))
+                )
+            }
+            audio.speak(mowa, language = settings.getResponseLanguage())
+            _state.value = OrchestratorState.Completed(mowa)
+            return true
+        }
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.AKCJA, "dom: polecenie rozpoznane",
+                mapOf("tekst" to p.tekst.take(120), "jawne" to p.jawne, "potwierdzenie" to p.wymagaPotwierdzenia)
+            )
+        }
+        if (p.wymagaPotwierdzenia) {
+            // Otwarcie zamka czy rozbrojenie alarmu z przesłyszenia byłoby
+            // gorsze niż każda inna pomyłka asystenta - najpierw "na pewno?".
+            _pendingActionConfirmation.value = PendingActionConfirmation(
+                actions = emptyList(),
+                title = "Wykonać w domu?",
+                message = p.tekst,
+                confirmText = "🏠 Wykonaj",
+                cancelText = "Anuluj",
+                homeCommand = p.tekst
+            )
+            listenForConfirmation(pl.victor.app.home.HaMowa.pytanieOPotwierdzenie(p.tekst))
+            return true
+        }
+        runHomeCommand(trigger, question, p.tekst)
+        return true
+    }
+
+    /**
+     * Wysyła zdanie do HA i mówi odpowiedź. Gdy HA nie zrozumiał, pytanie
+     * idzie do zwykłego modelu z tą informacją (bez tokenu i adresu).
+     */
+    private fun runHomeCommand(trigger: TriggerSource, question: String, tekst: String) {
+        scope.launch {
+            val (w, odp) = homeAssistant.polecenie(tekst)
+            val decyzja = pl.victor.app.home.HaDecyzja.z(w.kodHttp, w.błąd, odp, w.host)
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "dom: odpowiedź Home Assistant",
+                    mapOf(
+                        "tekst" to tekst.take(120),
+                        "ms" to w.ms,
+                        "http" to w.kodHttp,
+                        "błąd" to w.błąd?.name,
+                        "typ" to odp?.typ,
+                        "kod" to odp?.kodBłędu,
+                        "zrozumiał" to (decyzja is pl.victor.app.home.HaDecyzja.Decyzja.Powiedz && decyzja.zrozumiał),
+                        "doModelu" to (decyzja is pl.victor.app.home.HaDecyzja.Decyzja.DoModelu)
+                    )
+                )
+            }
+            when (decyzja) {
+                is pl.victor.app.home.HaDecyzja.Decyzja.DoModelu -> handleUserTrigger(
+                    trigger,
+                    pl.victor.app.home.HaMowa.dlaModelu(question, decyzja.odpowiedźHa),
+                    internalPrompt = true
+                )
+                is pl.victor.app.home.HaDecyzja.Decyzja.Powiedz -> {
+                    conversationalMode.onAiStartedSpeaking()
+                    // Po polsku - tak pytamy HA i tak odpowiada.
+                    audio.speakAndAwait(decyzja.mowa, language = "pl")
+                    _state.value = OrchestratorState.Completed(decyzja.mowa)
+                    conversationalMode.onAiFinishedSpeaking()
+                }
+            }
+        }
+    }
+
+    /**
+     * "Kiedy najbliższy tramwaj?", "jakie autobusy stąd jeżdżą?" - za darmo.
+     *
+     * Najbliższe przystanki i linie z OpenStreetMap, potem propozycja
+     * otwarcia Map Google, które mają rozkład. Odjazdów na żywo darmowo nie
+     * mamy i mówimy to wprost. Z włączonymi Mapami Google (płatne) i Gemini
+     * pytanie idzie do modelu - [buildLocationContext] doda mu przystanki.
+     *
+     * @return `true`, gdy pytanie zostało obsłużone tutaj
+     */
+    private fun handleTransitDepartures(question: String): Boolean {
+        val pytanie = pl.victor.app.navigation.OdjazdyPytanie.rozpoznaj(question) ?: return false
+        val mapyGoogle = settings.getActiveProvider() == "gemini" && settings.isMapsGroundingEnabled() &&
+            settings.hasApiKey("gemini")
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.KONTEKST, "komunikacja: pytanie o odjazdy",
+                mapOf(
+                    "pojazd" to pytanie.pojazd?.name,
+                    "przystanek" to pytanie.przystanek,
+                    "droga" to if (mapyGoogle) "model z Mapami Google" else "OpenStreetMap"
+                )
+            )
+        }
+        if (mapyGoogle) return false
+        scope.launch {
+            val od = System.currentTimeMillis()
+            val tu = withTimeoutOrNull(TRANSIT_LOCATION_MS) {
+                pl.victor.app.proactive.LocationContext.tutaj(context, naŚwieżąMs = TRANSIT_LOCATION_MS)
+            }
+            val osm = settings.isOsmPlacesEnabled()
+            val lista = if (tu != null && osm) {
+                withTimeoutOrNull(TRANSIT_OSM_MS) {
+                    pl.victor.app.navigation.PrzystankiClient.przystanki(tu.lat, tu.lon, pytanie.przystanek)
+                }
+            } else {
+                null
+            }
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.KONTEKST, "komunikacja: przystanki z OpenStreetMap",
+                    mapOf(
+                        "ms" to (System.currentTimeMillis() - od),
+                        "położenie" to (tu != null),
+                        "osm" to osm,
+                        "przystanków" to lista?.size,
+                        "najbliższy" to lista?.firstOrNull()?.nazwa
+                    )
+                )
+            }
+            val wybrany = lista?.let { pl.victor.app.navigation.Przystanki.wybierz(it, pytanie).firstOrNull() }
+            val mowa = when {
+                tu == null -> "Nie udało się ustalić położenia, więc nie wiem, który przystanek jest najbliżej."
+                !osm -> "Przystanki z OpenStreetMap są wyłączone w ustawieniach (Miejsca z OpenStreetMap)."
+                lista == null -> "Serwer map OpenStreetMap nie odpowiedział."
+                else -> pl.victor.app.navigation.Przystanki.odpowiedź(lista, pytanie)
+            }
+            // Co otworzyć w Mapach: wybrany przystanek albo ten z pytania.
+            val doMap = pl.victor.app.navigation.KomunikacjaLinki.przystanekDoMap(
+                wybrany?.nazwa ?: pytanie.przystanek ?: "komunikacji miejskiej",
+                tu?.miasto
+            )
+            _pendingActionConfirmation.value = PendingActionConfirmation(
+                actions = listOf(Action.ShowOnMap(doMap)),
+                title = "Otworzyć rozkład w Mapach Google?",
+                message = mowa,
+                confirmText = "🗺 Otwórz Mapy",
+                cancelText = "Nie"
+            )
+            listenForConfirmation("$mowa Odjazdów na żywo nie mam. Otworzyć rozkład w Mapach Google?")
+        }
+        return true
+    }
+
     /** Pozycja dla Map Google w bieżącej turze - ustawia [buildLocationContext], czyta [buildStream]. */
     @Volatile
     private var mapsLocationForTurn: Pair<Double, Double>? = null
 
     private suspend fun buildLocationContext(question: String, hasPhoto: Boolean): String? {
         mapsLocationForTurn = null
-        val oOkolicę = pl.victor.app.proactive.NearbyQuestion.dotyczyOkolicy(question)
+        // Pytanie o odjazdy dociera tu tylko z Mapami Google (bez nich
+        // odpowiada warstwa 0) - potrzebuje położenia jak pytanie o okolicę.
+        val odjazdy = pl.victor.app.navigation.OdjazdyPytanie.rozpoznaj(question)
+        val oOkolicę = pl.victor.app.proactive.NearbyQuestion.dotyczyOkolicy(question) || odjazdy != null
         val cel = when {
             pl.victor.app.proactive.NearbyQuestion.jestPrzewodnikiem(question) ->
                 pl.victor.app.proactive.LocationContext.Cel.PRZEWODNIK
@@ -742,6 +922,26 @@ class AIOrchestrator(
             // o Biedronce za rogiem mógłby tylko zgadywać. Gemini z Mapami jej
             // nie potrzebuje (ma więcej, z opiniami), więc nie płaci czasem.
             val mapyGoogle = settings.getActiveProvider() == "gemini" && settings.isMapsGroundingEnabled()
+            // ODJAZDY: model z Mapami Google dostaje też przystanki i linie z
+            // OpenStreetMap oraz polecenie, by nie udawał danych na żywo.
+            if (odjazdy != null && naprawdęCel == pl.victor.app.proactive.LocationContext.Cel.OKOLICA) {
+                val tu = pl.victor.app.proactive.LocationContext.ostatnia
+                val od = System.currentTimeMillis()
+                val lista = if (tu != null && settings.isOsmPlacesEnabled()) {
+                    withTimeoutOrNull(OSM_PLACES_MS) {
+                        pl.victor.app.navigation.PrzystankiClient.przystanki(tu.lat, tu.lon, odjazdy.przystanek)
+                    }
+                } else {
+                    null
+                }
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.KONTEKST, "komunikacja: przystanki dla modelu",
+                        mapOf("ms" to (System.currentTimeMillis() - od), "przystanków" to lista?.size, "mapyGoogle" to mapyGoogle)
+                    )
+                }
+                return opis + "\n\n" + pl.victor.app.navigation.Przystanki.kontekstDlaModelu(lista.orEmpty(), odjazdy)
+            }
             if (naprawdęCel == pl.victor.app.proactive.LocationContext.Cel.OKOLICA && !mapyGoogle &&
                 settings.isOsmPlacesEnabled()
             ) {
@@ -5412,6 +5612,15 @@ class AIOrchestrator(
                 return
             }
 
+            // "Kiedy najbliższy tramwaj?" - przystanki i linie z OpenStreetMap
+            // za darmo; z płatnymi Mapami Google pytanie idzie do modelu.
+            if (handleTransitDepartures(textQuestion)) return
+
+            // DOM - "włącz światło w salonie" do Home Assistant użytkownika.
+            // Przed detectCritical: z włączonym domem "zgaś światło" to lampa w
+            // pokoju, a nie latarka (tę i tak łapie tylko słowo "latarkę").
+            if (handleHomeCommand(trigger, textQuestion)) return
+
             val critical = actionDetector.detectCritical(textQuestion)
             if (critical.isNotEmpty()) {
                 // "Zrób zdjęcie" nie jest akcją do wykonania przez Intent - to
@@ -8059,12 +8268,19 @@ class AIOrchestrator(
             runCatching {
                 diag.event(
                     DiagFormat.Phase.AKCJA, "akcja POTWIERDZONA",
-                    mapOf("co" to pending.actions.joinToString { it.type.name })
+                    mapOf("co" to (if (pending.homeCommand != null) "DOM" else pending.actions.joinToString { it.type.name }))
                 )
             }
             confirmationJob?.cancel()
             _pendingActionConfirmation.value = null
-            executeActionsList(pending.actions)
+            // Polecenie dla domu (zamek, brama, alarm) nie jest akcją telefonu -
+            // po "tak" idzie do Home Assistant.
+            val dom = pending.homeCommand
+            if (dom != null) {
+                runHomeCommand(TriggerSource.VOICE, dom, dom)
+            } else {
+                executeActionsList(pending.actions)
+            }
         }
     }
 
@@ -8763,6 +8979,12 @@ class AIOrchestrator(
         /** Najdłużej tyle czeka lista miejsc z OpenStreetMap (wspólny termin kontekstów i tak obowiązuje). */
         private const val OSM_PLACES_MS = 4_000L
 
+        /** Na świeże położenie przy pytaniu o odjazdy - przystanek obok to kilkadziesiąt metrów. */
+        private const val TRANSIT_LOCATION_MS = 4_500L
+
+        /** Overpass z trasami linii bywa wolniejszy niż zwykłe miejsca. */
+        private const val TRANSIT_OSM_MS = 9_000L
+
         /** Pytanie o telefon albo wiadomość do kogoś - patrz [buildContactsContext]. */
         private val KONTAKT_PYTANIE = Regex(
             """(zadzwo|dzwo[nń]|po[lł][aą]cz (si[eę] )?z|wybierz numer|napisz|wy[sś]lij|sms|esemes|wiadomo[sś][cć] do|odpisz|numer (do|telefonu)|kontakt)"""
@@ -9143,5 +9365,11 @@ data class PendingActionConfirmation(
     val confirmText: String,
     val cancelText: String,
     /** Od kiedy wisi - głosowe "tak" z nowej tury ma ważność tylko chwilę. */
-    val createdAtMs: Long = System.currentTimeMillis()
+    val createdAtMs: Long = System.currentTimeMillis(),
+    /**
+     * Polecenie dla Home Assistant czekające na "tak" (zamek, brama, alarm) -
+     * wtedy [actions] jest puste, a [AIOrchestrator.confirmAction] wysyła to
+     * zdanie do domu.
+     */
+    val homeCommand: String? = null
 )

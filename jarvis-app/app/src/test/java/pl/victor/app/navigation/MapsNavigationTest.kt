@@ -81,4 +81,56 @@ class MapsNavigationTest {
         MapsNavigation.usunięte("k")
         assertNull(MapsNavigation.kontekstDlaModelu())
     }
+
+    // === Komunikacja miejska ===
+    // Prowadzenie Map w trybie transit też trzyma powiadomienie - ale zamiast
+    // odległości są w nim przystanki, linie i godziny. Parser nie może wziąć
+    // "2 przystanki" ani "5 min" za metry.
+
+    @Test
+    fun `powiadomienia transit nie sa odlegloscia`() {
+        val wysiadka = stan("Wysiądź za 2 przystanki", "Rondo Mogilskie")!!
+        assertNull(wysiadka.dystansM)
+        assertEquals("Wysiądź za 2 przystanki Rondo Mogilskie", wysiadka.manewr)
+
+        val autobus = stan("Autobus 175 o 12:40", "Kierunek: Lotnisko", "25 min · 13:05")!!
+        assertNull(autobus.dystansM)
+        assertEquals("Autobus 175 o 12:40 Kierunek: Lotnisko", autobus.manewr)
+
+        // Liczby z jednostką czasu nie są metrami - "m" z "min" nie wchodzi.
+        assertNull(stan("Za 10 minut odjazd", "Tramwaj 4")!!.dystansM)
+        assertNull(stan("2 przystanki", "Wysiądź na przystanku Teatr Bagatela")!!.dystansM)
+        assertNull(stan("4 · Kurdwanów", null)!!.dystansM)
+        assertNull(stan("Odjazd za 3 min", "Autobus 129")!!.dystansM)
+
+        // Dojście pieszo na przystanek ma prawdziwą odległość.
+        val dojście = stan("250 m", "Idź do przystanku Lubicz")!!
+        assertEquals(250, dojście.dystansM)
+        assertEquals("Idź do przystanku Lubicz", dojście.manewr)
+    }
+
+    @Test
+    fun `odliczanie minut do odjazdu nie jest nowym manewrem`() {
+        val z = NavZapowiedzi()
+        fun s(m: String) = MapsNavigation.Stan(m, null, null, 0L)
+        assertEquals("Autobus 175 za 5 min.", z.decyzja(s("Autobus 175 za 5 min")))
+        assertNull(z.decyzja(s("Autobus 175 za 4 min")))
+        assertNull(z.decyzja(s("Autobus 175 za 3 min")))
+        // Przystanki do wysiadki - to warto usłyszeć za każdym razem.
+        assertEquals("Wysiądź za 2 przystanki.", z.decyzja(s("Wysiądź za 2 przystanki")))
+        assertEquals("Wysiądź za 1 przystanek.", z.decyzja(s("Wysiądź za 1 przystanek")))
+        assertEquals(NavZapowiedzi.kluczManewru("Odjazd o 12:40"), NavZapowiedzi.kluczManewru("Odjazd o 12:41"))
+    }
+
+    @Test
+    fun `pytania o wysiadke w trakcie jazdy`() {
+        val s = MapsNavigation.Stan("Wysiądź za 2 przystanki", null, "12 min · 13:05", 0L)
+        assertEquals("Wysiądź za 2 przystanki.", NavPytania.odpowiedź("ile jeszcze przystanków?", s))
+        assertEquals("Wysiądź za 2 przystanki.", NavPytania.odpowiedź("kiedy wysiadam", s))
+        assertEquals("Wysiądź za 2 przystanki.", NavPytania.odpowiedź("gdzie mam się przesiąść", s))
+        // "Ile jeszcze" bez przystanków to dalej pytanie o czas.
+        assertEquals("Do celu: 12 min, przyjazd o 13:05.", NavPytania.odpowiedź("ile jeszcze", s))
+        // Pytanie o przystanek w ogóle (nie o wysiadkę) idzie do modelu.
+        assertNull(NavPytania.odpowiedź("gdzie jest najbliższy przystanek", s))
+    }
 }

@@ -107,4 +107,54 @@ class TransitDetectionTest {
     fun `cel nie wciaga nazwy pojazdu`() {
         assertEquals("dworca", route("jedź autobusem do dworca")!!.destination)
     }
+
+    @Test
+    fun `prowadz mnie do celu komunikacja`() {
+        val r = route("prowadź mnie do dworca komunikacją")!!
+        assertTrue(r.byTransit)
+        assertEquals("dworca", r.destination)
+        // "mnie" bez pojazdu - zwykła trasa piesza.
+        val p = route("prowadź mnie do apteki")!!
+        assertFalse(p.byTransit)
+        assertEquals("apteki", p.destination)
+    }
+
+    @Test
+    fun `pytanie o dojazd z nazwa pojazdu to plan podrozy`() {
+        listOf(
+            "jak dojadę do ratusza tramwajem" to "ratusza",
+            "jak dojadę tramwajem do ratusza" to "ratusza",
+            "jak dojadę do Galerii Krakowskiej komunikacją miejską" to "galerii krakowskiej",
+            "jak się dostać autobusem na dworzec" to "dworzec",
+            "jak dojechać metrem do Centrum" to "centrum",
+            "którędy autobusem do szpitala" to "szpitala",
+            "pokaż połączenie autobusem do Wieliczki" to "wieliczki"
+        ).forEach { (zdanie, cel) ->
+            val r = route(zdanie)
+            assertNotNull("„$zdanie” nie dało trasy", r)
+            assertTrue("„$zdanie” ma iść komunikacją", r!!.byTransit)
+            assertFalse(r.byCar)
+            assertEquals(zdanie, cel, r.destination)
+        }
+    }
+
+    @Test
+    fun `pytanie o dojazd bez pojazdu zostaje modelowi`() {
+        // Bez nazwy pojazdu może chodzić o auto albo o radę - warstwa 0 nie zgaduje.
+        assertNull(route("jak dojadę do Krakowa"))
+        assertNull(route("jak dostać się do dworca"))
+        // Kto nazwał Jakdojade, dostaje Jakdojade (zadanie w detect, nie Mapy).
+        assertNull(route("sprawdź w jakdojade jak dojadę autobusem do dworca"))
+        // Rozmowa o autobusach to nie trasa.
+        assertNull(route("kiedy jedzie autobus do dworca"))
+    }
+
+    @Test
+    fun `pelna detekcja nie dubluje trasy`() {
+        val trasy = detector.detect("jak dojadę tramwajem do ratusza").filterIsInstance<Action.Navigate>()
+        assertEquals(1, trasy.size)
+        assertEquals("ratusza", trasy[0].destination)
+        val koniec = detector.detect("jak dojadę do dworca tramwajem").filterIsInstance<Action.Navigate>()
+        assertEquals("dworca", koniec.single().destination)
+    }
 }
