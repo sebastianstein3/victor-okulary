@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MenuBook
@@ -490,6 +491,7 @@ private fun IdleContent(
     val guideOn by guide.aktywny.collectAsState()
     val earOn by orch.earTranslation.collectAsState()
     val earTwoWay by orch.earTwoWay.collectAsState()
+    val liveTalkOn by orch.liveConversation.collectAsState()
     val meetingRecorder = remember { orch.meeting }
     val meetingState by meetingRecorder.stan.collectAsState()
     val meetingOn = meetingState is pl.victor.app.features.meeting.MeetingRecorder.Stan.Nagrywa
@@ -506,6 +508,11 @@ private fun IdleContent(
     // Gdy działa kilka rzeczy naraz, pasek pokazuje pierwszą z tej listy.
     // Kolejność = co najbardziej zajmuje uszy i mikrofon.
     val running: RunningMode? = when {
+        liveTalkOn -> RunningMode(
+            icon = Icons.Default.RecordVoiceOver,
+            name = "Rozmowa na żywo",
+            onStop = { orch.stopLiveConversation("przycisk w aplikacji") }
+        )
         earTwoWay -> RunningMode(
             icon = Icons.Default.Forum,
             name = "Rozmowa – tłumaczenie",
@@ -641,6 +648,12 @@ private fun IdleContent(
         if (!orch.earTwoWay.value) orch.startTwoWayTranslation()
         open(translationActivity)
     }
+    // Rozmowa na żywo z asystentem (Gemini Live) - kafelek włącza i wyłącza.
+    // Gdy nie wolno (Ustawienia, "tylko darmowe", brak klucza), tryb mówi
+    // dlaczego i nic nie startuje.
+    val liveTalkTile = HomeTileSpec("Porozmawiajmy", Icons.Default.RecordVoiceOver, active = liveTalkOn) {
+        orch.toggleLiveConversation("kafelek")
+    }
     val guideTile = HomeTileSpec("Przewodnik", Icons.Default.Explore, active = guideOn) {
         if (guide.aktywny.value) guide.stop("przycisk w aplikacji") else guide.start()
     }
@@ -671,6 +684,7 @@ private fun IdleContent(
                 HomeTileSpec("Alarm i minutnik", Icons.Default.Alarm) { onPrefill("Ustaw alarm na ") }
             ),
             "Rozmawiaj i tłumacz" to listOf(
+                liveTalkTile,
                 earTile,
                 twoWayTile,
                 HomeTileSpec("Mój dzień", Icons.Default.WbSunny) { orch.runBriefing() }
@@ -685,7 +699,8 @@ private fun IdleContent(
                     open(pl.victor.app.ui.livepreview.LivePreviewActivity::class.java)
                 },
                 earTile,
-                twoWayTile
+                twoWayTile,
+                liveTalkTile
             ),
             "Zapamiętaj" to rememberGroup,
             "W drodze" to listOf(

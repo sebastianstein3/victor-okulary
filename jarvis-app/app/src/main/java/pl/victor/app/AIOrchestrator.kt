@@ -110,6 +110,10 @@ class AIOrchestrator(
                     }
                     // Te same zasady co ramka "ucisz": dotyczy mówienia, a w
                     // tłumaczeniu wychodzi się przyciskiem.
+                    if (liveConversationOn()) {
+                        stopLiveConversation("klawisz słuchawek")
+                        return@bezpiecznie
+                    }
                     if (!mówimy || _earTranslation.value) return@bezpiecznie
                     cancelCurrentTurn("klawisz słuchawek (dotknięcie zausznika)")
                 }
@@ -1282,6 +1286,20 @@ class AIOrchestrator(
                     // podłączone tylko w trybie rozmowy zgłaszają naciśnięcie
                     // właśnie tak, a my je tu pomijaliśmy. Odsiewamy tylko echo
                     // naszej własnej komendy "zaczynam/kończę mówić".
+                    // ROZMOWA NA ŻYWO: dotknięcie skroni ją kończy. Odsiewamy
+                    // echo naszej komendy "zaczynam/kończę mówić" (zapowiedź).
+                    if (liveConversationOn()) {
+                        val odKomendy = glassesManager.msSincePlaybackEdge()
+                        val echo = odKomendy < PLAYBACK_ECHO_WINDOW_MS
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.WAKE, "rozmowa na żywo: dotknięcie skroni",
+                                mapOf("echo" to echo, "msOdKomendy" to odKomendy)
+                            )
+                        }
+                        if (!echo) stopLiveConversation("dotknięcie skroni")
+                        return@bezpiecznie
+                    }
                     if (_earTranslation.value && _earTwoWay.value) {
                         val odKomendy = glassesManager.msSincePlaybackEdge()
                         val echo = odKomendy < PLAYBACK_ECHO_WINDOW_MS
@@ -2028,6 +2046,7 @@ class AIOrchestrator(
         // tryb tłumaczenia, który nie jest turą i do tej pory przez to przycisk
         // go omijał.
         stopEarTranslation(reason)
+        stopLiveConversation(reason)
         activeTurnJob?.cancel()
         activeTurnJob = null
         activeTurnToken = null
@@ -2085,7 +2104,7 @@ class AIOrchestrator(
         // w trakcie przepisywania pytania. Stąd karencja od ostatniego gestu.
         val odGestu = System.currentTimeMillis() - ostatniaAktywnośćMs
         return bezTury && !audio.speaking.value && !_earTranslation.value &&
-            odGestu > CISZA_PO_AKTYWNOŚCI_MS
+            !liveConversationOn() && odGestu > CISZA_PO_AKTYWNOŚCI_MS
     }
 
     /**
@@ -2525,6 +2544,100 @@ class AIOrchestrator(
     }
 
     /**
+     * Rozmowa na żywo z asystentem (Gemini Live) - patrz
+     * [pl.victor.app.live.LiveConversationMode]. Tryb, nie tura: dopóki trwa,
+     * trzyma mikrofon, a orkiestrator nie wpuszcza żadnej tury.
+     */
+    private val liveMode by lazy {
+        pl.victor.app.live.LiveConversationMode(
+            context = context,
+            scope = scope,
+            settings = settings,
+            audio = audio,
+            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.AUDIO, co, pola) } },
+            przejmijMikrofon = {
+                // Pod własnym imieniem: koniec tury, która włączyła tryb, nie
+                // może wznowić "Hej Wiktor" w trakcie rozmowy.
+                runCatching {
+                    victorApp?.pauseWakeForTurn(pl.victor.app.VictorApplication.WAKE_HOLDER_LIVE)
+                }
+                glassesManager.suspendMicWake(true)
+                // Nasłuch trybu konwersacyjnego po odpowiedzi tury włączającej
+                // też chce mikrofonu - zwalniamy go.
+                conversationalMode.onAiStartedSpeaking()
+            },
+            oddajMikrofon = {
+                // Okulary nadają jeszcze chwilę - bez karencji ten ogon
+                // odpalałby turę z przypadkowym pytaniem (jak po tłumaczeniu).
+                glassesManager.suspendMicWake(false, graceMs = EAR_MIC_WAKE_GRACE_MS)
+                runCatching {
+                    victorApp?.resumeWakeAfterTurn(pl.victor.app.VictorApplication.WAKE_HOLDER_LIVE)
+                }
+            },
+            instrukcja = { buildLiveConversationInstruction() },
+            zapiszWymianę = { ty, asystent -> conversationContext.addTurn(ty, asystent) },
+            zgodaNaMikrofon = { hasMicrophonePermission() }
+        )
+    }
+
+    /** Czy trwa rozmowa na żywo - do pokazania w interfejsie. */
+    val liveConversation: StateFlow<Boolean> get() = liveMode.aktywna
+
+    private fun liveConversationOn(): Boolean = liveMode.aktywna.value
+
+    /**
+     * Zaczyna rozmowę na żywo - z kafelka, przycisku albo polecenia głosowego.
+     *
+     * Gdy nie wolno (wyłączona, "tylko darmowe", brak klucza Gemini), mówi
+     * dlaczego i zostaje zwykły tryb pytań. Tłumaczenie ze słuchu trzyma ten
+     * sam mikrofon, więc je kończymy; nagrywanie spotkania - nie, bo to
+     * byłaby utrata notatek bez pytania.
+     */
+    fun startLiveConversation(źródło: String = "aplikacja") {
+        if (liveConversationOn()) return
+        if (meetingHoldsMic()) {
+            val komunikat = "Trwa nagrywanie spotkania. Zakończ je, zanim zaczniemy rozmowę na żywo."
+            runCatching {
+                diag.event(DiagFormat.Phase.AUDIO, "rozmowa na żywo: odmowa - spotkanie", mapOf("źródło" to źródło))
+            }
+            audio.speak(komunikat, language = settings.getResponseLanguage())
+            return
+        }
+        if (_earTranslation.value) stopEarTranslation("start rozmowy na żywo")
+        val turaWToku = activeTurnJob?.takeIf { it.isActive }
+        liveMode.start(turaWToku, źródło)
+    }
+
+    /** Kończy rozmowę na żywo (przycisk, gest, ekran). */
+    fun stopLiveConversation(powód: String) {
+        liveMode.stop(powód)
+    }
+
+    /** Jedno wejście dla kafelka na ekranie głównym. */
+    fun toggleLiveConversation(źródło: String = "aplikacja") {
+        if (liveConversationOn()) stopLiveConversation("ponowne wywołanie ($źródło)")
+        else startLiveConversation(źródło)
+    }
+
+    /**
+     * Instrukcja systemowa rozmowy na żywo: ta sama persona co w zwykłej
+     * turze, czas i - jeśli jest od ręki - miejsce. Bez katalogu akcji: w
+     * tym trybie nikt nie wykonuje znaczników.
+     */
+    private suspend fun buildLiveConversationInstruction(): String {
+        val tu = runCatching {
+            withTimeoutOrNull(LIVE_LOCATION_MS) {
+                pl.victor.app.proactive.LocationContext.tutaj(context)
+            }
+        }.getOrNull()
+        return pl.victor.app.live.LiveConversationProtocol.instrukcja(
+            persona = getActivePersona().systemPrompt,
+            czas = buildTimeContext(),
+            miejsce = pl.victor.app.live.LiveConversationProtocol.miejsce(tu?.opis, tu?.miasto)
+        )
+    }
+
+    /**
      * Tłumaczenie ze słuchu - pętla, nie tura.
      *
      * ## Czym to się różni od "przetłumacz to zdanie"
@@ -2551,6 +2664,8 @@ class AIOrchestrator(
      */
     fun startEarTranslation() {
         if (_earTranslation.value) return
+        // Ten sam mikrofon - rozmowa na żywo ustępuje tłumaczeniu.
+        if (liveConversationOn()) stopLiveConversation("start tłumaczenia ze słuchu")
         if (!speechToText.isAvailable()) {
             _state.value = OrchestratorState.Error(
                 "To urządzenie nie ma rozpoznawania mowy - tłumaczenie ze słuchu nie zadziała."
@@ -3350,6 +3465,18 @@ class AIOrchestrator(
      */
     private fun startVoiceTurn(fromGlasses: Boolean) {
         ostatniaAktywnośćMs = System.currentTimeMillis()
+        // "Hej Wiktor" i ikona mikrofonu w trakcie rozmowy na żywo: nasłuch
+        // zabrałby sesji mikrofon. Wybudzenie jest wtedy wstrzymane, więc tu
+        // trafia głównie ikona w aplikacji.
+        if (liveConversationOn()) {
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AUDIO, "rozmowa na żywo: nasłuch pominięty",
+                    mapOf("zOkularów" to fromGlasses)
+                )
+            }
+            return
+        }
         // takeOver: użytkownik właśnie mówi do asystenta, więc jego nowe pytanie
         // jest ważniejsze niż tura, na którą przestał czekać.
         //
@@ -4585,6 +4712,13 @@ class AIOrchestrator(
         // przychodzi tą samą ramką - kończy więc tryb i nic więcej nie robi.
         // W ROZMOWIE W DWIE STRONY pojedyncze kliknięcie oddaje głos Tobie;
         // kończy ją każdy inny gest (dwa, trzy kliknięcia, przytrzymanie).
+        // ROZMOWA NA ŻYWO: każdy gest ją kończy - jak tłumaczenie ze słuchu.
+        // Gest włącza okulary w nasłuch, więc od razu go kończymy.
+        if (liveConversationOn()) {
+            glassesManager.stopGlassesListening()
+            stopLiveConversation("przycisk na okularach (${action::class.simpleName})")
+            return
+        }
         if (_earTranslation.value && _earTwoWay.value && action == ButtonAction.QUICK_QUESTION) {
             myTurn(zOkularów = true)
             return
@@ -4775,6 +4909,19 @@ class AIOrchestrator(
          */
         internalPrompt: Boolean = false
     ) {
+        // ROZMOWA NA ŻYWO TRZYMA MIKROFON - żadna tura nie wchodzi. Tura
+        // zaczęłaby nasłuch albo mówienie obok sesji Gemini Live, a ta słyszy
+        // wszystko, co gra. Z trybu wychodzi się głosem ("koniec rozmowy"),
+        // przyciskiem, dotykiem skroni albo na ekranie.
+        if (liveConversationOn()) {
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AUDIO, "rozmowa na żywo: tura pominięta",
+                    mapOf("źródło" to trigger.name, "tekst" to textQuestion.take(60))
+                )
+            }
+            return
+        }
         // Przycisk na okularach to też świadome działanie użytkownika TERAZ -
         // ma pierwszeństwo tak samo jak wypowiedź. Tury wewnętrzne (powtórka ze
         // zdjęciem) wchodzą na stanie Idle, więc ich to nie dotyczy.
@@ -7117,6 +7264,17 @@ class AIOrchestrator(
             return true
         }
 
+        // ROZMOWA NA ŻYWO (Gemini Live) - lokalnie, bez modelu: zapytany o
+        // czynność model odpowiada na nią słowami. Gdy nie wolno (wyłączona,
+        // "tylko darmowe", brak klucza Gemini), tryb sam mówi dlaczego, a
+        // zostaje zwykły tryb pytań.
+        if (pl.victor.app.conversation.MetaCommands.startsLiveConversation(text)) {
+            Log.i(TAG, "Komenda rozmowy na żywo: \"$text\"")
+            startLiveConversation("polecenie głosowe")
+            runCatching { diag.endTurn("rozmowa na żywo") }
+            return true
+        }
+
         pl.victor.app.conversation.MetaCommands.twoWayCommand(text)?.let { język ->
             startTwoWayTranslation(język.ifBlank { null })
             runCatching { diag.endTurn("tłumaczenie rozmowy") }
@@ -8351,6 +8509,9 @@ class AIOrchestrator(
 
         /** Ile czekamy na gotowość sesji na żywo, zanim przejdziemy na telefon. */
         private const val EAR_LIVE_CONNECT_MS = 8_000L
+
+        /** Ile najwyżej czekamy na położenie do instrukcji rozmowy na żywo. */
+        private const val LIVE_LOCATION_MS = 1_500L
 
         /** Co ile pętla na żywo zagląda, czy tryb wciąż trwa. */
         private const val EAR_LIVE_POLL_MS = 250L

@@ -426,6 +426,9 @@ class VictorApplication : Application() {
         /** Właściciel mikrofonu frazy: nasłuch trybu konwersacyjnego. */
         const val WAKE_HOLDER_CONVERSATION = "rozmowa"
 
+        /** Właściciel mikrofonu frazy: rozmowa na żywo z asystentem (Gemini Live). */
+        const val WAKE_HOLDER_LIVE = "rozmowa na żywo"
+
         private var instance: VictorApplication? = null
 
         fun get(): VictorApplication = instance

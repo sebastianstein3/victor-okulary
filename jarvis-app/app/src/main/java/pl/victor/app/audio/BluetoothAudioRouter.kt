@@ -432,6 +432,25 @@ class BluetoothAudioRouter private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * Czy łącze SCO faktycznie STOI (a nie tylko zostało zamówione).
+     *
+     * Czyta "lepkie" rozgłoszenie stanu SCO - to samo, na które czeka
+     * [awaitModernLink]. Dla trybu, który potrzebuje mikrofonu okularów przez
+     * cały czas (rozmowa na żywo), krótkie czekanie w [acquire] nie wystarcza:
+     * po nim łącze może jeszcze wstawać, a może nie wstać wcale.
+     */
+    fun isScoLinkUp(): Boolean = runCatching {
+        // Odbiornik `null` = sam odczyt ostatniego stanu, nic się nie rejestruje.
+        val filtr = IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)
+        val sticky = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(null, filtr, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(null, filtr)
+        }
+        sticky?.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1) == AudioManager.SCO_AUDIO_STATE_CONNECTED
+    }.getOrDefault(false)
+
     /** Ile trwało ostatnie czekanie na łącze rozmowy; -1 = nie wstało w limicie. */
     @Volatile
     var lastLinkWaitMs: Long = 0L

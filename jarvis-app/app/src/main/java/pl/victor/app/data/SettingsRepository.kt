@@ -432,6 +432,21 @@ class SettingsRepository private constructor(private val context: Context) {
     }
 
     /**
+     * Czy wolno zacząć rozmowę na żywo z asystentem (Gemini Live) - płatna,
+     * ok. 0,005 USD za minutę słuchania i 0,018 USD za minutę odpowiedzi
+     * (cennik Gemini API, listopad 2026). Zaczyna się tylko na wyraźne
+     * polecenie ("porozmawiajmy", kafelek), więc domyślnie włączone; "Tylko
+     * darmowe funkcje" wyłącza ją zawsze - zostaje zwykły tryb pytań.
+     * Wymaga klucza Gemini niezależnie od wybranego dostawcy.
+     */
+    fun isLiveConversationEnabled(): Boolean =
+        prefs.getBoolean(KEY_LIVE_CONVERSATION, true) && !isFreeOnly()
+
+    fun setLiveConversationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_LIVE_CONVERSATION, enabled).apply()
+    }
+
+    /**
      * Czy mówić w okularach o skrętach z nawigacji Google Maps (odczyt jej
      * powiadomienia). Wymaga dostępu do powiadomień - tego samego co
      * czytanie wiadomości.
@@ -1331,6 +1346,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"
         private const val KEY_EAR_TRANSLATION_SPOKEN = "ear_translation_spoken"
         private const val KEY_LIVE_EAR_TRANSLATION = "live_ear_translation"
+        private const val KEY_LIVE_CONVERSATION = "live_conversation"
         private const val KEY_NAV_PROMPTS = "nav_prompts"
         private const val KEY_FREE_ONLY = "free_only"
         private const val KEY_OSM_PLACES = "osm_places"
