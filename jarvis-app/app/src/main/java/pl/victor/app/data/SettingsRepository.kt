@@ -959,6 +959,46 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putString(KEY_TTS_ENGINE, packageName).apply()
     }
 
+    // === Głos asystenta z chmury ===
+
+    /**
+     * Głos asystenta wybrany przez użytkownika: "system" (domyślnie, darmowy),
+     * "gemini" albo "openai" - patrz [pl.victor.app.audio.CloudVoiceProvider].
+     * To WYBÓR; kto naprawdę mówi, mówi [cloudVoiceDecision].
+     */
+    fun getCloudVoiceChoice(): String =
+        prefs.getString(KEY_CLOUD_VOICE, pl.victor.app.audio.CloudVoiceProvider.SYSTEM.id)
+            ?: pl.victor.app.audio.CloudVoiceProvider.SYSTEM.id
+
+    fun setCloudVoiceChoice(providerId: String) {
+        prefs.edit().putString(KEY_CLOUD_VOICE, providerId).apply()
+    }
+
+    /** Nazwa głosu danej usługi ("Kore", "marin") albo `null` = domyślny. */
+    fun getCloudVoiceName(providerId: String): String? =
+        prefs.getString("$KEY_CLOUD_VOICE_NAME_PREFIX$providerId", null)
+
+    fun setCloudVoiceName(providerId: String, name: String) {
+        prefs.edit().putString("$KEY_CLOUD_VOICE_NAME_PREFIX$providerId", name).apply()
+    }
+
+    /**
+     * Kto naprawdę mówi: wybór użytkownika, ale "Tylko darmowe funkcje" zawsze
+     * daje syntezator systemowy, a bez klucza danej usługi też. Klucz jest
+     * sprawdzany niezależnie od aktywnego dostawcy modelu.
+     */
+    fun cloudVoiceDecision(): pl.victor.app.audio.CloudVoiceLogic.Decision =
+        pl.victor.app.audio.CloudVoiceLogic.decide(
+            choiceId = getCloudVoiceChoice(),
+            freeOnly = isFreeOnly(),
+            geminiKey = getApiKey("gemini"),
+            openAiKey = getApiKey("openai")
+        )
+
+    /** Czy głos z chmury jest włączony - wybór inny niż systemowy i nie "Tylko darmowe". */
+    fun isCloudVoiceEnabled(): Boolean =
+        getCloudVoiceChoice() != pl.victor.app.audio.CloudVoiceProvider.SYSTEM.id && !isFreeOnly()
+
     // === Fraza wybudzenia ===
 
     /**
@@ -1377,6 +1417,8 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val PLACE_FIELDS = 3
         private const val KEY_FACTS = "user_facts"
         private const val KEY_TTS_ENGINE = "tts_engine"
+        private const val KEY_CLOUD_VOICE = "cloud_voice"
+        private const val KEY_CLOUD_VOICE_NAME_PREFIX = "cloud_voice_name_"
         private const val KEY_WAKE_ENGINE = "wake_engine"
 
         /** Fraza "Hej Wiktor" - telefon słucha sam (openWakeWord). */

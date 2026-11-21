@@ -274,6 +274,8 @@ fun SettingsScreen(
                 // w ogóle dostępne.
                 TtsEngineSection()
                 HorizontalDivider()
+                CloudVoiceSection()
+                HorizontalDivider()
                 VoiceSection(
                     voices = state.availableVoices,
                     currentVoice = state.currentVoice,
@@ -1679,6 +1681,182 @@ private fun TtsEngineSection() {
         }
     }
 }
+
+/**
+ * "Głos asystenta": systemowy (darmowy) albo z chmury - Gemini / OpenAI.
+ *
+ * Syntezator Androida brzmi mechanicznie; głosy z chmury brzmią jak człowiek,
+ * ale kosztują i potrzebują sieci - stąd jawny koszt przy każdej opcji,
+ * posłuszeństwo "Tylko darmowe funkcje" i przycisk próbki, żeby można było
+ * porównać przed wyborem. Bez sieci albo przy wolnej odpowiedzi asystent i
+ * tak mówi - wtedy głosem systemowym (patrz AudioManager.speakCloud).
+ */
+@Composable
+private fun CloudVoiceSection() {
+    val context = LocalContext.current
+    val app = remember { context.applicationContext as pl.victor.app.VictorApplication }
+    val settings = remember { app.settings }
+    val freeOnly by settings.freeOnlyFlow.collectAsState()
+    var choice by remember { mutableStateOf(pl.victor.app.audio.CloudVoiceProvider.fromId(settings.getCloudVoiceChoice())) }
+    val maKluczGemini = remember { !settings.getApiKey("gemini").isNullOrBlank() }
+    val maKluczOpenAi = remember { !settings.getApiKey("openai").isNullOrBlank() }
+    var geminiVoice by remember {
+        mutableStateOf(
+            pl.victor.app.audio.CloudVoiceLogic.voiceFor(
+                pl.victor.app.audio.CloudVoiceProvider.GEMINI,
+                settings.getCloudVoiceName("gemini")
+            )
+        )
+    }
+    var openAiVoice by remember {
+        mutableStateOf(
+            pl.victor.app.audio.CloudVoiceLogic.voiceFor(
+                pl.victor.app.audio.CloudVoiceProvider.OPENAI,
+                settings.getCloudVoiceName("openai")
+            )
+        )
+    }
+    var sampleInfo by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf(app.audio.cloudVoiceStatus()) }
+    val uiScope = rememberCoroutineScope()
+
+    val decision = remember(choice, freeOnly) { settings.cloudVoiceDecision() }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Głos asystenta", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Systemowy syntezator jest darmowy i działa bez internetu, ale brzmi " +
+                "mechanicznie. Głos z chmury brzmi naturalnie; pierwsze zdanie słychać " +
+                "po ok. sekundzie, a gdy sieć zawiedzie albo usługa odpowiada dłużej " +
+                "niż 2,5 s, asystent mówi dalej głosem systemowym. Tłumaczenia na inne " +
+                "języki zawsze czyta głos systemowy.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+        )
+
+        val options = listOf(
+            Triple(
+                pl.victor.app.audio.CloudVoiceProvider.SYSTEM,
+                "Systemowy (darmowy)",
+                "Syntezator Androida - silnik i głos wybierasz niżej."
+            ),
+            Triple(
+                pl.victor.app.audio.CloudVoiceProvider.GEMINI,
+                "Gemini – ${pl.victor.app.audio.CloudVoiceConfig.GEMINI_MODEL}",
+                "Płatne: ${pl.victor.app.audio.CloudVoiceConfig.GEMINI_COST}." +
+                    if (!maKluczGemini) "\n⚠️ Brak klucza Gemini - mówi głos systemowy." else ""
+            ),
+            Triple(
+                pl.victor.app.audio.CloudVoiceProvider.OPENAI,
+                "OpenAI – ${pl.victor.app.audio.CloudVoiceConfig.OPENAI_MODEL}",
+                "Płatne: ${pl.victor.app.audio.CloudVoiceConfig.OPENAI_COST}. OpenAI zapowiedziało " +
+                    "wyłączenie tego modelu 6.01.2027 - potem mówi głos systemowy." +
+                    if (!maKluczOpenAi) "\n⚠️ Brak klucza OpenAI - mówi głos systemowy." else ""
+            )
+        )
+        options.forEach { (provider, label, opis) ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        choice = provider
+                        settings.setCloudVoiceChoice(provider.id)
+                    }
+                    .padding(vertical = 4.dp)
+            ) {
+                RadioButton(
+                    selected = choice == provider,
+                    onClick = {
+                        choice = provider
+                        settings.setCloudVoiceChoice(provider.id)
+                    }
+                )
+                Column(modifier = Modifier.padding(start = 4.dp)) {
+                    Text(label, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        opis,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        if (freeOnly && choice != pl.victor.app.audio.CloudVoiceProvider.SYSTEM) {
+            Text(
+                "Włączone \"Tylko darmowe funkcje\" - mówi głos systemowy.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
+        // Wybór głosu danej usługi - tylko dla wybranej chmury.
+        val voices = when (choice) {
+            pl.victor.app.audio.CloudVoiceProvider.GEMINI -> pl.victor.app.audio.CloudVoiceConfig.GEMINI_VOICES
+            pl.victor.app.audio.CloudVoiceProvider.OPENAI -> pl.victor.app.audio.CloudVoiceConfig.OPENAI_VOICES
+            pl.victor.app.audio.CloudVoiceProvider.SYSTEM -> emptyList()
+        }
+        if (voices.isNotEmpty()) {
+            Text(
+                "Głos",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            val current = if (choice == pl.victor.app.audio.CloudVoiceProvider.GEMINI) geminiVoice else openAiVoice
+            voices.forEach { v ->
+                val pick = {
+                    settings.setCloudVoiceName(choice.id, v.name)
+                    if (choice == pl.victor.app.audio.CloudVoiceProvider.GEMINI) geminiVoice = v.name
+                    else openAiVoice = v.name
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { pick() }
+                ) {
+                    RadioButton(selected = current == v.name, onClick = { pick() })
+                    Text("${v.name} – ${v.opis}", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            OutlinedButton(onClick = {
+                sampleInfo = app.audio.speakCloudVoiceSample()
+                // Po próbce pokaż, czy chmura odpowiedziała - porażka wychodzi
+                // dopiero po limicie czasu albo odpowiedzi usługi.
+                uiScope.launch {
+                    delay(SAMPLE_STATUS_DELAY_MS)
+                    status = app.audio.cloudVoiceStatus()
+                }
+            }) {
+                Text("Odsłuchaj próbkę")
+            }
+        }
+        Text(
+            "Teraz mówi: " + decision.provider.nazwa + (decision.reason?.let { " ($it)" } ?: ""),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        sampleInfo?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        status?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+/** Po tylu ms od próbki sprawdzamy, czy chmura odpowiedziała (limit pierwszego dźwięku + zapas). */
+private const val SAMPLE_STATUS_DELAY_MS = 4_000L
 
 @Composable
 private fun VoiceInstallGuideSection() {

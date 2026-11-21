@@ -77,6 +77,63 @@ class AudioManager(
     /** Czy dźwięk idzie teraz przez okulary (zestaw Bluetooth). */
     val routedThroughGlasses: StateFlow<Boolean> = bluetoothRouter.isRoutedToBluetooth
 
+    private val settingsRepo by lazy { pl.victor.app.data.SettingsRepository.getInstance(context) }
+
+    /**
+     * Głos z chmury (Gemini / OpenAI) - patrz [CloudVoiceEngine].
+     *
+     * Podpięty pod te same zdarzenia co systemowy syntezator: początek i koniec
+     * mówienia idą do [_speaking] (sygnał dla okularów, "ucisz", wyciszanie
+     * nasłuchu frazy), koniec wypowiedzi do [complete] (na nim czekają
+     * [speakAndAwait] i [awaitStreamSpoken]). Dzięki temu orkiestrator nie
+     * wie i nie musi wiedzieć, KTO mówi.
+     */
+    private val cloudVoice: CloudVoiceEngine = CloudVoiceEngine(
+        cacheDir = context.cacheDir,
+        audioAttributes = { bluetoothRouter.ttsAudioAttributes() },
+        listener = object : CloudVoiceEngine.Listener {
+            override fun onSpeakingChanged(speaking: Boolean) {
+                if (speaking) {
+                    _speaking.value = true
+                } else if (runCatching { tts?.isSpeaking }.getOrNull() != true) {
+                    _speaking.value = false
+                }
+            }
+
+            override fun onUtteranceDone(utteranceId: String, success: Boolean) {
+                complete(utteranceId, success)
+            }
+
+            override fun onFallback(pieces: List<Pair<String, String?>>, reason: CloudVoiceFallback) {
+                // Reszta po polsku przez syntezator systemowy, DOPISANA do
+                // kolejki - identyfikator wypowiedzi zostaje ten sam, więc
+                // czekający na jej koniec niczego nie zauważą.
+                pieces.forEach { (text, id) ->
+                    val pieceId = id ?: "victor-cloudrest-${utteranceCounter.incrementAndGet()}"
+                    val ok = speakSystem(text, "pl", pieceId, TextToSpeech.QUEUE_ADD) != null
+                    if (!ok && id != null) complete(id, false)
+                }
+            }
+        },
+        diagEvent = { message, fields -> diagMowa(message, fields) }
+    )
+
+    /** Czy ostatnia wypowiedź poszła chmurą - dłuższy limit w [speakAndAwait]. */
+    @Volatile
+    private var lastRouteCloud = false
+
+    /** Ostatnio zapisany powód "wybrano chmurę, mówi systemowy" - żeby nie pisać go co zdanie. */
+    @Volatile
+    private var lastDecisionNote: String? = null
+
+    private fun diagMowa(message: String, fields: Map<String, Any?> = emptyMap()) {
+        runCatching {
+            pl.victor.app.VictorApplication.get().diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.MOWA, message, fields
+            )
+        }
+    }
+
     private val utteranceCounter = AtomicLong(0)
     /**
      * Wypowiedzi, na których koniec ktoś czeka.
@@ -338,11 +395,13 @@ class AudioManager(
                         // Straciliśmy focus - przerywamy
                         _isInFocus.value = false
                         tts?.stop()
+                        cloudVoice.stop()
                     }
                     android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                         // Tymczasowa utrata - pauza
                         _isInFocus.value = false
                         tts?.stop()
+                        cloudVoice.stop()
                     }
                     android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                         // Ducking - mów ciszej ale nie przerywaj
@@ -679,8 +738,11 @@ class AudioManager(
             pendingUtterances.remove(id)
             return false
         }
+        // Chmura: do zwykłego limitu dochodzi czekanie na pierwszy dźwięk
+        // (i ewentualne przejście na syntezator systemowy po nim).
+        val extra = if (lastRouteCloud) CLOUD_EXTRA_TIMEOUT_MS else 0L
         return try {
-            withTimeoutOrNull(speechTimeoutFor(text)) { done.await() } ?: run {
+            withTimeoutOrNull(speechTimeoutFor(text) + extra) { done.await() } ?: run {
                 // Silnik potrafi nie zgłosić zakończenia (np. gdy dźwięk przejmie
                 // rozmowa telefoniczna). Lepiej ruszyć dalej niż zawiesić rozmowę.
                 Log.w(tag, "TTS nie zgłosiło zakończenia w limicie czasu")
@@ -693,13 +755,151 @@ class AudioManager(
 
     /**
      * Wspólna ścieżka dla [speak] i [speakAndAwait].
+     *
+     * Najpierw głos z chmury (gdy wybrany, dozwolony i język jest polski - patrz
+     * [speakCloud]), inaczej syntezator systemowy. Semantyka kolejki jest ta sama
+     * dla obu: QUEUE_FLUSH wypiera to, co mówi KTÓRYKOLWIEK z nich.
+     *
+     * @param allowCloud `false` = zawsze systemowy (podgląd głosu systemowego)
      * @return identyfikator wypowiedzi albo `null`, gdy nic nie zostało zlecone
      */
     private fun speakInternal(
         text: String,
         language: String,
         utteranceId: String? = null,
-        queueMode: Int = TextToSpeech.QUEUE_FLUSH
+        queueMode: Int = TextToSpeech.QUEUE_FLUSH,
+        allowCloud: Boolean = true
+    ): String? {
+        if (text.isBlank()) return null
+        if (allowCloud && CloudVoiceLogic.isCloudLanguage(language)) {
+            val cloudId = runCatching { speakCloud(text, utteranceId, queueMode) }
+                .onFailure { Log.w(tag, "Głos z chmury nie ruszył", it) }
+                .getOrNull()
+            if (cloudId != null) {
+                lastRouteCloud = true
+                return cloudId
+            }
+        }
+        lastRouteCloud = false
+        // Systemowy wypiera to, co ewentualnie gra z chmury - jak QUEUE_FLUSH.
+        if (queueMode == TextToSpeech.QUEUE_FLUSH) cloudVoice.stop()
+        return speakSystem(text, language, utteranceId, queueMode)
+    }
+
+    /**
+     * Zleca wypowiedź głosem z chmury.
+     *
+     * @return identyfikator albo `null` = mów systemowym (chmura nie wybrana,
+     *   "Tylko darmowe", brak klucza, chwilowa przerwa po porażce)
+     */
+    private fun speakCloud(text: String, utteranceId: String?, queueMode: Int): String? {
+        val decision = settingsRepo.cloudVoiceDecision()
+        noteDecision(decision)
+        if (!decision.isCloud) return null
+        // Dopisanie za tym, co właśnie czyta systemowy (np. reszta po
+        // przejściu z chmury) - też systemowym, inaczej dwa głosy naraz.
+        if (queueMode != TextToSpeech.QUEUE_FLUSH && runCatching { tts?.isSpeaking }.getOrNull() == true) {
+            return null
+        }
+        val spoken = sanitizeForSpeech(text)
+        if (spoken.isBlank()) return null
+        val sentences = CloudVoiceLogic.splitSentences(spoken)
+        if (sentences.isEmpty()) return null
+        val provider = decision.provider
+        val key = settingsRepo.getApiKey(provider.id)?.takeIf { it.isNotBlank() } ?: return null
+        val config = CloudVoiceEngine.Config(
+            provider = provider,
+            voice = CloudVoiceLogic.voiceFor(provider, settingsRepo.getCloudVoiceName(provider.id)),
+            apiKey = key
+        )
+        val id = utteranceId ?: "victor-${utteranceCounter.incrementAndGet()}"
+        val flush = queueMode == TextToSpeech.QUEUE_FLUSH
+        if (cloudVoice.isCoolingDown()) {
+            noteCooldown()
+            return null
+        }
+        if (flush) runCatching { tts?.stop() }
+        podbijGłośnośćWgHałasu()
+        if (!cloudVoice.enqueue(sentences, id, flush, config)) {
+            noteCooldown()
+            return null
+        }
+        cooldownNoted = false
+        Log.d(tag, "Mówię z chmury (${provider.nazwa}, ${sentences.size} zdań): ${spoken.take(80)}")
+        return id
+    }
+
+    /** Czy przerwę chmury już zapisaliśmy w dzienniku - raz na przerwę, nie co zdanie. */
+    @Volatile
+    private var cooldownNoted = false
+
+    private fun noteCooldown() {
+        if (cooldownNoted) return
+        cooldownNoted = true
+        diagMowa(
+            "głos z chmury chwilowo wyłączony - mówi systemowy",
+            mapOf("powód" to cloudVoice.lastFallback?.opis)
+        )
+    }
+
+    /** Zapisuje w dzienniku, że wybrano chmurę, a mówi systemowy - tylko przy zmianie powodu. */
+    private fun noteDecision(decision: CloudVoiceLogic.Decision) {
+        val note = decision.reason
+        if (note == lastDecisionNote) return
+        lastDecisionNote = note
+        if (note != null) {
+            diagMowa(
+                "głos z chmury niedostępny - mówi systemowy",
+                mapOf("wybrany" to decision.chosen.nazwa, "powód" to note)
+            )
+        }
+    }
+
+    /**
+     * Odsłuchanie próbki głosu z chmury w Ustawieniach.
+     *
+     * @return opis dla użytkownika - co (i dlaczego) mówi
+     */
+    fun speakCloudVoiceSample(): String {
+        val decision = settingsRepo.cloudVoiceDecision()
+        if (!decision.isCloud) {
+            speakInternal(CLOUD_SAMPLE_TEXT, "pl", allowCloud = false)
+            return "Mówi głos systemowy" + (decision.reason?.let { " ($it)" } ?: "") + "."
+        }
+        val provider = decision.provider
+        val config = CloudVoiceEngine.Config(
+            provider = provider,
+            voice = CloudVoiceLogic.voiceFor(provider, settingsRepo.getCloudVoiceName(provider.id)),
+            apiKey = settingsRepo.getApiKey(provider.id).orEmpty()
+        )
+        runCatching { tts?.stop() }
+        podbijGłośnośćWgHałasu()
+        val id = "victor-sample-${utteranceCounter.incrementAndGet()}"
+        diagMowa(
+            "próbka głosu z chmury",
+            mapOf("dostawca" to provider.nazwa, "model" to config.model, "głos" to config.voice)
+        )
+        lastRouteCloud = true
+        return if (cloudVoice.sample(CLOUD_SAMPLE_TEXT, config, id)) {
+            "${provider.nazwa}, głos ${config.voice}. Jeśli usłyszysz głos systemowy, usługa nie odpowiedziała - powód poniżej i w dzienniku."
+        } else {
+            "Nie udało się zlecić próbki."
+        }
+    }
+
+    /** Stan głosu z chmury do Ustawień: ostatnia porażka i czy trwa przerwa. */
+    fun cloudVoiceStatus(): String? {
+        val f = cloudVoice.lastFallback ?: return null
+        return "Ostatnio: przejście na systemowy - ${f.opis}" +
+            if (cloudVoice.isCoolingDown()) " (chmura chwilowo wyłączona)." else "."
+    }
+
+    /** Syntezator systemowy Androida - dawna treść [speakInternal]. */
+    private fun speakSystem(
+        text: String,
+        language: String,
+        utteranceId: String?,
+        queueMode: Int
     ): String? {
         if (!_ttsReady.value) {
             Log.w(tag, "TTS not ready, skipping")
@@ -901,7 +1101,9 @@ class AudioManager(
      * Testuje aktualny głos - mówi krótki tekst.
      */
     fun testCurrentVoice() {
-        speak("Cześć, jestem Twoim asystentem AI. Tak brzmi mój głos.", language = "pl")
+        // Zawsze systemowy: to podgląd głosu wybranego na liście głosów
+        // Androida - próbka chmury ma osobny przycisk.
+        speakInternal("Cześć, jestem Twoim asystentem AI. Tak brzmi mój głos.", "pl", allowCloud = false)
     }
 
     // === Streaming TTS - mówienie po zdaniach ===
@@ -1058,6 +1260,7 @@ class AudioManager(
         streamStarted = false
         lastStreamUtteranceId = null
         tts?.stop()
+        cloudVoice.stop()
     }
 
     /**
@@ -1069,6 +1272,8 @@ class AudioManager(
      */
     fun stopSpeaking() {
         tts?.stop()
+        // Chmura też - "cicho" i dotknięcie zausznika mają uciszać każdy głos.
+        cloudVoice.stop()
         _speaking.value = false
         completeAllPending(false)
     }
@@ -1186,7 +1391,9 @@ class AudioManager(
                     am.mode = poprzedniTryb
                 }
             }
-            if (runCatching { tts?.isSpeaking }.getOrNull() != true) _speaking.value = false
+            if (runCatching { tts?.isSpeaking }.getOrNull() != true && !cloudVoice.isPlaying) {
+                _speaking.value = false
+            }
         }
     }
 
@@ -1222,8 +1429,10 @@ class AudioManager(
 
     private fun complete(utteranceId: String?, success: Boolean) {
         // Przed wczesnym powrotem: koniec wypowiedzi bez identyfikatora też
-        // może być końcem mówienia.
-        if (runCatching { tts?.isSpeaking }.getOrNull() != true) _speaking.value = false
+        // może być końcem mówienia. Chyba że gra jeszcze głos z chmury.
+        if (runCatching { tts?.isSpeaking }.getOrNull() != true && !cloudVoice.isPlaying) {
+            _speaking.value = false
+        }
         val id = utteranceId ?: return
         pendingUtterances.remove(id)?.complete(success)
     }
@@ -1360,6 +1569,7 @@ class AudioManager(
 
     fun shutdown() {
         stopSpeaking()
+        cloudVoice.shutdown()
         stopRecording()
         mediaPlayer?.release()
         mediaPlayer = null
@@ -1400,6 +1610,14 @@ class AudioManager(
          * (zdarza się, gdy dźwięk przejmie rozmowa telefoniczna), nie planem.
          */
         private const val STREAM_DRAIN_TIMEOUT_MS = 150_000L
+
+        /** Zapas w [speakAndAwait] na pierwszy dźwięk z chmury i ewentualne przejście na systemowy. */
+        private val CLOUD_EXTRA_TIMEOUT_MS = CloudVoiceConfig.FIRST_SOUND_TIMEOUT_MS + 1_500L
+
+        /** Próbka głosu z chmury - dwa zdania, żeby było słychać przejście między nimi. */
+        private const val CLOUD_SAMPLE_TEXT =
+            "Cześć, tak brzmi mój głos z chmury. Odpowiedzi słyszysz zdanie po zdaniu, " +
+                "a gdy sieć zawiedzie, wracam do głosu telefonu."
 
         // Wzorce czyszczenia tekstu przed syntezą - patrz `sanitizeForSpeech`.
 
