@@ -339,6 +339,47 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_LONG_TERM_MEMORY, enabled).apply()
     }
 
+    // === Pamięć po znaczeniu (embeddingi) ===
+
+    /** Czy jest klucz usługi, która liczy embeddingi (Gemini albo OpenAI). */
+    fun hasEmbeddingKey(): Boolean = hasApiKey("gemini") || hasApiKey("openai")
+
+    /** Wybór użytkownika albo `null`, gdy nigdy nie przełączał. */
+    private fun semanticMemoryPref(): Boolean? =
+        if (prefs.contains(KEY_SEMANTIC_MEMORY)) prefs.getBoolean(KEY_SEMANTIC_MEMORY, false) else null
+
+    /**
+     * Stan przełącznika w Ustawieniach (bez "Tylko darmowe funkcje").
+     * Domyślnie włączony tylko wtedy, gdy jest klucz.
+     */
+    fun isSemanticMemoryPrefOn(): Boolean = semanticMemoryPref() ?: hasEmbeddingKey()
+
+    /**
+     * Czy szukać wspomnień po znaczeniu (płatne embeddingi, grosze miesięcznie).
+     * Wyłączone albo "Tylko darmowe funkcje" -> dotychczasowe dopasowanie słów.
+     * Decyzja w [pl.victor.app.memory.SemanticMemory.isEnabled] (z testem).
+     */
+    fun isSemanticMemoryEnabled(): Boolean =
+        pl.victor.app.memory.SemanticMemory.isEnabled(semanticMemoryPref(), isFreeOnly(), hasEmbeddingKey())
+
+    fun setSemanticMemoryEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SEMANTIC_MEMORY, enabled).apply()
+    }
+
+    /** Usługa embeddingów: aktywny dostawca, jeśli ma klucz, inaczej ten z kluczem. */
+    fun getSemanticMemoryProvider(): pl.victor.app.memory.SemanticMemory.Provider? =
+        pl.victor.app.memory.SemanticMemory.chooseProvider(
+            getActiveProvider(), hasApiKey("gemini"), hasApiKey("openai")
+        )
+
+    /**
+     * Rośnie przy każdej zmianie notatek i faktów - z aplikacji, z głosu i z
+     * ekranów edycji. Indeks pamięci po znaczeniu nasłuchuje go, żeby nie
+     * trzeba było pamiętać o wywołaniu indeksowania w każdym miejscu zapisu.
+     */
+    private val _memoryRevision = MutableStateFlow(0L)
+    val memoryRevision: StateFlow<Long> = _memoryRevision.asStateFlow()
+
     // === Dostępność ===
 
     /** Wysoki kontrast - czerń/biel zamiast dynamic color. */
@@ -817,6 +858,7 @@ class SettingsRepository private constructor(private val context: Context) {
                 .joinToString(FIELD_SEPARATOR)
         }
         prefs.edit().putString(KEY_NOTES, raw).apply()
+        _memoryRevision.value = _memoryRevision.value + 1
     }
 
     /** Dokłada notatkę na początek listy i zwraca nową listę. */
@@ -934,6 +976,7 @@ class SettingsRepository private constructor(private val context: Context) {
                 .joinToString(FIELD_SEPARATOR)
         }
         prefs.edit().putString(KEY_FACTS, raw).apply()
+        _memoryRevision.value = _memoryRevision.value + 1
     }
 
     /**
@@ -1393,6 +1436,7 @@ class SettingsRepository private constructor(private val context: Context) {
         const val PHOTO_FULL = "full"
         private const val KEY_CONVERSATIONAL_MODE = "conversational_mode"
         private const val KEY_LONG_TERM_MEMORY = "long_term_memory"
+        private const val KEY_SEMANTIC_MEMORY = "semantic_memory"
         private const val KEY_TRANSLATION_TARGET = "translation_target"
         private const val KEY_EAR_TRANSLATION_FROM = "ear_translation_from"
         private const val KEY_EAR_TRANSLATION_TO = "ear_translation_to"

@@ -174,6 +174,18 @@ class AIOrchestrator(
     private val urlAnalyzer = URLAnalyzer()
     private val translator = pl.victor.app.translation.SimultaneousTranslator()
     private val longTermMemory = pl.victor.app.memory.LongTermMemory(context, history)
+
+    /**
+     * Pamięć po znaczeniu (embeddingi) - patrz [pl.victor.app.memory.SemanticMemory].
+     * Wyłączona albo przy "Tylko darmowe funkcje" zostaje samo [longTermMemory].
+     */
+    private val semanticMemory = pl.victor.app.memory.SemanticMemoryService(
+        context = context,
+        settings = settings,
+        history = history,
+        diag = { diag },
+        scope = scope
+    )
     private val conversationContext = ConversationContext()
     private val captureModeSelector = pl.victor.app.camera.CaptureModeSelector()
 
@@ -1120,6 +1132,10 @@ class AIOrchestrator(
         // Preferencja mikrofonu okularów musi trafić do routera PRZED pierwszą
         // turą - inaczej wyłączenie działałoby dopiero po restarcie aplikacji.
         audio.setGlassesMicEnabled(settings.isGlassesMicEnabled())
+
+        // Pamięć po znaczeniu: dociągnięcie brakujących wektorów (w tle, z
+        // dziennym limitem) i nasłuch zmian notatek i faktów.
+        semanticMemory.start()
 
         // Nasłuch trybu konwersacyjnego wraca ZAWSZE, gdy tura się kończy.
         // Wcześniej zależało to od tego, czy dana ścieżka wyjścia pamiętała o
@@ -6105,7 +6121,7 @@ class AIOrchestrator(
                 // async przewraca całą korutynę tury, a brak pogody nie może
                 // kosztować odpowiedzi.
                 val contextStartedAtMs = System.currentTimeMillis()
-                val memoryDeferred = async { runCatching { buildMemoryContext(textQuestion) }.getOrNull() }
+                val memoryDeferred = async { runCatching { buildMemoryContext(textQuestion, notesInPrompt = notesContext != null, audioTurn = audioTurn) }.getOrNull() }
                 val calendarDeferred =
                     async { runCatching { buildCalendarContext(textQuestion, audioTurn) }.getOrNull() }
                 val gmailDeferred =
@@ -6877,6 +6893,8 @@ class AIOrchestrator(
                     Log.d(TAG, "Saved to history (photo: $firstPhotoPath)")
                     // Egzekwuj limit historii z ustawień
                     history.trimTo(settings.getHistoryLimit())
+                    // Nowa rozmowa dostaje wektor w tle (a przycięte znikają z indeksu).
+                    semanticMemory.requestSync("nowa rozmowa")
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to save history", e)
                 }
@@ -8582,8 +8600,46 @@ class AIOrchestrator(
      *
      * @return fragment promptu albo `null` gdy wyłączone lub brak trafień
      */
-    private suspend fun buildMemoryContext(question: String): String? {
+    /** Dociągnięcie wektorów pamięci po znaczeniu (np. po włączeniu w Ustawieniach). */
+    fun requestSemanticIndexing(reason: String) = semanticMemory.requestSync(reason)
+
+    private suspend fun buildMemoryContext(
+        question: String,
+        notesInPrompt: Boolean = false,
+        audioTurn: Boolean = false
+    ): String? {
         if (!settings.isLongTermMemoryEnabled()) return null
+        // PO ZNACZENIU, gdy włączone: "gdzie zostawiłem klucze?" znajduje
+        // notatkę "położyłem klucze na szafce", czego słowa nie umiały.
+        // Szuka w rozmowach, notatkach (w tym podsumowaniach spotkań) i
+        // faktach naraz; słowa nadal biorą udział w wyniku. Wektor pytania ma
+        // limit czasu, więc tura nie zwalnia - po nim zostają same słowa.
+        //
+        // Przy pytaniu NAGRANIEM `question` to tylko instrukcja ("odpowiedz na
+        // pytanie z nagrania"), bez słów użytkownika - jej wektor trafiałby w
+        // przypadkowe wpisy i kosztował zapytanie na nic. Taka tura idzie jak
+        // dotąd.
+        if (!audioTurn && settings.isSemanticMemoryEnabled()) {
+            try {
+                // Fakty z polecenia i - gdy pytanie dokleiło je w całości -
+                // notatki nie mogą wejść drugi raz.
+                val factsInPrompt = settings.getFacts()
+                    .take(pl.victor.app.memory.UserFacts.PROMPT_LIMIT)
+                    .map { pl.victor.app.memory.SemanticMemory.factDoc(it.text, it.createdAtMs).key }
+                    .toSet()
+                val outcome = semanticMemory.search(
+                    question,
+                    excludeKinds = if (notesInPrompt) setOf(pl.victor.app.memory.SemanticMemory.Kind.NOTATKA) else emptySet(),
+                    excludeKeys = factsInPrompt
+                )
+                return pl.victor.app.memory.SemanticMemory.buildPromptContext(outcome.docs)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Awaria nowej drogi nie może zabrać starej - schodzimy do słów.
+                Log.w(TAG, "Pamięć po znaczeniu niedostępna - szukam słowami", e)
+            }
+        }
         return try {
             val entries = history.getRecent(MEMORY_SEARCH_POOL)
             if (entries.isEmpty()) return null
@@ -8591,6 +8647,14 @@ class AIOrchestrator(
             val matches = longTermMemory
                 .findSimilar(question, entries, limit = MEMORY_MAX_MATCHES)
                 .filter { it.score >= MEMORY_MIN_SCORE }
+            // Ślad także dla darmowej drogi - porównanie "ile znalazły słowa,
+            // ile znaczenie" wymaga obu wierszy w dzienniku.
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.KONTEKST, "pamięć: wyszukiwanie słowami",
+                    mapOf("rozmów" to entries.size, "zSłów" to matches.size)
+                )
+            }
             if (matches.isEmpty()) return null
 
             Log.i(TAG, "Pamięć: ${matches.size} podobnych rozmów (najlepsza ${matches.first().score})")

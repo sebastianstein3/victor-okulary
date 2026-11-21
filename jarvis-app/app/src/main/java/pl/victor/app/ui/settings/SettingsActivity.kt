@@ -3390,6 +3390,8 @@ private fun IntelligenceSection(
 
     var conversationalOn by remember { mutableStateOf(settings.isConversationalModeEnabled()) }
     var longTermOn by remember { mutableStateOf(settings.isLongTermMemoryEnabled()) }
+    var semanticOn by remember { mutableStateOf(settings.isSemanticMemoryPrefOn()) }
+    val freeOnly by settings.freeOnlyFlow.collectAsState()
     // Stan konta czytamy Z USŁUG GOOGLE, nie z zapamiętanej flagi, i odświeżamy
     // po każdym powrocie na ekran. Wcześniej wartość była brana raz, przy
     // pierwszym złożeniu widoku - więc po udanym logowaniu (osobne Activity!)
@@ -3527,6 +3529,56 @@ private fun IntelligenceSection(
                     onCheckedChange = { newVal ->
                         longTermOn = newVal
                         settings.setLongTermMemoryEnabled(newVal)
+                    }
+                )
+            }
+            Spacer(Modifier.size(8.dp))
+
+            // Pamięć po znaczeniu (embeddingi) - płatna, więc osobny przełącznik
+            // z kosztem i respektujący "Tylko darmowe funkcje". Koszt liczony w
+            // SemanticMemory.monthlyCostPln (30 pytań dziennie).
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val semanticProvider = remember { settings.getSemanticMemoryProvider() }
+                val semanticCost = remember(semanticProvider) {
+                    pl.victor.app.memory.SemanticMemory.formatPln(
+                        pl.victor.app.memory.SemanticMemory.monthlyCostPln(
+                            semanticProvider ?: pl.victor.app.memory.SemanticMemory.Provider.GEMINI
+                        )
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("🧠 Pamięć po znaczeniu – ok. $semanticCost zł/mies.", fontWeight = FontWeight.Medium)
+                    Text(
+                        when {
+                            freeOnly -> "Wyłączone przez \"Tylko darmowe funkcje\" - pamięć szuka " +
+                                "jak dotąd, po słowach."
+                            semanticProvider == null -> "Potrzebny klucz Gemini albo OpenAI. Bez niego " +
+                                "pamięć szuka jak dotąd, po słowach."
+                            !longTermOn -> "Działa razem z pamięcią długoterminową - włącz ją powyżej."
+                            else -> "Znajduje rozmowy, notatki (także ze spotkań) i fakty po sensie, " +
+                                "nie tylko po słowach: \"gdzie zostawiłem klucze?\" trafi w " +
+                                "\"położyłem klucze na szafce\". Każdy wpis i każde pytanie idzie " +
+                                "do " + (if (semanticProvider == pl.victor.app.memory.SemanticMemory.Provider.OPENAI) "OpenAI" else "Google") +
+                                " w krótkiej formie do policzenia wektora; wektory zostają w " +
+                                "telefonie. Gdy usługa nie odpowie w ułamku sekundy, szuka po słowach."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = semanticOn && semanticProvider != null && !freeOnly,
+                    enabled = semanticProvider != null && !freeOnly,
+                    onCheckedChange = { newVal ->
+                        semanticOn = newVal
+                        settings.setSemanticMemoryEnabled(newVal)
+                        // Indeks od razu, a nie dopiero po kolejnej rozmowie.
+                        if (newVal) {
+                            pl.victor.app.VictorApplication.get().orchestrator.requestSemanticIndexing("włączono w Ustawieniach")
+                        }
                     }
                 )
             }

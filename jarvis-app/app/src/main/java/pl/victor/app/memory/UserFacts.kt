@@ -204,7 +204,7 @@ object UserFacts {
     }
 
     /** Ile faktów trafia do polecenia - reszta tylko zabierałaby miejsce. */
-    private const val PROMPT_LIMIT = 40
+    const val PROMPT_LIMIT = 40
 
     /** Fakty do wypowiedzenia na głos. */
     fun speak(facts: List<Fact>): String {

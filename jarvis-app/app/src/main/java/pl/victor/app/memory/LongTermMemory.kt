@@ -5,15 +5,13 @@ import android.util.Log
 import pl.victor.app.data.ConversationEntry
 import pl.victor.app.data.HistoryRepository
 import java.security.MessageDigest
-import java.util.Locale
 
 /**
  * Prosta pamięć długoterminowa - TF-IDF similarity (bez zewnętrznych bibliotek).
  *
- * Dla MVP - zamiast pełnych embeddings (wymagałoby ONNX/quantized model),
- * używamy TF-IDF + cosine similarity do wyszukiwania podobnych rozmów.
- *
- * W przyszłości: zamienić na sentence-transformers (ONNX) dla lepszej jakości.
+ * Dopasowuje SŁOWA - liczenie jest w [KeywordRanker]. Wyszukiwanie po
+ * ZNACZENIU (embeddingi) dokłada [SemanticMemory]; to tutaj zostaje darmowym
+ * odpowiednikiem, gdy tamto jest wyłączone.
  *
  * Use case:
  * - User pyta "Pamiętasz o czym rozmawialiśmy z Anią?"
@@ -25,13 +23,6 @@ class LongTermMemory(
     private val history: HistoryRepository
 ) {
     private val tag = "LongTermMemory"
-
-    // Stopwords PL + EN (opcjonalne)
-    private val stopwords = setOf(
-        "i", "w", "na", "z", "do", "to", "że", "jest", "się", "nie",
-        "the", "a", "an", "is", "are", "was", "were", "be", "been",
-        "of", "in", "on", "at", "by", "for", "with", "as", "from"
-    )
 
     /**
      * Szuka podobnych rozmów w historii.
@@ -52,85 +43,13 @@ class LongTermMemory(
      */
     fun findSimilarInList(query: String, entries: List<ConversationEntry>, limit: Int = 5): List<MemoryMatch> {
         if (entries.isEmpty()) return emptyList()
-
-        val queryTokens = tokenize(query)
-        val queryTf = computeTf(queryTokens)
-
-        val docFreq = mutableMapOf<String, Int>()
-        entries.forEach { entry ->
-            val tokens = tokenize(entry.userQuestion + " " + entry.aiResponse)
-            tokens.toSet().forEach { token ->
-                docFreq[token] = (docFreq[token] ?: 0) + 1
-            }
-        }
-        val idf = computeIdf(docFreq, entries.size)
-
-        return entries.map { entry ->
-            val docTokens = tokenize(entry.userQuestion + " " + entry.aiResponse)
-            val docTf = computeTf(docTokens)
-            val score = cosineSimilarity(queryTf, docTf, idf)
-            MemoryMatch(entry, score)
-        }.filter { it.score > 0.1f }
-         .sortedByDescending { it.score }
-         .take(limit)
-    }
-
-    /**
-     * Tokenizacja - dzieli tekst na słowa, normalizuje, usuwa stopwords.
-     */
-    private fun tokenize(text: String): List<String> {
-        return text.lowercase(Locale.getDefault())
-            .replace(Regex("[^\\p{L}\\p{N}\\s]"), " ")  // tylko litery i cyfry
-            .split(Regex("\\s+"))
-            .filter { it.length > 2 && it !in stopwords }
-    }
-
-    /**
-     * TF (term frequency) - jak często słowo w dokumencie.
-     */
-    private fun computeTf(tokens: List<String>): Map<String, Float> {
-        val tf = mutableMapOf<String, Float>()
-        tokens.forEach { token ->
-            tf[token] = (tf[token] ?: 0f) + 1f
-        }
-        // Normalizuj
-        val max = tf.values.maxOrNull() ?: 1f
-        return tf.mapValues { it.value / max }
-    }
-
-    /**
-     * IDF (inverse document frequency) - jak rzadkie słowo w korpusie.
-     */
-    private fun computeIdf(docFreq: Map<String, Int>, totalDocs: Int): Map<String, Float> {
-        return docFreq.mapValues { (_, df) ->
-            Math.log((totalDocs.toFloat() / (df + 1)).toDouble()).toFloat() + 1f
-        }
-    }
-
-    /**
-     * Cosine similarity między dwoma wektorami TF-IDF.
-     */
-    private fun cosineSimilarity(
-        queryTf: Map<String, Float>,
-        docTf: Map<String, Float>,
-        idf: Map<String, Float>
-    ): Float {
-        var dot = 0f
-        var queryNorm = 0f
-        var docNorm = 0f
-
-        // Oblicz dot product i normy
-        val allTerms = queryTf.keys + docTf.keys
-        allTerms.forEach { term ->
-            val qVal = (queryTf[term] ?: 0f) * (idf[term] ?: 0f)
-            val dVal = (docTf[term] ?: 0f) * (idf[term] ?: 0f)
-            dot += qVal * dVal
-            queryNorm += qVal * qVal
-            docNorm += dVal * dVal
-        }
-
-        val denominator = Math.sqrt((queryNorm * docNorm).toDouble())
-        return if (denominator == 0.0) 0f else (dot / denominator).toFloat()
+        // Liczenie wydzielone do [KeywordRanker] (to samo służy pamięci po
+        // znaczeniu) - wynik i próg bez zmian.
+        val scores = KeywordRanker.scores(query, entries.map { it.userQuestion + " " + it.aiResponse })
+        return entries.mapIndexed { index, entry -> MemoryMatch(entry, scores[index]) }
+            .filter { it.score > 0.1f }
+            .sortedByDescending { it.score }
+            .take(limit)
     }
 
     /**
