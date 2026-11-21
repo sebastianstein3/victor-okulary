@@ -1,12 +1,12 @@
 package pl.victor.app.google
 
 import android.content.Context
-import android.util.Base64
 import android.util.Log
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.gmail.Gmail
 import com.google.api.services.gmail.GmailScopes
+import com.google.api.services.gmail.model.Draft
 import com.google.api.services.gmail.model.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -35,6 +35,9 @@ class GmailService(context: Context) {
 
     /** Czy konto ma zgodę na pocztę - poczta jest zgodą DODATKOWĄ, patrz GoogleAccountManager. */
     fun hasAccess(): Boolean = accountManager.hasGmailAccess()
+
+    /** Czy wolno zostawić szkic - osobna, nieobowiązkowa zgoda (gmail.compose). */
+    fun hasDraftAccess(): Boolean = accountManager.hasGmailDraftAccess()
 
     private fun buildService(scope: String): Gmail? {
         // Bez zgody na pocztę nie ma po co budować klienta: żądanie doszłoby do
@@ -104,22 +107,26 @@ class GmailService(context: Context) {
      * Wysyła email. Zwraca `true` gdy się udało.
      */
     suspend fun sendEmail(to: String, subject: String, body: String): Boolean =
+        send(EmailCompose.Outgoing(EmailCompose.parseAddress(to) ?: EmailCompose.Address(null, to), subject, body))
+
+    /**
+     * Wysyła gotowy mail - także odpowiedź w wątku ([EmailCompose.Outgoing.threadId]
+     * i nagłówki `In-Reply-To`/`References`). Zwraca `true` gdy się udało.
+     *
+     * Treść maila nie trafia do logu - wystarczy adresat i długość.
+     */
+    suspend fun send(mail: EmailCompose.Outgoing): Boolean =
         withContext(Dispatchers.IO) {
             val service = buildService(GmailScopes.GMAIL_SEND) ?: return@withContext false
             val account = accountManager.getCurrentAccount() ?: return@withContext false
             try {
-                val mime = "From: ${account.email}\r\n" +
-                        "To: $to\r\n" +
-                        "Subject: ${encodeSubjectHeader(subject)}\r\n" +
-                        "Content-Type: text/plain; charset=\"UTF-8\"\r\n" +
-                        "\r\n" +
-                        body
-                val raw = Base64.encodeToString(
-                    mime.toByteArray(Charsets.UTF_8),
-                    Base64.URL_SAFE or Base64.NO_WRAP
-                )
-                service.users().messages().send("me", Message().setRaw(raw)).execute()
-                Log.i(tag, "Email sent to $to")
+                val message = Message().setRaw(EmailCompose.toRaw(EmailCompose.buildMime(account.email, mail)))
+                // Bez threadId Gmail i tak próbuje skleić wątek po nagłówkach i
+                // temacie, ale tylko u nadawcy i nie zawsze - podany wprost wiąże
+                // odpowiedź z wątkiem na pewno.
+                mail.threadId?.let { message.setThreadId(it) }
+                service.users().messages().send("me", message).execute()
+                Log.i(tag, "Email wysłany (${mail.body.length} znaków, wątek: ${mail.threadId != null})")
                 true
             } catch (e: Exception) {
                 if (GoogleAccountManager.noteApiFailure(e)) {
@@ -128,6 +135,91 @@ class GmailService(context: Context) {
                     Log.e(tag, "Failed to send email", e)
                 }
                 false
+            }
+        }
+
+    /**
+     * Zostawia mail jako szkic w Gmailu - po „nie” albo ciszy na pytanie
+     * „Wysłać?”. Wymaga zgody na szkice ([hasDraftAccess]); bez niej `false`.
+     */
+    suspend fun createDraft(mail: EmailCompose.Outgoing): Boolean =
+        withContext(Dispatchers.IO) {
+            if (!accountManager.hasGmailDraftAccess()) return@withContext false
+            val account = accountManager.getCurrentAccount() ?: return@withContext false
+            val credential = accountManager.getCredential(Collections.singleton(GmailScopes.GMAIL_COMPOSE))
+                ?: return@withContext false
+            try {
+                val service = Gmail.Builder(NetHttpTransport(), GsonFactory.getDefaultInstance(), credential)
+                    .setApplicationName("V.I.C.T.O.R.")
+                    .build()
+                val message = Message().setRaw(EmailCompose.toRaw(EmailCompose.buildMime(account.email, mail)))
+                mail.threadId?.let { message.setThreadId(it) }
+                service.users().drafts().create("me", Draft().setMessage(message)).execute()
+                Log.i(tag, "Szkic zapisany (${mail.body.length} znaków)")
+                true
+            } catch (e: Exception) {
+                GoogleAccountManager.noteApiFailure(e)
+                Log.w(tag, "Nie udało się zapisać szkicu", e)
+                false
+            }
+        }
+
+    /**
+     * Ostatnie maile w skrzynce odbiorczej z nagłówkami potrzebnymi do
+     * odpowiedzi w wątku (Message-ID, References, Reply-To) - patrz
+     * [EmailCompose.pickMessage].
+     *
+     * Tylko `in:inbox`: „ostatni mail” to ostatni OTRZYMANY, a nie własny
+     * wysłany, który inaczej zwykle byłby na samej górze.
+     */
+    suspend fun getReplyCandidates(maxResults: Int = 15): List<EmailCompose.ReplyCandidate> =
+        withContext(Dispatchers.IO) {
+            val service = buildService(GmailScopes.GMAIL_READONLY) ?: return@withContext emptyList()
+            try {
+                val refs = service.users().messages().list("me")
+                    .setMaxResults(maxResults.toLong())
+                    .setQ("in:inbox")
+                    .execute()
+                    .messages ?: return@withContext emptyList()
+                kotlinx.coroutines.coroutineScope {
+                    refs.map { ref ->
+                        async {
+                            try {
+                                val full = service.users().messages().get("me", ref.id)
+                                    .setFormat("metadata")
+                                    .setMetadataHeaders(
+                                        listOf("From", "Reply-To", "Subject", "Message-ID", "References")
+                                    )
+                                    .execute()
+                                val headers = full.payload?.headers.orEmpty()
+                                fun header(name: String) =
+                                    headers.firstOrNull { it.name.equals(name, ignoreCase = true) }?.value
+                                EmailCompose.ReplyCandidate(
+                                    id = full.id ?: ref.id,
+                                    threadId = full.threadId,
+                                    from = header("From").orEmpty(),
+                                    replyTo = header("Reply-To"),
+                                    subject = header("Subject").orEmpty(),
+                                    messageIdHeader = header("Message-ID"),
+                                    references = header("References"),
+                                    receivedMs = full.internalDate ?: 0L
+                                )
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                Log.w(tag, "Failed to fetch message ${ref.id}", e)
+                                null
+                            }
+                        }
+                    }.map { it.await() }.filterNotNull()
+                }
+            } catch (e: Exception) {
+                if (GoogleAccountManager.noteApiFailure(e)) {
+                    Log.w(tag, "Poczta: logowanie Google wygasło", e)
+                } else {
+                    Log.e(tag, "Failed to list messages for reply", e)
+                }
+                emptyList()
             }
         }
 
@@ -145,12 +237,6 @@ class GmailService(context: Context) {
             receivedMs = message.internalDate ?: 0L,
             isUnread = message.labelIds?.contains("UNREAD") == true
         )
-    }
-
-    /** Nagłówki maila to ASCII (RFC 2047) - temat z polskimi znakami trzeba zakodować. */
-    private fun encodeSubjectHeader(subject: String): String {
-        val encoded = Base64.encodeToString(subject.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
-        return "=?UTF-8?B?$encoded?="
     }
 }
 

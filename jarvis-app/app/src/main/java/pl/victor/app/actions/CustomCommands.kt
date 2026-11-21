@@ -107,6 +107,7 @@ object CustomCommands {
             ActionType.SEND_SMS,
             ActionType.SEND_WHATSAPP,
             ActionType.REPLY_MESSAGE,
+            ActionType.REPLY_EMAIL,
             // APP_TASK niesie rodzaj zadania I cel, więc jedno pole tekstowe
             // własnej komendy mu nie wystarczy.
             ActionType.APP_TASK,

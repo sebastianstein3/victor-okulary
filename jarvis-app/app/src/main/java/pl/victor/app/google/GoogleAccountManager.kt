@@ -15,6 +15,7 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccoun
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.gmail.GmailScopes
+import com.google.api.services.tasks.TasksScopes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -28,7 +29,7 @@ import kotlinx.coroutines.withContext
  * `signInOptions` poniżej.
  *
  * Wymaga w Google Cloud Console (projekt OAuth apki):
- * - włączonego Calendar API i Gmail API
+ * - włączonego Calendar API, Gmail API, Drive API i Google Tasks API
  * - scope'ów poniżej dodanych do OAuth consent screen
  * To jest konfiguracja po stronie Google, nie kodu - sam kod nie wystarczy.
  */
@@ -79,8 +80,28 @@ class GoogleAccountManager(private val context: Context) {
     private val driveScope = Scope(DriveScopes.DRIVE_FILE)
 
     /**
-     * Zgody, o które prosi zwykłe logowanie. Musi stać PO [driveScope]: pola
-     * inicjalizują się w kolejności zapisu, a [options] sięga po nie wszystkie.
+     * Szkice w Gmailu - DODATKOWE do poczty i NIEWYMAGANE.
+     *
+     * Potrzebne tylko do jednego: gdy użytkownik odpowie „nie” albo zamilknie
+     * na pytanie „Wysłać?”, mail zostaje jako szkic zamiast przepaść
+     * (`drafts.create` wymaga `gmail.compose` - samo `gmail.send` nie wystarcza).
+     * Nie wchodzi do [hasGmailAccess]: konta, które włączyły pocztę przed tą
+     * zmianą, nie mają tej zgody, a nie mogą przez to stracić czytania i
+     * wysyłania. Prośba o pocztę dokłada ją od teraz za jednym razem.
+     */
+    private val gmailComposeScope = Scope(GmailScopes.GMAIL_COMPOSE)
+
+    /**
+     * Google Tasks - DODATKOWE, pytane dopiero przy włączeniu synchronizacji
+     * list w Ustawieniach. Ten sam powód co [driveScope]: dopisanie do zgód
+     * obowiązkowych unieważniłoby wszystkie dotychczasowe logowania.
+     */
+    private val tasksScope = Scope(TasksScopes.TASKS)
+
+    /**
+     * Zgody, o które prosi zwykłe logowanie. Musi stać PO [driveScope] i
+     * [tasksScope]: pola inicjalizują się w kolejności zapisu, a [options]
+     * sięga po nie wszystkie.
      */
     private val signInOptions = options(gmail = false, drive = false)
 
@@ -94,10 +115,17 @@ class GoogleAccountManager(private val context: Context) {
      * istnieje. Dlatego każda prośba dokłada się do już posiadanych, a nie
      * zastępuje ich.
      */
-    private fun options(gmail: Boolean, drive: Boolean): GoogleSignInOptions {
+    private fun options(
+        gmail: Boolean,
+        drive: Boolean,
+        compose: Boolean = false,
+        tasks: Boolean = false
+    ): GoogleSignInOptions {
         val all = calendarScopes.toMutableList()
         if (gmail) all.addAll(gmailScopes)
+        if (compose) all.add(gmailComposeScope)
         if (drive) all.add(driveScope)
+        if (tasks) all.add(tasksScope)
         // Pierwszy zakres osobno, reszta rozwinięta - dokładnie tak, jak wygląda
         // sygnatura requestScopes(Scope, vararg Scope).
         return GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -112,6 +140,12 @@ class GoogleAccountManager(private val context: Context) {
     /** Czy konto ma już zgodę na pocztę - wymaga OBU zakresów, czytania i wysyłki. */
     fun hasGmailAccess(): Boolean = hasScopes(gmailScopes)
 
+    /** Czy wolno zostawiać szkice w Gmailu - patrz [gmailComposeScope]. */
+    fun hasGmailDraftAccess(): Boolean = hasScopes(listOf(gmailComposeScope))
+
+    /** Czy konto ma zgodę na Google Tasks - patrz [tasksScope]. */
+    fun hasTasksAccess(): Boolean = hasScopes(listOf(tasksScope))
+
     private fun hasScopes(scopes: List<Scope>): Boolean {
         val account = GoogleSignIn.getLastSignedInAccount(context) ?: return false
         return scopes.all { GoogleSignIn.hasPermissions(account, it) }
@@ -123,11 +157,43 @@ class GoogleAccountManager(private val context: Context) {
      * zalogowanego konta.
      */
     fun getDriveConsentIntent(): Intent =
-        GoogleSignIn.getClient(context, options(gmail = hasGmailAccess(), drive = true)).signInIntent
+        GoogleSignIn.getClient(
+            context,
+            options(
+                gmail = hasGmailAccess(), drive = true,
+                compose = hasGmailDraftAccess(), tasks = hasTasksAccess()
+            )
+        ).signInIntent
 
-    /** Intent proszący o zgodę na pocztę - obsługiwany jak [getDriveConsentIntent]. */
+    /**
+     * Intent proszący o zgodę na pocztę - obsługiwany jak [getDriveConsentIntent].
+     * Razem z pocztą prosi o szkice ([gmailComposeScope]) - przy włączonej już
+     * poczcie ten sam przycisk dokłada same szkice.
+     */
     fun getGmailConsentIntent(): Intent =
-        GoogleSignIn.getClient(context, options(gmail = true, drive = hasDriveAccess())).signInIntent
+        GoogleSignIn.getClient(
+            context,
+            options(
+                gmail = true, drive = hasDriveAccess(),
+                compose = true, tasks = hasTasksAccess()
+            )
+        ).signInIntent
+
+    /** Intent proszący o zgodę na Google Tasks - obsługiwany jak [getDriveConsentIntent]. */
+    fun getTasksConsentIntent(): Intent =
+        GoogleSignIn.getClient(
+            context,
+            options(
+                gmail = hasGmailAccess(), drive = hasDriveAccess(),
+                compose = hasGmailDraftAccess(), tasks = true
+            )
+        ).signInIntent
+
+    /** Credential do Google Tasks albo `null`, gdy brak zgody albo logowania. */
+    fun getTasksCredential(): GoogleAccountCredential? {
+        if (!hasTasksAccess()) return null
+        return getCredential(java.util.Collections.singleton(TasksScopes.TASKS))
+    }
 
     /** Credential do Dysku albo `null`, gdy brak zgody. */
     fun getDriveCredential(): GoogleAccountCredential? {
@@ -345,7 +411,9 @@ class GoogleAccountManager(private val context: Context) {
             CalendarScopes.CALENDAR_EVENTS to "Wydarzenia w kalendarzu",
             GmailScopes.GMAIL_READONLY to "Czytanie poczty",
             GmailScopes.GMAIL_SEND to "Wysyłanie poczty",
-            DriveScopes.DRIVE_FILE to "Zapis notatek na Dysku"
+            GmailScopes.GMAIL_COMPOSE to "Szkice w poczcie",
+            DriveScopes.DRIVE_FILE to "Zapis notatek na Dysku",
+            TasksScopes.TASKS to "Listy w Google Tasks"
         )
     }
 }

@@ -11,7 +11,9 @@ import android.telephony.SmsManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import pl.victor.app.calendar.GoogleCalendarService
+import pl.victor.app.google.EmailCompose
 import pl.victor.app.google.GmailService
+import pl.victor.app.google.GoogleAccountManager
 
 /**
  * Wykonuje akcje BEZPOŚREDNIO (bez otwierania zewnętrznej apki).
@@ -44,6 +46,13 @@ class DirectActionExecutor(private val context: Context) {
      * telefonie.
      */
     fun canWriteCalendarDirectly(): Boolean = calendarService.isSignedIn()
+
+    /**
+     * Czy mail da się WYSŁAĆ przez Gmail API (po potwierdzeniu), a nie tylko
+     * otworzyć w aplikacji poczty. Tak jak kalendarz - niezależnie od trybu
+     * akcji: wymaga wyłącznie zgody na pocztę, nie niebezpiecznych uprawnień.
+     */
+    fun canSendEmailDirectly(): Boolean = gmailService.hasAccess()
 
     /**
      * Sprawdza czy akcja może być wykonana bezpośrednio (wymaga permission).
@@ -99,9 +108,15 @@ class DirectActionExecutor(private val context: Context) {
                     return ActionConfirmation.NotRequired  // brak zgody - użyj Intentu (SAFE)
                 }
                 ActionConfirmation.Required(
-                    title = "Wysłać email?",
-                    message = "Do: ${action.to}\nTemat: ${action.subject}" +
-                            if (action.body.isNotBlank()) "\n\n${action.body}" else "",
+                    title = if (action.isReply) "Wysłać odpowiedź?" else "Wysłać maila?",
+                    // Nazwa z kontaktów albo z nagłówka „From” - adres sam nie
+                    // mówi, czy to ta Ania.
+                    message = EmailVoice.confirmationMessage(
+                        recipient = action.resolvedName ?: action.to,
+                        email = action.to,
+                        subject = action.subject,
+                        body = action.body
+                    ),
                     confirmText = "📧 Wyślij"
                 )
             }
@@ -220,17 +235,34 @@ class DirectActionExecutor(private val context: Context) {
                     "w karcie konta Google."
             )
         }
-        val sent = gmailService.sendEmail(
-            to = action.to,
-            subject = action.subject,
-            body = action.body
-        )
-        return if (sent) {
-            ActionResult.Success("Wysłano email do ${action.to}")
-        } else {
-            ActionResult.Failed("Nie udało się wysłać emaila")
+        val sent = gmailService.send(toOutgoing(action))
+        val who = action.resolvedName ?: action.to
+        return when {
+            sent -> ActionResult.Success(
+                if (action.isReply) "Wysłano odpowiedź do $who." else "Wysłano maila do $who."
+            )
+            GoogleAccountManager.isLoginExpired() -> ActionResult.Failed(
+                "logowanie Google wygasło - zaloguj się ponownie w Ustawieniach"
+            )
+            else -> ActionResult.Failed("Nie udało się wysłać maila do $who")
         }
     }
+
+    /**
+     * Zostawia niewysłany mail jako szkic w Gmailu („nie” albo cisza na
+     * „Wysłać?”). `false`, gdy nie ma zgody na szkice albo zapis się nie udał.
+     */
+    suspend fun saveEmailDraft(action: Action.SendEmail): Boolean =
+        gmailService.hasDraftAccess() && gmailService.createDraft(toOutgoing(action))
+
+    private fun toOutgoing(action: Action.SendEmail) = EmailCompose.Outgoing(
+        to = EmailCompose.Address(action.resolvedName, action.to),
+        subject = action.subject,
+        body = action.body,
+        threadId = action.threadId,
+        inReplyTo = action.inReplyTo,
+        references = action.references
+    )
 
     private suspend fun resolvePhone(name: String): String? {
         // Jeśli wygląda jak numer telefonu - zwróć bezpośrednio

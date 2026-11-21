@@ -3185,6 +3185,11 @@ private fun IntelligenceSection(
     var gmailConnected by remember {
         mutableStateOf(runCatching { GoogleAccountManager(context).hasGmailAccess() }.getOrDefault(false))
     }
+    // Szkice (gmail.compose) - osobno, bo konta z pocztą włączoną wcześniej
+    // tej zgody nie mają, a poczta działa bez niej.
+    var gmailDrafts by remember {
+        mutableStateOf(runCatching { GoogleAccountManager(context).hasGmailDraftAccess() }.getOrDefault(false))
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -3194,6 +3199,7 @@ private fun IntelligenceSection(
                 settings.setGoogleAccountConnected(signedIn)
                 googleConnected = signedIn
                 gmailConnected = runCatching { manager.hasGmailAccess() }.getOrDefault(false)
+                gmailDrafts = runCatching { manager.hasGmailDraftAccess() }.getOrDefault(false)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -3208,9 +3214,41 @@ private fun IntelligenceSection(
         gmailConnected = runCatching {
             GoogleAccountManager(context).hasGmailAccess()
         }.getOrDefault(false)
+        gmailDrafts = runCatching { GoogleAccountManager(context).hasGmailDraftAccess() }.getOrDefault(false)
     }
 
     val scope = rememberCoroutineScope()
+
+    // Listy ↔ Google Tasks: przełącznik domyślnie wyłączony, zgoda na zakres
+    // "tasks" pytana dopiero przy włączeniu (jak poczta i Dysk).
+    var tasksSyncOn by remember {
+        mutableStateOf(
+            settings.isListsTasksSyncEnabled() &&
+                runCatching { GoogleAccountManager(context).hasTasksAccess() }.getOrDefault(false)
+        )
+    }
+    var tasksStatus by remember { mutableStateOf<String?>(null) }
+    fun startTasksSync() {
+        tasksStatus = "Synchronizuję listy z Google Tasks..."
+        scope.launch {
+            val ok = runCatching { pl.victor.app.VictorApplication.get().orchestrator.lists.syncAll() }
+                .getOrDefault(0)
+            tasksStatus = "Zsynchronizowano list: $ok."
+        }
+    }
+    val tasksConsentLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (runCatching { GoogleAccountManager(context).hasTasksAccess() }.getOrDefault(false)) {
+            tasksSyncOn = true
+            settings.setListsTasksSyncEnabled(true)
+            startTasksSync()
+        } else {
+            tasksSyncOn = false
+            settings.setListsTasksSyncEnabled(false)
+            tasksStatus = "Bez zgody na Google Tasks listy zostają tylko w telefonie."
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -3317,7 +3355,9 @@ private fun IntelligenceSection(
                         Spacer(Modifier.size(8.dp))
                         Text(
                             if (gmailConnected) {
-                                "📧 Poczta: włączona - czytam i wysyłam maile."
+                                "📧 Poczta: włączona - czytam maile, odpowiadam i wysyłam " +
+                                    "głosem (zawsze po pytaniu \"Wysłać?\")." +
+                                    if (gmailDrafts) " Anulowany mail zostaje w szkicach." else ""
                             } else {
                                 "📧 Poczta: wyłączona. Google wymaga do niej osobnej, " +
                                     "szerszej zgody, więc pytam o nią tylko wtedy, gdy " +
@@ -3327,8 +3367,57 @@ private fun IntelligenceSection(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    if (googleConnected) {
+                        Spacer(Modifier.size(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("✅ Synchronizuj listy z Google Tasks", fontWeight = FontWeight.Medium)
+                                Text(
+                                    tasksStatus ?: ("Listy (zakupy, zadania, na wyjazd) także w Google " +
+                                        "Tasks, pod tą samą nazwą. Darmowe. Wymaga osobnej zgody " +
+                                        "Google; bez niej listy działają w telefonie."),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = tasksSyncOn,
+                                onCheckedChange = { on ->
+                                    if (!on) {
+                                        tasksSyncOn = false
+                                        settings.setListsTasksSyncEnabled(false)
+                                        tasksStatus = null
+                                    } else if (runCatching {
+                                            GoogleAccountManager(context).hasTasksAccess()
+                                        }.getOrDefault(false)
+                                    ) {
+                                        tasksSyncOn = true
+                                        settings.setListsTasksSyncEnabled(true)
+                                        startTasksSync()
+                                    } else {
+                                        tasksConsentLauncher.launch(
+                                            GoogleAccountManager(context).getTasksConsentIntent()
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
                     Spacer(Modifier.size(8.dp))
                     Row {
+                        if (googleConnected && gmailConnected && !gmailDrafts) {
+                            OutlinedButton(
+                                onClick = {
+                                    gmailConsentLauncher.launch(
+                                        GoogleAccountManager(context).getGmailConsentIntent()
+                                    )
+                                }
+                            ) { Text("📝 Szkice w Gmailu") }
+                            Spacer(Modifier.size(8.dp))
+                        }
                         if (googleConnected && !gmailConnected) {
                             OutlinedButton(
                                 onClick = {

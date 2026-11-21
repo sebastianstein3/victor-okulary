@@ -1043,6 +1043,14 @@ class SmartActionDetector {
                     body = params["body"] ?: ""
                 )
             }
+            // Odpowiedź na mail: adresata, temat i wątek ustala aplikacja ze
+            // skrzynki - model podaje tylko, OD KOGO był mail, i treść.
+            "reply_email" -> params["body"]?.takeIf { it.isNotBlank() }?.let { body ->
+                Action.ReplyEmail(
+                    from = (params["from"] ?: params["to"])?.takeIf { it.isNotBlank() },
+                    body = body
+                )
+            }
             "play_music" -> Action.PlayMusic(query = params["query"] ?: "")
             "navigate" -> params["destination"]?.let {
                 val dest = cleanDestination(it)
@@ -1292,6 +1300,8 @@ class SmartActionDetector {
             "dial" to "make_call",
             "email" to "send_email",
             "mail" to "send_email",
+            "reply_mail" to "reply_email",
+            "email_reply" to "reply_email",
             "music" to "play_music",
             "play" to "play_music",
             "search" to "web_search",
@@ -1308,6 +1318,8 @@ class SmartActionDetector {
 
         /** Nazwy parametrów, którymi modele zastępują te z promptu. */
         private val PARAM_ALIASES = mapOf(
+            "sender" to "from",
+            "od" to "from",
             "recipient" to "to",
             "number" to "to",
             "contact" to "to",
@@ -1361,7 +1373,17 @@ Dostępne typy i klucze:
   Używaj zawsze, gdy prośba brzmi "odpowiedz", "odpisz" na wiadomość - nie
   używaj do tego send_sms ani send_whatsapp.
 - make_call: to (numer lub imię)
-- send_email: to (adres), subject (temat), body (treść)
+- send_email: to (adres e-mail ALBO imię/nazwa z kontaktów tak, jak padła -
+  adres znajdzie aplikacja), subject (krótki temat), body (treść ułożona za
+  użytkownika: w pierwszej osobie, krótko, w jego tonie, bez podpisu). Np.
+  "napisz maila do Tomka, że spotkanie przesuwamy" -> to="Tomek".
+- reply_email: from (imię, nazwa albo adres NADAWCY maila, na który
+  odpowiadamy; pomiń, gdy chodzi o ostatni mail), body (treść odpowiedzi jak
+  wyżej). Odpowiedź idzie w tym samym wątku Gmaila. Używaj zawsze, gdy prośba
+  brzmi "odpowiedz/odpisz na maila" - nie używaj do tego send_email ani
+  reply_message (to jest do SMS-ów i komunikatorów).
+  Przy obu: aplikacja przeczyta adresata, temat i treść i zapyta "Wysłać?" -
+  nie mów, że mail został wysłany.
 - play_music: query (czego szukać)
 - navigate: destination (adres lub miejsce), mode (opcjonalnie: "car" gdy
   samochodem; domyślnie pieszo)
@@ -1421,7 +1443,8 @@ Zasady:
   PRZED nim powinno brzmieć naturalnie i kompletnie (np. "Wysyłam maila do
   Jana z informacją o spóźnieniu.").
 - Nigdy nie wymyślaj wartości takich jak numer telefonu czy adres email,
-  jeśli user ich nie podał - dopytaj, zamiast zgadywać.
+  jeśli user ich nie podał - dopytaj, zamiast zgadywać. Imię kontaktu to nie
+  zgadywanie: podaj je, a numer albo adres znajdzie aplikacja.
 - NIGDY nie mów, że coś zrobiłeś, jeśli nie dodałeś znacznika. Sam nie masz
   dostępu do kalendarza, poczty ani telefonu - jedyne, co je uruchamia, to
   znacznik. Zdanie "dodałem wydarzenie" bez znacznika jest nieprawdą i tak

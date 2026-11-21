@@ -277,6 +277,10 @@ dependencies {
     // Dysk Google - eksport notatek do Dokumentu, który NotebookLM przyjmuje
     // jako źródło. Zakres drive.file: aplikacja widzi tylko własne pliki.
     implementation("com.google.apis:google-api-services-drive:v3-rev20260901-2.0.0")
+    // Google Tasks - opcjonalna synchronizacja list (zakupy, zadania). Linia
+    // "-2.0.0" jak pozostałe google-api-services; nowsze wydania "-2.9.x"
+    // ciągną inną wersję google-api-client.
+    implementation("com.google.apis:google-api-services-tasks:v1-rev20251102-2.0.0")
 
     // WorkManager - do scheduled tasks (proactive alerts)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
