@@ -209,6 +209,9 @@ fun NotesScreen(onBack: () -> Unit) {
                 )
             }
 
+            // Listy (zakupy, zadania) - osobno od notatek, bo się je odhacza.
+            item { ListsSection() }
+
             item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

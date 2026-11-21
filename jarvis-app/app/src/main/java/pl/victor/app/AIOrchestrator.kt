@@ -168,6 +168,9 @@ class AIOrchestrator(
     private val actionExecutor = ActionExecutor(context)
     private val directActionExecutor = DirectActionExecutor(context)
     private val contactResolver = ContactResolver(context)
+
+    /** Adresat, temat i wątek maila ustalane PRZED pytaniem „Wysłać?” - patrz [pl.victor.app.actions.EmailPreparer]. */
+    private val emailPreparer = pl.victor.app.actions.EmailPreparer(context)
     private val urlAnalyzer = URLAnalyzer()
     private val translator = pl.victor.app.translation.SimultaneousTranslator()
     private val longTermMemory = pl.victor.app.memory.LongTermMemory(context, history)
@@ -2279,6 +2282,20 @@ class AIOrchestrator(
                 audio.speak(odp, language = settings.getResponseLanguage())
                 _state.value = OrchestratorState.Completed(odp)
             }
+        )
+    }
+
+    /**
+     * Listy (zakupy, zadania, nazwane) i ich synchronizacja z Google Tasks -
+     * patrz [pl.victor.app.lists.ListsAssistant]. Publiczne, bo ekran Notatek
+     * i przełącznik w Ustawieniach uruchamiają tę samą synchronizację.
+     */
+    val lists by lazy {
+        pl.victor.app.lists.ListsAssistant(
+            context = context,
+            scope = scope,
+            settings = settings,
+            dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.AKCJA, co, pola) } }
         )
     }
 
@@ -4980,6 +4997,18 @@ class AIOrchestrator(
         if (textIsQuestion && pending != null &&
             System.currentTimeMillis() - pending.createdAtMs <= CONFIRMATION_VOICE_TTL_MS
         ) {
+            // POPRAWKA MAILA - "popraw, napisz że będę o piątej" przy wiszącym
+            // "Wysłać?". Przed tak/nie, bo to zdanie zawiera "nie"/"napisz" i
+            // poszłoby jako odmowa albo nowe polecenie. Polecenia list ("usuń
+            // chleb z listy") mają pierwszeństwo - to nie są uwagi do maila.
+            val emailDraft = pending.actions.singleOrNull() as? Action.SendEmail
+            val remark = emailDraft?.takeIf {
+                pl.victor.app.lists.ListCommands.parse(textQuestion) == null
+            }?.let { pl.victor.app.actions.EmailVoice.correction(textQuestion) }
+            if (emailDraft != null && remark != null) {
+                reviseEmailDraft(emailDraft, remark)
+                return
+            }
             val reply = pl.victor.app.actions.ConfirmationReply.parseStrict(textQuestion)
             val shortEnough = textQuestion.trim().split(Regex("\\s+")).size <= CONFIRMATION_MAX_WORDS
             if (shortEnough &&
@@ -5109,6 +5138,36 @@ class AIOrchestrator(
             // łapią każde "przypomnij mi..." i "zapisz...", więc wszystkie trzy
             // prośby o przypomnienie w miejscu skończyły jako zwykłe notatki.
             if (textIsQuestion && placeReminderCommands.obsłuż(textQuestion)) return
+
+            // LISTY ("dodaj mleko do listy zakupów", "co mam na liście zakupów",
+            // "odhacz chleb") - PRZED notatkami, bo notatki łapią "dodaj ..." i
+            // "lista zakupów ..." i zapisywały zakupy jako zdania w notatniku,
+            // z którego nie dało się nic odhaczyć. Bez modelu i za darmo.
+            val listCommand = if (textIsQuestion) {
+                pl.victor.app.lists.ListCommands.parse(textQuestion)?.takeIf { lists.accepts(it) }
+            } else {
+                null
+            }
+            if (listCommand != null) {
+                Log.i(TAG, "Warstwa 0: lista (${pl.victor.app.lists.ListCommands.describe(listCommand)})")
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.AKCJA, "polecenie listy",
+                        mapOf("polecenie" to pl.victor.app.lists.ListCommands.describe(listCommand), "tekst" to textQuestion.take(80))
+                    )
+                }
+                scope.launch {
+                    val speech = runCatching { lists.handle(listCommand) }.getOrElse { e ->
+                        Log.w(TAG, "Polecenie listy nie powiodło się", e)
+                        "Nie udało się zmienić listy."
+                    }
+                    conversationalMode.onAiStartedSpeaking()
+                    audio.speakAndAwait(speech, language = settings.getResponseLanguage())
+                    _state.value = OrchestratorState.Completed(speech)
+                    conversationalMode.onAiFinishedSpeaking()
+                }
+                return
+            }
 
             // (Przeniesione PRZED fakty i notatki - audyt 28.10: prefiks
             // "zapamiętaj" zamieniał "zapamiętaj, gdzie zaparkowałem" w fakt
@@ -7486,8 +7545,67 @@ class AIOrchestrator(
             // tamtejsze powtórne rozwiązywanie rozpozna go jako numer i nie
             // pójdzie drugi raz do książki adresowej.
             val prepared = actions.map { resolveContactIfNeeded(it) ?: it }
-            handlePreparedActions(prepared)
+            // MAIL: adres z kontaktów albo ze skrzynki, temat "Re: ..." i wątek -
+            // też PRZED pytaniem, z tego samego powodu co kontakt wyżej.
+            val ready = mutableListOf<Action>()
+            for (a in prepared) {
+                when (val r = prepareEmail(a)) {
+                    null -> ready.add(a)
+                    is pl.victor.app.actions.EmailPreparer.Result.Ready -> ready.add(r.action)
+                    is pl.victor.app.actions.EmailPreparer.Result.Problem -> {
+                        conversationalMode.onAiStartedSpeaking()
+                        audio.speakAndAwait(r.speech, language = settings.getResponseLanguage())
+                        _state.value = OrchestratorState.Completed(r.speech)
+                        conversationalMode.onAiFinishedSpeaking()
+                        return@launch
+                    }
+                }
+            }
+            handlePreparedActions(ready)
         }
+    }
+
+    /**
+     * Przygotowanie maila z wpisem w dzienniku - bez treści, tylko adresat,
+     * długość i skąd wziął się adres.
+     *
+     * @return `null`, gdy akcja nie dotyczy poczty
+     */
+    private suspend fun prepareEmail(a: Action): pl.victor.app.actions.EmailPreparer.Result? {
+        val r = try {
+            emailPreparer.prepare(a)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Przygotowanie maila nie powiodło się", e)
+            pl.victor.app.actions.EmailPreparer.Result.Problem(
+                "Nie udało się przygotować maila. Spróbuj jeszcze raz.",
+                "wyjątek: ${e.javaClass.simpleName}"
+            )
+        }
+        when (r) {
+            null -> {}
+            is pl.victor.app.actions.EmailPreparer.Result.Ready -> runCatching {
+                val m = r.action
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "mail przygotowany",
+                    mapOf(
+                        "adresat" to (m.resolvedName ?: m.to),
+                        "skąd" to r.source,
+                        "odpowiedź" to m.isReply,
+                        "znaków" to m.body.length,
+                        "przezApi" to emailPreparer.canSendDirectly()
+                    )
+                )
+            }
+            is pl.victor.app.actions.EmailPreparer.Result.Problem -> runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "mail NIE przygotowany",
+                    mapOf("powód" to r.reason, "typ" to a.type.name)
+                )
+            }
+        }
+        return r
     }
 
     /**
@@ -7522,7 +7640,11 @@ class AIOrchestrator(
         // potwierdzeniem - skoro formularza już nie ma, pytanie musi paść tutaj.
         val calendarViaApi = actions.any { it is Action.CreateCalendarEvent } &&
             directActionExecutor.canWriteCalendarDirectly()
-        if (mode == ActionMode.DIRECT || calendarViaApi || replyConfirm) {
+        // Mail przez Gmail API idzie naprawdę i nieodwracalnie - pytamy ZAWSZE,
+        // w każdym trybie akcji, bez wyłącznika (tak jak kalendarz).
+        val emailViaApi = actions.any { it is Action.SendEmail } &&
+            directActionExecutor.canSendEmailDirectly()
+        if (mode == ActionMode.DIRECT || calendarViaApi || replyConfirm || emailViaApi) {
             // POTWIERDZENIE MUSI OBJĄĆ KAŻDĄ AKCJĘ Z LISTY, NIE TYLKO PIERWSZĄ.
             //
             // Niżej `executeActionsList(actions)` wykonuje CAŁĄ listę. Pytanie o
@@ -7572,7 +7694,33 @@ class AIOrchestrator(
                 //
                 // Okno zostaje: gdy odpowiedź jest niejednoznaczna albo nie
                 // padnie wcale, decyzja ma dokąd wrócić.
-                listenForConfirmation("$title. $message")
+                //
+                // Mail czytamy w kolejności adresat - temat - treść, a "Wysłać?"
+                // pada NA KOŃCU: decyzja po usłyszeniu całości.
+                val singleEmail = (actions.singleOrNull() as? Action.SendEmail)
+                    ?.takeIf { single != null }
+                if (singleEmail != null) {
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.AKCJA, "mail: pytam o wysłanie",
+                            mapOf(
+                                "adresat" to (singleEmail.resolvedName ?: singleEmail.to),
+                                "odpowiedź" to singleEmail.isReply,
+                                "znaków" to singleEmail.body.length
+                            )
+                        )
+                    }
+                }
+                listenForConfirmation(
+                    singleEmail?.let {
+                        pl.victor.app.actions.EmailVoice.confirmationSpeech(
+                            recipient = it.resolvedName ?: it.to,
+                            subject = it.subject,
+                            body = it.body,
+                            isReply = it.isReply
+                        )
+                    } ?: "$title. $message"
+                )
                 return
             }
         }
@@ -7695,12 +7843,34 @@ class AIOrchestrator(
                 // telefonie i meldował sukces, choć nikt niczego nie zapisał.
                 val calendarViaApi = action is Action.CreateCalendarEvent &&
                     directActionExecutor.canWriteCalendarDirectly()
-                val result = if (calendarViaApi || (mode == ActionMode.DIRECT &&
+                // Mail z włączoną pocztą: wysyłka przez Gmail API (zatwierdzona
+                // wyżej pytaniem "Wysłać?"). Dotąd nawet po potwierdzeniu szedł
+                // do aplikacji poczty, bo tej gałęzi tu nie było.
+                val emailViaApi = action is Action.SendEmail &&
+                    directActionExecutor.canSendEmailDirectly()
+                val result = if (calendarViaApi || emailViaApi || (mode == ActionMode.DIRECT &&
                     (action is Action.SendSms || action is Action.MakeCall ||
                         action is Action.CreateCalendarEvent))) {
                     val direct = directActionExecutor.executeDirect(action)
-                    // Fallback do SAFE jeśli direct się nie udało
-                    if (direct is ActionResult.Failed) {
+                    if (action is Action.SendEmail) {
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.AKCJA,
+                                if (direct is ActionResult.Success) "mail WYSŁANY" else "mail NIE wysłany",
+                                mapOf(
+                                    "adresat" to (action.resolvedName ?: action.to),
+                                    "odpowiedź" to action.isReply,
+                                    "znaków" to action.body.length,
+                                    "powód" to (direct as? ActionResult.Failed)?.reason
+                                )
+                            )
+                        }
+                    }
+                    // Fallback do SAFE jeśli direct się nie udało - ale nie dla
+                    // maila: po nieudanej wysyłce otwarcie aplikacji poczty
+                    // zgłosiłoby "Otworzyłem", a człowiek musi usłyszeć, że mail
+                    // NIE poszedł.
+                    if (direct is ActionResult.Failed && !emailViaApi) {
                         Log.w(TAG, "DIRECT failed, falling back to SAFE: ${direct.reason}")
                         actionExecutor.execute(action)
                     } else direct
@@ -7829,6 +7999,22 @@ class AIOrchestrator(
             // czego potwierdzać i nie wolno wykonać akcji drugi raz.
             if (_pendingActionConfirmation.value == null) return@launch
 
+            // MAIL: poprawka ("popraw...", "zmień...") PRZED tak/nie - parse()
+            // czytałoby "popraw, napisz że nie przyjdę" jako odmowę.
+            val emailDraft = _pendingActionConfirmation.value?.actions?.singleOrNull() as? Action.SendEmail
+            val remark = emailDraft?.let { pl.victor.app.actions.EmailVoice.correction(heard) }
+            if (emailDraft != null && remark != null) {
+                reviseEmailDraft(emailDraft, remark)
+                return@launch
+            }
+            // MAIL: cisza to rezygnacja (szkic zostaje w Gmailu) - mail nie
+            // może wisieć bez końca w oknie, którego nikt w okularach nie widzi.
+            if (emailDraft != null && pl.victor.app.actions.EmailVoice.isSilence(heard)) {
+                diag.event(DiagFormat.Phase.AKCJA, "mail: cisza po pytaniu o wysłanie - anuluję")
+                cancelAction()
+                return@launch
+            }
+
             when (pl.victor.app.actions.ConfirmationReply.parse(heard)) {
                 pl.victor.app.actions.ConfirmationReply.Reply.YES -> {
                     Log.i(TAG, "Potwierdzenie głosem: tak")
@@ -7897,11 +8083,89 @@ class AIOrchestrator(
             }
             confirmationJob?.cancel()
             _pendingActionConfirmation.value = null
+            // Niewysłany mail zostaje w szkicach Gmaila - ułożona treść nie
+            // przepada przez jedno "nie" albo chwilę ciszy.
+            val emailDraft = pending.actions.singleOrNull() as? Action.SendEmail
+            if (emailDraft != null && directActionExecutor.canSendEmailDirectly()) {
+                scope.launch {
+                    val saved = runCatching { directActionExecutor.saveEmailDraft(emailDraft) }
+                        .getOrDefault(false)
+                    runCatching {
+                        diag.event(
+                            DiagFormat.Phase.AKCJA, "mail anulowany",
+                            mapOf(
+                                "adresat" to (emailDraft.resolvedName ?: emailDraft.to),
+                                "szkic" to saved
+                            )
+                        )
+                    }
+                    val speech = if (saved) "Anulowano. Mail został w szkicach Gmaila." else "Anulowano."
+                    conversationalMode.onAiStartedSpeaking()
+                    audio.speakAndAwait(speech, language = settings.getResponseLanguage())
+                    _state.value = OrchestratorState.Idle
+                    conversationalMode.onAiFinishedSpeaking()
+                }
+                return
+            }
             audio.speak("Anulowano", language = settings.getResponseLanguage())
             _state.value = OrchestratorState.Idle
             // Idle nie wznawia nasłuchu samo (patrz init) - a anulowanie kończy
             // turę tak samo jak wykonanie akcji.
             conversationalMode.onAiFinishedSpeaking()
+        }
+    }
+
+    /**
+     * Poprawka szkicu maila według uwagi użytkownika - i ponowne "Wysłać?".
+     *
+     * Model dostaje szkic i uwagę, oddaje temat i treść (patrz
+     * [pl.victor.app.actions.EmailVoice.revisePrompt]). Adresat i wątek się NIE
+     * zmieniają - tych model nie dotyka, a odpowiedź zostaje odpowiedzią. Gdy
+     * model zawiedzie, wraca poprzednia wersja, a nie pusty mail.
+     *
+     * Osobna korutyna, bo bywa wołane z wnętrza nasłuchu potwierdzenia, który
+     * nowe pytanie zaraz przerywa.
+     */
+    private fun reviseEmailDraft(draft: Action.SendEmail, remark: String) {
+        confirmationJob?.cancel()
+        _pendingActionConfirmation.value = null
+        val who = draft.resolvedName ?: draft.to
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.AKCJA, "mail: poprawka szkicu",
+                mapOf("adresat" to who, "uwaga" to remark.take(120))
+            )
+        }
+        scope.launch {
+            audio.speak("Poprawiam.", language = settings.getResponseLanguage())
+            val reply = askModelPlain(
+                pl.victor.app.actions.EmailVoice.revisePrompt(who, draft.subject, draft.body, remark)
+            )
+            val revised = pl.victor.app.actions.EmailVoice.parseRevision(reply, draft.subject)
+            val next = if (revised == null) {
+                runCatching {
+                    diag.event(DiagFormat.Phase.AKCJA, "mail: poprawka nieudana - zostaje poprzednia wersja")
+                }
+                audio.speakAndAwait(
+                    "Nie udało się poprawić - zostaje poprzednia wersja.",
+                    language = settings.getResponseLanguage()
+                )
+                draft
+            } else {
+                // Odpowiedź trzyma temat "Re: ..." - zmiana tematu rozbiłaby wątek
+                // u adresata, który skleja go po temacie.
+                draft.copy(
+                    subject = if (draft.isReply) draft.subject else revised.first,
+                    body = revised.second
+                )
+            }
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "mail: nowa wersja",
+                    mapOf("adresat" to who, "znaków" to next.body.length)
+                )
+            }
+            handlePreparedActions(listOf(next))
         }
     }
 

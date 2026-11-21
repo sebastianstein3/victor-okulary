@@ -894,6 +894,18 @@ class SettingsRepository private constructor(private val context: Context) {
      */
     fun getNotesDocId(): String? = prefs.getString(KEY_NOTES_DOC_ID, null)
 
+    /**
+     * Czy listy (zakupy, zadania...) synchronizować z Google Tasks. Domyślnie
+     * wyłączone: wymaga osobnej zgody Google (zakres tasks), a listy działają
+     * w pełni lokalnie. API jest darmowe - bez kosztu, więc bez związku z
+     * przełącznikiem "Tylko darmowe funkcje".
+     */
+    fun isListsTasksSyncEnabled(): Boolean = prefs.getBoolean(KEY_LISTS_TASKS_SYNC, false)
+
+    fun setListsTasksSyncEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_LISTS_TASKS_SYNC, enabled).apply()
+    }
+
     fun setNotesDocId(id: String?) {
         prefs.edit().putString(KEY_NOTES_DOC_ID, id).apply()
     }
@@ -1455,6 +1467,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_NOTE_STYLE = "note_style"
         private const val KEY_NOTES_DOC_SYNC = "notes_doc_sync"
         private const val KEY_NOTES_DOC_ID = "notes_doc_id"
+        private const val KEY_LISTS_TASKS_SYNC = "lists_tasks_sync"
         private const val KEY_FULL_RES_VISION = "full_res_vision"
         private const val KEY_BRIEFING_ENABLED = "briefing_enabled"
         private const val KEY_BRIEFING_HOUR = "briefing_hour"

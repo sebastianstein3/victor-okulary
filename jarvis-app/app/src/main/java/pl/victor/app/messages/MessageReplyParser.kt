@@ -15,6 +15,10 @@ object MessageReplyParser {
 
     fun parse(tekst: String): Odpowiedź? {
         val t = tekst.trim().trimEnd('.')
+        // "Odpowiedz na ostatni MAIL od Ani: ..." to poczta, nie SMS. Bez tego
+        // wzorzec brał "na" za zaimek, a całą resztę za treść - i przy świeżym
+        // SMS-ie odpowiedź poszłaby do zupełnie innej osoby komunikatorem.
+        if (pl.victor.app.actions.EmailVoice.mentionsMail(t)) return null
         // "odpisz na wiadomość od Ani" to prośba BEZ treści - inaczej poszłoby
         // do Ani "Wiadomość od Ani".
         if (prośbaBezTreści(t) != null) return null
@@ -47,6 +51,7 @@ object MessageReplyParser {
      * `null` gdy to nie ta prośba.
      */
     fun prośbaBezTreści(tekst: String): String? {
+        if (pl.victor.app.actions.EmailVoice.mentionsMail(tekst)) return null
         val m = BEZ_TREŚCI.matchEntire(tekst.trim().trimEnd('.', '?', '!')) ?: return null
         return m.groups["kto"]?.value?.trim().orEmpty()
     }

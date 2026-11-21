@@ -102,14 +102,50 @@ sealed class Action {
         override val description = "Zadzwoń do ${resolvedName ?: to}"
     }
 
-    /** Wyślij email. Otwiera Gmail z przygotowanym tematem i treścią. */
+    /**
+     * Wyślij email. Z włączoną pocztą Google WYSYŁA przez Gmail API po
+     * potwierdzeniu „Wysłać?”; bez niej otwiera aplikację poczty z gotowym
+     * mailem, a wysłanie zatwierdza człowiek.
+     *
+     * Pola wątku są ustawiane, gdy to odpowiedź ([ReplyEmail] po rozwiązaniu) -
+     * bez nich odpowiedź poszłaby jako nowy wątek.
+     */
     data class SendEmail(
         val to: String,
         val subject: String,
-        val body: String
+        val body: String,
+        /** Nazwa adresata (z kontaktów albo z nagłówka „From”) - do pytania „Wysłać?”. */
+        val resolvedName: String? = null,
+        /** Identyfikator wątku Gmaila - odpowiedź zostaje w tym samym wątku. */
+        val threadId: String? = null,
+        /** Nagłówek „Message-ID” maila, na który odpowiadamy. */
+        val inReplyTo: String? = null,
+        /** Nagłówek „References” odpowiedzi. */
+        val references: String? = null
     ) : Action() {
         override val type = ActionType.SEND_EMAIL
-        override val description = "Wyślij email do $to: $subject"
+        override val description = "Wyślij email do ${resolvedName ?: to}: $subject"
+
+        /** Czy to odpowiedź w istniejącym wątku. */
+        val isReply: Boolean get() = threadId != null || inReplyTo != null
+    }
+
+    /**
+     * Odpowiedź na mail z Gmaila - „odpowiedz na ostatni mail od Ani: …”.
+     *
+     * To jest PROŚBA, nie gotowy mail: przed pytaniem „Wysłać?” orkiestrator
+     * znajduje w skrzynce mail od tego nadawcy i zamienia ją na [SendEmail] z
+     * adresem, tematem „Re: …” i nagłówkami wątku.
+     *
+     * @param from imię, nazwa albo adres nadawcy; `null` = najnowszy mail
+     * @param body treść odpowiedzi (ułożona przez model)
+     */
+    data class ReplyEmail(
+        val from: String?,
+        val body: String
+    ) : Action() {
+        override val type = ActionType.REPLY_EMAIL
+        override val description = "Odpowiedz na mail ${from?.let { "od $it" } ?: "(ostatni)"}"
     }
 
     // === Muzyka / Media ===
@@ -292,7 +328,8 @@ enum class ActionType {
     APP_TASK,
     READ_TEXT, DESCRIBE_SCENE, START_NAVIGATION, STOP_ACCESSIBILITY,
     TAKE_PHOTO,
-    REPLY_MESSAGE
+    REPLY_MESSAGE,
+    REPLY_EMAIL
 }
 
 enum class SkipDirection { NEXT, PREVIOUS }

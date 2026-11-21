@@ -83,6 +83,10 @@ class ActionExecutor(private val context: Context) {
                 is Action.TakePhoto ->
                     ActionResult.Failed("Zdjęcie obsługiwane poza ActionExecutor")
                 is Action.ReplyMessage -> replyMessage(action)
+                // Odpowiedź w wątku istnieje tylko przez Gmail API - orkiestrator
+                // zamienia ją na SendEmail, gdy poczta jest włączona. Tu trafia
+                // wyłącznie bez zgody na pocztę, więc mówimy, co włączyć.
+                is Action.ReplyEmail -> ActionResult.Failed(MAIL_ACCESS_HINT)
             }
         } catch (e: Exception) {
             Log.e(tag, "Failed to execute ${action.type}", e)
@@ -231,7 +235,13 @@ class ActionExecutor(private val context: Context) {
             putExtra(Intent.EXTRA_SUBJECT, action.subject)
             putExtra(Intent.EXTRA_TEXT, action.body)
         }
-        return launchIntent(intent, "Brak klienta email")
+        // Komunikat mówi prawdę: mail NIE poszedł, czeka w aplikacji poczty.
+        // Ogólne "OK, wyślij email" brzmiało jak wysłany.
+        return launchIntent(
+            intent, "Brak klienta email",
+            successMessage = "Otworzyłem aplikację poczty z gotowym mailem - wyślij go sam. " +
+                "Żeby wysyłać maile głosem, włącz pocztę w Ustawieniach, w karcie konta Google."
+        )
     }
 
     // === Muzyka ===
@@ -660,6 +670,11 @@ class ActionExecutor(private val context: Context) {
          * Jedna stała po obu stronach, żeby jej zmiana nie rozjechała ich po cichu.
          */
         const val GENERIC_SUCCESS = "Otwarto"
+
+        /** Co włączyć, żeby odpowiadać i wysyłać maile głosem - jedno brzmienie wszędzie. */
+        const val MAIL_ACCESS_HINT =
+            "żeby odpowiadać na maile głosem, połącz konto Google i włącz pocztę: " +
+                "Ustawienia, karta konta Google, przycisk \"Włącz pocztę\""
 
         /** Tryby podróży schematu `google.navigation:` - `w` pieszo, `d` samochodem. */
         const val TRAVEL_WALK = "w"

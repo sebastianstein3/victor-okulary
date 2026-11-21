@@ -98,8 +98,24 @@ object CommandCatalog {
         ),
         CommandInfo(
             ActionType.SEND_EMAIL, CommandGroup.COMMUNICATION, "Wyślij maila",
-            "Przygotowuje wiadomość z tematem i treścią.",
-            listOf("Wyślij maila do szefa o temacie urlop")
+            "Asystent układa krótkiego maila, czyta adresata, temat i treść i pyta " +
+                "\"Wysłać?\". Adresata bierze z kontaktów albo z nadawców ostatnich " +
+                "maili. Wysyła po \"tak\"; \"popraw...\" zmienia szkic. Bez " +
+                "włączonej poczty Google otwiera aplikację poczty z gotowym mailem.",
+            listOf(
+                "Napisz maila do Tomka, że spotkanie przesuwamy na piątek",
+                "Wyślij maila do szefa o temacie urlop"
+            )
+        ),
+        CommandInfo(
+            ActionType.REPLY_EMAIL, CommandGroup.COMMUNICATION, "Odpowiedz na maila",
+            "Odpowiada w tym samym wątku Gmaila (temat \"Re: ...\"), po " +
+                "potwierdzeniu \"tak\". \"Nie\" albo cisza anuluje - szkic zostaje " +
+                "w Gmailu. Wymaga włączonej poczty w karcie konta Google.",
+            listOf(
+                "Odpowiedz na ostatni mail od Ani, że będę o piątej",
+                "Odpisz na ostatniego maila: dziękuję, przeczytam wieczorem"
+            )
         ),
         CommandInfo(
             ActionType.CREATE_CALENDAR_EVENT, CommandGroup.TIME, "Umów spotkanie",
@@ -280,6 +296,20 @@ object CommandCatalog {
                 "Tu jest mój dom",
                 "Jakie mam przypomnienia",
                 "Usuń przypomnienia"
+            )
+        ),
+        ModeInfo(
+            "Listy: zakupy, zadania, wyjazd",
+            "Listy w telefonie, bez modelu i bez kosztów. Podgląd i edycja na ekranie " +
+                "Notatek. Opcjonalnie synchronizacja z Google Tasks - przełącznik w " +
+                "Ustawieniach, w karcie konta Google.",
+            listOf(
+                "Dodaj 2 mleka i chleb do listy zakupów",
+                "Co mam na liście zakupów?",
+                "Odhacz chleb",
+                "Usuń masło z listy zakupów",
+                "Dopisz krem do opalania do listy na wyjazd",
+                "Wyczyść listę zakupów"
             )
         ),
         ModeInfo(

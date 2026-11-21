@@ -110,6 +110,46 @@ class ContactResolver(private val context: Context) {
         }
     }
 
+    /** Kontakt wybrany do maila - nazwa Z KSIĄŻKI i jego adres. */
+    data class ResolvedEmail(val displayName: String, val email: String)
+
+    /**
+     * Jak [findEmail], ale mówi też, KOGO wybrało - z tego samego powodu co
+     * [findContact]: pytanie „Wysłać?” ma nieść nazwę z książki adresowej, a
+     * nie imię, które padło.
+     */
+    suspend fun findEmailContact(name: String): ResolvedEmail? = withContext(Dispatchers.IO) {
+        try {
+            val contactId = findContactId(normalize(name)) ?: return@withContext null
+            val email = emailOf(contactId) ?: return@withContext null
+            ResolvedEmail(displayNameOf(contactId) ?: name, email)
+        } catch (e: SecurityException) {
+            Log.w(tag, "READ_CONTACTS permission not granted")
+            null
+        } catch (e: Exception) {
+            Log.e(tag, "Email lookup failed", e)
+            null
+        }
+    }
+
+    /** Pierwszy adres e-mail kontaktu o danym id. */
+    private fun emailOf(contactId: Long): String? {
+        val projection = arrayOf(ContactsContract.CommonDataKinds.Email.ADDRESS)
+        val selection = "${ContactsContract.Data.CONTACT_ID} = ? AND " +
+                "${ContactsContract.Data.MIMETYPE} = ?"
+        val args = arrayOf(
+            contactId.toString(),
+            ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE
+        )
+        context.contentResolver.query(
+            ContactsContract.Data.CONTENT_URI,
+            projection, selection, args, null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) return cursor.getString(0)
+        }
+        return null
+    }
+
     /**
      * Szuka emaila po nazwie kontaktu.
      */
