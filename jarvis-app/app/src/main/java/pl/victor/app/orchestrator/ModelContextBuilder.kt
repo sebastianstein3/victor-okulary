@@ -39,6 +39,7 @@ internal class ModelContextBuilder(
 ) {
     private val diag: pl.victor.app.diagnostics.DiagnosticLog
         get() = dziennik()
+
     /**
      * Bieżąca data i godzina jako kontekst dla modelu.
      *

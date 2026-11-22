@@ -1383,170 +1383,6 @@ class AIOrchestrator(
     }
 
     /**
-     * Przepisuje nagranie Z OKULARÓW wszystkimi dostępnymi drogami, po kolei.
-     *
-     * ## Dlaczego to jest jedna funkcja, a nie rozsypane próby
-     * Bo kolejność jest tu całą treścią. Mikrofon okularów wisi przy ustach,
-     * telefon leży w kieszeni - więc DOWOLNA droga licząca na nagraniu z okularów
-     * jest lepsza od najlepszego nasłuchu telefonu. Do tej pory tak nie było:
-     * chmura wyprzedzała telefon, ale rozpoznawanie systemowe czekało w
-     * gałęzi ciszy, czyli wchodziły dopiero wtedy, gdy telefon nie usłyszał NIC.
-     *
-     * Kto nie wpisał klucza OpenAI, nie dostawał więc żadnej poprawy: telefon
-     * słyszał "coś" i to "coś" wygrywało. Teraz bez klucza wchodzi rozpoznawanie
-     * systemowe na tym samym nagraniu.
-     *
-     * @return tekst albo `null`, gdy żadna droga nie dała rady
-     */
-    private suspend fun transcribeGlassesAudio(pcm: ByteArray, languageTag: String): String? {
-        val wynik = transcribeGlassesAudioSteps(pcm, languageTag)
-        // PRZERWANA TURA NIE MOŻE DOSTAĆ TEKSTU.
-        //
-        // Kolejne drogi transkrypcji siedzą w runCatching, a ono połyka też
-        // anulowanie - funkcja oddawała wtedy null albo tekst, a przerwana tura
-        // szła dalej: zadawała pytanie albo mówiła "nic nie słyszałem", mimo
-        // dotknięcia zausznika w trakcie przepisywania.
-        currentCoroutineContext().ensureActive()
-        return wynik
-    }
-
-    private suspend fun transcribeGlassesAudioSteps(pcm: ByteArray, languageTag: String): String? {
-        // Opus rozkodowuje się na 48 kHz, a rozpoznawanie mowy pracuje na 16 kHz.
-        // Przeliczamy sami - podanie 48 kHz i liczenie na to, że usługa sobie
-        // poradzi, byłoby zakładem o całą transkrypcję.
-        val speechPcm = pl.victor.app.audio.PcmResampler.resample(
-            pcm = pcm,
-            sourceRate = pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
-        )
-        return transcribeSpeechPcm(speechPcm, languageTag)
-    }
-
-    /**
-     * Czy da się przepisać nagranie JAKĄKOLWIEK drogą (chmura, rozpoznawanie na
-     * urządzeniu) - sprawdzane przed startem notatek ze spotkania, żeby nie
-     * nagrywać godziny, po której nic się nie przepisze.
-     */
-    fun canTranscribeRecordings(): Boolean =
-        (settings.isCloudTranscriptionEnabled() && cloudSpeechService() != null) ||
-            speechToText.isOnDeviceAvailable()
-
-    /** Przepisuje PCM 16 kHz mono: chmura -> rozpoznawanie systemowe na urządzeniu. */
-    private suspend fun transcribeSpeechPcm(speechPcm: ByteArray, languageTag: String): String? {
-        val rate = pl.victor.app.audio.PcmResampler.SPEECH_SAMPLE_RATE
-
-        transcribeInCloud(speechPcm, languageTag)?.let { return it }
-
-        // Rozpoznawanie systemowe NA URZĄDZENIU - ten sam silnik co dyktowanie na
-        // klawiaturze bez sieci. Darmowe i dobre, ale wymaga pobranego pakietu
-        // języka; patrz SpeechToText.isOnDeviceAvailable i ekran ustawień.
-        runCatching {
-            speechToText.transcribe(pcm = speechPcm, sampleRate = rate, languageTag = languageTag)
-        }.getOrNull()?.takeIf { it.isNotBlank() }?.let {
-            Log.i(TAG, "Transkrypcja systemowa z nagrania okularów: \"$it\"")
-            _lastTranscriptionSource.value = SOURCE_ON_DEVICE
-            return it
-        }
-        return null
-    }
-
-    /**
-     * Ostatnia deska: przepisanie nagrania przez model, gdy przyjmuje dźwięk.
-     *
-     * Tylko dla krótkich wypowiedzi z mową (patrz [RECORDING_SPEECH_PEAK]) -
-     * cisza wysłana do modelu kończy się zgadywaniem, a nie przepisem.
-     *
-     * @return tekst albo `null`, gdy model nie przyjmuje dźwięku, nie
-     *   usłyszał mowy albo zawiódł
-     */
-    private suspend fun transcribeWithModel(pcm: ByteArray, language: String): String? {
-        val providerId = settings.getActiveProvider()
-        if (!settings.hasApiKey(providerId) ||
-            !AIProviderFactory.getCapabilitiesFor(providerId).supportsAudio
-        ) {
-            return null
-        }
-        val rate = pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
-        val szczyt = pl.victor.app.audio.VoiceTrim.measure(pcm, rate)?.peak ?: return null
-        if (szczyt < RECORDING_SPEECH_PEAK) return null
-        val wav = pl.victor.app.audio.WavWriter.wrap(pl.victor.app.audio.VoiceTrim.trim(pcm, rate), rate)
-        val język = pl.victor.app.translation.SimultaneousTranslator.languageName(language)
-        val prompt = "Przepisz dosłownie, co mówi osoba na załączonym nagraniu (język: $język). " +
-            "Odpowiedz wyłącznie przepisanym tekstem, bez komentarza i bez cudzysłowów. " +
-            "Jeśli nie słychać wyraźnej mowy, odpowiedz dokładnie: $MODEL_NO_SPEECH"
-        val tekst = try {
-            getOrCreateProvider().analyze(
-                textQuestion = prompt,
-                images = emptyList(),
-                audioBytes = wav,
-                systemPrompt = PLAIN_TASK_SYSTEM_PROMPT
-            ).text.trim()
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Przepisanie nagrania przez model nie powiodło się", e)
-            null
-        }
-        val wynik = tekst?.takeIf {
-            it.isNotBlank() && !it.contains(MODEL_NO_SPEECH) && it.length <= MODEL_TRANSCRIPT_MAX_CHARS
-        }
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.TRANSKRYPCJA, "przepisanie nagrania przez model",
-                mapOf("wynik" to wynik?.take(60), "odmowa" to (tekst?.contains(MODEL_NO_SPEECH) == true))
-            )
-        }
-        return wynik
-    }
-
-    /**
-     * Przepisuje nagranie przez usługę w chmurze - albo od razu oddaje `null`.
-     *
-     * Trzy warunki i wszystkie muszą być spełnione: ustawienie włączone, klucz
-     * OpenAI wpisany, nagranie niepuste. Bez któregokolwiek nic nie wychodzi z
-     * telefonu, a wołający idzie dalej swoją drogą.
-     */
-    private suspend fun transcribeInCloud(pcm: ByteArray, languageTag: String): String? {
-        if (!settings.isCloudTranscriptionEnabled()) return null
-        val (usługa, key) = cloudSpeechService() ?: return null
-        val stt = pl.victor.app.conversation.CloudSpeechToText(usługa, key)
-        val od = System.currentTimeMillis()
-        val heard = runCatching {
-            stt.transcribe(
-                pcm = pcm,
-                sampleRate = pl.victor.app.audio.PcmResampler.SPEECH_SAMPLE_RATE,
-                languageTag = languageTag
-            )
-        }.onFailure { Log.w(TAG, "Transkrypcja w chmurze nie powiodła się", it) }.getOrNull()
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.NASŁUCH, "transkrypcja w chmurze",
-                mapOf(
-                    "usługa" to usługa.nazwa,
-                    "ms" to (System.currentTimeMillis() - od),
-                    "znaków" to (heard?.length ?: 0),
-                    "błąd" to stt.ostatniBłąd
-                )
-            )
-        }
-        if (heard != null) {
-            Log.i(TAG, "Transkrypcja z chmury (${usługa.nazwa}): \"$heard\"")
-            _lastTranscriptionSource.value = SOURCE_CLOUD
-        }
-        return heard
-    }
-
-    /**
-     * Kto przepisuje nagranie w chmurze - dostawca wybrany w ustawieniach
-     * (Gemini -> Google, OpenAI -> OpenAI), a przy pozostałych ten z dwóch
-     * kluczy, który jest. Patrz [pl.victor.app.conversation.CloudSpeechToText.wybierz].
-     */
-    private fun cloudSpeechService() = pl.victor.app.conversation.CloudSpeechToText.wybierz(
-        aktywny = settings.getActiveProvider(),
-        kluczGemini = settings.getApiKey("gemini"),
-        kluczOpenAi = settings.getApiKey("openai")
-    )
-
-    /**
      * Która droga przepisała ostatnie pytanie na tekst.
      *
      * ## Po co to w ogóle jest
@@ -1558,6 +1394,22 @@ class AIOrchestrator(
      */
     private val _lastTranscriptionSource = MutableStateFlow<String?>(null)
     val lastTranscriptionSource: StateFlow<String?> = _lastTranscriptionSource.asStateFlow()
+
+    /** Przepisywanie nagrań - patrz [pl.victor.app.orchestrator.RecordingTranscriber]. */
+    private val transcriber = pl.victor.app.orchestrator.RecordingTranscriber(
+        context = context,
+        settings = settings,
+        speechToText = speechToText,
+        dziennik = { diag },
+        getOrCreateProvider = { getOrCreateProvider() },
+        lastTranscriptionSource = _lastTranscriptionSource
+    )
+
+    /**
+     * Czy da się przepisać nagranie JAKĄKOLWIEK drogą - patrz
+     * [pl.victor.app.orchestrator.RecordingTranscriber.canTranscribeRecordings].
+     */
+    fun canTranscribeRecordings(): Boolean = transcriber.canTranscribeRecordings()
 
     /** Czy mamy zgodę na mikrofon - patrz [startVoiceTurn]. */
     private fun hasMicrophonePermission(): Boolean =
@@ -1930,7 +1782,7 @@ class AIOrchestrator(
             // Samo rozpoznawanie na urządzeniu wymaga Androida 13+ i pakietu języka,
             // a bez niego spotkanie "nagrywało" bez jednego słowa tekstu.
             przepisz = { pcm ->
-                transcribeSpeechPcm(pcm, languageTagFor(settings.getResponseLanguage()))
+                transcriber.transcribeSpeechPcm(pcm, languageTagFor(settings.getResponseLanguage()))
             },
             podsumuj = { polecenie -> askModelPlain(polecenie) },
             dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.NASŁUCH, co, pola) } },
@@ -2192,8 +2044,8 @@ class AIOrchestrator(
                             val pcm = if (nadaje) capture.stop().takeIf { it.hasAudio }?.pcm else null
                             pcm?.let {
                                 źródło = "okulary"
-                                transcribeGlassesAudio(it, languageTagFor(mój))
-                                    ?: transcribeWithModel(it, mój)?.also { źródło = "model" }
+                                transcriber.transcribeGlassesAudio(it, languageTagFor(mój))
+                                    ?: transcriber.transcribeWithModel(it, mój)?.also { źródło = "model" }
                             }
                         }
                     } finally {
@@ -3123,7 +2975,7 @@ class AIOrchestrator(
             // [GLASSES_TRANSCRIPT_MAX_MISSES] prób: każde zdanie czekało 2-4 s
             // na rozkodowanie i przepisanie, które nic nie wnosiło - przekład
             // przychodził przez to wyraźnie po rozmówcy. Nagranie zamykamy obok.
-            if (!heard.isNullOrBlank() && glassesTranscriptMissedTooOften()) {
+            if (!heard.isNullOrBlank() && transcriber.glassesTranscriptMissedTooOften()) {
                 zatrzymane = true
                 capture?.let { c ->
                     scope.launch(kotlinx.coroutines.NonCancellable) { runCatching { c.stop() } }
@@ -3134,10 +2986,10 @@ class AIOrchestrator(
             zatrzymane = true
             val zOkularów = captured?.pcm
                 ?.takeIf { captured.hasAudio }
-                ?.let { transcribeGlassesAudio(it, languageTagFor(from)) }
-                ?.also { glassesTranscriptMisses = 0 }
+                ?.let { transcriber.transcribeGlassesAudio(it, languageTagFor(from)) }
+                ?.also { transcriber.glassesTranscriptMisses = 0 }
             if (zOkularów == null && captured?.hasAudio == true && !heard.isNullOrBlank()) {
-                glassesTranscriptMisses = glassesTranscriptMisses + 1
+                transcriber.glassesTranscriptMisses = transcriber.glassesTranscriptMisses + 1
             }
             zOkularów ?: heard ?: setAsidePhoneTranscript
         } finally {
@@ -3733,7 +3585,7 @@ class AIOrchestrator(
                 }
                 val tekstZTelefonu = setAsidePhoneTranscript
                 val nagranieNiepotrzebne = tekstZTelefonu != null && glassesCapture != null &&
-                    (!wantsGlassesMic || glassesTranscriptMissedTooOften())
+                    (!wantsGlassesMic || transcriber.glassesTranscriptMissedTooOften())
                 val captured = if (nagranieNiepotrzebne) {
                     captureHandedOff = true
                     val doDziennika = glassesCapture
@@ -3743,7 +3595,7 @@ class AIOrchestrator(
                     diag.event(
                         DiagFormat.Phase.TRANSKRYPCJA,
                         "mam tekst z telefonu - nie czekam na nagranie z okularów",
-                        mapOf("mikrofonOkularów" to wantsGlassesMic, "pustychPrzepisań" to glassesTranscriptMisses)
+                        mapOf("mikrofonOkularów" to wantsGlassesMic, "pustychPrzepisań" to transcriber.glassesTranscriptMisses)
                     )
                     null
                 } else {
@@ -3798,16 +3650,16 @@ class AIOrchestrator(
                 // Po [GLASSES_TRANSCRIPT_MAX_MISSES] pustych próbach z rzędu,
                 // gdy tekst z telefonu leży, nie przepisujemy - do pierwszej
                 // tury bez tekstu z telefonu albo pierwszego sukcesu.
-                val skipGlassesTranscript = phoneFallback != null && glassesTranscriptMissedTooOften()
+                val skipGlassesTranscript = phoneFallback != null && transcriber.glassesTranscriptMissedTooOften()
                 val glassesHeard = when {
                     captured?.hasAudio != true -> null
                     // Kto WYŁĄCZYŁ mikrofon okularów, ten ma dostać stare
                     // zachowanie: gotowy tekst z telefonu bez dopłaty czasowej.
                     !wantsGlassesMic && phoneFallback != null -> null
                     skipGlassesTranscript -> null
-                    else -> captured.pcm?.let { transcribeGlassesAudio(it, languageTagFor(language)) }
+                    else -> captured.pcm?.let { transcriber.transcribeGlassesAudio(it, languageTagFor(language)) }
                         .also { wynik ->
-                            glassesTranscriptMisses = if (wynik.isNullOrBlank()) glassesTranscriptMisses + 1 else 0
+                            transcriber.glassesTranscriptMisses = if (wynik.isNullOrBlank()) transcriber.glassesTranscriptMisses + 1 else 0
                         }
                 }
                 if (captured?.hasAudio == true) {
@@ -4313,34 +4165,6 @@ class AIOrchestrator(
      */
     @Volatile
     private var setAsidePhoneTranscript: String? = null
-
-    /**
-     * Puste przepisania nagrania okularów z rzędu - patrz [GLASSES_TRANSCRIPT_MAX_MISSES].
-     *
-     * Trwałe, nie w pamięci procesu: licznik zerowany przy każdym starcie
-     * aplikacji kosztował trzy daremne przepisania (po 1,5-4 s) na start - a
-     * na tym telefonie przepisanie nagrania z okularów nie oddało tekstu ani
-     * razu w ponad 250 próbach. Sukces zeruje licznik jak dotąd.
-     */
-    private var glassesTranscriptMisses: Int
-        get() = runtimePrefs.getInt(KEY_GLASSES_TRANSCRIPT_MISSES, 0)
-        set(value) {
-            runtimePrefs.edit().putInt(KEY_GLASSES_TRANSCRIPT_MISSES, value).apply()
-        }
-
-    private val runtimePrefs by lazy {
-        context.getSharedPreferences(RUNTIME_PREFS, android.content.Context.MODE_PRIVATE)
-    }
-
-    /**
-     * Czy przepisanie nagrania z okularów milczy od tylu prób, że przy gotowym
-     * tekście z telefonu nie warto na nie czekać. Z włączoną transkrypcją w
-     * chmurze próbujemy zawsze - to inna, dużo lepsza droga niż ta, która
-     * milczała.
-     */
-    private fun glassesTranscriptMissedTooOften(): Boolean =
-        !settings.isCloudTranscriptionEnabled() &&
-            glassesTranscriptMisses >= GLASSES_TRANSCRIPT_MAX_MISSES
 
     /** Pamięć o tym, co już powiedziano o łączu - patrz [ConnectionAnnouncer]. */
     private val announcer = ConnectionAnnouncer()
@@ -8507,25 +8331,12 @@ class AIOrchestrator(
         /** Ile po wypowiedzi asystenta tło milczy - patrz [ciszaWTle]. */
         private const val CISZA_PO_MOWIE_MS = 8_000L
 
-        /** Po tylu pustych przepisaniach nagrania okularów z rzędu bierzemy od razu tekst z telefonu. */
-        private const val GLASSES_TRANSCRIPT_MAX_MISSES = 3
-
         /**
          * Najgłośniejsze okno (20 ms, RMS) nagrania z okularów, poniżej którego
          * nie ma w nim mowy. Z dzienników: nagrania bez mowy mają szczyt 100-360,
          * z mową - od ok. 1500 wzwyż.
          */
-        private const val RECORDING_SPEECH_PEAK = 800.0
-
-        /** Umówiona odpowiedź modelu "w nagraniu nie ma mowy" - patrz [transcribeWithModel]. */
-        private const val MODEL_NO_SPEECH = "BRAK"
-
-        /** Dłuższy "przepis" krótkiej wypowiedzi to model, który się rozgadał. */
-        private const val MODEL_TRANSCRIPT_MAX_CHARS = 400
-
-        /** Stan, który ma przetrwać restart aplikacji, a nie jest ustawieniem. */
-        private const val RUNTIME_PREFS = "victor_runtime"
-        private const val KEY_GLASSES_TRANSCRIPT_MISSES = "glasses_transcript_misses"
+        internal const val RECORDING_SPEECH_PEAK = 800.0
 
         /** Po tylu ms nieodebrany strumień z wyprzedzeniem gaśnie - patrz [warmUpStreamForCode]. */
         private const val CODE_WARMUP_MAX_MS = 75_000L
@@ -8605,7 +8416,7 @@ class AIOrchestrator(
         private const val LOCK_LISTENING = "Nasluch"
         private const val LOCK_TURN = "Tura"
 
-        private const val PLAIN_TASK_SYSTEM_PROMPT =
+        internal const val PLAIN_TASK_SYSTEM_PROMPT =
             "Jesteś narzędziem tekstowym. Wykonujesz dokładnie to, o co prosi " +
                 "polecenie, i odpowiadasz samą treścią wyniku - bez powitania, " +
                 "bez komentarza, bez pytań zwrotnych i bez cudzysłowów."
