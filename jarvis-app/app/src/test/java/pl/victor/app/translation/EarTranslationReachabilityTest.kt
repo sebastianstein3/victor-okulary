@@ -123,7 +123,7 @@ class EarTranslationReachabilityTest {
 
         val przycisk = tekst.indexOf("private fun handleButtonAction(action: ButtonAction)")
         assertTrue("nie znalazłem handleButtonAction", przycisk >= 0)
-        val wyjście = tekst.indexOf("if (_earTranslation.value) {", przycisk)
+        val wyjście = tekst.indexOf("if (earTranslation.value) {", przycisk)
         val tura = tekst.indexOf("when (action) {", przycisk)
         assertTrue(
             "handleButtonAction ma kończyć tłumaczenie ze słuchu, ZANIM zacznie turę",
