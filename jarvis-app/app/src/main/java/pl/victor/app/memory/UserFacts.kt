@@ -179,10 +179,21 @@ object UserFacts {
      * mówi "zapomnij o Krakowie", a nie cytuje zapisanego zdania.
      */
     fun forget(existing: List<Fact>, what: String): List<Fact> {
-        val needle = what.lowercase().trim()
+        val needle = what.lowercase().trim().trimEnd('.', '!', '?')
         if (needle.isEmpty()) return existing
-        return existing.filterNot { it.text.lowercase().contains(needle) }
+        // "Zapomnij o tym" to zwykła odpowiedź w rozmowie, nie polecenie
+        // skasowania wszystkich faktów z "tym" w środku (przegląd 22.11).
+        if (needle in ZAIMKI) return existing
+        // Od początku SŁOWA, nie gdziekolwiek: "zapomnij o kocie" nie kasuje
+        // "mam skocie...". Końcówki dalej łapie ("krakow" -> "Krakowie").
+        val wzór = Regex("(^|[^\\p{L}])" + Regex.escape(needle))
+        return existing.filterNot { wzór.containsMatchIn(it.text.lowercase()) }
     }
+
+    private val ZAIMKI = setOf(
+        "tym", "tamtym", "tym wszystkim", "wszystkim", "nim", "niej", "nich", "niego",
+        "tego", "to", "tamto", "tamtej", "tej", "czymś", "czyms", "mnie", "sobie"
+    )
 
     /**
      * Fakty jako sekcja polecenia dla modelu.

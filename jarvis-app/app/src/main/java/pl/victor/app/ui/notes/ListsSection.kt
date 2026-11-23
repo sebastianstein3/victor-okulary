@@ -66,12 +66,18 @@ fun ListsSection() {
                     list = list,
                     onToggle = { item, done ->
                         store.update { all ->
-                            ListsStore.replace(all, UserLists.setDone(list, item.id, done, System.currentTimeMillis())) to Unit
+                            // Świeży stan z magazynu, nie migawka z ostatniego rysowania -
+                            // inaczej klik nadpisywał zmianę z synchronizacji albo głosu.
+                            val current = UserLists.find(all, list.name) ?: return@update all to Unit
+                            ListsStore.replace(all, UserLists.setDone(current, item.id, done, System.currentTimeMillis())) to Unit
                         }
                         changed(list.name)
                     },
                     onDelete = { item ->
-                        store.update { all -> ListsStore.replace(all, UserLists.removeById(list, item.id)) to Unit }
+                        store.update { all ->
+                            val current = UserLists.find(all, list.name) ?: return@update all to Unit
+                            ListsStore.replace(all, UserLists.removeById(current, item.id)) to Unit
+                        }
                         changed(list.name)
                     },
                     onAdd = { text ->
@@ -85,7 +91,10 @@ fun ListsSection() {
                         changed(list.name)
                     },
                     onClear = {
-                        store.update { all -> ListsStore.replace(all, UserLists.clear(list)) to Unit }
+                        store.update { all ->
+                            val current = UserLists.find(all, list.name) ?: return@update all to Unit
+                            ListsStore.replace(all, UserLists.clear(current)) to Unit
+                        }
                         changed(list.name)
                     }
                 )

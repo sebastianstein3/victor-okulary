@@ -69,6 +69,19 @@ class UserFactsTest {
     }
 
     @Test
+    fun `zapomnij o tym nie kasuje wszystkiego`() {
+        val start = listOf(
+            UserFacts.Fact("W tym roku jadę do Hiszpanii", 1L),
+            UserFacts.Fact("Mam psa, który boi się burzy", 2L)
+        )
+        assertEquals(2, UserFacts.forget(start, "tym").size)
+        assertEquals(2, UserFacts.forget(start, "niej").size)
+        // Fragment w środku słowa nie wystarcza ("psa" w "przepsa"), początek słowa tak.
+        assertEquals(1, UserFacts.forget(start, "hiszpan").size)
+        assertEquals(2, UserFacts.forget(start, "panii").size)
+    }
+
+    @Test
     fun `pytanie o pamiec jest rozpoznawane`() {
         assertTrue(UserFacts.isListRequest("co o mnie wiesz"))
         assertTrue(UserFacts.isListRequest("Co o mnie pamiętasz?"))

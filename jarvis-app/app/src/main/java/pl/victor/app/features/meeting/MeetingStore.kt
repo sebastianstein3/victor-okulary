@@ -11,9 +11,24 @@ class MeetingStore(context: Context) {
     private val katalog = File(context.filesDir, "meetings").apply { mkdirs() }
     private val gson = Gson()
 
-    fun zapisz(m: Meeting) {
-        runCatching { File(katalog, "${m.id}.json").writeText(gson.toJson(m)) }
+    /** @return czy zapis się udał - dopiero wtedy wolno skasować kopię `.partial`. */
+    fun zapisz(m: Meeting): Boolean =
+        runCatching { zapiszAtomowo(File(katalog, "${m.id}.json"), gson.toJson(m)) }
             .onFailure { Log.w(TAG, "Nie zapisałem spotkania ${m.id}", it) }
+            .isSuccess
+
+    /**
+     * Zapis przez plik tymczasowy i podmianę: proces zabity W TRAKCIE zapisu
+     * zostawiał ucięty JSON, którego potem nikt nie umiał przeczytać, a
+     * transkrypcja ginęła (przegląd 22.11).
+     */
+    private fun zapiszAtomowo(cel: File, treść: String) {
+        val tmp = File(cel.parentFile, cel.name + ".tmp")
+        tmp.writeText(treść)
+        if (!tmp.renameTo(cel)) {
+            cel.delete()
+            if (!tmp.renameTo(cel)) throw java.io.IOException("Nie podmieniłem pliku ${cel.name}")
+        }
     }
 
     /** Najnowsze pierwsze. */
@@ -33,7 +48,7 @@ class MeetingStore(context: Context) {
      * kasował wszystko (audyt 28.10). Plik `.partial` nie pojawia się na liście.
      */
     fun zapiszCzęściowo(m: Meeting) {
-        runCatching { File(katalog, "${m.id}.partial").writeText(gson.toJson(m)) }
+        runCatching { zapiszAtomowo(File(katalog, "${m.id}.partial"), gson.toJson(m)) }
             .onFailure { Log.w(TAG, "Nie zapisałem stanu spotkania ${m.id}", it) }
     }
 
@@ -66,12 +81,18 @@ class MeetingStore(context: Context) {
         katalog.listFiles { f -> f.name.endsWith(".partial") }.orEmpty().forEach { f ->
             val id = f.name.removeSuffix(".partial")
             val gotowe = File(katalog, "$id.json")
+            var możnaUsunąć = true
             if (!gotowe.exists()) {
-                runCatching { gson.fromJson(f.readText(), Meeting::class.java) }.getOrNull()
-                    ?.takeIf { it.linie.isNotEmpty() }
-                    ?.let { zapisz(it); ile++ }
+                val m = runCatching { gson.fromJson(f.readText(), Meeting::class.java) }.getOrNull()
+                when {
+                    // Nieczytelna kopia zostaje - kasowanie jej to utrata jedynego śladu.
+                    m == null -> możnaUsunąć = false
+                    m.linie.isEmpty() -> Unit
+                    zapisz(m) -> ile++
+                    else -> możnaUsunąć = false
+                }
             }
-            f.delete()
+            if (możnaUsunąć) f.delete()
         }
         // Nagrania z przerwanego spotkania: bez transkrypcji z mówcami nie ma
         // ich jak dokończyć, a to nagranie głosu - nie trzymamy go bez potrzeby.

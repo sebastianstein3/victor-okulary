@@ -126,8 +126,27 @@ object DomPolecenia {
 
     fun wymagaPotwierdzenia(tekst: String): Boolean {
         val q = tekst.lowercase(PL)
-        return POTWIERDZENIE.any { it.containsMatchIn(q) }
+        if (POTWIERDZENIE.any { it.containsMatchIn(q) }) return true
+        // Odwrotnie niż lista czasowników powyżej: urządzenie wrażliwe i NIE
+        // wyraźnie bezpieczny czasownik. Lista "otwórz/odblokuj" przepuszczała
+        // "podnieś bramę garażową", "otwieraj bramę", "rozbrój ochronę" -
+        // a HA po polsku rozumie je jako otwarcie (przegląd 22.11).
+        return WRAŻLIWE.containsMatchIn(q) &&
+            !BEZPIECZNE.containsMatchIn(q) &&
+            !PYTANIE_O_STAN.containsMatchIn(q) &&
+            !ŚWIATŁO.containsMatchIn(q)
     }
+
+    private val WRAŻLIWE = Regex("""zam(ek|ki|ka|ku|kn)|drzwi|bram|furtk|gara[zż]|sejf|alarm|ochron""")
+
+    /** Zamknięcie, zablokowanie, uzbrojenie - bezpieczne bez pytania. */
+    private val BEZPIECZNE = Regex("""\b(zamknij|zamkn[aą][cć]|zablokuj|zarygluj|uzbr[oó]j|w[lł][aą]cz\s+(alarm|ochron))""")
+
+    /** "Czy brama jest zamknięta?" - pytanie, nie polecenie. */
+    private val PYTANIE_O_STAN = Regex("""^\s*(czy|jaki|jaka|jakie|sprawd[zź])\b|\bstan\b|\bstatus""")
+
+    /** "Zgaś światło w garażu" to światło, nie brama. */
+    private val ŚWIATŁO = Regex("""[sś]wiat[lł]|lamp|o[sś]wietl""")
 
     /**
      * Czy w zdaniu pada obszar z HA. Porównujemy rdzenie słów, bo obszar
@@ -217,7 +236,7 @@ object HaAdres {
         return LOKALNE_DOMENY.any { host.endsWith(it) }
     }
 
-    private val LOKALNE_DOMENY = listOf(".local", ".lan", ".home", ".home.arpa", ".internal", ".localdomain", ".box", ".fritz.box")
+    private val LOKALNE_DOMENY = listOf(".local", ".lan", ".home", ".home.arpa", ".internal", ".localdomain", ".fritz.box")
 }
 
 /** JSON dla API HA - przez kotlinx.serialization, bez org.json. */

@@ -97,7 +97,12 @@ class DomPoleceniaTest {
             "otwórz garaż",
             "wyłącz alarm",
             "rozbrój alarm",
-            "alarm wyłącz"
+            "alarm wyłącz",
+            // Przegląd 22.11: te przechodziły bez pytania.
+            "podnieś bramę garażową",
+            "dom, otwieraj bramę",
+            "dom, rozbrój ochronę",
+            "uchyl furtkę"
         ).forEach { assertTrue(it, DomPolecenia.wymagaPotwierdzenia(it)) }
         listOf(
             "zamknij drzwi",
@@ -106,7 +111,10 @@ class DomPoleceniaTest {
             "uzbrój alarm",
             "włącz alarm",
             "włącz światło w salonie",
-            "otwórz rolety"
+            "otwórz rolety",
+            "czy brama jest zamknięta",
+            "zgaś światło w garażu",
+            "włącz światło w garażu"
         ).forEach { assertFalse(it, DomPolecenia.wymagaPotwierdzenia(it)) }
         assertTrue(dom("otwórz bramę")!!.wymagaPotwierdzenia)
         assertTrue(dom("dom, wyłącz alarm")!!.wymagaPotwierdzenia)
