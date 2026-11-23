@@ -13,13 +13,22 @@ import org.junit.Test
  */
 class CameraFreeGatingTest {
 
+    /**
+     * Orkiestrator razem z modułem obrazu ze strumienia, który z niego
+     * wydzielono (orchestrator/CodeStreamScanner.kt) - bramki są w obu.
+     */
     private fun kod(): String? {
         var dir: File? = File("").absoluteFile
         while (dir != null) {
-            listOf(
+            val orkiestrator = listOf(
                 File(dir, "jarvis-app/app/src/main/java/pl/victor/app/AIOrchestrator.kt"),
                 File(dir, "src/main/java/pl/victor/app/AIOrchestrator.kt")
-            ).firstOrNull { it.isFile }?.let { return it.readText() }
+            ).firstOrNull { it.isFile }
+            if (orkiestrator != null) {
+                val strumień = File(orkiestrator.parentFile, "orchestrator/CodeStreamScanner.kt")
+                assertTrue("brak modułu: $strumień", strumień.isFile)
+                return orkiestrator.readText() + "\n" + strumień.readText()
+            }
             dir = dir.parentFile
         }
         return null
@@ -45,7 +54,7 @@ class CameraFreeGatingTest {
         val k = kod()
         assumeTrue("brak źródła orkiestratora", k != null)
         assertTrue(ciało(k!!, "private fun handleGlassesPhoto(").contains("if (settings.isCameraFree())"))
-        assertTrue(ciało(k, "private fun warmUpStreamForCode(").contains("if (settings.isCameraFree()) return"))
+        assertTrue(ciało(k, "fun warmUpStreamForCode(").contains("if (settings.isCameraFree()) return"))
     }
 
     @Test
