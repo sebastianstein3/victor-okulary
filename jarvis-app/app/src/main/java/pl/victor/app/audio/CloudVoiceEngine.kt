@@ -131,6 +131,13 @@ class CloudVoiceEngine(
 
     @Volatile private var generation = 0L
     @Volatile private var worker: Job? = null
+
+    /**
+     * Ostatnie zdanie wypowiedzi zdjęte już z kolejki, które jeszcze wybrzmiewa.
+     * stop() w tym oknie nie widział go w kolejce i zdarzenie końca nie
+     * padało nigdy - tura czekała do 150 s (przegląd 22.11).
+     */
+    private var draining: Utterance? = null
     @Volatile private var currentTrack: AudioTrack? = null
     @Volatile private var cooldownUntil = 0L
 
@@ -199,7 +206,8 @@ class CloudVoiceEngine(
     /** Czyści kolejkę i zatrzymuje odtwarzacz; zwraca identyfikatory porzuconych wypowiedzi. */
     private fun stopLocked(): List<String> {
         generation++
-        val ids = queue.map { it.utterance.id }.distinct()
+        val ids = (queue.map { it.utterance.id } + listOfNotNull(draining?.id)).distinct()
+        draining = null
         queue.forEach { it.synth?.cancel() }
         queue.clear()
         worker?.cancel()
@@ -309,6 +317,7 @@ class CloudVoiceEngine(
 
                 val next = synchronized(lock) {
                     if (queue.firstOrNull() === item) queue.removeFirst()
+                    if (item.isLast) draining = u
                     queue.firstOrNull()
                 }
                 if (item.isLast) {
@@ -319,7 +328,12 @@ class CloudVoiceEngine(
                     // najwyżej ~0,2 s, a i tak zaraz gra dalej.
                     val nextReady = next?.synth?.isCompleted == true
                     if (!nextReady) awaitDrain(track, framesWritten) { current(item) }
-                    if (!current(item)) continue
+                    // Zatrzymane w trakcie wybrzmiewania: stopLocked() zabrał już
+                    // tę wypowiedź do porzuconych i sam zgłosi jej koniec.
+                    val nasza = synchronized(lock) {
+                        (draining === u && current(item)).also { if (it) draining = null }
+                    }
+                    if (!nasza) continue
                     logUtterance(u, null, null)
                     listener.onUtteranceDone(u.id, true)
                 }
@@ -442,7 +456,7 @@ class CloudVoiceEngine(
         } else null
         key?.let { cache.get(it) }?.let { return Synth(it, fromCache = true) }
 
-        val request = when (config.provider) {
+        val request = try { when (config.provider) {
             CloudVoiceProvider.GEMINI -> Request.Builder()
                 .url(CloudVoiceConfig.GEMINI_URL)
                 .addHeader("x-goog-api-key", config.apiKey)
@@ -460,12 +474,20 @@ class CloudVoiceEngine(
                 )
                 .build()
             CloudVoiceProvider.SYSTEM -> return Synth(null, false, CloudVoiceFallback.HTTP, "brak usługi")
+        } } catch (e: IllegalArgumentException) {
+            // Klucz z niedozwolonym znakiem (np. wklejony z "\n") - OkHttp rzuca
+            // przy nagłówku. Bez tego wyjątek z Deferred wywracał aplikację.
+            return Synth(null, false, CloudVoiceFallback.HTTP, "zły znak w kluczu API")
         }
 
         val (code, body) = try {
             execute(request)
         } catch (e: IOException) {
             return Synth(null, false, CloudVoiceFallback.NETWORK, e.javaClass.simpleName + ": " + e.message?.take(100))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return Synth(null, false, CloudVoiceFallback.HTTP, e.javaClass.simpleName + ": " + e.message?.take(100))
         }
         if (code !in 200..299) {
             val msg = CloudVoiceLogic.errorMessage(String(body, Charsets.UTF_8))

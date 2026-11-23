@@ -129,7 +129,7 @@ object OsmPlaces {
             r != null -> r.filtry.map { "nwr$wokół$it" }
             else -> OGÓLNE.map { "nwr$wokół$it[name]" }
         }
-        return "[out:json][timeout:6];(" + części.joinToString(";") + ";);out center tags 80;"
+        return "[out:json][timeout:6];(" + części.joinToString(";") + ";);out center tags 300;"
     }
 
     /** Bez rodzaju w pytaniu: to, o co ludzie pytają najczęściej. */

@@ -42,7 +42,7 @@ class OsmPlacesTest {
         assertTrue(rodzaj.contains("hairdresser"))
         val ogólne = OsmPlaces.zapytanie(53.0, 18.6, "co jest w pobliżu")
         assertTrue(ogólne.contains("around:500,") && ogólne.contains("[name]"))
-        assertTrue(ogólne.startsWith("[out:json]") && ogólne.endsWith("out center tags 80;"))
+        assertTrue(ogólne.startsWith("[out:json]") && ogólne.endsWith("out center tags 300;"))
     }
 
     @Test

@@ -52,11 +52,14 @@ class SettingsRepository private constructor(private val context: Context) {
     }
 
     fun getApiKey(providerId: String): String? =
-        prefs.getString("$KEY_API_PREFIX$providerId", null)
+        // trim(): klucze zapisane przed przycinaniem przy zapisie też działają.
+        prefs.getString("$KEY_API_PREFIX$providerId", null)?.trim()?.takeIf { it.isNotEmpty() }
 
     fun setApiKey(providerId: String, key: String) {
         require(key.isNotBlank()) { "API key cannot be blank" }
-        prefs.edit().putString("$KEY_API_PREFIX$providerId", key).apply()
+        // Klucz wklejony z końcowym "\n" albo spacją psuł nagłówki zapytań
+        // (OkHttp odrzuca znaki sterujące) - przycinamy przy zapisie.
+        prefs.edit().putString("$KEY_API_PREFIX$providerId", key.trim()).apply()
     }
 
     fun hasApiKey(providerId: String): Boolean =

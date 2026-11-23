@@ -209,7 +209,12 @@ class SpeechToText(private val context: Context) {
                 }
             }
         } finally {
-            if (usedBluetooth) bluetoothRouter.release()
+            // NonCancellable: w anulowanej korutynie zajęta blokada routera od
+            // razu rzucała CancellationException, licznik nie malał i łącze
+            // rozmowy (SCO) zostawało trzymane na stałe (przegląd 22.11).
+            if (usedBluetooth) kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                bluetoothRouter.release()
+            }
         }
     }
 

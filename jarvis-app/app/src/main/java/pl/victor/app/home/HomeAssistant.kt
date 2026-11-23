@@ -36,9 +36,15 @@ object DomPolecenia {
 
     private val PL = Locale("pl")
 
-    /** "dom, włącz…", "w domu zgaś…", "home assistant: …". */
+    /**
+     * "dom, włącz…", "home assistant: …". "Dom" tylko z przecinkiem lub
+     * dwukropkiem, a "w domu" wcale: "W domu mam jeszcze leki?" i "Dom Chopina -
+     * do której otwarty?" trafiały do sterowania domem (przegląd 22.11).
+     * "W domu zgaś światło" i tak złapie zwykłe rozpoznanie (czasownik +
+     * urządzenie).
+     */
     private val PRZEDROSTEK = Regex(
-        """^(?:hej\s+|ok\s+)?(?:dom|w\s+domu|home\s+assistant|asystent\s+domowy|inteligentny\s+dom)\s*[,:.\-–]?\s+(.+)$"""
+        """^(?:hej\s+|ok\s+)?(?:dom\s*[,:]|(?:home\s+assistant|asystent\s+domowy|inteligentny\s+dom)\s*[,:.\-–]?)\s+(.+)$"""
     )
 
     /** Czasowniki sterowania - z bezokolicznikiem i trybem rozkazującym. */
@@ -116,7 +122,12 @@ object DomPolecenia {
         }
         if (NIE_DOM.containsMatchIn(q)) return null
         val miejsce = POMIESZCZENIE.containsMatchIn(q) || maObszar(q, obszary)
-        val urządzenie = URZĄDZENIE.containsMatchIn(q)
+        // Samo "alarm" bez wskazania domu to zwykle budzik w telefonie ("wyłącz
+        // alarm" przy dzwoniącym budziku) - "tak" rozbrajało alarm domowy.
+        val tylkoAlarm = Regex("""alarm""").containsMatchIn(q) &&
+            !URZĄDZENIE.containsMatchIn(q.replace(Regex("""alarm\S*"""), " ")) &&
+            !Regex("""alarm\S*\s+(domow|w\s+domu|antyw)|ochron|w\s+domu""").containsMatchIn(q)
+        val urządzenie = URZĄDZENIE.containsMatchIn(q) && !tylkoAlarm
         val sterowanie = CZASOWNIK.containsMatchIn(q) && (urządzenie || miejsce)
         val pomiar = STAN_POMIARU.containsMatchIn(q) && (miejsce || W_DOMU.containsMatchIn(q))
         val czyStan = CZY_STAN.containsMatchIn(q) && urządzenie

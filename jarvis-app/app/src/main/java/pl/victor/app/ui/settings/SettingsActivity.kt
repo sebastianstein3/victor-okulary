@@ -4201,12 +4201,10 @@ private fun PowerModeSection() {
     val app = context.applicationContext as pl.victor.app.VictorApplication
     val scope = rememberCoroutineScope()
 
-    val powerManager = remember { pl.victor.app.power.PowerManager(context.applicationContext, settings) }
-    // Receiver baterii i pętla pomiarów żyły dalej po wyjściu z ustawień (nowy
-    // PowerManager przy każdym wejściu) - sprzątamy przy opuszczeniu ekranu.
-    androidx.compose.runtime.DisposableEffect(Unit) {
-        onDispose { powerManager.cleanup() }
-    }
+    // TEN SAM menedżer co w orkiestratorze. Własna kopia na tym ekranie miała
+    // osobny stan: wyłączenie "auto" tutaj nie zatrzymywało tamtej, a wybór
+    // ECO wyłączał "Hej Wiktor" bez możliwości powrotu (przegląd 22.11).
+    val powerManager = app.orchestrator.powerManager
     val currentMode by powerManager.currentMode.collectAsState()
     val batteryState by powerManager.batteryState.collectAsState()
     val autoMode by powerManager.autoModeEnabled.collectAsState()

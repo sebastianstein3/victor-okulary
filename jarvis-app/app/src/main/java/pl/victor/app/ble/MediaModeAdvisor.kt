@@ -112,6 +112,9 @@ object MediaModeAdvisor {
         // ogólna instrukcja z zastrzeżeniem.
         d.probeFailed -> MediaModeHintKind.UNCERTAIN
         d.deviceName == null || !d.bonded -> MediaModeHintKind.NOT_PAIRED
+        // Znaleziony tylko wpis BLE: jego profile nie mają multimediów z natury,
+        // więc "nie oferują" byłoby nieprawdą - brakuje sparowanej części audio.
+        !d.classic -> MediaModeHintKind.NOT_PAIRED
         d.declaresA2dpSink == true -> MediaModeHintKind.ENABLE_IN_SETTINGS
         d.declaresA2dpSink == false -> MediaModeHintKind.NOT_OFFERED
         else -> MediaModeHintKind.UNCERTAIN

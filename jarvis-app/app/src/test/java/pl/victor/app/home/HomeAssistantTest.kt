@@ -47,8 +47,11 @@ class DomPoleceniaTest {
         val p = dom("Dom, włącz tryb nocny")!!
         assertTrue(p.jawne)
         assertEquals("włącz tryb nocny", p.tekst)
-        assertEquals("zamknij rolety", dom("w domu zamknij rolety")!!.tekst)
-        assertEquals("jest zimno", dom("w domu jest zimno")!!.tekst)
+        // "w domu" nie jest już jawnym przedrostkiem (przegląd 22.11) - polecenie
+        // nadal idzie do domu przez zwykłe rozpoznanie, ale całym zdaniem.
+        assertFalse(dom("w domu zamknij rolety")!!.jawne)
+        assertNull(dom("W domu mam jeszcze jakieś leki przeciwbólowe?"))
+        assertNull(dom("Dom Chopina - do której otwarty?"))
         assertEquals("Włącz scenę Kino", dom("Home Assistant: Włącz scenę Kino")!!.tekst)
         // "domofon" to nie przedrostek
         assertNull(dom("domofon dzwoni"))
@@ -72,7 +75,9 @@ class DomPoleceniaTest {
             "kiedy najbliższy tramwaj",
             "dodaj żarówki do listy zakupów",
             "co to jest lampa naftowa",
-            "jak działa termostat"
+            "jak działa termostat",
+            // Budzik w telefonie, nie alarm domowy.
+            "wyłącz alarm"
         ).forEach { assertNull(it, dom(it)) }
     }
 

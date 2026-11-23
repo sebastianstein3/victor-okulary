@@ -68,7 +68,9 @@ object GmailContext {
         "email", "e-mail", "emaila", "emaile",
         "skrzynka", "skrzynce", "skrzynki", "skrzynkę",
         "poczta", "poczcie", "poczty", "pocztę",
-        "wiadomość", "wiadomości",
+        // Bez "wiadomość/wiadomości": "jakie są wiadomości ze świata?" i
+        // "przeczytaj wiadomości z WhatsAppa" doklejały do pytania prywatną
+        // skrzynkę Gmail (przegląd 22.11).
         "gmail", "inbox"
     )
 }

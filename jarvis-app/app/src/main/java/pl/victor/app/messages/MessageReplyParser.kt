@@ -41,6 +41,10 @@ object MessageReplyParser {
             t.contains(':') || (kto != null && kto.lowercase() in setOf("że", "ze", "żeby", "zeby"))
         if (kto != null && kto.lowercase() in ZAIMKI && !jawnaTreść && kto.lowercase() !in setOf("jej", "mu", "im")) return null
         if (kto == null && !jawnaTreść && Regex("""^(?:odpowiedz|odpisz)\s+(?:mi|mnie|na|szczerze)\b""", RegexOption.IGNORE_CASE).containsMatchIn(t)) return null
+        // "Odpowiedz, czy jutro będzie padać" - bez adresata i bez "że"/dwukropka
+        // to pytanie do asystenta, nie odpowiedź SMS-em ostatniemu nadawcy
+        // (przegląd 22.11).
+        if (kto == null && !jawnaTreść && Regex("""^(?:odpowiedz|odpowiedź)\s*,""", RegexOption.IGNORE_CASE).containsMatchIn(t)) return null
         return Odpowiedź(adresat, treść.replaceFirstChar { it.uppercase() })
     }
 
@@ -75,6 +79,7 @@ object MessageReplyParser {
 
     private val SPOSÓB = Regex(
         """^(grzecznie|uprzejmie|kr[oó]tko|elegancko|[sś]miesznie|zabawnie|formalnie|po\s+angielsku|""" +
-            """po\s+niemiecku|po\s+polsku|co[sś]\s+mi[lł]ego|jako[sś]|co[sś]|za\s+mnie|w\s+moim\s+imieniu)\b"""
+            """po\s+niemiecku|po\s+polsku|co[sś]\s+mi[lł]ego|jako[sś]|co[sś]|za\s+mnie|w\s+moim\s+imieniu|""" +
+            """jednym\s+s[lł]owem|w\s+skr[oó]cie|szczerze|zwi[eę][zź]le)\b"""
     )
 }

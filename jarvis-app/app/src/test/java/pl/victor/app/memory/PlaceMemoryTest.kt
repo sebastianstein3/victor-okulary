@@ -161,6 +161,15 @@ class PlaceMemoryPhrasesTest {
         assertEquals(PlaceMemory.CAR, PlaceMemory.recallRequest("gdzie zostawiłem auto"))
         assertEquals(PlaceMemory.SPOT, PlaceMemory.recallRequest("zaprowadź mnie do tego miejsca"))
     }
+
+    @Test
+    fun `zapamietaj ze z autem to fakt a nie miejsce parkowania`() {
+        assertNull(PlaceMemory.saveRequest("zapamiętaj, że jutro odbieram auto z serwisu"))
+        assertNull(PlaceMemory.saveRequest("zapamiętaj, że numer rejestracyjny samochodu to KR 12345"))
+        assertNull(PlaceMemory.saveRequest("zapamiętaj, że chcę automat do kawy"))
+        assertEquals(PlaceMemory.CAR, PlaceMemory.saveRequest("zapamiętaj, że zaparkowałem na poziomie minus dwa"))
+        assertEquals(PlaceMemory.CAR, PlaceMemory.saveRequest("zapamiętaj miejsce parkingowe"))
+    }
 }
 
 

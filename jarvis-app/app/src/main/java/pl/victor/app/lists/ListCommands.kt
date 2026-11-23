@@ -125,7 +125,14 @@ object ListCommands {
         CHECK_OFF.matchEntire(t)?.let { m ->
             val items = splitItems(stripDoneSuffix(m.groups["items"]!!.value)).map { it.text }
             if (items.isEmpty()) return null
-            return Command.CheckOff(m.groups["list"]?.value?.let(::listOrNullIfBare), items)
+            val lista = m.groups["list"]?.value?.let(::listOrNullIfBare)
+            // "Zaznacz" bez nazwy listy tylko, gdy pozycja NA KTÓREJŚ liście jest:
+            // "zaznacz w kalendarzu spotkanie z Anią" trafiało do list
+            // zamiast do kalendarza (przegląd 22.11).
+            val surowe = m.groups["items"]!!.value
+            // "...jako kupiony" przesądza, że chodzi o listę.
+            val zaznacz = t.startsWith("zaznacz") && stripDoneSuffix(surowe) == surowe
+            return Command.CheckOff(lista, items, onlyIfPresent = zaznacz && m.groups["list"] == null)
         }
         BOUGHT.matchEntire(t)?.let { m ->
             // „Kupiłem wczoraj nowy telefon i nie wiem, jak go ustawić” to

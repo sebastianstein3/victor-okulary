@@ -94,7 +94,9 @@ object OdjazdyPytanie {
 
     /** Czas przeszły - "kiedy jechałem tramwajem" to wspomnienie, nie pytanie o rozkład. */
     private val PRZESZŁOŚĆ = Regex(
-        """(jecha[lł]\S*|by[lł](em|am|o|a|y|i)?(\s|$)|zacz[eę][lł]\S*|powsta[lł]\S*|kursowa[lł]\S*|je[zź]dzi[lł]\S*|wprowadzon|zbudowan|uruchomion)"""
+        """(jecha[lł]\S*|by[lł](em|am|o|a|y|i)?(\s|$)|zacz[eę][lł]\S*|powsta[lł]\S*|kursowa[lł]\S*|je[zź]dzi[lł]\S*|wprowadzon|zbudowan|uruchomion|""" +
+            // Formy bezosobowe: "kiedy otwarto metro", "kiedy wynaleziono tramwaj".
+            """otwarto|otwart[aey]|wynalezion\S*|zbudowano|wprowadzono|uruchomiono)"""
     )
 
     /** Pytanie o drogę ("jak dojadę tramwajem do X") to trasa, nie odjazdy. */
@@ -120,6 +122,12 @@ object OdjazdyPytanie {
         if (q.isEmpty()) return null
         if (TRASA.containsMatchIn(q)) return null
         if (PRZESZŁOŚĆ.containsMatchIn(q)) return null
+        // "O której mam pociąg?" to pytanie o WŁASNY plan (kalendarz, bilet),
+        // a nie o przystanki wokół (przegląd 22.11).
+        // "Kiedy mam tramwaj stąd" zostaje - jest wskazanie miejsca.
+        if (Regex("""(^|\s)(mam|m[oó]j|moja|mojego|moim)(\s|$)""").containsMatchIn(q) &&
+            !Regex("""(^|\s)(stąd|stad|tutaj|tu|przystank\S*)(\s|$)""").containsMatchIn(q)
+        ) return null
         val oCzas = CZAS.containsMatchIn(q) && POJAZD_SŁOWO.containsMatchIn(q)
         val oLinie = LINIE.containsMatchIn(q) &&
             (POJAZD_SŁOWO.containsMatchIn(q) || q.contains("stąd") || q.contains("stad") || q.contains("tutaj") || Regex("""(^|\s)tu(\s|$)""").containsMatchIn(q))

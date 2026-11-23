@@ -38,12 +38,28 @@ object ConfirmationReply {
         // Kto się waha, nie podjął decyzji, więc oddajemy mu ją z powrotem.
         HEDGES.forEach { if (joined.contains(it)) return Reply.UNCLEAR }
         NO_PHRASES.forEach { if (joined.contains(it)) return Reply.NO }
-        for (word in words) {
+        for ((i, word) in words.withIndex()) {
             if (word in NO_WORDS) return Reply.NO
-            if (word in YES_WORDS) return Reply.YES
+            if (word in YES_WORDS) {
+                // Zgoda z poprawką to NIE jest zgoda na to, o co pytaliśmy:
+                // "wyślij do Ani, nie do Janusza", "zrób na jedenastą", "dodaj
+                // jeszcze, że…" wykonywały akcję w STAREJ postaci (przegląd
+                // 22.11). Oddajemy decyzję użytkownikowi.
+                val reszta = words.drop(i + 1)
+                if (reszta.any { it in NO_WORDS || it in CORRECTION }) return Reply.UNCLEAR
+                if (word in COMMAND_VERBS + setOf("wyslij") && reszta.any { it !in FILLER && it !in YES_WORDS }) {
+                    return Reply.UNCLEAR
+                }
+                return Reply.YES
+            }
         }
         return Reply.UNCLEAR
     }
+
+    /** Słowa poprawki stojące po zgodzie - patrz [parse]. */
+    private val CORRECTION = setOf(
+        "zamiast", "zmien", "popraw", "inaczej", "jeszcze", "dopisz", "ale", "tylko", "lecz"
+    )
 
     /**
      * Jak [parse], ale TYLKO gdy cała wypowiedź to słowa zgody/odmowy i

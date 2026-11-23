@@ -1181,10 +1181,13 @@ class AIOrchestrator(
         // Język mógł się zmienić w ustawieniach od czasu utworzenia orkiestratora.
         conversationalMode.recognitionLanguageTag =
             languageTagFor(settings.getResponseLanguage())
+        val byłWłączony = conversationalMode.isActive()
         conversationalMode.enable()
         // Ten sam sygnał, co przy pojedynczej turze - użytkownik ma jeden znak
         // "mów teraz", niezależnie od tego, którym trybem trafił do nasłuchu.
-        audio.playListeningCue()
+        // Tylko gdy tryb naprawdę wstaje: obrót telefonu odtwarza ekran, który
+        // woła to ponownie, i grał wtedy "bip" w okularach (przegląd 22.11).
+        if (!byłWłączony || afterUserAction) audio.playListeningCue()
     }
 
     fun disableConversationalMode() = conversationalMode.disable()

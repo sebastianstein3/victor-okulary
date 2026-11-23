@@ -67,7 +67,15 @@ object SelfKnowledge {
         val asksAboutSelf = q.contains("jakie") || q.contains("jaka") || q.contains("ktore") ||
             q.contains("wymien") || q.contains("lista") || q.contains("dostepne") ||
             q.contains("masz") || q.contains("mamy")
-        if (asksAboutSelf && PERSONA_HINTS.any { q.contains(it) }) return Topic.PERSONAS
+        // "Postać" i "styl" tylko jako całe słowa I z odniesieniem do asystenta:
+        // "Jaka postać jest na tym obrazie?", "jakie style architektoniczne są
+        // w Krakowie?" i "masz pomysł na stylizację?" dostawały wyliczankę
+        // person (przegląd 22.11). "Persona" i "tryb rozmowy" są jednoznaczne.
+        val ogólnaPersona = q.contains("person") || q.contains("tryb rozmowy") ||
+            Regex("""\bstyl\w*\s+odpowiedz""").containsMatchIn(q)
+        val doMnie = Regex("""\b(masz|mamy|twoj\w*|asystent\w*|dostepne)\b""").containsMatchIn(q)
+        val słowoPostaci = Regex("""\b(styl|style|stylu|stylow|postac|postaci)\b""").containsMatchIn(q)
+        if (asksAboutSelf && (ogólnaPersona || (doMnie && słowoPostaci))) return Topic.PERSONAS
 
         if (CAPABILITY_PHRASES.any { q.contains(it) }) return Topic.CAPABILITIES
         return null

@@ -45,7 +45,32 @@ class VictorApplication : Application() {
             detector.onDiag = { message, fields ->
                 runCatching { diag.event(pl.victor.app.diagnostics.DiagFormat.Phase.WAKE, message, fields) }
             }
+            detector.onZakonczonySam = { błąd -> onWakeThreadDied(błąd) }
         }
+    }
+
+    /** Kolejne samoczynne zgony wątku nasłuchu - do odstępu ponowień. */
+    private var wakeDeaths = 0
+
+    /**
+     * Wątek nasłuchu "Hej Wiktor" skończył się sam. Oznaczamy nasłuch jako
+     * stojący i próbujemy go podnieść z rosnącym odstępem (5 s, 10 s, ... do
+     * 2 min) - mikrofon bywa chwilowo zajęty albo serwer audio się restartuje.
+     */
+    private fun onWakeThreadDied(błąd: String?) {
+        val opóźnienie = (5_000L shl minOf(wakeDeaths, 5)).coerceAtMost(120_000L)
+        wakeDeaths++
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            synchronized(this) { wakeRunning = false }
+            wakeLogStart = true
+            wakeDiag(
+                "nasłuch „Hej Wiktor” przerwał się sam - ponowię",
+                mapOf("błąd" to błąd, "zaMs" to opóźnienie, "próba" to wakeDeaths)
+            )
+        }
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            synchronized(this) { if (wakePauses.isEmpty()) refreshPhoneWake() }
+        }, opóźnienie)
     }
 
     lateinit var photoStorage: PhotoStorage

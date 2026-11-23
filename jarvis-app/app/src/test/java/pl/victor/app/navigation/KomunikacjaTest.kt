@@ -42,6 +42,11 @@ class KomunikacjaTest {
         assertNull(OdjazdyPytanie.rozpoznaj("jakie linie stąd jeżdżą")!!.pojazd)
         assertEquals(Pojazd.TRAMWAJ, OdjazdyPytanie.rozpoznaj("jakie tramwaje tu jeżdżą")!!.pojazd)
         assertNotNull(OdjazdyPytanie.rozpoznaj("rozkład jazdy z tego przystanku"))
+        // Przegląd 22.11: własny plan i historia to nie przystanki wokół.
+        assertNull(OdjazdyPytanie.rozpoznaj("o której mam pociąg"))
+        assertNull(OdjazdyPytanie.rozpoznaj("kiedy mam jutro pociąg"))
+        assertNull(OdjazdyPytanie.rozpoznaj("kiedy otwarto metro w Warszawie"))
+        assertNull(OdjazdyPytanie.rozpoznaj("kiedy wynaleziono tramwaj"))
     }
 
     @Test

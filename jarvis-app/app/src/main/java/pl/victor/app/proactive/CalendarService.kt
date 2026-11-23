@@ -57,17 +57,19 @@ class CalendarService(private val context: Context) {
             CalendarContract.Instances.DESCRIPTION
         )
 
-        val selection = "${CalendarContract.Instances.BEGIN} >= ? AND " +
-                "${CalendarContract.Instances.BEGIN} <= ?"
-        val args = arrayOf(start.toString(), end.toString())
         val sortOrder = "${CalendarContract.Instances.BEGIN} ASC"
+
+        // Zakres czasu MUSI być w ścieżce (instances/when/<od>/<do>). Bez niego
+        // dostawca kalendarza rzucał "Unknown URL", wyjątek ginął w catch, a
+        // asystent mówił "kalendarz jest pusty" (przegląd 22.11).
+        val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().also { b ->
+            android.content.ContentUris.appendId(b, start)
+            android.content.ContentUris.appendId(b, end)
+        }.build()
 
         try {
             context.contentResolver.query(
-                CalendarContract.Instances.CONTENT_URI.buildUpon()
-                    .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
-                    .build(),
-                projection, selection, args, sortOrder
+                uri, projection, null, null, sortOrder
             )?.use { cursor ->
                 while (cursor.moveToNext() && events.size < limit) {
                     val id = cursor.getLong(0)

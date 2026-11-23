@@ -30,7 +30,9 @@ object WeatherContext {
      */
     fun isAboutWeather(question: String): Boolean {
         val q = question.lowercase()
-        return WEATHER_KEYWORDS.any { q.contains(it) }
+        // Od początku SŁOWA: "rain" pasowało do "Ukraina", "pada" do "wypada"
+        // ("kiedy wypada Wielkanoc" ciągnęło prognozę; przegląd 22.11).
+        return WEATHER_KEYWORDS.any { kw -> Regex("(^|[^\\p{L}])" + Regex.escape(kw)).containsMatchIn(q) }
     }
 
     /**

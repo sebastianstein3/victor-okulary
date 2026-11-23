@@ -34,6 +34,18 @@ class ConfirmationReplyTest {
     }
 
     @Test
+    fun `zgoda z poprawka to nie zgoda na stara wersje`() {
+        // Przegląd 22.11: to wykonywało akcję w starej postaci.
+        listOf(
+            "wyślij do Ani, nie do Janusza",
+            "zrób na jedenastą",
+            "wyślij, ale dopisz że się spóźnię",
+            "tak, tylko zmień godzinę"
+        ).forEach { assertEquals(it, ConfirmationReply.Reply.UNCLEAR, parse(it)) }
+        assertEquals(ConfirmationReply.Reply.YES, parse("wyślij proszę"))
+    }
+
+    @Test
     fun `zwroty zlozone sa odmowa`() {
         listOf("nie trzeba", "daj spokój", "jednak nie", "nie chcę tego")
             .forEach { assertEquals(it, ConfirmationReply.Reply.NO, parse(it)) }

@@ -70,6 +70,8 @@ class ListCommandsTest {
         assertEquals(Command.CheckOff(null, listOf("chleb")), parse("odhacz chleb"))
         assertEquals(Command.CheckOff(UserLists.SHOPPING, listOf("chleb", "mleko")), parse("odhacz chleb i mleko z listy zakupów"))
         assertEquals(Command.CheckOff(null, listOf("chleb")), parse("zaznacz chleb jako kupiony"))
+        // "Zaznacz" bez listy i bez "kupiony" - tylko gdy pozycja jest na liście.
+        assertEquals(true, (parse("zaznacz w kalendarzu spotkanie z Anią") as Command.CheckOff).onlyIfPresent)
         assertEquals(Command.CheckOff(null, listOf("chleb"), onlyIfPresent = true), parse("kupiłem chleb"))
         assertEquals(Command.Clear(UserLists.SHOPPING), parse("wyczyść listę zakupów"))
         assertEquals(Command.Clear("na wyjazd"), parse("usuń listę na wyjazd"))

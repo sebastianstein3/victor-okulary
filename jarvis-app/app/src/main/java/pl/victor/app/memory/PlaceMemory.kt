@@ -203,12 +203,29 @@ object PlaceMemory {
     fun saveRequest(text: String): String? {
         val t = simplify(text)
         if (SAVE_OPENERS.none { t.startsWith(it) }) return null
+        // "Zapamiętaj, że jutro odbieram auto z serwisu" to fakt, nie miejsce -
+        // dawniej nadpisywało zapisane miejsce parkowania (przegląd 22.11).
+        // Wyjątek: "zapamiętaj, że zaparkowałem na minus dwa" to nadal parking.
+        if (Regex("""^zapamietaj( sobie)? ze\b""").containsMatchIn(t) &&
+            !Regex("""\b(za)?parkowal""").containsMatchIn(t)
+        ) return null
         return when {
-            CAR_WORDS.any { t.contains(it) } -> CAR
-            PLACE_WORDS.any { t.contains(it) } -> SPOT
+            SAVE_CAR.containsMatchIn(t) -> CAR
+            SAVE_PLACE.containsMatchIn(t) -> SPOT
             else -> null
         }
     }
+
+    /** Miejsce auta: czas przeszły parkowania albo "gdzie stoi/jest auto". */
+    private val SAVE_CAR = Regex(
+        """\b(za)?parkowal(em|am|es|as|ismy|ysmy)?\b""" +
+            """|\bgdzie (stoi|jest|zostawilem|zostawilam) (moj |moje |nasz |nasze )?(samochod|auto|woz)\b""" +
+            """|\b(miejsce parkingowe|miejsce parkowania|na parkingu)\b"""
+    )
+
+    private val SAVE_PLACE = Regex(
+        """\b(to|tego|tym) miejsc(e|a|u)\b|\bgdzie (jestem|stoje)\b"""
+    )
 
     /**
      * Czy to pytanie O ZAPAMIĘTANE miejsce.

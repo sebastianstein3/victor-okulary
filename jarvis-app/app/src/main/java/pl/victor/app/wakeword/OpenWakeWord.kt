@@ -120,6 +120,10 @@ class OpenWakeWord(private val context: Context) {
     @Volatile
     var onDiag: ((String, Map<String, Any?>) -> Unit)? = null
 
+    /** Wołane z wątku nasłuchu, gdy ten skończył się sam (z opisem błędu). */
+    @Volatile
+    var onZakonczonySam: ((String?) -> Unit)? = null
+
     /** Pliki nauczonego głosu - patrz [NaukaGlosu]. */
     val magazynGlosu = MagazynGlosu(File(context.filesDir, MagazynGlosu.KATALOG))
 
@@ -268,7 +272,13 @@ class OpenWakeWord(private val context: Context) {
         bladWczytania?.let { lastError = it; return it }
 
         val nowa = Sesja()
-        val watek = Thread({ nasluch(nowa, onDetected) }, "OpenWakeWord")
+        val watek = Thread({
+            nasluch(nowa, onDetected)
+            // Wątek skończył się SAM (błąd mikrofonu, restart serwera audio) -
+            // a nie przez stop(). Bez zgłoszenia aplikacja uważała nasłuch za
+            // działający i "Hej Wiktor" milkł do restartu (przegląd 22.11).
+            if (nowa.aktywna && sesja === nowa) onZakonczonySam?.invoke(lastError)
+        }, "OpenWakeWord")
         nowa.watek = watek
         sesja = nowa
         lastError = null
