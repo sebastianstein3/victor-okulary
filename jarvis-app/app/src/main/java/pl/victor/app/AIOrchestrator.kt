@@ -57,6 +57,7 @@ import pl.victor.app.vision.QRScanner
 import pl.victor.app.vision.ScannedCode
 import pl.victor.app.web.URLAnalyzer
 import pl.victor.app.web.WebContent
+import pl.victor.app.orchestrator.languageTagFor
 
 /**
  * Orkiestrator - koordynuje cały flow:
@@ -104,7 +105,7 @@ class AIOrchestrator(
                             mapOf(
                                 "klawisz" to android.view.KeyEvent.keyCodeToString(keyCode),
                                 "mówię" to mówimy,
-                                "tłumaczenie" to _earTranslation.value
+                                "tłumaczenie" to earTranslation.value
                             )
                         )
                     }
@@ -114,7 +115,7 @@ class AIOrchestrator(
                         stopLiveConversation("klawisz słuchawek")
                         return@bezpiecznie
                     }
-                    if (!mówimy || _earTranslation.value) return@bezpiecznie
+                    if (!mówimy || earTranslation.value) return@bezpiecznie
                     cancelCurrentTurn("klawisz słuchawek (dotknięcie zausznika)")
                 }
             }
@@ -127,13 +128,22 @@ class AIOrchestrator(
     private val _lastResponse = MutableStateFlow<AIResponse?>(null)
     val lastResponse: StateFlow<AIResponse?> = _lastResponse.asStateFlow()
 
-    // Ostrzeżenia o modelu (deprecated, migration, itd.)
-    private val _modelWarning = MutableStateFlow<String?>(null)
-    val modelWarning: StateFlow<String?> = _modelWarning.asStateFlow()
+    /** Dostawcy modelu - patrz [pl.victor.app.orchestrator.ProviderManager]. */
+    private val providers = pl.victor.app.orchestrator.ProviderManager(context, settings)
 
-    // Aktualnie używany model
-    private val _currentModelId = MutableStateFlow<String?>(null)
-    val currentModelId: StateFlow<String?> = _currentModelId.asStateFlow()
+    /** Ostrzeżenia o modelu (deprecated, migration, itd.). */
+    val modelWarning: StateFlow<String?> get() = providers.modelWarning
+
+    /** Aktualnie używany model. */
+    val currentModelId: StateFlow<String?> get() = providers.currentModelId
+
+    /** Publikuje model z bieżących ustawień - patrz [pl.victor.app.orchestrator.ProviderManager.publishConfiguredModel]. */
+    fun publishConfiguredModel() = providers.publishConfiguredModel()
+
+    /** Czyści aktywne ostrzeżenie (po wyświetleniu użytkownikowi). */
+    fun clearModelWarning() = providers.clearModelWarning()
+
+    private suspend fun getOrCreateProvider(): AIProvider = providers.getOrCreateProvider()
 
     // HeyCyan BLE manager (singleton z vendor SDK)
     private val glassesManager: VictorManager = VictorManager.getInstance(context)
@@ -270,69 +280,6 @@ class AIOrchestrator(
     val conversationalModeFlow: kotlinx.coroutines.flow.StateFlow<Boolean> get() = conversationalMode.enabled
     val isListeningFlow: kotlinx.coroutines.flow.StateFlow<Boolean> get() = conversationalMode.isListening
 
-    /**
-     * Zamienia kod języka odpowiedzi na tag BCP-47 dla rozpoznawania mowy.
-     * `SpeechRecognizer` oczekuje pełnego tagu z regionem - samo "pl" bywa
-     * ignorowane i schodzi na język systemu.
-     */
-    /**
-     * Rozwiązuje nazwę kontaktu na numer telefonu dla SendSms/MakeCall.
-     * Inne typy akcji przechodzą bez zmian.
-     *
-     * @return akcja z numerem zamiast nazwy, ta sama akcja gdy `to` już jest
-     *         numerem, albo `null` gdy kontaktu nie udało się znaleźć
-     */
-    private suspend fun resolveContactIfNeeded(action: Action): Action? = when (action) {
-        is Action.SendSms -> {
-            if (contactResolver.isPhoneNumber(action.to)) {
-                action
-            } else {
-                // "smsto:" nie ma żadnego mechanizmu wyszukiwania po nazwie -
-                // bez rozwiązania SMS nigdy by nie doszedł do adresata, więc
-                // lepiej zgłosić to wprost niż cicho otworzyć aplikację SMS
-                // z odbiorcą, którego nikt nie rozpozna.
-                contactResolver.findContact(action.to)?.let { found ->
-                    noteResolvedContact(action.to, found)
-                    action.copy(to = found.phoneNumber, resolvedName = found.displayName)
-                }
-            }
-        }
-        is Action.MakeCall -> {
-            if (contactResolver.isPhoneNumber(action.to)) {
-                action
-            } else {
-                // ACTION_DIAL z nazwą czasem trafia w wyszukiwanie T9 dialera
-                // (wpisanie liter na klawiaturze telefonu też sugeruje kontakty).
-                // Gdy nie mamy dostępu do książki albo kontaktu nie ma, zostawiamy
-                // oryginalną nazwę zamiast twardo failować - to jedyna ścieżka,
-                // która wcześniej działała bez READ_CONTACTS.
-                contactResolver.findContact(action.to)?.let { found ->
-                    noteResolvedContact(action.to, found)
-                    action.copy(to = found.phoneNumber, resolvedName = found.displayName)
-                } ?: action
-            }
-        }
-        else -> action
-    }
-
-    /**
-     * Zapisuje w dzienniku, KOGO wybraliśmy z książki adresowej.
-     *
-     * ## Czemu to musi zostawiać ślad
-     * Bo pomyłka w tym miejscu kończy się rozmową albo SMS-em do obcej osoby, a
-     * z zewnątrz wygląda dokładnie tak samo jak trafienie: asystent mówi „dzwonię
-     * do Janusza" i dzwoni. Numer jest w dzienniku ukrywany - wystarczy sama
-     * nazwa, żeby dało się rozstrzygnąć, czy wybór był dobry.
-     */
-    private fun noteResolvedContact(asked: String, found: ContactResolver.Resolved) {
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.AKCJA, "kontakt z książki adresowej",
-                mapOf("proszono" to asked, "wybrano" to found.displayName)
-            )
-        }
-    }
-
     /** Ile milisekund dźwięku to tyle bajtów próbek 16-bit mono. */
     private fun msOf(pcmBytes: Int): Long =
         pcmBytes.toLong() * 1000L / (pl.victor.app.audio.OpusDecoder.SAMPLE_RATE.toLong() * 2L)
@@ -440,109 +387,6 @@ class AIOrchestrator(
         }
     }
 
-    private fun languageTagFor(languageCode: String): String = when (languageCode) {
-        "pl" -> "pl-PL"
-        "en" -> "en-US"
-        "de" -> "de-DE"
-        "fr" -> "fr-FR"
-        "es" -> "es-ES"
-        "it" -> "it-IT"
-        "uk" -> "uk-UA"
-        else -> languageCode
-    }
-
-    /**
-     * Wydarzenia z kalendarza urządzenia jako kontekst dla modelu.
-     *
-     * Czyta kalendarz systemowy (dowolny zsynchronizowany, w tym Google), więc
-     * nie wymaga logowania OAuth. Wcześniej kalendarz był odczytywany wyłącznie
-     * przez alerty pogodowe - V.I.C.T.O.R. nie potrafił odpowiedzieć na „co mam dziś
-     * w planach", mimo że dane były na wyciągnięcie ręki.
-     *
-     * @return fragment promptu albo `null`, gdy pytanie nie dotyczy planów,
-     *         brakuje uprawnienia albo nie ma nadchodzących wydarzeń
-     */
-    /**
-     * Bieżąca data i godzina jako kontekst dla modelu.
-     *
-     * Model nie ma zegara, a jego wiedza kończy się na dacie treningu - bez tego
-     * "jaki dziś dzień", "ile zostało do piątku" albo "umów spotkanie na jutro"
-     * są zgadywaniem, podanym tym samym pewnym tonem co prawdziwa odpowiedź.
-     *
-     * Format ISO obok zapisu słownego, bo ten sam blok obsługuje dwie różne
-     * potrzeby: człowiek pyta "jaki dziś dzień", a znacznik
-     * `[[ACTION: type=create_calendar_event start=...]]` potrzebuje daty, którą
-     * da się sparsować bez zgadywania (patrz [SmartActionDetector.parseStartTime]).
-     *
-     * Doklejany ZAWSZE - w odróżnieniu od pogody czy kalendarza nie da się
-     * wykryć słowami kluczowymi, kiedy jest potrzebny ("ile mam czasu?",
-     * "zdążę?", "jutro" w środku zdania), a kosztuje dwie linijki promptu.
-     */
-    private fun buildTimeContext(): String {
-        val now = java.time.ZonedDateTime.now()
-        val polish = java.util.Locale("pl", "PL")
-        val spoken = now.format(
-            java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy, HH:mm", polish)
-        )
-        return buildString {
-            append("=== TERAZ ===\n")
-            append(spoken).append('\n')
-            append("ISO: ").append(
-                now.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-            ).append(" (strefa ").append(now.zone.id).append(")\n")
-            // Gotowe kotwice zamiast liczenia. Modele mylą się w arytmetyce
-            // kalendarzowej (przełomy miesięcy, lata przestępne) znacznie
-            // częściej niż w czytaniu podanej daty - a "co zapisałem wczoraj"
-            // rozstrzyga się właśnie na tej jednej dacie.
-            val day = java.time.format.DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd", polish)
-            append("wczoraj = ").append(now.minusDays(1).format(day)).append('\n')
-            append("jutro = ").append(now.plusDays(1).format(day)).append('\n')
-        }
-    }
-
-    /**
-     * Sekcja kontekstu mówiąca, DLACZEGO danych nie ma i co z tym zrobić.
-     *
-     * ## Dlaczego to nie może być ciche `null`
-     * Gdy użytkownik pyta o kalendarz, a my po cichu nie doklejamy danych,
-     * model dostaje samo pytanie i odpowiada po swojemu - "nie mam dostępu do
-     * Twojego kalendarza". Brzmi jak awaria aplikacji, a jest brakiem jednej
-     * zgody, którą da się kliknąć w trzydzieści sekund. Zgłoszono to dwa razy:
-     * raz o pogodę, raz o kalendarz.
-     *
-     * Wersja z powodem zamienia bezradną odpowiedź w instrukcję.
-     *
-     * @param force gdy prawda, sekcja jest pomijana - briefing zbiera dane
-     *   automatycznie i nie ma komu tłumaczyć, czego brakuje
-     */
-    private fun missingContext(section: String, reason: String, force: Boolean): String? {
-        if (force) return null
-        return "=== $section ===\nNIE MAM TYCH DANYCH: $reason\n" +
-            "Powiedz to użytkownikowi wprost i krótko, jednym zdaniem. " +
-            "Nie zmyślaj danych i nie twierdź, że nie masz takiej funkcji."
-    }
-
-    /**
-     * Notatki jako kontekst dla modelu.
-     *
-     * Osobno od odczytania na żądanie ([pl.victor.app.notes.Notes.isListRequest]):
-     * tam użytkownik chce USŁYSZEĆ listę, tu chce ODPOWIEDZI. "Czy mam coś do
-     * kupienia?" albo "co miałem zrobić w piątek?" ma dostać zdanie, a nie
-     * wyliczankę wszystkiego po kolei.
-     */
-    private fun buildNotesContext(question: String, force: Boolean = false): String? {
-        if (!openContextTopics.dokleić(
-                TOPIC_NOTES,
-                pytanieOTemat = pl.victor.app.notes.Notes.mentionsNotes(question),
-                wymuszone = force
-            )
-        ) {
-            return null
-        }
-        return pl.victor.app.notes.Notes.buildPromptContext(settings.getNotes())
-            ?.also { Log.i(TAG, "Doklejam notatki użytkownika") }
-    }
-
     /**
      * Jednorazowe pytanie do modelu: bez zdjęć, bez historii rozmowy, bez
      * mówienia na głos i bez ruszania stanu tury.
@@ -592,84 +436,6 @@ class AIOrchestrator(
         Log.i(TAG, "Notatka uporządkowana przez model")
     }
 
-    private suspend fun buildCalendarContext(question: String, force: Boolean = false): String? {
-        // `force` obchodzi bramkę słów kluczowych - używa go briefing, który
-        // ma zebrać wszystko, o co użytkownik poprosił w ustawieniach, a nie
-        // to, co akurat wynika z brzmienia pytania.
-        if (!openContextTopics.dokleić(
-                TOPIC_CALENDAR,
-                pytanieOTemat = pl.victor.app.proactive.CalendarContext.isAboutSchedule(question),
-                wymuszone = force
-            )
-        ) {
-            return null
-        }
-
-        // DWIE DROGI DO KALENDARZA, BO SĄ DWA RÓŻNE KALENDARZE.
-        //
-        // Kalendarz URZĄDZENIA czyta się przez dostawcę treści Androida i wymaga
-        // uprawnienia READ_CALENDAR. Kalendarz GOOGLE czyta się przez API i wymaga
-        // połączonego konta. To są niezależne warunki, a do tej pory odczyt
-        // korzystał wyłącznie z pierwszej drogi - podczas gdy TWORZENIE wydarzeń
-        // szło drugą.
-        //
-        // Stąd zgłoszenie: "AI mówi, że nie ma dostępu do kalendarza Google, ale
-        // potrafi utworzyć wydarzenie". Obie rzeczy były prawdą naraz.
-        val calendar = pl.victor.app.proactive.CalendarService(context)
-        val deviceEvents = if (calendar.hasPermission()) {
-            runCatching { calendar.getUpcomingEvents(limit = 8, hoursAhead = 48) }
-                .onFailure { Log.w(TAG, "Odczyt kalendarza urządzenia nie powiódł się", it) }
-                .getOrDefault(emptyList())
-        } else {
-            Log.d(TAG, "Brak uprawnienia READ_CALENDAR - próbuję kalendarza Google")
-            emptyList()
-        }
-
-        // Google dopytujemy, gdy urządzenie nic nie dało. Nie zawsze, bo to sieć:
-        // przy działającym kalendarzu urządzenia byłby to koszt bez zysku.
-        val events = deviceEvents.ifEmpty {
-            val google = pl.victor.app.calendar.GoogleCalendarService(context)
-            if (!google.isSignedIn()) {
-                emptyList()
-            } else {
-                runCatching {
-                    pl.victor.app.calendar.GoogleEventBridge
-                        .toDeviceEvents(google.getUpcomingEvents(maxResults = 8))
-                }
-                    .onFailure { Log.w(TAG, "Odczyt Kalendarza Google nie powiódł się", it) }
-                    .getOrDefault(emptyList())
-                    .also { if (it.isNotEmpty()) Log.i(TAG, "Kalendarz z konta Google: ${it.size}") }
-            }
-        }
-
-        if (events.isEmpty()) {
-            // Rozróżniamy BRAK DOSTĘPU od PUSTEGO KALENDARZA - to zupełnie inne
-            // rady dla użytkownika, a do tej pory obie brzmiały tak samo.
-            val googleConnected =
-                runCatching { pl.victor.app.calendar.GoogleCalendarService(context).isSignedIn() }
-                    .getOrDefault(false)
-            if (!calendar.hasPermission() && !googleConnected) {
-                return missingContext(
-                    section = "KALENDARZ",
-                    reason = "nie mam dostępu do żadnego kalendarza. Trzeba albo włączyć " +
-                        "zgodę na kalendarz w Ustawieniach aplikacji (kalendarz telefonu), " +
-                        "albo podłączyć konto Google w Ustawieniach V.I.C.T.O.R.",
-                    force = force
-                )
-            }
-            Log.i(TAG, "Kalendarz dostępny, ale pusty w najbliższych 48 h")
-            return missingContext(
-                section = "KALENDARZ",
-                reason = "kalendarz jest dostępny, ale nie ma w nim nic w najbliższych " +
-                    "dwóch dobach. To NIE jest usterka - powiedz po prostu, że nic nie ma.",
-                force = force
-            )
-        }
-
-        return pl.victor.app.proactive.CalendarContext.buildPromptContext(events)
-            ?.also { Log.i(TAG, "Doklejam ${events.size} wydarzeń z kalendarza") }
-    }
-
     /** Wiadomości z powiadomień - patrz [pl.victor.app.messages.MessageAnnouncer]. */
     private val messages by lazy {
         pl.victor.app.messages.MessageAnnouncer(
@@ -682,44 +448,6 @@ class AIOrchestrator(
             dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.MOWA, co, pola) } },
             bezpiecznie = { co, blok -> bezpiecznie(co, blok) }
         )
-    }
-
-    /**
-     * Położenie dla modelu - patrz [pl.victor.app.proactive.NearbyQuestion].
-     *
-     * Temat zostaje otwarty jak pogoda czy kalendarz: po "gdzie tu zjeść"
-     * pytanie "a ile tam kosztuje obiad" dalej dotyczy tego samego miejsca.
-     */
-    /**
-     * Prawdziwe kontakty pasujące do pytania o telefon albo wiadomość.
-     *
-     * Bieg 183: model nie widział książki adresowej, a twierdził "w kontaktach
-     * mam Sebastiana Stalmacha" - nazwisko przekręcone wcześniej przez
-     * transkrypcję, którego w telefonie nie było. Prawdziwego, zapisanego przed
-     * chwilą "Steinke" nie znał. Teraz dostaje kandydatów po BRZMIENIU (tak
-     * łapie się "Sztainke" -> "Steinke") i zakaz wymyślania.
-     */
-    private suspend fun buildContactsContext(question: String): String? {
-        if (!KONTAKT_PYTANIE.containsMatchIn(question.lowercase())) return null
-        val nazwy = contactResolver.allDisplayNames()
-        if (nazwy.isEmpty()) return null
-        val pasujące = pl.victor.app.actions.ContactMatch.podobne(question, nazwy)
-        runCatching {
-            diag.event(DiagFormat.Phase.KONTEKST, "kontakty pasujące do pytania", mapOf("ile" to pasujące.size, "wszystkich" to nazwy.size))
-        }
-        return buildString {
-            append("=== KONTAKTY Z TELEFONU (pasujące do pytania) ===\n")
-            if (pasujące.isEmpty()) {
-                append("Żaden kontakt nie brzmi jak osoba z pytania. Powiedz, że nie ma takiego ")
-                append("kontaktu, i poproś o powtórzenie nazwiska - NIE wymyślaj kontaktu.\n")
-            } else {
-                pasujące.forEach { append("- ").append(it).append('\n') }
-                append("Nazwisko w pytaniu mogło zostać przekręcone przy rozpoznawaniu mowy - wybierz ")
-                append("kontakt z tej listy, który BRZMI tak samo, i w znaczniku akcji użyj jego ")
-                append("nazwy DOKŁADNIE jak tutaj. Innych kontaktów nie znasz - nie wymyślaj ich ")
-                append("i nie opieraj się na nazwiskach z wcześniejszej rozmowy.\n")
-            }
-        }
     }
 
     /** Home Assistant użytkownika - adres i token czytane przy każdym wywołaniu. */
@@ -770,15 +498,17 @@ class AIOrchestrator(
         if (p.wymagaPotwierdzenia) {
             // Otwarcie zamka czy rozbrojenie alarmu z przesłyszenia byłoby
             // gorsze niż każda inna pomyłka asystenta - najpierw "na pewno?".
-            _pendingActionConfirmation.value = PendingActionConfirmation(
-                actions = emptyList(),
-                title = "Wykonać w domu?",
-                message = p.tekst,
-                confirmText = "🏠 Wykonaj",
-                cancelText = "Anuluj",
-                homeCommand = p.tekst
+            actionFlow.requestConfirmation(
+                PendingActionConfirmation(
+                    actions = emptyList(),
+                    title = "Wykonać w domu?",
+                    message = p.tekst,
+                    confirmText = "🏠 Wykonaj",
+                    cancelText = "Anuluj",
+                    homeCommand = p.tekst
+                ),
+                pl.victor.app.home.HaMowa.pytanieOPotwierdzenie(p.tekst)
             )
-            listenForConfirmation(pl.victor.app.home.HaMowa.pytanieOPotwierdzenie(p.tekst))
             return true
         }
         runHomeCommand(trigger, question, p.tekst)
@@ -831,7 +561,7 @@ class AIOrchestrator(
      * Najbliższe przystanki i linie z OpenStreetMap, potem propozycja
      * otwarcia Map Google, które mają rozkład. Odjazdów na żywo darmowo nie
      * mamy i mówimy to wprost. Z włączonymi Mapami Google (płatne) i Gemini
-     * pytanie idzie do modelu - [buildLocationContext] doda mu przystanki.
+     * pytanie idzie do modelu - [pl.victor.app.orchestrator.ModelContextBuilder.buildLocationContext] doda mu przystanki.
      *
      * @return `true`, gdy pytanie zostało obsłużone tutaj
      */
@@ -887,267 +617,18 @@ class AIOrchestrator(
                 wybrany?.nazwa ?: pytanie.przystanek ?: "komunikacji miejskiej",
                 tu?.miasto
             )
-            _pendingActionConfirmation.value = PendingActionConfirmation(
-                actions = listOf(Action.ShowOnMap(doMap)),
-                title = "Otworzyć rozkład w Mapach Google?",
-                message = mowa,
-                confirmText = "🗺 Otwórz Mapy",
-                cancelText = "Nie"
+            actionFlow.requestConfirmation(
+                PendingActionConfirmation(
+                    actions = listOf(Action.ShowOnMap(doMap)),
+                    title = "Otworzyć rozkład w Mapach Google?",
+                    message = mowa,
+                    confirmText = "🗺 Otwórz Mapy",
+                    cancelText = "Nie"
+                ),
+                "$mowa Odjazdów na żywo nie mam. Otworzyć rozkład w Mapach Google?"
             )
-            listenForConfirmation("$mowa Odjazdów na żywo nie mam. Otworzyć rozkład w Mapach Google?")
         }
         return true
-    }
-
-    /** Pozycja dla Map Google w bieżącej turze - ustawia [buildLocationContext], czyta [buildStream]. */
-    @Volatile
-    private var mapsLocationForTurn: Pair<Double, Double>? = null
-
-    private suspend fun buildLocationContext(question: String, hasPhoto: Boolean): String? {
-        mapsLocationForTurn = null
-        // Pytanie o odjazdy dociera tu tylko z Mapami Google (bez nich
-        // odpowiada warstwa 0) - potrzebuje położenia jak pytanie o okolicę.
-        val odjazdy = pl.victor.app.navigation.OdjazdyPytanie.rozpoznaj(question)
-        val oOkolicę = pl.victor.app.proactive.NearbyQuestion.dotyczyOkolicy(question) || odjazdy != null
-        val cel = when {
-            pl.victor.app.proactive.NearbyQuestion.jestPrzewodnikiem(question) ->
-                pl.victor.app.proactive.LocationContext.Cel.PRZEWODNIK
-            oOkolicę -> pl.victor.app.proactive.LocationContext.Cel.OKOLICA
-            hasPhoto -> pl.victor.app.proactive.LocationContext.Cel.ZDJĘCIE
-            else -> null
-        }
-        val otwarty = openContextTopics.dokleić(TOPIC_LOCATION, pytanieOTemat = oOkolicę)
-        val naprawdęCel = cel ?: if (otwarty) pl.victor.app.proactive.LocationContext.Cel.OKOLICA else return null
-        val opis = pl.victor.app.proactive.LocationContext.buildPromptContext(context, naprawdęCel)
-        if (opis != null) {
-            Log.i(TAG, "Doklejam kontekst lokalizacji ($naprawdęCel)")
-            // Pytanie o okolicę: model dostaje też Mapy Google (miejsca, opinie,
-            // godziny otwarcia) z naszą pozycją.
-            if (naprawdęCel != pl.victor.app.proactive.LocationContext.Cel.ZDJĘCIE &&
-                settings.isMapsGroundingEnabled()
-            ) {
-                pl.victor.app.proactive.LocationContext.ostatnia?.let {
-                    mapsLocationForTurn = it.lat to it.lon
-                }
-            }
-            // MODEL BEZ MAP GOOGLE dostaje listę miejsc z OpenStreetMap - inaczej
-            // o Biedronce za rogiem mógłby tylko zgadywać. Gemini z Mapami jej
-            // nie potrzebuje (ma więcej, z opiniami), więc nie płaci czasem.
-            val mapyGoogle = settings.getActiveProvider() == "gemini" && settings.isMapsGroundingEnabled()
-            // ODJAZDY: model z Mapami Google dostaje też przystanki i linie z
-            // OpenStreetMap oraz polecenie, by nie udawał danych na żywo.
-            if (odjazdy != null && naprawdęCel == pl.victor.app.proactive.LocationContext.Cel.OKOLICA) {
-                val tu = pl.victor.app.proactive.LocationContext.ostatnia
-                val od = System.currentTimeMillis()
-                val lista = if (tu != null && settings.isOsmPlacesEnabled()) {
-                    withTimeoutOrNull(OSM_PLACES_MS) {
-                        pl.victor.app.navigation.PrzystankiClient.przystanki(tu.lat, tu.lon, odjazdy.przystanek)
-                    }
-                } else {
-                    null
-                }
-                runCatching {
-                    diag.event(
-                        DiagFormat.Phase.KONTEKST, "komunikacja: przystanki dla modelu",
-                        mapOf("ms" to (System.currentTimeMillis() - od), "przystanków" to lista?.size, "mapyGoogle" to mapyGoogle)
-                    )
-                }
-                return opis + "\n\n" + pl.victor.app.navigation.Przystanki.kontekstDlaModelu(lista.orEmpty(), odjazdy)
-            }
-            if (naprawdęCel == pl.victor.app.proactive.LocationContext.Cel.OKOLICA && !mapyGoogle &&
-                settings.isOsmPlacesEnabled()
-            ) {
-                val tu = pl.victor.app.proactive.LocationContext.ostatnia
-                val od = System.currentTimeMillis()
-                val miejsca = tu?.let {
-                    withTimeoutOrNull(OSM_PLACES_MS) {
-                        pl.victor.app.proactive.OsmPlacesClient.kontekst(question, it.lat, it.lon)
-                    }
-                }
-                runCatching {
-                    diag.event(
-                        DiagFormat.Phase.KONTEKST, "miejsca z OpenStreetMap",
-                        mapOf(
-                            "ms" to (System.currentTimeMillis() - od),
-                            "są" to (miejsca != null),
-                            "rodzaj" to (pl.victor.app.proactive.OsmPlaces.marka(question)
-                                ?: pl.victor.app.proactive.OsmPlaces.rodzaj(question)?.nazwa)
-                        )
-                    )
-                }
-                if (miejsca != null) return opis + "\n\n" + miejsca
-            }
-            return opis
-        }
-        if (!oOkolicę) return null
-        // Pytanie o okolicę, a położenia nie ma - model ma to powiedzieć, a
-        // nie zgadywać miasta z ustawień.
-        val powód = if (!pl.victor.app.proactive.LocationContext.maZgodę(context)) {
-            "aplikacja nie ma zgody na lokalizację (Ustawienia telefonu → Aplikacje → V.I.C.T.O.R. → Uprawnienia)"
-        } else {
-            "telefon nie złapał teraz położenia"
-        }
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.KONTEKST, "pytanie o okolicę bez położenia",
-                mapOf("powód" to powód, "szczegół" to pl.victor.app.proactive.LocationContext.ostatniPowód)
-            )
-        }
-        return "=== GDZIE JEST UŻYTKOWNIK ===\nNIE WIADOMO: $powód. Powiedz krótko, że nie " +
-            "udało się ustalić położenia, i poproś o nazwę miejsca albo ulicy - nie zgaduj miasta " +
-            "i nie twierdź, że GPS jest wyłączony."
-    }
-
-    /**
-     * Prognoza pogody jako kontekst dla modelu.
-     *
-     * Do tej pory pogoda żyła wyłącznie w alertach w tle: aplikacja sprawdzała
-     * ją co jakiś czas i wysyłała powiadomienie, gdy coś było nie tak. Zapytana
-     * wprost - "jaka jest pogoda?" - odpowiadała z pamięci modelu, czyli
-     * ZMYŚLAŁA. Teraz pytania o pogodę dostają prawdziwe dane.
-     *
-     * Wymaga klucza OpenWeatherMap i lokalizacji z ustawień; bez nich po prostu
-     * nic nie dokleja, zamiast wywracać odpowiedź.
-     */
-    private suspend fun buildWeatherContext(question: String, force: Boolean = false): String? {
-        // `force` obchodzi bramkę słów kluczowych - używa go briefing, który
-        // ma zebrać wszystko, o co użytkownik poprosił w ustawieniach, a nie
-        // to, co akurat wynika z brzmienia pytania.
-        if (!openContextTopics.dokleić(
-                TOPIC_WEATHER,
-                pytanieOTemat = pl.victor.app.proactive.WeatherContext.isAboutWeather(question),
-                wymuszone = force
-            )
-        ) {
-            return null
-        }
-
-        val apiKey = settings.getOpenWeatherApiKey()
-        if (apiKey.isBlank()) {
-            Log.d(TAG, "Pytanie o pogodę, ale brak klucza OpenWeatherMap")
-            return missingContext(
-                section = "POGODA",
-                reason = "brakuje klucza OpenWeatherMap. Trzeba go wpisać w Ustawieniach.",
-                force = force
-            )
-        }
-        // POGODA TAM, GDZIE JESTEŚ, a nie tam, gdzie mieszkasz. Miasto z
-        // ustawień zostaje na wypadek braku GPS. Tylko ostatnia znana pozycja,
-        // bez czekania na pomiar - pogoda nie zmienia się co sto metrów.
-        val tutaj = runCatching {
-            pl.victor.app.proactive.LocationContext.tutaj(context)
-        }.getOrNull()?.takeIf { it.miasto != null }
-        val place = tutaj?.miasto ?: settings.getWeatherLocation()
-        if (place.isBlank()) {
-            Log.d(TAG, "Pytanie o pogodę, ale brak ustawionej lokalizacji")
-            return missingContext(
-                section = "POGODA",
-                reason = "nie ustawiono miejscowości. Trzeba ją wpisać w Ustawieniach.",
-                force = force
-            )
-        }
-        // Pytanie o INNE miejsce niż w ustawieniach - prognoza z ustawień tylko
-        // by przeszkadzała, patrz WeatherContext.innaMiejscowość.
-        // Tylko przy pytaniu WPROST o pogodę. Pytanie dopowiadające ("a jutro?")
-        // dostaje prognozę z tematu otwartego wcześniej - i wtedy "na youtubie"
-        // albo "na nim" nie jest żadnym miejscem (dziennik z biegu 154).
-        if (!force && pl.victor.app.proactive.WeatherContext.isAboutWeather(question)) {
-            pl.victor.app.proactive.WeatherContext.innaMiejscowość(question, place)?.let { other ->
-                runCatching {
-                    diag.event(
-                        DiagFormat.Phase.KONTEKST, "pogoda dla innego miejsca - każę szukać",
-                        mapOf("miejsce" to other, "zUstawień" to place)
-                    )
-                }
-                return pl.victor.app.proactive.WeatherContext.otherPlaceNote(other, place)
-            }
-        }
-        return try {
-            val service = pl.victor.app.proactive.WeatherService(apiKey)
-            val (lat, lon) = if (tutaj != null) {
-                tutaj.lat to tutaj.lon
-            } else {
-                val geo = service.geocode(place) ?: return null
-                geo.lat to geo.lon
-            }
-            val forecast = service.getForecast(lat, lon)
-            val air = runCatching { service.getAirQuality(lat, lon) }.getOrNull()
-            pl.victor.app.proactive.WeatherContext.buildPromptContext(forecast, air)
-                ?.also { Log.i(TAG, "Doklejam prognozę pogody dla $place") }
-        } catch (e: Exception) {
-            // Padnięte API pogodowe nie może wywrócić odpowiedzi na pytanie.
-            Log.w(TAG, "Pobranie pogody nie powiodło się", e)
-            null
-        }
-    }
-
-    /**
-     * Ostatnie maile jako kontekst dla modelu.
-     *
-     * Tak jak kalendarz - doklejane tylko gdy pytanie faktycznie dotyczy
-     * poczty. Wymaga połączonego konta Google (patrz [pl.victor.app.google.GoogleAccountManager]);
-     * bez tego po prostu nic nie dokleja, zamiast pokazywać błąd.
-     *
-     * @return fragment promptu albo `null`, gdy pytanie nie dotyczy maili,
-     *         konto nie jest połączone albo nie ma żadnych wiadomości
-     */
-    private suspend fun buildGmailContext(question: String, force: Boolean = false): String? {
-        // `force` obchodzi bramkę słów kluczowych - używa go briefing, który
-        // ma zebrać wszystko, o co użytkownik poprosił w ustawieniach, a nie
-        // to, co akurat wynika z brzmienia pytania.
-        if (!openContextTopics.dokleić(
-                TOPIC_MAIL,
-                pytanieOTemat = pl.victor.app.proactive.GmailContext.isAboutEmail(question),
-                wymuszone = force
-            )
-        ) {
-            return null
-        }
-
-        val gmail = pl.victor.app.google.GmailService(context)
-        // WYGASŁE logowanie przed "niepołączonym": od chwili wykrycia wygaśnięcia
-        // konto liczy się jako niezalogowane, więc bez tej gałęzi użytkownik
-        // usłyszałby "podłącz konto" - a on je podłączył i nic nie zrobił źle.
-        // Rada jest zresztą inna: nie ma czego konfigurować, trzeba kliknąć jeszcze raz.
-        if (pl.victor.app.google.GoogleAccountManager.isLoginExpired()) {
-            Log.d(TAG, "Pytanie o maile, ale logowanie Google wygasło")
-            return missingContext(
-                section = "POCZTA",
-                reason = "logowanie Google wygasło i trzeba je odnowić w Ustawieniach. " +
-                    "Google unieważnia je co siedem dni, dopóki aplikacja jest w trybie " +
-                    "testowym - to normalne, nie usterka.",
-                force = force
-            )
-        }
-        if (!gmail.isSignedIn()) {
-            Log.d(TAG, "Pytanie o maile, ale brak połączonego konta Google")
-            return missingContext(
-                section = "POCZTA",
-                reason = "konto Google nie jest połączone. Trzeba je podłączyć w Ustawieniach.",
-                force = force
-            )
-        }
-        if (!gmail.hasAccess()) {
-            // Konto jest połączone, ale poczta wymaga OSOBNEJ zgody. Bez tej gałęzi
-            // model dostawał pustą listę i odpowiadał, że nie ma nowych maili albo
-            // że nie umie ich czytać - obie odpowiedzi nieprawdziwe.
-            Log.d(TAG, "Pytanie o maile, ale konto nie ma zgody na pocztę")
-            return missingContext(
-                section = "POCZTA",
-                reason = "poczta wymaga osobnej zgody Google. Użytkownik włącza ją " +
-                    "w Ustawieniach, w karcie konta Google, przyciskiem \"Włącz pocztę\".",
-                force = force
-            )
-        }
-        return try {
-            val messages = gmail.getRecentMessages(maxResults = 8)
-            pl.victor.app.proactive.GmailContext.buildPromptContext(messages)
-                ?.also { Log.i(TAG, "Doklejam ${messages.size} maili") }
-        } catch (e: Exception) {
-            // Brak dostępu do Gmaila nie może wywrócić odpowiedzi na pytanie.
-            Log.w(TAG, "Odczyt Gmaila nie powiódł się", e)
-            null
-        }
     }
 
     /**
@@ -1192,10 +673,33 @@ class AIOrchestrator(
 
     fun disableConversationalMode() = conversationalMode.disable()
 
-    // Akcja oczekująca na potwierdzenie (null = nic nie czeka)
-    private val _pendingActionConfirmation = MutableStateFlow<PendingActionConfirmation?>(null)
-    val pendingActionConfirmation: StateFlow<PendingActionConfirmation?> =
-        _pendingActionConfirmation.asStateFlow()
+    /** Akcje telefonu i bramka potwierdzeń - patrz [pl.victor.app.orchestrator.ActionFlow]. */
+    private val actionFlow = pl.victor.app.orchestrator.ActionFlow(
+        settings = settings,
+        scope = scope,
+        audio = audio,
+        conversationalMode = conversationalMode,
+        accessibility = accessibility,
+        actionExecutor = actionExecutor,
+        directActionExecutor = directActionExecutor,
+        contactResolver = contactResolver,
+        emailPreparer = emailPreparer,
+        state = _state,
+        dziennik = { diag },
+        askModelPlain = { prompt -> askModelPlain(prompt) },
+        runHomeCommand = { trigger, question, tekst -> runHomeCommand(trigger, question, tekst) }
+    )
+
+    /** Akcja oczekująca na potwierdzenie (null = nic nie czeka). */
+    val pendingActionConfirmation: StateFlow<PendingActionConfirmation?>
+        get() = actionFlow.pendingActionConfirmation
+
+    /** Potwierdzenie akcji przez usera (z dialogu albo głosem). */
+    fun confirmAction() = actionFlow.confirmAction()
+
+    /** Anulowanie akcji przez usera. */
+    fun cancelAction() = actionFlow.cancelAction()
+
     private val buttonDetector = ButtonActionDetector()
 
 
@@ -1323,10 +827,19 @@ class AIOrchestrator(
      */
     private val openContextTopics = pl.victor.app.conversation.ContextTopics()
 
+    /** Konteksty dla modelu - patrz [pl.victor.app.orchestrator.ModelContextBuilder]. */
+    private val modelContext = pl.victor.app.orchestrator.ModelContextBuilder(
+        context = context,
+        settings = settings,
+        history = history,
+        dziennik = { diag },
+        openContextTopics = openContextTopics,
+        contactResolver = contactResolver,
+        longTermMemory = longTermMemory,
+        semanticMemory = semanticMemory,
+        translator = translator
+    )
 
-    private var currentProvider: AIProvider? = null
-    private var currentProviderId: String? = null
-    private var activeModelId: String? = null
 
     init {
         // Jedno miejsce, w którym mierzymy wiek stanu - patrz [stateChangedAtMs].
@@ -1522,25 +1035,25 @@ class AIOrchestrator(
                         if (!echo) stopLiveConversation("dotknięcie skroni")
                         return@bezpiecznie
                     }
-                    if (_earTranslation.value && _earTwoWay.value) {
+                    if (earTranslation.value && earTwoWay.value) {
                         val odKomendy = glassesManager.msSincePlaybackEdge()
                         val echo = odKomendy < PLAYBACK_ECHO_WINDOW_MS
                         runCatching {
                             diag.event(
                                 DiagFormat.Phase.WAKE, "rozmowa: dotknięcie zausznika",
-                                mapOf("mojaKolej" to (!echo && !mojaKolej), "echo" to echo, "msOdKomendy" to odKomendy)
+                                mapOf("mojaKolej" to (!echo && !ear.mojaKolej), "echo" to echo, "msOdKomendy" to odKomendy)
                             )
                         }
-                        if (!echo && !mojaKolej) myTurn(zOkularów = false)
+                        if (!echo && !ear.mojaKolej) myTurn(zOkularów = false)
                         return@bezpiecznie
                     }
                     val mówimy = audio.speaking.value
-                    if (_earTranslation.value || !mówimy) {
-                        Log.i(TAG, "Okulary: 'ucisz' pominięte (tłumaczenie=${_earTranslation.value}, mówię=$mówimy)")
+                    if (earTranslation.value || !mówimy) {
+                        Log.i(TAG, "Okulary: 'ucisz' pominięte (tłumaczenie=${earTranslation.value}, mówię=$mówimy)")
                         runCatching {
                             diag.event(
                                 DiagFormat.Phase.WAKE, "ucisz z okularów pominięte",
-                                mapOf("tłumaczenie" to _earTranslation.value, "mówię" to mówimy)
+                                mapOf("tłumaczenie" to earTranslation.value, "mówię" to mówimy)
                             )
                         }
                         return@bezpiecznie
@@ -1832,170 +1345,6 @@ class AIOrchestrator(
     }
 
     /**
-     * Przepisuje nagranie Z OKULARÓW wszystkimi dostępnymi drogami, po kolei.
-     *
-     * ## Dlaczego to jest jedna funkcja, a nie rozsypane próby
-     * Bo kolejność jest tu całą treścią. Mikrofon okularów wisi przy ustach,
-     * telefon leży w kieszeni - więc DOWOLNA droga licząca na nagraniu z okularów
-     * jest lepsza od najlepszego nasłuchu telefonu. Do tej pory tak nie było:
-     * chmura wyprzedzała telefon, ale rozpoznawanie systemowe czekało w
-     * gałęzi ciszy, czyli wchodziły dopiero wtedy, gdy telefon nie usłyszał NIC.
-     *
-     * Kto nie wpisał klucza OpenAI, nie dostawał więc żadnej poprawy: telefon
-     * słyszał "coś" i to "coś" wygrywało. Teraz bez klucza wchodzi rozpoznawanie
-     * systemowe na tym samym nagraniu.
-     *
-     * @return tekst albo `null`, gdy żadna droga nie dała rady
-     */
-    private suspend fun transcribeGlassesAudio(pcm: ByteArray, languageTag: String): String? {
-        val wynik = transcribeGlassesAudioSteps(pcm, languageTag)
-        // PRZERWANA TURA NIE MOŻE DOSTAĆ TEKSTU.
-        //
-        // Kolejne drogi transkrypcji siedzą w runCatching, a ono połyka też
-        // anulowanie - funkcja oddawała wtedy null albo tekst, a przerwana tura
-        // szła dalej: zadawała pytanie albo mówiła "nic nie słyszałem", mimo
-        // dotknięcia zausznika w trakcie przepisywania.
-        currentCoroutineContext().ensureActive()
-        return wynik
-    }
-
-    private suspend fun transcribeGlassesAudioSteps(pcm: ByteArray, languageTag: String): String? {
-        // Opus rozkodowuje się na 48 kHz, a rozpoznawanie mowy pracuje na 16 kHz.
-        // Przeliczamy sami - podanie 48 kHz i liczenie na to, że usługa sobie
-        // poradzi, byłoby zakładem o całą transkrypcję.
-        val speechPcm = pl.victor.app.audio.PcmResampler.resample(
-            pcm = pcm,
-            sourceRate = pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
-        )
-        return transcribeSpeechPcm(speechPcm, languageTag)
-    }
-
-    /**
-     * Czy da się przepisać nagranie JAKĄKOLWIEK drogą (chmura, rozpoznawanie na
-     * urządzeniu) - sprawdzane przed startem notatek ze spotkania, żeby nie
-     * nagrywać godziny, po której nic się nie przepisze.
-     */
-    fun canTranscribeRecordings(): Boolean =
-        (settings.isCloudTranscriptionEnabled() && cloudSpeechService() != null) ||
-            speechToText.isOnDeviceAvailable()
-
-    /** Przepisuje PCM 16 kHz mono: chmura -> rozpoznawanie systemowe na urządzeniu. */
-    private suspend fun transcribeSpeechPcm(speechPcm: ByteArray, languageTag: String): String? {
-        val rate = pl.victor.app.audio.PcmResampler.SPEECH_SAMPLE_RATE
-
-        transcribeInCloud(speechPcm, languageTag)?.let { return it }
-
-        // Rozpoznawanie systemowe NA URZĄDZENIU - ten sam silnik co dyktowanie na
-        // klawiaturze bez sieci. Darmowe i dobre, ale wymaga pobranego pakietu
-        // języka; patrz SpeechToText.isOnDeviceAvailable i ekran ustawień.
-        runCatching {
-            speechToText.transcribe(pcm = speechPcm, sampleRate = rate, languageTag = languageTag)
-        }.getOrNull()?.takeIf { it.isNotBlank() }?.let {
-            Log.i(TAG, "Transkrypcja systemowa z nagrania okularów: \"$it\"")
-            _lastTranscriptionSource.value = SOURCE_ON_DEVICE
-            return it
-        }
-        return null
-    }
-
-    /**
-     * Ostatnia deska: przepisanie nagrania przez model, gdy przyjmuje dźwięk.
-     *
-     * Tylko dla krótkich wypowiedzi z mową (patrz [RECORDING_SPEECH_PEAK]) -
-     * cisza wysłana do modelu kończy się zgadywaniem, a nie przepisem.
-     *
-     * @return tekst albo `null`, gdy model nie przyjmuje dźwięku, nie
-     *   usłyszał mowy albo zawiódł
-     */
-    private suspend fun transcribeWithModel(pcm: ByteArray, language: String): String? {
-        val providerId = settings.getActiveProvider()
-        if (!settings.hasApiKey(providerId) ||
-            !AIProviderFactory.getCapabilitiesFor(providerId).supportsAudio
-        ) {
-            return null
-        }
-        val rate = pl.victor.app.audio.OpusDecoder.SAMPLE_RATE
-        val szczyt = pl.victor.app.audio.VoiceTrim.measure(pcm, rate)?.peak ?: return null
-        if (szczyt < RECORDING_SPEECH_PEAK) return null
-        val wav = pl.victor.app.audio.WavWriter.wrap(pl.victor.app.audio.VoiceTrim.trim(pcm, rate), rate)
-        val język = pl.victor.app.translation.SimultaneousTranslator.languageName(language)
-        val prompt = "Przepisz dosłownie, co mówi osoba na załączonym nagraniu (język: $język). " +
-            "Odpowiedz wyłącznie przepisanym tekstem, bez komentarza i bez cudzysłowów. " +
-            "Jeśli nie słychać wyraźnej mowy, odpowiedz dokładnie: $MODEL_NO_SPEECH"
-        val tekst = try {
-            getOrCreateProvider().analyze(
-                textQuestion = prompt,
-                images = emptyList(),
-                audioBytes = wav,
-                systemPrompt = PLAIN_TASK_SYSTEM_PROMPT
-            ).text.trim()
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Przepisanie nagrania przez model nie powiodło się", e)
-            null
-        }
-        val wynik = tekst?.takeIf {
-            it.isNotBlank() && !it.contains(MODEL_NO_SPEECH) && it.length <= MODEL_TRANSCRIPT_MAX_CHARS
-        }
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.TRANSKRYPCJA, "przepisanie nagrania przez model",
-                mapOf("wynik" to wynik?.take(60), "odmowa" to (tekst?.contains(MODEL_NO_SPEECH) == true))
-            )
-        }
-        return wynik
-    }
-
-    /**
-     * Przepisuje nagranie przez usługę w chmurze - albo od razu oddaje `null`.
-     *
-     * Trzy warunki i wszystkie muszą być spełnione: ustawienie włączone, klucz
-     * OpenAI wpisany, nagranie niepuste. Bez któregokolwiek nic nie wychodzi z
-     * telefonu, a wołający idzie dalej swoją drogą.
-     */
-    private suspend fun transcribeInCloud(pcm: ByteArray, languageTag: String): String? {
-        if (!settings.isCloudTranscriptionEnabled()) return null
-        val (usługa, key) = cloudSpeechService() ?: return null
-        val stt = pl.victor.app.conversation.CloudSpeechToText(usługa, key)
-        val od = System.currentTimeMillis()
-        val heard = runCatching {
-            stt.transcribe(
-                pcm = pcm,
-                sampleRate = pl.victor.app.audio.PcmResampler.SPEECH_SAMPLE_RATE,
-                languageTag = languageTag
-            )
-        }.onFailure { Log.w(TAG, "Transkrypcja w chmurze nie powiodła się", it) }.getOrNull()
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.NASŁUCH, "transkrypcja w chmurze",
-                mapOf(
-                    "usługa" to usługa.nazwa,
-                    "ms" to (System.currentTimeMillis() - od),
-                    "znaków" to (heard?.length ?: 0),
-                    "błąd" to stt.ostatniBłąd
-                )
-            )
-        }
-        if (heard != null) {
-            Log.i(TAG, "Transkrypcja z chmury (${usługa.nazwa}): \"$heard\"")
-            _lastTranscriptionSource.value = SOURCE_CLOUD
-        }
-        return heard
-    }
-
-    /**
-     * Kto przepisuje nagranie w chmurze - dostawca wybrany w ustawieniach
-     * (Gemini -> Google, OpenAI -> OpenAI), a przy pozostałych ten z dwóch
-     * kluczy, który jest. Patrz [pl.victor.app.conversation.CloudSpeechToText.wybierz].
-     */
-    private fun cloudSpeechService() = pl.victor.app.conversation.CloudSpeechToText.wybierz(
-        aktywny = settings.getActiveProvider(),
-        kluczGemini = settings.getApiKey("gemini"),
-        kluczOpenAi = settings.getApiKey("openai")
-    )
-
-    /**
      * Która droga przepisała ostatnie pytanie na tekst.
      *
      * ## Po co to w ogóle jest
@@ -2007,6 +1356,22 @@ class AIOrchestrator(
      */
     private val _lastTranscriptionSource = MutableStateFlow<String?>(null)
     val lastTranscriptionSource: StateFlow<String?> = _lastTranscriptionSource.asStateFlow()
+
+    /** Przepisywanie nagrań - patrz [pl.victor.app.orchestrator.RecordingTranscriber]. */
+    private val transcriber = pl.victor.app.orchestrator.RecordingTranscriber(
+        context = context,
+        settings = settings,
+        speechToText = speechToText,
+        dziennik = { diag },
+        getOrCreateProvider = { getOrCreateProvider() },
+        lastTranscriptionSource = _lastTranscriptionSource
+    )
+
+    /**
+     * Czy da się przepisać nagranie JAKĄKOLWIEK drogą - patrz
+     * [pl.victor.app.orchestrator.RecordingTranscriber.canTranscribeRecordings].
+     */
+    fun canTranscribeRecordings(): Boolean = transcriber.canTranscribeRecordings()
 
     /** Czy mamy zgodę na mikrofon - patrz [startVoiceTurn]. */
     private fun hasMicrophonePermission(): Boolean =
@@ -2062,8 +1427,8 @@ class AIOrchestrator(
         // nie może go stracić na rzecz nasłuchu frazy tylko dlatego, że
         // skończyła się tura, która ten tryb włączyła. Tryb wznawia nasłuch
         // sam, gdy się kończy.
-        if (meetingCreated && !_earTranslation.value) meeting.wznów()
-        if (meetingHoldsMic() || _earTranslation.value) return
+        if (meetingCreated && !earTranslation.value) meeting.wznów()
+        if (meetingHoldsMic() || earTranslation.value) return
         runCatching { victorApp?.resumeWakeAfterTurn() }
     }
 
@@ -2298,24 +1663,6 @@ class AIOrchestrator(
         startVoiceTurn(fromGlasses = true)
     }
 
-    // ==================== Tłumaczenie ze słuchu ====================
-
-    /**
-     * Modele, które w tej sesji odpowiedziały "nie ma takiego modelu".
-     *
-     * Patrz [pl.victor.app.ai.DeadModels] - powód i koszt są tam opisane.
-     */
-    private val deadModels = pl.victor.app.ai.DeadModels()
-
-    private val earSession = pl.victor.app.translation.EarTranslationSession()
-
-    /** Błąd ŻYWEGO nasłuchu z ostatniego obiegu tłumaczenia - patrz [earListenOnce]. */
-    @Volatile
-    private var earListenError: String? = null
-
-    @Volatile
-    private var earListenErrorCode: Int? = null
-    private var earJob: kotlinx.coroutines.Job? = null
     /** Czy można teraz mówić bez wchodzenia w słowo - dla trybów działających w tle. */
     private fun ciszaWTle(): Boolean {
         val st = _state.value
@@ -2325,7 +1672,7 @@ class AIOrchestrator(
         // bywa w stanie Idle. Bieg 160, 21:38:10 - przewodnik wszedł w słowo
         // w trakcie przepisywania pytania. Stąd karencja od ostatniego gestu.
         val odGestu = System.currentTimeMillis() - ostatniaAktywnośćMs
-        return bezTury && !audio.speaking.value && !_earTranslation.value &&
+        return bezTury && !audio.speaking.value && !earTranslation.value &&
             !liveConversationOn() && odGestu > CISZA_PO_AKTYWNOŚCI_MS
     }
 
@@ -2379,7 +1726,7 @@ class AIOrchestrator(
             // Samo rozpoznawanie na urządzeniu wymaga Androida 13+ i pakietu języka,
             // a bez niego spotkanie "nagrywało" bez jednego słowa tekstu.
             przepisz = { pcm ->
-                transcribeSpeechPcm(pcm, languageTagFor(settings.getResponseLanguage()))
+                transcriber.transcribeSpeechPcm(pcm, languageTagFor(settings.getResponseLanguage()))
             },
             podsumuj = { polecenie -> askModelPlain(polecenie) },
             dziennik = { co, pola -> runCatching { diag.event(DiagFormat.Phase.NASŁUCH, co, pola) } },
@@ -2388,7 +1735,7 @@ class AIOrchestrator(
             polecenie = { tekst ->
                 if (pl.victor.app.conversation.MetaCommands.meetingCommand(tekst) == false) stopMeeting()
             },
-            wolnoWznowić = { !_earTranslation.value },
+            wolnoWznowić = { !earTranslation.value },
             // Mówcy: płatne (przełącznik w Ustawieniach, "tylko darmowe") i tylko
             // przez Gemini - diaryzację ma `gemini-3.5-transcribe`, nie aktywny dostawca.
             bezMówców = {
@@ -2549,235 +1896,82 @@ class AIOrchestrator(
         }
     }
 
-    private val _earTwoWay = kotlinx.coroutines.flow.MutableStateFlow(false)
+    /**
+     * Tłumaczenie ze słuchu i rozmowa w dwie strony - patrz
+     * [pl.victor.app.orchestrator.EarTranslationController]. Jego stan (flagi
+     * trybu, pętle, panel) należy do modułu; tu jest tylko odczyt i wejścia.
+     */
+    private val ear = pl.victor.app.orchestrator.EarTranslationController(
+        context = context,
+        settings = settings,
+        scope = scope,
+        audio = audio,
+        glassesManager = glassesManager,
+        speechToText = speechToText,
+        conversationalMode = conversationalMode,
+        translator = translator,
+        transcriber = transcriber,
+        state = _state,
+        dziennik = { diag },
+        host = object : pl.victor.app.orchestrator.EarTranslationHost {
+            override val activeTurnJob: kotlinx.coroutines.Job?
+                get() = this@AIOrchestrator.activeTurnJob
+            override var setAsidePhoneTranscript: String?
+                get() = this@AIOrchestrator.setAsidePhoneTranscript
+                set(value) {
+                    this@AIOrchestrator.setAsidePhoneTranscript = value
+                }
+            override fun hasMicrophonePermission() = this@AIOrchestrator.hasMicrophonePermission()
+            override fun liveConversationOn() = this@AIOrchestrator.liveConversationOn()
+            override fun stopLiveConversation(powód: String) = this@AIOrchestrator.stopLiveConversation(powód)
+            override fun pauseWakeWordMic() = this@AIOrchestrator.pauseWakeWordMic()
+            override fun resumeWakeWordMic() = this@AIOrchestrator.resumeWakeWordMic()
+            override suspend fun askModelPlain(prompt: String) = this@AIOrchestrator.askModelPlain(prompt)
+            override suspend fun listenUntilSpeechEnds(
+                languageTag: String,
+                capture: GlassesVoiceCapture?,
+                trustPhoneMicrophone: Boolean,
+                useBluetoothMic: Boolean,
+                onPartial: ((String) -> Unit)?
+            ) = this@AIOrchestrator.listenUntilSpeechEnds(
+                languageTag = languageTag,
+                capture = capture,
+                trustPhoneMicrophone = trustPhoneMicrophone,
+                useBluetoothMic = useBluetoothMic,
+                onPartial = onPartial
+            )
+        }
+    )
 
     /** Czy tłumaczenie ze słuchu działa jako rozmowa w dwie strony. */
-    val earTwoWay: kotlinx.coroutines.flow.StateFlow<Boolean> = _earTwoWay
-
-    @Volatile
-    private var mojaKolej = false
-    private var myTurnJob: kotlinx.coroutines.Job? = null
-    @Volatile
-    private var earListenJob: kotlinx.coroutines.Job? = null
-
-    /**
-     * Rozmowa w dwie strony z tłumaczem.
-     *
-     * Rozmówcę słucha telefon, a przekład słyszysz w okularach - jak w
-     * zwykłym tłumaczeniu ze słuchu. Gdy chcesz coś powiedzieć, klikasz
-     * przycisk ([myTurn]): mówisz po polsku do okularów, a przekład czyta
-     * GŁOŚNIK TELEFONU, żeby usłyszał go rozmówca.
-     *
-     * @param obcy język rozmówcy albo `null` = z ustawień tłumaczenia
-     */
-    fun startTwoWayTranslation(obcy: String? = null) {
-        val mój = settings.getResponseLanguage()
-        val jegoJęzyk = obcy?.takeIf { it != mój }
-            ?: settings.getEarTranslationFrom().takeIf { it != mój }
-            ?: "en"
-        if (_earTranslation.value) stopEarTranslation("przełączenie na rozmowę")
-        settings.setEarTranslationFrom(jegoJęzyk)
-        settings.setEarTranslationTo(mój)
-        _earTranscript.value = _earTranscript.value.copy(z = jegoJęzyk, na = mój)
-        _earTwoWay.value = true
-        startEarTranslation()
-        if (!_earTranslation.value) _earTwoWay.value = false
-    }
-
-    /**
-     * Moja kolej w rozmowie: słuchamy Ciebie (mikrofon okularów, a bez
-     * okularów - telefonu), tłumaczymy na język rozmówcy i czytamy przez
-     * głośnik telefonu.
-     *
-     * @param zOkularów kliknięcie na oprawce - okulary już nadają dźwięk
-     */
-    fun myTurn(zOkularów: Boolean) {
-        if (!_earTwoWay.value || !_earTranslation.value) return
-        if (myTurnJob?.isActive == true) return
-        myTurnJob = scope.launch {
-            mojaKolej = true
-            earListenJob?.cancel()
-            val mój = settings.getEarTranslationTo()
-            // Język, którym rozmówca NAPRAWDĘ mówi (wykryty na żywo), a dopiero
-            // bez niego - ten z ustawień.
-            val wykryty = językRozmówcy?.pewny
-            val jegoJęzyk = wykryty ?: settings.getEarTranslationFrom()
-            try {
-                diag.event(
-                    DiagFormat.Phase.NASŁUCH, "rozmowa: moja kolej",
-                    mapOf("zOkularów" to zOkularów, "naJęzyk" to jegoJęzyk, "wykryty" to (wykryty != null))
-                )
-                // TELEFON SŁUCHA TEŻ, PO POLSKU - NIE TYLKO OKULARY.
-                //
-                // Dotąd kliknięcie na oprawce brało WYŁĄCZNIE nagranie z
-                // okularów i przepisywało je rozpoznawaniem na urządzeniu. Na
-                // telefonie użytkownika ta droga nie oddała tekstu ani razu w
-                // ponad 250 próbach - więc w rozmowie w dwie strony Twoja kolej
-                // kończyłaby się zawsze "Nie usłyszałem". Teraz jest tak jak przy
-                // zwykłym pytaniu: rozpoznawanie telefonu w Twoim języku, a
-                // okulary pilnują końca wypowiedzi. Nagranie z okularów idzie w
-                // ruch dopiero, gdy telefon nic nie zrozumiał.
-                var źródło = "telefon"
-                val tekst = if (zOkularów && glassesManager.isConnected()) {
-                    val capture = GlassesVoiceCapture(glassesManager)
-                    try {
-                        val nadaje = capture.start()
-                        audio.playListeningCue()
-                        setAsidePhoneTranscript = null
-                        val zTelefonu = try {
-                            listenUntilSpeechEnds(
-                                languageTag = languageTagFor(mój),
-                                capture = if (nadaje) capture else null,
-                                trustPhoneMicrophone = true,
-                                useBluetoothMic = pl.victor.app.audio.MicChoice.useBluetoothMic(
-                                    overSco = false,
-                                    bleStreamLive = nadaje
-                                )
-                            )?.takeIf { it.isNotBlank() } ?: setAsidePhoneTranscript
-                        } finally {
-                            glassesManager.stopGlassesListening()
-                        }
-                        zTelefonu ?: run {
-                            val pcm = if (nadaje) capture.stop().takeIf { it.hasAudio }?.pcm else null
-                            pcm?.let {
-                                źródło = "okulary"
-                                transcribeGlassesAudio(it, languageTagFor(mój))
-                                    ?: transcribeWithModel(it, mój)?.also { źródło = "model" }
-                            }
-                        }
-                    } finally {
-                        // Anulowanie albo nieudany start zostawiały odbiorcę
-                        // mikrofonu na zawsze (bufor sprzed nasłuchu i
-                        // wybudzenie dźwiękiem przestawały działać).
-                        capture.detach()
-                    }
-                } else {
-                    audio.playListeningCue()
-                    conversationalMode.listenOnce(languageTagFor(mój))
-                }?.trim()
-                if (tekst.isNullOrBlank()) {
-                    audio.speakAndAwait("Nie usłyszałem. Kliknij jeszcze raz i mów.", language = mój)
-                    return@launch
-                }
-                if (pl.victor.app.translation.EarTranslation.toKoniec(tekst)) {
-                    stopEarTranslation("koniec rozmowy - moja kolej")
-                    audio.speak("Kończę tłumaczenie rozmowy.", language = mój)
-                    return@launch
-                }
-                val (przekład, tłumacz) = przetłumaczMojeZdanie(tekst, mój, jegoJęzyk)
-                if (przekład.isNullOrBlank() || przekład == tekst) {
-                    audio.speakAndAwait("Nie udało się przetłumaczyć.", language = mój)
-                    return@launch
-                }
-                diag.event(
-                    DiagFormat.Phase.NASŁUCH, "rozmowa: moje zdanie",
-                    mapOf(
-                        "powiedziane" to tekst.take(60), "przekład" to przekład.take(60),
-                        "źródło" to źródło, "tłumacz" to tłumacz, "na" to jegoJęzyk
-                    )
-                )
-                _earTranscript.value = _earTranscript.value.zSegmentem(
-                    pl.victor.app.translation.TwoWay.mojeZdanie(tekst), przekład, System.currentTimeMillis()
-                )
-                // Telefon zaraz usłyszy własny głośnik - to echo, nie rozmówca.
-                earSession.zapamiętajWłasnąWypowiedź(przekład)
-                // Przekład jest DLA ROZMÓWCY - w okularach nikomu się nie przyda,
-                // więc gdy głośnik telefonu zawiedzie, nie gramy go "zastępczo" do
-                // ucha (bieg 183: wszystko szło do okularów), tylko mówimy, co się stało.
-                val zGłośnika = audio.speakOnPhoneSpeaker(przekład, language = jegoJęzyk)
-                runCatching {
-                    diag.event(
-                        DiagFormat.Phase.MOWA, "rozmowa: przekład z głośnika telefonu",
-                        mapOf("ok" to zGłośnika, "trasa" to audio.ostatniaTrasaGłośnika)
-                    )
-                }
-                if (!zGłośnika) {
-                    audio.speakAndAwait("Nie udało się puścić przekładu z głośnika telefonu.", language = mój)
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.w(TAG, "Moja kolej w rozmowie się nie udała", e)
-            } finally {
-                mojaKolej = false
-            }
-        }
-    }
-
-    /**
-     * Twoje zdanie w rozmowie na język rozmówcy.
-     *
-     * Przy włączonym tłumaczeniu na żywo i kluczu wybranego dostawcy tłumaczy
-     * MODEL (Gemini przy Gemini, GPT przy OpenAI) - rozmówca słyszy to z
-     * głośnika, więc zdanie ma brzmieć naturalnie, a nie słowo w słowo. Bez
-     * sieci, bez klucza albo po [MY_TURN_MODEL_MS] - tłumacz w telefonie.
-     *
-     * @return przekład (albo `null`) i kto tłumaczył - do dziennika
-     */
-    private suspend fun przetłumaczMojeZdanie(tekst: String, z: String, na: String): Pair<String?, String> {
-        if (settings.isLiveEarTranslationEnabled() && settings.hasApiKey(settings.getActiveProvider())) {
-            val zModelu = withTimeoutOrNull(MY_TURN_MODEL_MS) {
-                askModelPlain(pl.victor.app.translation.TwoWay.polecenieTłumaczenia(tekst, z, na))
-            }
-            pl.victor.app.translation.TwoWay.oczyśćPrzekład(zModelu)
-                ?.takeIf { it != tekst }
-                ?.let { return it to "model" }
-        }
-        return runCatching { translator.translate(tekst, z, na) }.getOrNull() to "telefon"
-    }
-
-    /** Język rozmówcy wykrywany w trakcie tłumaczenia na żywo - patrz [earLiveLoop]. */
-    @Volatile
-    private var językRozmówcy: pl.victor.app.translation.JęzykRozmówcy? = null
-
-    private val _earTranslation = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val earTwoWay: StateFlow<Boolean> get() = ear.earTwoWay
 
     /** Czy trwa tryb tłumaczenia ze słuchu - do pokazania w interfejsie. */
-    val earTranslation: kotlinx.coroutines.flow.StateFlow<Boolean> =
-        _earTranslation.asStateFlow()
+    val earTranslation: StateFlow<Boolean> get() = ear.earTranslation
 
-    private val _earTranscript = MutableStateFlow(pl.victor.app.translation.EarTranscript())
+    /** Co słychać i co z tego wyszło - dla panelu tłumaczenia. */
+    val earTranscript: StateFlow<pl.victor.app.translation.EarTranscript> get() = ear.earTranscript
 
-    /**
-     * Co słychać i co z tego wyszło - dla panelu tłumaczenia.
-     *
-     * Panel jest tylko widokiem: tryb działa tak samo z panelem i bez niego
-     * (z przycisku na okularach, z komendy głosowej).
-     */
-    val earTranscript: StateFlow<pl.victor.app.translation.EarTranscript> =
-        _earTranscript.asStateFlow()
+    /** Rozmowa w dwie strony z tłumaczem - patrz [EarTranslationController.startTwoWayTranslation]. */
+    fun startTwoWayTranslation(obcy: String? = null) = ear.startTwoWayTranslation(obcy)
 
-    /** Ostatni tekst częściowy - źródło przekładu na żywo, patrz [startEarPartialTranslation]. */
-    private val earPartial = MutableStateFlow("")
-    private var earPartialJob: kotlinx.coroutines.Job? = null
+    /** Moja kolej w rozmowie - patrz [EarTranslationController.myTurn]. */
+    fun myTurn(zOkularów: Boolean) = ear.myTurn(zOkularów)
 
     /** Czyści tekst w panelu. Trwającego trybu nie zatrzymuje. */
-    fun clearEarTranscript() {
-        _earTranscript.value = _earTranscript.value.wyczyść()
-    }
+    fun clearEarTranscript() = ear.clearEarTranscript()
 
-    /**
-     * Zmienia języki trybu.
-     *
-     * W trakcie trybu uruchamia go od nowa - rozpoznawanie słucha w języku
-     * źródłowym i tłumacz jest zbudowany dla pary, więc zmiana w locie nie ma
-     * jak zadziałać. Tak samo robi aplikacja producenta.
-     */
-    fun setEarTranslationLanguages(from: String, to: String) {
-        settings.setEarTranslationFrom(from)
-        settings.setEarTranslationTo(to)
-        _earTranscript.value = _earTranscript.value.copy(z = from, na = to)
-        if (_earTranslation.value) {
-            stopEarTranslation("zmiana języków")
-            startEarTranslation()
-        }
-    }
+    /** Zmienia języki trybu - patrz [EarTranslationController.setEarTranslationLanguages]. */
+    fun setEarTranslationLanguages(from: String, to: String) = ear.setEarTranslationLanguages(from, to)
 
     /** Jedno wejście dla przycisku, gestu i komendy głosowej. */
-    fun toggleEarTranslation() {
-        if (_earTranslation.value) stopEarTranslation("ponowne wywołanie")
-        else startEarTranslation()
-    }
+    fun toggleEarTranslation() = ear.toggleEarTranslation()
+
+    /** Włącza tryb - patrz [EarTranslationController.startEarTranslation]. */
+    fun startEarTranslation() = ear.startEarTranslation()
+
+    /** Wyłącza tryb; [powód] trafia do dziennika. */
+    fun stopEarTranslation(powód: String) = ear.stopEarTranslation(powód)
 
     /**
      * Rozmowa na żywo z asystentem (Gemini Live) - patrz
@@ -2839,7 +2033,7 @@ class AIOrchestrator(
             audio.speak(komunikat, language = settings.getResponseLanguage())
             return
         }
-        if (_earTranslation.value) stopEarTranslation("start rozmowy na żywo")
+        if (earTranslation.value) stopEarTranslation("start rozmowy na żywo")
         val turaWToku = activeTurnJob?.takeIf { it.isActive }
         liveMode.start(turaWToku, źródło)
     }
@@ -2868,740 +2062,9 @@ class AIOrchestrator(
         }.getOrNull()
         return pl.victor.app.live.LiveConversationProtocol.instrukcja(
             persona = getActivePersona().systemPrompt,
-            czas = buildTimeContext(),
+            czas = modelContext.buildTimeContext(),
             miejsce = pl.victor.app.live.LiveConversationProtocol.miejsce(tu?.opis, tu?.miasto)
         )
-    }
-
-    /**
-     * Tłumaczenie ze słuchu - pętla, nie tura.
-     *
-     * ## Czym to się różni od "przetłumacz to zdanie"
-     * Tamto jest turą: pytanie, odpowiedź, koniec. To jest TRYB: dopóki go nie
-     * wyłączysz, wszystko, co słychać, wraca do ucha po polsku. Tak działa
-     * `TranslateListenerActivity` w aplikacji producenta i o to prosił
-     * użytkownik ("tłumaczenie ze słuchu zrób takie samo jak w Prismie").
-     *
-     * ## Droga dźwięku
-     * Ta sama, którą chodzi pytanie z okularów: strumień BLE, dekoder Opusa,
-     * przepróbkowanie do 16 kHz, rozpoznawanie mowy. BEZ profilu rozmowy - SCO
-     * kazałoby okularom oddać mikrofon do HFP i strumień by ucichł, a przy
-     * tłumaczeniu to nie jest jedna zmarnowana tura, tylko cały tryb.
-     *
-     * ## Czego tu NIE robimy
-     * Nie pytamy modelu. Tłumaczy [pl.victor.app.translation.SimultaneousTranslator]
-     * (ML Kit, na urządzeniu) - chyba że działa tryb NA ŻYWO ([earLiveLoop]) - więc tryb działa bez sieci i nie zużywa tokenów -
-     * a przy mowie ciągłej zapytanie do modelu za każdym zdaniem byłoby i
-     * wolniejsze, i kosztowne.
-     *
-     * Wszystkie decyzje ("co jest nowe", "czy to własne echo", "czy już czas")
-     * są w [pl.victor.app.translation.EarTranslationSession] - tutaj jest sama
-     * pętla. Inaczej nie dałoby się sprawdzić niczego bez okularów.
-     */
-    fun startEarTranslation() {
-        if (_earTranslation.value) return
-        // Ten sam mikrofon - rozmowa na żywo ustępuje tłumaczeniu.
-        if (liveConversationOn()) stopLiveConversation("start tłumaczenia ze słuchu")
-        if (!speechToText.isAvailable()) {
-            _state.value = OrchestratorState.Error(
-                "To urządzenie nie ma rozpoznawania mowy - tłumaczenie ze słuchu nie zadziała."
-            )
-            return
-        }
-        if (!hasMicrophonePermission()) {
-            val message = "Brak zgody na mikrofon. Otwórz aplikację i naciśnij " +
-                "przycisk Powiedz - system zapyta o uprawnienie."
-            _state.value = OrchestratorState.Error(message)
-            audio.speak(message, language = settings.getResponseLanguage())
-            return
-        }
-        val from = settings.getEarTranslationFrom()
-        val to = settings.getEarTranslationTo()
-        if (from == to) {
-            val message = "Tłumaczenie ze słuchu ma ten sam język na wejściu i wyjściu. " +
-                "Zmień go w Ustawieniach."
-            _state.value = OrchestratorState.Error(message)
-            _earTranscript.value = _earTranscript.value.copy(z = from, na = to, komunikat = message)
-            audio.speak(message, language = settings.getResponseLanguage())
-            return
-        }
-        earSession.wyzeruj()
-        // Wykryty język rozmówcy należy do JEDNEJ rozmowy - nowa zaczyna od ustawień.
-        językRozmówcy = null
-        _earTranscript.value = _earTranscript.value.start(from, to)
-        _earTranslation.value = true
-        startEarPartialTranslation(from, to)
-        // Włączone GŁOSEM rusza z wnętrza tury, która jeszcze sprząta po sobie
-        // (łącze audio, mikrofon frazy) - patrz początek [earTranslationLoop].
-        val turaWToku = activeTurnJob?.takeIf { it.isActive }
-        // LAZY i start() po przypisaniu: pętla porównuje się z [earJob], więc
-        // uchwyt musi już stać, zanim wykona pierwszą instrukcję.
-        earJob = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
-            earTranslationLoop(from, to, turaWToku)
-        }
-        earJob?.start()
-    }
-
-    /**
-     * Przekład tekstu częściowego - najwyżej raz na sekundę.
-     *
-     * Ten sam rytm co u producenta: częściej to miganie tekstu i marnowanie
-     * tłumacza na słowa, które za chwilę się zmienią. Tłumaczy zawsze
-     * NAJNOWSZY tekst - odczytany po odczekaniu, nie ten, który zbudził pętlę.
-     */
-    private fun startEarPartialTranslation(from: String, to: String) {
-        earPartialJob?.cancel()
-        earPartial.value = ""
-        earPartialJob = scope.launch {
-            var ostatnio = 0L
-            earPartial.collect { pierwszy ->
-                if (pierwszy.isBlank()) return@collect
-                val czekaj = ostatnio + pl.victor.app.translation.EarTranslation.MIN_ODSTĘP_MS -
-                    System.currentTimeMillis()
-                if (czekaj > 0) delay(czekaj)
-                val tekst = earPartial.value.takeIf { it.isNotBlank() } ?: return@collect
-                ostatnio = System.currentTimeMillis()
-                val przekład = try {
-                    translator.translate(tekst, from, to)
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    null
-                }
-                if (!przekład.isNullOrBlank() && przekład != tekst) {
-                    _earTranscript.value = _earTranscript.value.zCzęściowymPrzekładem(tekst, przekład)
-                }
-            }
-        }
-    }
-
-    /**
-     * Wyłącza tryb.
-     *
-     * @param powód trafia do dziennika - inaczej "tryb sam się wyłączył" jest
-     *   nie do odróżnienia od "tryb się wysypał"
-     */
-    fun stopEarTranslation(powód: String) {
-        if (!_earTranslation.value && earJob == null) return
-        Log.i(TAG, "Tłumaczenie ze słuchu - koniec ($powód)")
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: koniec",
-                mapOf("powód" to powód)
-            )
-        }
-        _earTranslation.value = false
-        _earTwoWay.value = false
-        myTurnJob?.cancel()
-        _earTranscript.value = _earTranscript.value.stop()
-        earPartialJob?.cancel()
-        earPartialJob = null
-        earJob?.cancel()
-        earJob = null
-    }
-
-    /** Komunikat dla człowieka w panelu - to samo, co tryb mówi na głos. */
-    private fun noteEarMessage(tekst: String) {
-        _earTranscript.value = _earTranscript.value.copy(komunikat = tekst)
-    }
-
-    private suspend fun earTranslationLoop(
-        from: String,
-        to: String,
-        turaWToku: kotlinx.coroutines.Job? = null
-    ) {
-        val fromName = pl.victor.app.translation.SimultaneousTranslator.languageName(from)
-        val toName = pl.victor.app.translation.SimultaneousTranslator.languageName(to)
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: start",
-                mapOf("z" to from, "na" to to, "zTury" to (turaWToku != null))
-            )
-        }
-        val mójJob = currentCoroutineContext()[kotlinx.coroutines.Job]
-        // WŁĄCZONE GŁOSEM CZEKA, AŻ TURA, KTÓRA JE WŁĄCZYŁA, SKOŃCZY SPRZĄTAĆ.
-        //
-        // Dziennik z biegu 152: z panelu tryb działał, a włączony głosem
-        // ("tłumaczenie na żywo") milczał 23 i 37 sekund - bez zapowiedzi w
-        // dzienniku, bez jednego pustego nasłuchu, do wciśnięcia przycisku.
-        // Różnica między tymi drogami jest jedna: głosem pętla rusza W ŚRODKU
-        // tury z okularów, a ta w swoim `finally` zwija łącze audio rozmowy i
-        // wznawia nasłuch frazy na mikrofonie telefonu - równolegle z
-        // zapowiedzią i pierwszym nasłuchem tłumaczenia. Panel nie ma tury,
-        // więc niczego takiego nie ma. Czekanie jest krótkie (sprzątanie trwa
-        // milisekundy) i ma limit, żeby zawieszona tura nie zatrzymała trybu.
-        if (turaWToku != null && turaWToku !== mójJob) {
-            val czekamOd = System.currentTimeMillis()
-            val zdążyła = kotlinx.coroutines.withTimeoutOrNull(EAR_TURN_WAIT_MS) { turaWToku.join() } != null
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: tura włączająca skończona",
-                    mapOf("ms" to (System.currentTimeMillis() - czekamOd), "zdążyła" to zdążyła)
-                )
-            }
-        }
-        // Tryb SAM trzyma mikrofon: nasłuch frazy na telefonie i wybudzenie z
-        // dźwięku okularów tylko by mu go podbierały - i odpalały tury w trakcie.
-        pauseWakeWordMic()
-        glassesManager.suspendMicWake(true)
-        // Zapowiedź idzie w JĘZYKU DOCELOWYM, bo w nim człowiek będzie słyszał
-        // wszystko, co dalej - i od razu słychać, czy syntezator ten język ma.
-        // Przy wyciszonym trybie (przekład tylko w panelu) - bez zapowiedzi.
-        val mówić = settings.isEarTranslationSpoken()
-        if (mówić) {
-            val zapowiedźOd = System.currentTimeMillis()
-            val zapowiedź = if (_earTwoWay.value) {
-                // W rozmowie zapowiedź mówi, JAK oddać głos - bez tego tryb
-                // dwustronny wygląda jak zwykłe tłumaczenie ze słuchu.
-                pl.victor.app.translation.TwoWay.zapowiedź(fromName)
-            } else {
-                "Tłumaczę z $fromName na $toName."
-            }
-            val powiedziane = audio.speakAndAwait(zapowiedź, language = if (_earTwoWay.value) settings.getResponseLanguage() else to)
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: zapowiedź",
-                    mapOf("ms" to (System.currentTimeMillis() - zapowiedźOd), "powiedziane" to powiedziane)
-                )
-            }
-        }
-        // POTKNIĘCIE JEDNEGO ZDANIA NIE MOŻE KOŃCZYĆ TRYBU.
-        //
-        // Przy mowie ciągłej wyjątek z rozpoznawania albo z tłumacza jest
-        // normalnym zdarzeniem (urwana sieć przy pobieraniu modelu, mikrofon
-        // zajęty na chwilę przez system). Tryb, który po pierwszym takim
-        // potknięciu milknie bez słowa, wygląda jak zepsuty - a to dokładnie ta
-        // klasa błędu, którą już raz tu zgłoszono ("cicha porażka, widoczna
-        // tylko w logu"). Liczymy je więc i poddajemy się dopiero po serii.
-        var zRzędu = 0
-        try {
-            // NA ŻYWO PRZEZ CHMURĘ, gdy się da - patrz [earLiveLoop]. Gdy nie
-            // (brak klucza, sieci, zerwana sesja), dalej idzie dotychczasowa
-            // pętla w telefonie, bez wyłączania trybu.
-            if (earLiveLoop(to, mójJob)) return
-            // `earJob === mójJob`: po szybkim "wyłącz i włącz" flaga jest znowu
-            // prawdą, ale należy już do NOWEJ sesji - stara pętla ma wtedy
-            // skończyć, a nie słuchać równolegle z nową.
-            while (_earTranslation.value && earJob === mójJob) {
-                // Twoja kolej w rozmowie dwustronnej - pętla czeka, aż przekład
-                // Twoich słów wybrzmi z głośnika telefonu.
-                while (mojaKolej && _earTranslation.value) delay(EAR_TURN_POLL_MS)
-                if (!_earTranslation.value || earJob !== mójJob) break
-                val nasłuchOd = System.currentTimeMillis()
-                val usłyszane = try {
-                    // STRAŻNIK: jeden nasłuch ma swoje limity (rozpoznawanie,
-                    // cisza w strumieniu okularów - najwyżej kilkanaście
-                    // sekund). Gdy mimo to wisi, tryb nie może milczeć do
-                    // przycisku - liczymy to jak pusty nasłuch, Z WPISEM.
-                    // Pusty tekst zamiast null, żeby odróżnić "nic" od "zawisł".
-                    // Osobne zadanie, żeby "moja kolej" mogła przerwać nasłuch
-                    // rozmówcy, nie kończąc całego trybu.
-                    val nasłuch = scope.async {
-                        kotlinx.coroutines.withTimeoutOrNull(EAR_LISTEN_MAX_MS) {
-                            earListenOnce(from) ?: ""
-                        }
-                    }
-                    earListenJob = nasłuch
-                    val wynik = try {
-                        nasłuch.await()
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        // Przerwany przez "moją kolej" - to nie koniec trybu.
-                        currentCoroutineContext().ensureActive()
-                        nasłuch.cancel()
-                        continue
-                    } finally {
-                        if (!nasłuch.isCompleted) nasłuch.cancel()
-                        earListenJob = null
-                    }
-                    if (wynik == null) {
-                        earListenError = "nasłuch zawisł na ${EAR_LISTEN_MAX_MS / 1000} s"
-                        earListenErrorCode = null
-                    }
-                    wynik
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    // runCatching połykał i to - anulowana pętla liczyła wtedy
-                    // "puste nasłuchy" i mówiła "nic nie słyszę, kończę".
-                    throw e
-                } catch (e: Exception) {
-                    Log.w(TAG, "Tłumaczenie ze słuchu: nasłuch nie wyszedł", e)
-                    null
-                }
-                if (usłyszane.isNullOrBlank()) {
-                    // "NIC NIE SŁYSZĘ" TO BYŁA ODPOWIEDŹ NA NIEZADANE PYTANIE.
-                    //
-                    // Zgłoszone: "tłumaczenie na żywo nie działa - mówi, że nic
-                    // nie słyszy". I mówiło prawdę, tylko bezużyteczną: pusty
-                    // wynik rozpoznawania ma kilka bardzo różnych powodów, a
-                    // tylko JEDEN z nich to naprawdę cisza w pokoju.
-                    //
-                    // Najważniejszy jest ten, który sam wprowadziłem: tryb
-                    // nasłuchuje w JĘZYKU ŹRÓDŁOWYM (domyślnie angielskim), a
-                    // polski telefon nie ma pobranego pakietu angielskiego.
-                    // Rozpoznawanie oddaje wtedy ERROR_LANGUAGE_UNAVAILABLE i
-                    // pustkę - co do znaku tak samo jak przy ciszy. Powód leżał
-                    // w `speechToText.lastFailureReason()` przez cały czas;
-                    // pętla go nie czytała.
-                    val powód = earListenError
-                    runCatching {
-                        diag.event(
-                            DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: pusty nasłuch",
-                            mapOf(
-                                "powód" to (powód ?: "cisza"),
-                                "zRzędu" to (zRzędu + 1),
-                                "ms" to (System.currentTimeMillis() - nasłuchOd)
-                            )
-                        )
-                    }
-                    // OD RAZU KOŃCZYMY TYLKO PRZY BRAKU JĘZYKA.
-                    //
-                    // Pierwsza wersja kończyła przy KAŻDYM błędzie - także przy
-                    // zajętym na chwilę mikrofonie albo zerwanej na sekundę
-                    // sieci, czyli przy rzeczach, które same mijają. Brak języka
-                    // w obu silnikach nie minie, i tylko on uzasadnia koniec po
-                    // jednym podejściu. Reszta liczy się jak pusty nasłuch.
-                    if (powód != null &&
-                        pl.victor.app.conversation.LanguagePackFallback.isLanguageError(earListenErrorCode)
-                    ) {
-                        // Awaria, nie cisza - liczenie do pięciu nic tu nie da,
-                        // bo szósty raz skończy się tak samo.
-                        // Do tego miejsca dochodzi się teraz dopiero wtedy, gdy
-                        // zawiodły OBA silniki: na urządzeniu (brak pakietu w jego
-                        // magazynie) i przez sieć. Pobieranie pakietu gdzie
-                        // indziej nic tu nie da - stąd zdanie o internecie, a nie
-                        // o ustawieniach Androida, które już raz wysłało
-                        // człowieka szukać czegoś, co miał.
-                        val komunikat = "Nie mogę słuchać po $fromName: $powód. Rozpoznawanie " +
-                            "bez sieci nie ma tego języka, a przez internet też " +
-                            "się nie udało. Sprawdź połączenie z internetem."
-                        noteEarMessage(komunikat)
-                        audio.speakAndAwait(komunikat, language = to)
-                        stopEarTranslation("rozpoznawanie odmówiło: $powód")
-                        return
-                    }
-                    zRzędu++
-                    // W rozmowie cisza jest normalna - ktoś myśli, czyta menu.
-                    // Kończy ją przycisk albo "koniec tłumaczenia".
-                    if (zRzędu >= EAR_MAX_PUSTYCH && !_earTwoWay.value) {
-                        val komunikat = "Nic nie słyszę po $fromName. Kończę tłumaczenie."
-                        noteEarMessage(komunikat)
-                        audio.speakAndAwait(komunikat, language = to)
-                        stopEarTranslation("$EAR_MAX_PUSTYCH nasłuchów bez dźwięku")
-                        return
-                    }
-                    continue
-                }
-                zRzędu = 0
-                when (val decyzja = earSession.rozstrzygnij(usłyszane)) {
-                    is pl.victor.app.translation.EarTranslationSession.Decyzja.Koniec -> {
-                        audio.speakAndAwait("Kończę tłumaczenie.", language = to)
-                        stopEarTranslation("polecenie głosowe")
-                        return
-                    }
-                    is pl.victor.app.translation.EarTranslationSession.Decyzja.Pomiń -> {
-                        // Do dziennika, nie tylko do logcata: pominięty tekst
-                        // wygląda z zewnątrz dokładnie jak "nie tłumaczy".
-                        runCatching {
-                            diag.event(
-                                DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: pomijam",
-                                mapOf("powód" to decyzja.powód, "usłyszane" to usłyszane.take(60))
-                            )
-                        }
-                    }
-                    is pl.victor.app.translation.EarTranslationSession.Decyzja.Tłumacz -> {
-                        val przekład = try {
-                            translator.translate(decyzja.fragment, from, to)
-                        } catch (e: kotlinx.coroutines.CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Tłumaczenie ze słuchu: tłumacz odmówił", e)
-                            null
-                        }
-                        // Tłumacz oddaje ORYGINAŁ, gdy nie dał rady (patrz
-                        // SimultaneousTranslator.translate). Mówienie wtedy tego
-                        // samego, co przed chwilą padło, jest gorsze niż cisza:
-                        // brzmi jak tłumaczenie, a nim nie jest.
-                        if (przekład.isNullOrBlank() || przekład == decyzja.fragment) {
-                            runCatching {
-                                diag.event(
-                                    DiagFormat.Phase.NASŁUCH,
-                                    "tłumaczenie ze słuchu: brak przekładu",
-                                    mapOf("fragment" to decyzja.fragment.take(60))
-                                )
-                            }
-                            continue
-                        }
-                        runCatching {
-                            diag.event(
-                                DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu",
-                                mapOf(
-                                    "usłyszane" to decyzja.fragment.take(60),
-                                    "przekład" to przekład.take(60)
-                                )
-                            )
-                        }
-                        _earTranscript.value = _earTranscript.value.zSegmentem(
-                            decyzja.fragment, przekład, System.currentTimeMillis()
-                        )
-                        earPartial.value = ""
-                        // Czytamy na głos tylko przy włączonym głosie - w panelu
-                        // można go wyciszyć, jak u producenta. Wtedy tryb nie
-                        // czeka na syntezator i słucha niemal bez przerw.
-                        if (settings.isEarTranslationSpoken()) {
-                            earSession.zapamiętajWłasnąWypowiedź(przekład)
-                            _earTranscript.value = _earTranscript.value
-                                .czyta(_earTranscript.value.segmenty.lastOrNull()?.id)
-                            // speakAndAwait, nie speak: dopóki mówimy, NIE słuchamy.
-                            // Mikrofon okularów wisi centymetry od ich głośnika,
-                            // więc nakładanie tych dwóch rzeczy znaczyłoby
-                            // tłumaczyć własny głos w kółko. [EarTranslation.jestEchem]
-                            // jest drugim zabezpieczeniem, nie pierwszym.
-                            try {
-                                audio.speakAndAwait(przekład, language = to)
-                            } finally {
-                                _earTranscript.value = _earTranscript.value.czyta(null)
-                            }
-                        }
-                    }
-                }
-            }
-        } finally {
-            // Tylko gdy to wciąż NASZA sesja. Stara pętla, która kończy się
-            // po szybkim ponownym włączeniu, wyłączała tu nową i zostawiała ją
-            // bez uchwytu - stopEarTranslation nie miał już czego zatrzymać.
-            if (earJob === mójJob || earJob == null) {
-                // Okulary nadają jeszcze chwilę po ostatnim nasłuchu - bez
-                // karencji ten ogon odpalał turę z przypadkowym pytaniem.
-                glassesManager.suspendMicWake(false, graceMs = EAR_MIC_WAKE_GRACE_MS)
-                // Najpierw flaga, potem nasłuch: resumeWakeWordMic nie oddaje
-                // mikrofonu, dopóki tłumaczenie trwa.
-                _earTranslation.value = false
-                resumeWakeWordMic()
-                earJob = null
-                earPartialJob?.cancel()
-                earPartialJob = null
-                _earTranscript.value = _earTranscript.value.stop()
-                _state.value = OrchestratorState.Idle
-            }
-        }
-    }
-
-    /**
-     * Tłumaczenie ze słuchu NA ŻYWO - model mowa-na-mowę w chmurze.
-     *
-     * Telefon słucha rozmówcy, dźwięk płynie do usługi kawałkami po 100 ms, a
-     * przekład wraca głosem w trakcie mówienia - do okularów, tą samą drogą co
-     * mowa asystenta. Usługa: Gemini przy wybranym Gemini, OpenAI przy OpenAI
-     * (patrz [pl.victor.app.translation.LiveTranslationProtocol]).
-     *
-     * W rozmowie dwustronnej "moja kolej" działa jak dotąd: na jej czas
-     * oddajemy mikrofon rozpoznawaniu telefonu i wysyłamy ciszę, żeby sesja
-     * nie wygasła.
-     *
-     * @return `true` - tryb się skończył (wyłączony albo "koniec tłumaczenia");
-     *   `false` - na żywo się nie da i trzeba tłumaczyć w telefonie
-     */
-    private suspend fun earLiveLoop(to: String, mójJob: kotlinx.coroutines.Job?): Boolean {
-        if (!settings.isLiveEarTranslationEnabled()) return false
-        val (usługa, klucz) = pl.victor.app.translation.LiveTranslationProtocol.wybierz(
-            aktywny = settings.getActiveProvider(),
-            kluczGemini = settings.getApiKey("gemini"),
-            kluczOpenAi = settings.getApiKey("openai")
-        ) ?: return false
-        val sesja = pl.victor.app.translation.LiveTranslationSession(context, usługa, klucz, to)
-        val wykrywanie = pl.victor.app.translation.JęzykRozmówcy(to)
-        językRozmówcy = wykrywanie
-        val od = System.currentTimeMillis()
-        var wysłane = 0
-        var przekłady = 0
-        try {
-            val połączona = sesja.połącz(EAR_LIVE_CONNECT_MS)
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: połączenie",
-                    mapOf(
-                        "usługa" to usługa.nazwa, "model" to usługa.model, "na" to to,
-                        "ok" to połączona, "ms" to (System.currentTimeMillis() - od),
-                        "powód" to sesja.powódZamknięcia
-                    )
-                )
-            }
-            if (!połączona) {
-                noteEarMessage("Tłumaczenie na żywo (${usługa.nazwa}) niedostępne - tłumaczę w telefonie.")
-                return false
-            }
-            if (!kotlinx.coroutines.withContext(Dispatchers.IO) { sesja.otwórzMikrofon() }) {
-                runCatching { diag.event(DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: mikrofon zajęty") }
-                return false
-            }
-            _state.value = OrchestratorState.Listening
-            noteEarMessage("Tłumaczę na żywo przez ${usługa.nazwa}.")
-            val mówić = settings.isEarTranslationSpoken()
-            // Do dziennika: czy przekład zagra z głośnika telefonu (brak
-            // słuchawek) - to tłumaczy ewentualne echo i głośność.
-            val naGłośniku = sesja.graNaGłośnikuTelefonu()
-            runCatching {
-                diag.event(DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: wyjście", mapOf("głośnikTelefonu" to naGłośniku))
-            }
-            val bufor = pl.victor.app.translation.LiveTranscriptBuffer()
-            val doZagrania = kotlinx.coroutines.channels.Channel<ByteArray>(kotlinx.coroutines.channels.Channel.UNLIMITED)
-
-            fun pokażCzęściowe() {
-                _earTranscript.value = _earTranscript.value.copy(
-                    częściowyOryginał = bufor.oryginałTeraz,
-                    częściowyPrzekład = bufor.przekładTeraz
-                )
-            }
-
-            fun zamknijZdanie() {
-                val (oryginał, przekład) = bufor.zamknij() ?: run { pokażCzęściowe(); return }
-                przekłady++
-                runCatching {
-                    diag.event(
-                        DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo",
-                        mapOf("usłyszane" to oryginał.take(60), "przekład" to przekład.take(60))
-                    )
-                }
-                _earTranscript.value = _earTranscript.value.zSegmentem(oryginał, przekład, System.currentTimeMillis())
-            }
-
-            return coroutineScope {
-                val odtwarzanie = launch(Dispatchers.IO) {
-                    for (pcm in doZagrania) sesja.graj(pcm)
-                }
-                val nadawanie = launch(Dispatchers.IO) {
-                    val cisza = ByteArray(sesja.bajtówKawałka)
-                    val kawałek = ByteArray(sesja.bajtówKawałka)
-                    // Podsumowanie co 10 s - bieg 184: minuty bez jednego zdania
-                    // i nic w dzienniku, co by mówiło dlaczego.
-                    var odPodsumowania = System.currentTimeMillis()
-                    var wysłaneOkno = 0
-                    var wyciszoneOkno = 0
-                    var maksPoziom = 0
-                    var wyciszaOd = 0L
-                    while (true) {
-                        currentCoroutineContext().ensureActive()
-                        if (mojaKolej) {
-                            sesja.zamknijMikrofon()
-                            sesja.wyślij(cisza)
-                            delay(pl.victor.app.translation.LiveTranslationProtocol.KAWAŁEK_MS.toLong())
-                            continue
-                        }
-                        if (!sesja.otwórzMikrofon()) {
-                            delay(EAR_TURN_POLL_MS)
-                            continue
-                        }
-                        val pcm = sesja.czytaj(kawałek) ?: break
-                        val teraz = System.currentTimeMillis()
-                        maksPoziom = maxOf(maksPoziom, sesja.poziom(pcm))
-                        if (teraz - odPodsumowania >= EAR_LIVE_SUMMARY_MS) {
-                            val źródło = sesja.źródłoMikrofonu()
-                            runCatching {
-                                diag.event(
-                                    DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: mikrofon",
-                                    mapOf(
-                                        "wysłane" to wysłaneOkno, "wyciszone" to wyciszoneOkno,
-                                        "maksPoziom" to maksPoziom, "źródło" to źródło,
-                                        "przekładKawałków" to sesja.wyjścieKawałków
-                                    )
-                                )
-                            }
-                            odPodsumowania = teraz
-                            wysłaneOkno = 0
-                            wyciszoneOkno = 0
-                            maksPoziom = 0
-                        }
-                        // ZAWSZE półdupleks: bieg 183 - okulary bywały podłączone
-                        // tylko w trybie rozmowy (bez A2DP), przekład grał wtedy z
-                        // głośnika telefonu i mikrofon łapał go w kółko ("wszystko
-                        // słychać po kilka razy"). Także z A2DP głośniki okularów
-                        // są otwarte, a telefon jest blisko. Na czas przekładu i
-                        // chwilę po nim usługa dostaje ciszę.
-                        // Bezpiecznik: wyciszenie dłużej niż EAR_LIVE_MAX_MUTE_MS z
-                        // rzędu to już nie echo jednego zdania, tylko błąd - wtedy
-                        // lepiej słuchać z echem niż wcale.
-                        var echo = sesja.graTeraz(teraz - EAR_LIVE_ECHO_TAIL_MS)
-                        if (echo) {
-                            if (wyciszaOd == 0L) wyciszaOd = teraz
-                            if (teraz - wyciszaOd > EAR_LIVE_MAX_MUTE_MS) echo = false
-                        } else {
-                            wyciszaOd = 0L
-                        }
-                        if (!sesja.wyślij(if (echo) cisza else pcm)) break
-                        if (echo) wyciszoneOkno++ else wysłaneOkno++
-                        wysłane++
-                    }
-                }
-                var wynik: Boolean? = null
-                while (wynik == null) {
-                    if (!_earTranslation.value || earJob !== mójJob) {
-                        wynik = true
-                        break
-                    }
-                    val odebrane = withTimeoutOrNull(EAR_LIVE_POLL_MS) { sesja.zdarzenia.receiveCatching() }
-                    val teraz = System.currentTimeMillis()
-                    val z = odebrane?.let { it.getOrNull() ?: pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Zamknięte }
-                    when (z) {
-                        is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Dźwięk ->
-                            if (mówić) doZagrania.trySend(z.pcm)
-                        is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Oryginał -> {
-                            bufor.dodajOryginał(z.tekst, teraz)
-                            val przed = wykrywanie.pewny
-                            wykrywanie.usłyszany(z.język)
-                            if (wykrywanie.pewny != przed) {
-                                wykrywanie.pewny?.let { _earTranscript.value = _earTranscript.value.copy(z = it) }
-                                runCatching {
-                                    diag.event(
-                                        DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: język rozmówcy",
-                                        mapOf("język" to wykrywanie.pewny)
-                                    )
-                                }
-                            }
-                            if (pl.victor.app.translation.EarTranslation.toKoniec(bufor.oryginałTeraz)) {
-                                stopEarTranslation("polecenie głosowe (na żywo)")
-                                audio.speak("Kończę tłumaczenie.", language = to)
-                                wynik = true
-                            } else {
-                                pokażCzęściowe()
-                            }
-                        }
-                        is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Przekład -> {
-                            bufor.dodajPrzekład(z.tekst, teraz)
-                            pokażCzęściowe()
-                        }
-                        pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.KoniecTury -> zamknijZdanie()
-                        pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Zamknięte -> wynik = false
-                        else -> Unit
-                    }
-                    if (wynik == null && bufor.czasZamknąć(teraz)) zamknijZdanie()
-                    if (wynik == null && !nadawanie.isActive) wynik = false
-                }
-                nadawanie.cancel()
-                doZagrania.close()
-                odtwarzanie.cancel()
-                zamknijZdanie()
-                if (wynik == false && _earTranslation.value && earJob === mójJob) {
-                    // Sesja padła w trakcie - tryb trwa dalej, tylko w telefonie.
-                    val komunikat = "Tłumaczenie w chmurze przerwane. Tłumaczę dalej w telefonie."
-                    noteEarMessage(komunikat)
-                    runCatching {
-                        diag.event(
-                            DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: przerwane",
-                            mapOf("powód" to (sesja.powódZamknięcia ?: "mikrofon"))
-                        )
-                    }
-                    audio.speakAndAwait(komunikat, language = settings.getResponseLanguage())
-                }
-                wynik == true
-            }
-        } finally {
-            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) { sesja.zamknij() }
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.NASŁUCH, "tłumaczenie na żywo: koniec sesji",
-                    mapOf(
-                        "usługa" to usługa.nazwa,
-                        "sekund" to ((System.currentTimeMillis() - od) / 1000),
-                        "kawałków" to wysłane,
-                        "zdań" to przekłady
-                    )
-                )
-            }
-        }
-    }
-
-    /**
-     * Jeden nasłuch w trybie tłumaczenia - tą samą drogą, co pytanie z okularów.
-     *
-     * @param from język, którego słuchamy; idzie do rozpoznawania jako język
-     *   nasłuchu i do transkrypcji nagrania z okularów
-     */
-    private suspend fun earListenOnce(from: String): String? {
-        var micStreamLive = false
-        var zatrzymane = false
-        val capture =
-            if (glassesManager.isConnected()) {
-                GlassesVoiceCapture(glassesManager).also { micStreamLive = it.start() }
-            } else {
-                null
-            }
-        earListenError = null
-        earListenErrorCode = null
-        return try {
-            _state.value = OrchestratorState.Listening
-            setAsidePhoneTranscript = null
-            val heard = listenUntilSpeechEnds(
-                languageTag = languageTagFor(from),
-                capture = capture,
-                // MIKROFON TELEFONU JEST TU PRAWOWITYM ŹRÓDŁEM - I TO JEST
-                // POPRAWKA DO MOJEJ WŁASNEJ WERSJI.
-                //
-                // Stało tu `!micStreamLive`, przepisane z tury pytania. Tam ma
-                // sens: człowiek mówi DO okularów, a telefon leży w kieszeni.
-                // Tu jest inaczej - tłumaczy się cudzą rozmowę, telefon równie
-                // dobrze leży na stole, a okulary nadają mikrofon dopiero po
-                // wciśnięciu przycisku (`start()` tylko dopisuje się do
-                // strumienia, nie każe im nadawać). Przy samej subskrypcji
-                // `micStreamLive` jest prawdą, więc wynik z telefonu był
-                // ODKŁADANY, choć bywał jedynym, jaki w ogóle był.
-                //
-                // Nagranie z okularów nic na tym nie traci: niżej i tak idzie
-                // `zOkularów ?: heard`, więc gdy okulary coś przyniosą, one
-                // wygrywają.
-                trustPhoneMicrophone = true,
-                useBluetoothMic = pl.victor.app.audio.MicChoice.useBluetoothMic(
-                    overSco = false,
-                    bleStreamLive = micStreamLive
-                ),
-                // Tekst na żywo do panelu - i jego przekład, raz na sekundę.
-                onPartial = { tekst ->
-                    earPartial.value = tekst
-                    _earTranscript.value = _earTranscript.value.zCzęściowym(tekst)
-                }
-            )
-            // BŁĄD ŻYWEGO NASŁUCHU - ZAPISANY, ZANIM COŚ GO NADPISZE.
-            //
-            // `lastFailureReason()` pamięta tylko OSTATNI błąd rozpoznawania. Tuż
-            // niżej idzie transkrypcja nagrania z okularów - silnikiem na
-            // urządzeniu - i jej błąd przykrywał wynik nasłuchu. Tak było w
-            // dzienniku z 23 września: "model języka niepobrany" pochodziło z
-            // drogi zapasowej, a pętla uznała je za werdykt o całym trybie i
-            // wyłączyła tłumaczenie po jednym podejściu.
-            earListenError = speechToText.lastFailureReason()
-            earListenErrorCode = speechToText.lastFailureCode
-            // Telefon dał tekst, a przepisanie nagrania z okularów milczy od
-            // [GLASSES_TRANSCRIPT_MAX_MISSES] prób: każde zdanie czekało 2-4 s
-            // na rozkodowanie i przepisanie, które nic nie wnosiło - przekład
-            // przychodził przez to wyraźnie po rozmówcy. Nagranie zamykamy obok.
-            if (!heard.isNullOrBlank() && glassesTranscriptMissedTooOften()) {
-                zatrzymane = true
-                capture?.let { c ->
-                    scope.launch(kotlinx.coroutines.NonCancellable) { runCatching { c.stop() } }
-                }
-                return heard
-            }
-            val captured = capture?.stop()
-            zatrzymane = true
-            val zOkularów = captured?.pcm
-                ?.takeIf { captured.hasAudio }
-                ?.let { transcribeGlassesAudio(it, languageTagFor(from)) }
-                ?.also { glassesTranscriptMisses = 0 }
-            if (zOkularów == null && captured?.hasAudio == true && !heard.isNullOrBlank()) {
-                glassesTranscriptMisses = glassesTranscriptMisses + 1
-            }
-            zOkularów ?: heard ?: setAsidePhoneTranscript
-        } finally {
-            _state.value = OrchestratorState.Idle
-            // Przy anulowaniu trybu (albo wyjątku) nasłuch kończy się przed
-            // `stop()`, a wtedy strumień BLE zostałby podpięty na zawsze -
-            // okulary nadawałyby mimo wyłączonego tłumaczenia.
-            if (!zatrzymane) {
-                runCatching {
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
-                        capture?.stop()
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -4090,7 +2553,7 @@ class AIOrchestrator(
                 // PYTANIE O KOD: strumień rusza JUŻ TERAZ, nie po przepisaniu
                 // nagrania i zebraniu kontekstów - podniesienie trwa 8-25 s
                 // i to jest największa pozycja w czasie takiej tury.
-                heard?.let { warmUpStreamForCode(it) }
+                heard?.let { codeStream.warmUpStreamForCode(it) }
                 // Mikrofon jest teraz wolny, a model dopiero myśli - pół
                 // sekundy pomiaru gwaru nie kosztuje czasu odpowiedzi.
                 if (settings.isNoiseAdaptiveVolume()) {
@@ -4182,7 +2645,7 @@ class AIOrchestrator(
                 }
                 val tekstZTelefonu = setAsidePhoneTranscript
                 val nagranieNiepotrzebne = tekstZTelefonu != null && glassesCapture != null &&
-                    (!wantsGlassesMic || glassesTranscriptMissedTooOften())
+                    (!wantsGlassesMic || transcriber.glassesTranscriptMissedTooOften())
                 val captured = if (nagranieNiepotrzebne) {
                     captureHandedOff = true
                     val doDziennika = glassesCapture
@@ -4192,7 +2655,7 @@ class AIOrchestrator(
                     diag.event(
                         DiagFormat.Phase.TRANSKRYPCJA,
                         "mam tekst z telefonu - nie czekam na nagranie z okularów",
-                        mapOf("mikrofonOkularów" to wantsGlassesMic, "pustychPrzepisań" to glassesTranscriptMisses)
+                        mapOf("mikrofonOkularów" to wantsGlassesMic, "pustychPrzepisań" to transcriber.glassesTranscriptMisses)
                     )
                     null
                 } else {
@@ -4247,16 +2710,16 @@ class AIOrchestrator(
                 // Po [GLASSES_TRANSCRIPT_MAX_MISSES] pustych próbach z rzędu,
                 // gdy tekst z telefonu leży, nie przepisujemy - do pierwszej
                 // tury bez tekstu z telefonu albo pierwszego sukcesu.
-                val skipGlassesTranscript = phoneFallback != null && glassesTranscriptMissedTooOften()
+                val skipGlassesTranscript = phoneFallback != null && transcriber.glassesTranscriptMissedTooOften()
                 val glassesHeard = when {
                     captured?.hasAudio != true -> null
                     // Kto WYŁĄCZYŁ mikrofon okularów, ten ma dostać stare
                     // zachowanie: gotowy tekst z telefonu bez dopłaty czasowej.
                     !wantsGlassesMic && phoneFallback != null -> null
                     skipGlassesTranscript -> null
-                    else -> captured.pcm?.let { transcribeGlassesAudio(it, languageTagFor(language)) }
+                    else -> captured.pcm?.let { transcriber.transcribeGlassesAudio(it, languageTagFor(language)) }
                         .also { wynik ->
-                            glassesTranscriptMisses = if (wynik.isNullOrBlank()) glassesTranscriptMisses + 1 else 0
+                            transcriber.glassesTranscriptMisses = if (wynik.isNullOrBlank()) transcriber.glassesTranscriptMisses + 1 else 0
                         }
                 }
                 if (captured?.hasAudio == true) {
@@ -4763,34 +3226,6 @@ class AIOrchestrator(
     @Volatile
     private var setAsidePhoneTranscript: String? = null
 
-    /**
-     * Puste przepisania nagrania okularów z rzędu - patrz [GLASSES_TRANSCRIPT_MAX_MISSES].
-     *
-     * Trwałe, nie w pamięci procesu: licznik zerowany przy każdym starcie
-     * aplikacji kosztował trzy daremne przepisania (po 1,5-4 s) na start - a
-     * na tym telefonie przepisanie nagrania z okularów nie oddało tekstu ani
-     * razu w ponad 250 próbach. Sukces zeruje licznik jak dotąd.
-     */
-    private var glassesTranscriptMisses: Int
-        get() = runtimePrefs.getInt(KEY_GLASSES_TRANSCRIPT_MISSES, 0)
-        set(value) {
-            runtimePrefs.edit().putInt(KEY_GLASSES_TRANSCRIPT_MISSES, value).apply()
-        }
-
-    private val runtimePrefs by lazy {
-        context.getSharedPreferences(RUNTIME_PREFS, android.content.Context.MODE_PRIVATE)
-    }
-
-    /**
-     * Czy przepisanie nagrania z okularów milczy od tylu prób, że przy gotowym
-     * tekście z telefonu nie warto na nie czekać. Z włączoną transkrypcją w
-     * chmurze próbujemy zawsze - to inna, dużo lepsza droga niż ta, która
-     * milczała.
-     */
-    private fun glassesTranscriptMissedTooOften(): Boolean =
-        !settings.isCloudTranscriptionEnabled() &&
-            glassesTranscriptMisses >= GLASSES_TRANSCRIPT_MAX_MISSES
-
     /** Pamięć o tym, co już powiedziano o łączu - patrz [ConnectionAnnouncer]. */
     private val announcer = ConnectionAnnouncer()
 
@@ -4955,11 +3390,11 @@ class AIOrchestrator(
             stopLiveConversation("przycisk na okularach (${action::class.simpleName})")
             return
         }
-        if (_earTranslation.value && _earTwoWay.value && action == ButtonAction.QUICK_QUESTION) {
+        if (earTranslation.value && earTwoWay.value && action == ButtonAction.QUICK_QUESTION) {
             myTurn(zOkularów = true)
             return
         }
-        if (_earTranslation.value) {
+        if (earTranslation.value) {
             stopEarTranslation("przycisk na okularach")
             // Wciśnięcie samo włączyło okulary w nasłuch (tak działa ich
             // przycisk AI) - bez końca sesji nadawały dalej, choć nikt już
@@ -5209,7 +3644,7 @@ class AIOrchestrator(
         // [CONFIRMATION_VOICE_TTL_MS] - wiszące godzinę wysyłało zaległy SMS na
         // "zrób zdjęcie" - a wypowiedź musi składać się WYŁĄCZNIE ze słów
         // zgody/odmowy ("dodaj mleko" i "zrób zdjęcie" to polecenia, nie "tak").
-        val pending = _pendingActionConfirmation.value
+        val pending = pendingActionConfirmation.value
         if (pending != null && System.currentTimeMillis() - pending.createdAtMs > CONFIRMATION_VOICE_TTL_MS) {
             diag.event(DiagFormat.Phase.AKCJA, "potwierdzenie wygasło - głosem już nie przyjmuję")
         }
@@ -5225,7 +3660,7 @@ class AIOrchestrator(
                 pl.victor.app.lists.ListCommands.parse(textQuestion) == null
             }?.let { pl.victor.app.actions.EmailVoice.correction(textQuestion) }
             if (emailDraft != null && remark != null) {
-                reviseEmailDraft(emailDraft, remark)
+                actionFlow.reviseEmailDraft(emailDraft, remark)
                 return
             }
             val reply = pl.victor.app.actions.ConfirmationReply.parseStrict(textQuestion)
@@ -5249,7 +3684,7 @@ class AIOrchestrator(
         // Nowa tura to koniec czekania na odpowiedź głosem: dwa nasłuchy na
         // jednym mikrofonie blokują się nawzajem. Samo okno zostaje - decyzja
         // ma dokąd wrócić.
-        confirmationJob?.cancel()
+        actionFlow.stopListeningForConfirmation()
 
         // === KOMENDY STERUJĄCE ROZMOWĄ (persona, reset) - zanim cokolwiek innego ===
         // Muszą być sprawdzone przed detekcją akcji: "bądź Sterna" nie pasuje do
@@ -5260,7 +3695,7 @@ class AIOrchestrator(
             // frazy "Hey Lens" w okularach ani nie wznawiał nasłuchu rozmowy.
             // Stan zostaje, jeśli komenda sama go ustawiła (tryb, który trzyma
             // mikrofon - tłumaczenie, spotkanie - pilnuje tego sam).
-            if (_state.value is OrchestratorState.Idle && !_earTranslation.value && !meetingHoldsMic()) {
+            if (_state.value is OrchestratorState.Idle && !earTranslation.value && !meetingHoldsMic()) {
                 _state.value = OrchestratorState.Completed("")
             }
             return
@@ -5284,7 +3719,7 @@ class AIOrchestrator(
                 if (custom.type == pl.victor.app.actions.ActionType.TAKE_PHOTO) {
                     handleUserTrigger(trigger, PHOTO_ON_DEMAND_QUESTION, forceVision = true)
                 } else {
-                    handleActions(listOf(custom), textQuestion)
+                    actionFlow.handleActions(listOf(custom), textQuestion)
                 }
                 return
             }
@@ -5323,7 +3758,7 @@ class AIOrchestrator(
                         DiagFormat.Phase.AKCJA, "odpowiedź na wiadomość - dosłownie, bez modelu",
                         mapOf("do" to (odp.adresat ?: "ostatnia"), "znaków" to odp.treść.length)
                     )
-                    handleActions(listOf(Action.ReplyMessage(odp.adresat, odp.treść)), textQuestion)
+                    actionFlow.handleActions(listOf(Action.ReplyMessage(odp.adresat, odp.treść)), textQuestion)
                     return
                 }
             }
@@ -5566,7 +4001,7 @@ class AIOrchestrator(
             if (textIsQuestion) {
                 actionDetector.detectNavigation(textQuestion)?.let { route ->
                     Log.i(TAG, "Warstwa 0: trasa do ${route.destination}")
-                    handleActions(listOf(route), textQuestion)
+                    actionFlow.handleActions(listOf(route), textQuestion)
                     return
                 }
             }
@@ -5649,7 +4084,7 @@ class AIOrchestrator(
                     handleUserTrigger(trigger, PHOTO_ON_DEMAND_QUESTION, forceVision = true)
                 } else {
                     Log.i(TAG, "Warstwa 0: ${critical.joinToString { it.type.name }}")
-                    handleActions(critical, textQuestion)
+                    actionFlow.handleActions(critical, textQuestion)
                 }
                 return
             }
@@ -5663,7 +4098,7 @@ class AIOrchestrator(
             val fallback = if (textIsQuestion) actionDetector.detect(textQuestion) else emptyList()
             if (fallback.isNotEmpty()) {
                 Log.i(TAG, "Warstwa 2 (brak AI): ${fallback.joinToString { it.type.name }}")
-                handleActions(fallback, textQuestion)
+                actionFlow.handleActions(fallback, textQuestion)
                 return
             }
             _state.value = OrchestratorState.Error("Brak klucza API. Ustawienia → Klucz API.")
@@ -5873,7 +4308,7 @@ class AIOrchestrator(
                 // Warunek jest celowo wąski - tylko gdy strumień już chodzi.
                 // Podnoszenie go pod jedno pytanie kosztuje circa 12 s i o tym
                 // ma decydować tryb, a nie ta gałąź.
-                val streamFrame = if (useVision && glassesManager.isLiveVisionRunning && codeStreamWarmup == null) {
+                val streamFrame = if (useVision && glassesManager.isLiveVisionRunning && codeStream.codeStreamWarmup == null) {
                     val wantsText = pl.victor.app.ai.VisionDetail.needsDetail(textQuestion)
                     glassesManager.liveFrame(detail = wantsText)?.also { frame ->
                         diag.event(
@@ -5881,11 +4316,11 @@ class AIOrchestrator(
                             mapOf("bajtów" to frame.size, "szczegół" to wantsText)
                         )
                     }?.let { frame ->
-                        if (pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)) scanStreamForCode(frame) else frame
+                        if (pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)) codeStream.scanStreamForCode(frame) else frame
                     }
                 } else {
                     null
-                } ?: streamFrameForText(useVision, textQuestion)
+                } ?: codeStream.streamFrameForText(useVision, textQuestion)
 
                 val captureResult = if (useVision && streamFrame == null) {
                     val preferredMode = pl.victor.app.ai.CaptureMode.valueOf(
@@ -6282,7 +4717,7 @@ class AIOrchestrator(
                 // wiedza kończy się na dacie treningu. Bez tego "jaki dziś
                 // dzień", "ile zostało do piątku" czy "umów na jutro na 15"
                 // były zgadywaniem podanym pewnym głosem.
-                val timeContext = buildTimeContext()
+                val timeContext = modelContext.buildTimeContext()
 
                 // 1e5. Notatki - gdy pytanie ich dotyczy. Odczytanie na żądanie
                 // ("przeczytaj notatki") poszło już warstwą 0; tu chodzi o
@@ -6308,9 +4743,9 @@ class AIOrchestrator(
                 // więc kosztuje to najdłuższy z nich, a nie ich sumę. Koszt
                 // znika sam, gdy tura ma transkrypcję.
                 val audioTurn = audioQuestion != null
-                val notesContext = buildNotesContext(textQuestion, force = audioTurn)
+                val notesContext = modelContext.buildNotesContext(textQuestion, force = audioTurn)
                 val messagesContext = messages.kontekst(textQuestion, wymuszone = audioTurn)
-                val contactsContext = runCatching { buildContactsContext(textQuestion) }.getOrNull()
+                val contactsContext = runCatching { modelContext.buildContactsContext(textQuestion) }.getOrNull()
 
                 // Fakty o użytkowniku idą do modelu ZAWSZE, bez bramki słów
                 // kluczowych - inaczej asystent, który wie, jak masz na imię,
@@ -6333,22 +4768,22 @@ class AIOrchestrator(
                 // async przewraca całą korutynę tury, a brak pogody nie może
                 // kosztować odpowiedzi.
                 val contextStartedAtMs = System.currentTimeMillis()
-                val memoryDeferred = async { runCatching { buildMemoryContext(textQuestion, notesInPrompt = notesContext != null, audioTurn = audioTurn) }.getOrNull() }
+                val memoryDeferred = async { runCatching { modelContext.buildMemoryContext(textQuestion, notesInPrompt = notesContext != null, audioTurn = audioTurn) }.getOrNull() }
                 val calendarDeferred =
-                    async { runCatching { buildCalendarContext(textQuestion, audioTurn) }.getOrNull() }
+                    async { runCatching { modelContext.buildCalendarContext(textQuestion, audioTurn) }.getOrNull() }
                 val gmailDeferred =
-                    async { runCatching { buildGmailContext(textQuestion, audioTurn) }.getOrNull() }
+                    async { runCatching { modelContext.buildGmailContext(textQuestion, audioTurn) }.getOrNull() }
                 val weatherDeferred =
-                    async { runCatching { buildWeatherContext(textQuestion, audioTurn) }.getOrNull() }
+                    async { runCatching { modelContext.buildWeatherContext(textQuestion, audioTurn) }.getOrNull() }
                 // Gdzie jesteśmy - przy pytaniach ZE ZDJĘCIEM (model widzi
                 // "kościół", a z położeniem wie, KTÓRY) i przy pytaniach O
                 // OKOLICĘ ("gdzie tu zjeść", "co ciekawego w pobliżu"). Patrz
                 // buildLocationContext.
                 val locationDeferred = async {
-                    runCatching { buildLocationContext(textQuestion, photos.isNotEmpty()) }.getOrNull()
+                    runCatching { modelContext.buildLocationContext(textQuestion, photos.isNotEmpty()) }.getOrNull()
                 }
                 val translationDeferred =
-                    async { runCatching { translateOcrIfRequested(textQuestion, ocrContext) }.getOrNull() }
+                    async { runCatching { modelContext.translateOcrIfRequested(textQuestion, ocrContext) }.getOrNull() }
 
                 // ...ALE NIE CZEKAMY NA NIE BEZ KOŃCA.
                 //
@@ -6558,7 +4993,7 @@ class AIOrchestrator(
                     )
                 }
                 fun buildStream(p: AIProvider): kotlinx.coroutines.flow.Flow<pl.victor.app.ai.AIResponseChunk> {
-                    (p as? pl.victor.app.ai.GeminiProvider)?.mapsLocation = mapsLocationForTurn
+                    (p as? pl.victor.app.ai.GeminiProvider)?.mapsLocation = modelContext.mapsLocationForTurn
                     // Prompt mówi "masz wyszukiwarkę Google" wg GŁÓWNEGO dostawcy. Gdy
                     // odpowiada zapasowy bez wyszukiwarki, model dalej to słyszał i
                     // zmyślał "aktualne" ceny - dopisujemy prawdę dla tej próby.
@@ -6615,7 +5050,7 @@ class AIOrchestrator(
                 // zmiana zachowania, nie tylko naprawa - user może wolieć jasny błąd
                 // od cichej podmiany providera.
                 val candidates = if (settings.isAutoProviderFallbackEnabled()) {
-                    fallbackProviderOrder(needsAudio = audioQuestion != null, needsImages = photos.isNotEmpty())
+                    providers.fallbackProviderOrder(needsAudio = audioQuestion != null, needsImages = photos.isNotEmpty())
                 } else {
                     listOf(settings.getActiveProvider())
                 }
@@ -6643,10 +5078,10 @@ class AIOrchestrator(
                     // bywa innym dostawcą niż główny. Numer próby wysyłał wtedy
                     // pytanie do martwego modelu głównego, podpisując to w
                     // dzienniku (i w odstawieniu) nazwą następnego w kolejce.
-                    val attemptProvider = if (attemptProviderId == currentProviderId) {
+                    val attemptProvider = if (attemptProviderId == providers.currentProviderId) {
                         provider
                     } else {
-                        buildProviderForFallback(attemptProviderId)
+                        providers.buildProviderForFallback(attemptProviderId)
                     }
                     try {
                         // LIMIT CZASU NA JEDNEGO DOSTAWCĘ.
@@ -6801,7 +5236,7 @@ class AIOrchestrator(
                         // opóźnieniem doliczonym do odpowiedzi.
                         if (pl.victor.app.ai.ProviderFailure.isMissingModel(e.message)) {
                             val martwyModel = settings.getSelectedModel(attemptProviderId)
-                            val pierwszyRaz = deadModels.zapamiętaj(attemptProviderId, martwyModel)
+                            val pierwszyRaz = providers.deadModels.zapamiętaj(attemptProviderId, martwyModel)
                             diag.event(
                                 DiagFormat.Phase.MODEL, "model nie istnieje - odstawiam go na tę sesję",
                                 mapOf(
@@ -6863,7 +5298,7 @@ class AIOrchestrator(
                             if (offlineActions.isNotEmpty()) {
                                 Log.i(TAG, "Warstwa 2 (brak sieci): ${offlineActions.joinToString { it.type.name }}")
                                 _state.value = OrchestratorState.Completed("")
-                                handleActions(offlineActions, textQuestion)
+                                actionFlow.handleActions(offlineActions, textQuestion)
                             } else {
                                 _state.value = OrchestratorState.Error(pl.victor.app.ai.OfflineFallback.SPEECH)
                                 announceTurnFailure(trigger, pl.victor.app.ai.OfflineFallback.SPEECH)
@@ -7081,7 +5516,7 @@ class AIOrchestrator(
                 // handleActions co dla głosu/przycisku, więc DIRECT nadal pyta o
                 // potwierdzenie, a SAFE nadal tylko otwiera zewnętrzną apkę.
                 if (executableActions.isNotEmpty()) {
-                    handleActions(executableActions, textQuestion)
+                    actionFlow.handleActions(executableActions, textQuestion)
                 }
 
                 // 4. Historia - zapisz pierwsze zdjęcie do pliku (miniatura)
@@ -7263,17 +5698,17 @@ class AIOrchestrator(
             // czegoś, co ma być krótkie.
             val calendarDeferred = async {
                 if (preferences.includeCalendar) {
-                    runCatching { buildCalendarContext("", force = true) }.getOrNull()
+                    runCatching { modelContext.buildCalendarContext("", force = true) }.getOrNull()
                 } else null
             }
             val weatherDeferred = async {
                 if (preferences.includeWeather) {
-                    runCatching { buildWeatherContext("", force = true) }.getOrNull()
+                    runCatching { modelContext.buildWeatherContext("", force = true) }.getOrNull()
                 } else null
             }
             val mailDeferred = async {
                 if (preferences.includeMail) {
-                    runCatching { buildGmailContext("", force = true) }.getOrNull()
+                    runCatching { modelContext.buildGmailContext("", force = true) }.getOrNull()
                 } else null
             }
             val material = pl.victor.app.proactive.DailyBriefing.Material(
@@ -7316,105 +5751,22 @@ class AIOrchestrator(
         }
     }
 
-    /** Stan filmu nagrywanego na komendę - patrz [handleGlassesCommand]. */
-    private var videoAutoStopJob: kotlinx.coroutines.Job? = null
-
-    @Volatile
-    private var videosBeforeRecording: Int? = null
-
     private val lowBattery = pl.victor.app.conversation.LowBatteryWatch()
 
-    /**
-     * Film, bateria i liczba plików - na głos.
-     *
-     * Okulary nagrywały film tylko z przycisku na oprawce albo z ekranu
-     * diagnostyki, a stanu baterii nie dało się usłyszeć wcale.
-     *
-     * @return `false`, gdy komenda nie dotyczy tego, co teraz trwa (np.
-     *   "zakończ nagrywanie" bez filmu - to może być spotkanie)
-     */
-    private fun handleGlassesCommand(komenda: pl.victor.app.conversation.GlassesCommand): Boolean {
-        val język = settings.getResponseLanguage()
-        fun powiedz(tekst: String) {
-            audio.speak(tekst, language = język)
-            _state.value = OrchestratorState.Completed(tekst)
-        }
-        if (komenda is pl.victor.app.conversation.GlassesCommand.VideoStop &&
-            !glassesManager.videoRecording.value
-        ) {
-            return false
-        }
-        if (!glassesManager.isConnected()) {
-            powiedz("Okulary nie są połączone.")
-            return true
-        }
-        when (komenda) {
-            is pl.victor.app.conversation.GlassesCommand.VideoStart -> {
-                if (settings.isCameraFree()) {
-                    powiedz(CAMERA_OFF_SPEECH)
-                    return true
-                }
-                if (glassesManager.videoRecording.value) {
-                    powiedz("Już nagrywam. Powiedz: zatrzymaj nagrywanie.")
-                    return true
-                }
-                videosBeforeRecording = glassesManager.mediaCount.value?.videos
-                diag.event(
-                    DiagFormat.Phase.AKCJA, "film na komendę: start",
-                    mapOf("filmówPrzed" to videosBeforeRecording)
-                )
-                // Zapowiedź PRZED komendą: inaczej nagrałaby się na filmie.
-                scope.launch {
-                    conversationalMode.onAiStartedSpeaking()
-                    runCatching {
-                        audio.speakAndAwait("Nagrywam. Powiedz: zatrzymaj nagrywanie.", language = język)
-                    }
-                    conversationalMode.onAiFinishedSpeaking()
-                    glassesManager.startVideoRecording()
-                }
-                _state.value = OrchestratorState.Completed("Nagrywam film.")
-                // Zapomniany film zapełnia pamięć okularów i wyczerpuje baterię.
-                videoAutoStopJob?.cancel()
-                videoAutoStopJob = scope.launch {
-                    delay(VIDEO_MAX_MS)
-                    if (glassesManager.videoRecording.value) stopVideoOnCommand(automatycznie = true)
-                }
-            }
-            is pl.victor.app.conversation.GlassesCommand.VideoStop -> stopVideoOnCommand(automatycznie = false)
-            is pl.victor.app.conversation.GlassesCommand.Battery -> {
-                val poziom = glassesManager.batteryLevel.value
-                if (poziom == null) {
-                    runCatching { glassesManager.requestBatteryLevel() }
-                    powiedz("Okulary nie podały jeszcze stanu baterii. Zapytaj za chwilę.")
-                } else {
-                    powiedz(
-                        "Okulary mają $poziom procent baterii" +
-                            if (glassesManager.isCharging.value) " i się ładują." else "."
-                    )
-                }
-            }
-            is pl.victor.app.conversation.GlassesCommand.MediaCount -> {
-                _state.value = OrchestratorState.Completed("Sprawdzam pamięć okularów.")
-                scope.launch {
-                    val licznik = glassesManager.mediaCountNow() ?: glassesManager.mediaCount.value
-                    powiedz(
-                        if (licznik == null) {
-                            "Okulary nie podały liczby plików."
-                        } else {
-                            "W okularach: zdjęć ${licznik.images}, filmów ${licznik.videos}, " +
-                                "nagrań ${licznik.records}."
-                        }
-                    )
-                }
-            }
-        }
-        return true
-    }
+    /** Film, bateria, pliki i głośność na głos - patrz [pl.victor.app.orchestrator.GlassesCommandHandler]. */
+    private val glassesCommands = pl.victor.app.orchestrator.GlassesCommandHandler(
+        settings = settings,
+        scope = scope,
+        audio = audio,
+        glassesManager = glassesManager,
+        conversationalMode = conversationalMode,
+        state = _state,
+        dziennik = { diag },
+        ciszaWTle = { ciszaWTle() }
+    )
 
     /** Kafelek "Zakończ" przy filmie na ekranie głównym - ta sama droga co głos. */
-    fun stopVideoFromUi() {
-        if (glassesManager.videoRecording.value) stopVideoOnCommand(automatycznie = false)
-    }
+    fun stopVideoFromUi() = glassesCommands.stopVideoFromUi()
 
     /**
      * Kafelek "Wiadomości": nowe wiadomości na głos - przez zwykłą turę, bo
@@ -7422,83 +5774,6 @@ class AIOrchestrator(
      */
     fun readNewMessages() {
         handleUserTrigger(TriggerSource.TEXT_INPUT, READ_MESSAGES_PROMPT)
-    }
-
-    /**
-     * Kończy film i SPRAWDZA, czy okulary go zapisały.
-     *
-     * Komenda nagrywania nie była dotąd potwierdzona na sprzęcie z tej drogi,
-     * więc nie mówimy "zapisane" na wiarę: porównujemy liczbę filmów przed i po.
-     */
-    private fun stopVideoOnCommand(automatycznie: Boolean) {
-        videoAutoStopJob?.cancel()
-        videoAutoStopJob = null
-        glassesManager.stopVideoRecording()
-        val przed = videosBeforeRecording
-        videosBeforeRecording = null
-        _state.value = OrchestratorState.Completed("Zatrzymuję nagrywanie.")
-        scope.launch {
-            delay(VIDEO_SAVE_SETTLE_MS)
-            val po = glassesManager.mediaCountNow()?.videos
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.AKCJA, "film na komendę: stop",
-                    mapOf("filmówPrzed" to przed, "filmówPo" to po, "automatycznie" to automatycznie)
-                )
-            }
-            val wstęp = if (automatycznie) "Zatrzymałem nagrywanie po pięciu minutach. " else ""
-            val speech = wstęp + when {
-                przed != null && po != null && po > przed ->
-                    "Film zapisany w okularach. Znajdziesz go w galerii aplikacji."
-                przed != null && po != null ->
-                    "Okulary nie zgłosiły nowego filmu - możliwe, że się nie nagrał."
-                else -> "Nagrywanie zatrzymane."
-            }
-            if (automatycznie && !ciszaWTle()) return@launch
-            audio.speak(speech, language = settings.getResponseLanguage())
-            _state.value = OrchestratorState.Completed(speech)
-        }
-    }
-
-    /**
-     * "Głośniej" / "ciszej" / "głośność na 70 procent".
-     *
-     * Zmienia DWIE rzeczy naraz, bo na głośność mowy w okularach składają się
-     * obie: poziom strumienia w telefonie i własna głośność okularów (z
-     * dziennika: muzyka stała na 10 z 16, czyli nigdy na pełnej). Własną
-     * głośność okularów ustawiamy komendą SDK - patrz
-     * [pl.victor.app.ble.GlassesVolume].
-     */
-    private fun applyVolumeCommand(komenda: pl.victor.app.conversation.VolumeCommand) {
-        val kroki = when (komenda) {
-            is pl.victor.app.conversation.VolumeCommand.Up -> 1
-            is pl.victor.app.conversation.VolumeCommand.Down -> -1
-            is pl.victor.app.conversation.VolumeCommand.SetPercent -> 0
-        }
-        val procent = (komenda as? pl.victor.app.conversation.VolumeCommand.SetPercent)?.percent
-        val telefon = audio.changeSpeechVolume(kroki, procent)
-        val cel = glassesManager.volume.value
-            ?.takeIf { it.writable && glassesManager.canSetVolume() }
-            ?.let { if (procent != null) it.withSpeechPercent(procent) else it.withSpeechStepped(kroki) }
-        val okulary = cel != null && glassesManager.setGlassesVolume(cel)
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.AKCJA, "głośność na komendę",
-                mapOf(
-                    "kroki" to kroki, "procent" to procent,
-                    "telefonProcent" to telefon,
-                    "okularyProcent" to cel?.percent(), "okularyWysłane" to okulary
-                )
-            )
-        }
-        val wynik = if (okulary) cel?.percent() else telefon
-        val speech = when {
-            wynik == null -> "Nie mogę teraz zmienić głośności."
-            wynik >= 100 -> "Głośność maksymalna."
-            else -> "Głośność $wynik procent."
-        }
-        audio.speak(speech, language = settings.getResponseLanguage())
-        _state.value = OrchestratorState.Completed(speech)
     }
 
     private fun handleMetaCommand(text: String): Boolean {
@@ -7527,7 +5802,7 @@ class AIOrchestrator(
         // GŁOŚNOŚĆ - lokalnie, bo model zapytany o czynność odpowiada na nią
         // słowami, a głośności nie ruszy.
         pl.victor.app.conversation.VolumeCommand.parse(text)?.let { komenda ->
-            applyVolumeCommand(komenda)
+            glassesCommands.applyVolumeCommand(komenda)
             runCatching { diag.endTurn("głośność") }
             return true
         }
@@ -7535,7 +5810,7 @@ class AIOrchestrator(
         // KOMENDY SAMYCH OKULARÓW - film, bateria, liczba plików. Przed
         // spotkaniem, bo "zakończ nagrywanie" przy trwającym filmie dotyczy filmu.
         pl.victor.app.conversation.GlassesCommand.parse(text)?.let { komenda ->
-            if (handleGlassesCommand(komenda)) {
+            if (glassesCommands.handleGlassesCommand(komenda)) {
                 runCatching { diag.endTurn("komenda okularów") }
                 return true
             }
@@ -7600,8 +5875,8 @@ class AIOrchestrator(
                 // Języki z komendy wygrywają z Ustawieniami - i zostają w
                 // nich, tak jak po zmianie w panelu.
                 setEarTranslationLanguages(języki.first, języki.second)
-                if (!_earTranslation.value) startEarTranslation()
-            } else if (_earTranslation.value) {
+                if (!earTranslation.value) startEarTranslation()
+            } else if (earTranslation.value) {
                 stopEarTranslation("powtórzona komenda głosowa")
             } else {
                 startEarTranslation()
@@ -7769,667 +6044,6 @@ class AIOrchestrator(
     }
 
     /**
-     * Wykonuje wykryte akcje bez udziału AI (szybko, offline).
-     * Wspiera SAFE i DIRECT mode.
-     */
-    private fun handleActions(actions: List<Action>, originalText: String) {
-        Log.i(TAG, "Executing ${actions.size} action(s) from: \"$originalText\"")
-
-        // NAJPIERW ROZWIĄŻ KONTAKT, POTEM PYTAJ - nie odwrotnie.
-        //
-        // Kolejność była tu odwrócona i to jest usterka w jedynym miejscu
-        // aplikacji, które powstrzymuje rzeczy nieodwracalne: pytanie o zgodę
-        // budowało się z NAZWY, KTÓRĄ PADŁA („zadzwonić do Janusza?"), a zamiana
-        // nazwy na numer szła dopiero w executeActionsList, PO potwierdzeniu.
-        // Człowiek zatwierdzał więc imię, które sam wypowiedział, a dzwoniło do
-        // kogoś, kogo wybrał dopasowywacz - i nie miał jak tego zauważyć.
-        //
-        // Teraz pytanie niesie nazwę Z KSIĄŻKI ADRESOWEJ. Przy dwóch podobnych
-        // kontaktach to jedyny moment, w którym da się powiedzieć „nie ten".
-        //
-        // Rozwiązywanie jest zawieszalne, więc całość idzie w korutynę. Wołający
-        // i tak nie czekali na wynik - executeActionsList sam startuje własną -
-        // ale kolejność WEWNĄTRZ tej funkcji nie zmienia się ani o krok: nic nie
-        // wykonuje się, dopóki potwierdzenie nie zapadnie.
-        scope.launch {
-            // `?: it` jest tu istotne: nierozwiązany kontakt zostaje surowy i
-            // trafia do executeActionsList, które oddaje dotychczasowe
-            // „Nie znalazłem kontaktu". Rozwiązany ma już numer w `to`, więc
-            // tamtejsze powtórne rozwiązywanie rozpozna go jako numer i nie
-            // pójdzie drugi raz do książki adresowej.
-            val prepared = actions.map { resolveContactIfNeeded(it) ?: it }
-            // MAIL: adres z kontaktów albo ze skrzynki, temat "Re: ..." i wątek -
-            // też PRZED pytaniem, z tego samego powodu co kontakt wyżej.
-            val ready = mutableListOf<Action>()
-            for (a in prepared) {
-                when (val r = prepareEmail(a)) {
-                    null -> ready.add(a)
-                    is pl.victor.app.actions.EmailPreparer.Result.Ready -> ready.add(r.action)
-                    is pl.victor.app.actions.EmailPreparer.Result.Problem -> {
-                        conversationalMode.onAiStartedSpeaking()
-                        audio.speakAndAwait(r.speech, language = settings.getResponseLanguage())
-                        _state.value = OrchestratorState.Completed(r.speech)
-                        conversationalMode.onAiFinishedSpeaking()
-                        return@launch
-                    }
-                }
-            }
-            handlePreparedActions(ready)
-        }
-    }
-
-    /**
-     * Przygotowanie maila z wpisem w dzienniku - bez treści, tylko adresat,
-     * długość i skąd wziął się adres.
-     *
-     * @return `null`, gdy akcja nie dotyczy poczty
-     */
-    private suspend fun prepareEmail(a: Action): pl.victor.app.actions.EmailPreparer.Result? {
-        val r = try {
-            emailPreparer.prepare(a)
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Przygotowanie maila nie powiodło się", e)
-            pl.victor.app.actions.EmailPreparer.Result.Problem(
-                "Nie udało się przygotować maila. Spróbuj jeszcze raz.",
-                "wyjątek: ${e.javaClass.simpleName}"
-            )
-        }
-        when (r) {
-            null -> {}
-            is pl.victor.app.actions.EmailPreparer.Result.Ready -> runCatching {
-                val m = r.action
-                diag.event(
-                    DiagFormat.Phase.AKCJA, "mail przygotowany",
-                    mapOf(
-                        "adresat" to (m.resolvedName ?: m.to),
-                        "skąd" to r.source,
-                        "odpowiedź" to m.isReply,
-                        "znaków" to m.body.length,
-                        "przezApi" to emailPreparer.canSendDirectly()
-                    )
-                )
-            }
-            is pl.victor.app.actions.EmailPreparer.Result.Problem -> runCatching {
-                diag.event(
-                    DiagFormat.Phase.AKCJA, "mail NIE przygotowany",
-                    mapOf("powód" to r.reason, "typ" to a.type.name)
-                )
-            }
-        }
-        return r
-    }
-
-    /**
-     * Druga połowa [handleActions], na akcjach z rozwiązanymi już kontaktami.
-     *
-     * Wydzielona wyłącznie po to, żeby bramka potwierdzeń została dokładnie tym,
-     * czym była - jednym ciągiem warunków bez korutyn w środku.
-     */
-    private fun handlePreparedActions(prepared: List<Action>) {
-        val mode = ActionMode.fromName(settings.getActionMode())
-        // Odpowiedź na wiadomość: ustalamy adresata PRZED pytaniem, żeby
-        // "Wysłać?" mówiło, do kogo i gdzie naprawdę pójdzie.
-        val actions = prepared.map { a ->
-            if (a is Action.ReplyMessage && a.resolvedName == null) {
-                pl.victor.app.messages.MessageInbox.adresat(a.to)
-                    ?.let { m -> a.copy(resolvedName = "${m.nadawca}, ${m.aplikacja}", klucz = m.klucz) } ?: a
-            } else {
-                a
-            }
-        }
-        // Wysłanie wiadomości jest nieodwracalne - pytamy niezależnie od trybu
-        // akcji, chyba że użytkownik wyłączył to w ustawieniach.
-        val replyConfirm = settings.isMessageReplyConfirmed() &&
-            actions.any { it is Action.ReplyMessage && it.resolvedName != null }
-        Log.d(TAG, "Action mode: $mode")
-
-        // W trybie DIRECT - sprawdź czy akcja wymaga potwierdzenia.
-        //
-        // Kalendarz pyta ZAWSZE, także w trybie SAFE, bo w SAFE też zapisujemy
-        // go teraz naprawdę (patrz executeActionsList). Wcześniej SAFE otwierał
-        // formularz w aplikacji kalendarza i to kliknięcie "Zapisz" było całym
-        // potwierdzeniem - skoro formularza już nie ma, pytanie musi paść tutaj.
-        val calendarViaApi = actions.any { it is Action.CreateCalendarEvent } &&
-            directActionExecutor.canWriteCalendarDirectly()
-        // Mail przez Gmail API idzie naprawdę i nieodwracalnie - pytamy ZAWSZE,
-        // w każdym trybie akcji, bez wyłącznika (tak jak kalendarz).
-        val emailViaApi = actions.any { it is Action.SendEmail } &&
-            directActionExecutor.canSendEmailDirectly()
-        if (mode == ActionMode.DIRECT || calendarViaApi || replyConfirm || emailViaApi) {
-            // POTWIERDZENIE MUSI OBJĄĆ KAŻDĄ AKCJĘ Z LISTY, NIE TYLKO PIERWSZĄ.
-            //
-            // Niżej `executeActionsList(actions)` wykonuje CAŁĄ listę. Pytanie o
-            // samą pierwszą znaczyło, że przy dwóch znacznikach od modelu
-            // użytkownik potwierdzał "Wyślij SMS do Ani?", a przy okazji
-            // wykonywało się połączenie, o które nikt nie zapytał. To jedyne
-            // miejsce w całym przeglądzie, które mogło zrobić coś
-            // nieodwracalnego bez zgody.
-            val required = actions.mapNotNull {
-                if (it is Action.ReplyMessage) {
-                    if (replyConfirm && it.resolvedName != null) {
-                        ActionConfirmation.Required(
-                            title = "Wysłać odpowiedź?",
-                            message = "Do: ${it.resolvedName}. Treść: ${it.body}",
-                            confirmText = "📤 Wyślij"
-                        )
-                    } else {
-                        null
-                    }
-                } else {
-                    directActionExecutor.canExecuteDirect(it) as? ActionConfirmation.Required
-                }
-            }
-            if (required.isNotEmpty()) {
-                val single = required.singleOrNull()
-                val title = single?.title ?: "Potwierdź wszystko, co zaraz zrobię"
-                val message = single?.message
-                    ?: required.joinToString("\n") { "• ${it.message}" }
-                // Zapisz akcje do późniejszego wykonania.
-                //
-                // TE SAME akcje, które opisało pytanie - z rozwiązanymi już
-                // kontaktami. Gdyby tu wróciła lista sprzed rozwiązania, człowiek
-                // potwierdzałby jedno, a wykonywałoby się drugie.
-                _pendingActionConfirmation.value = PendingActionConfirmation(
-                    actions = actions,
-                    title = title,
-                    message = message,
-                    confirmText = required.first().confirmText,
-                    cancelText = required.first().cancelText
-                )
-                // Zapytaj GŁOSEM i wysłuchaj odpowiedzi.
-                //
-                // Dotąd jedyną drogą było kliknięcie w oknie na telefonie -
-                // czyli asystent, którego cała reszta działa bez rąk, na
-                // ostatnim kroku kazał sięgnąć po telefon. Zgłoszone: "żeby
-                // dało się zatwierdzić głosowo, a nie klikając".
-                //
-                // Okno zostaje: gdy odpowiedź jest niejednoznaczna albo nie
-                // padnie wcale, decyzja ma dokąd wrócić.
-                //
-                // Mail czytamy w kolejności adresat - temat - treść, a "Wysłać?"
-                // pada NA KOŃCU: decyzja po usłyszeniu całości.
-                val singleEmail = (actions.singleOrNull() as? Action.SendEmail)
-                    ?.takeIf { single != null }
-                if (singleEmail != null) {
-                    runCatching {
-                        diag.event(
-                            DiagFormat.Phase.AKCJA, "mail: pytam o wysłanie",
-                            mapOf(
-                                "adresat" to (singleEmail.resolvedName ?: singleEmail.to),
-                                "odpowiedź" to singleEmail.isReply,
-                                "znaków" to singleEmail.body.length
-                            )
-                        )
-                    }
-                }
-                listenForConfirmation(
-                    singleEmail?.let {
-                        pl.victor.app.actions.EmailVoice.confirmationSpeech(
-                            recipient = it.resolvedName ?: it.to,
-                            subject = it.subject,
-                            body = it.body,
-                            isReply = it.isReply
-                        )
-                    } ?: "$title. $message"
-                )
-                return
-            }
-        }
-
-        // Tryb SAFE lub brak potwierdzenia - wykonaj
-        executeActionsList(actions)
-    }
-
-    /**
-     * Wykonuje listę akcji (używane zarówno po wykryciu jak i po potwierdzeniu).
-     */
-    private fun executeActionsList(rawActions: List<Action>) {
-        // PROWADZENIE Z ASYSTENTEM CZY BEZ - rozstrzygane TUTAJ, raz.
-        //
-        // Powiedziane wprost ("prowadź do apteki z asystentem") wygrywa; gdy nie
-        // padło, decyduje ustawienie. Rozstrzygamy przed wykonaniem, żeby
-        // wykonawca i wypowiadany komunikat mówiły o tym samym - inaczej
-        // asystent meldowałby jedno, a robił drugie.
-        val actions = rawActions.map { action ->
-            if (action is Action.Navigate && action.assist == RouteAssist.FROM_SETTINGS) {
-                action.copy(
-                    assist = if (settings.isRouteAssistEnabled()) RouteAssist.ON
-                    else RouteAssist.OFF
-                )
-            } else {
-                action
-            }
-        }
-
-        // Obsługa accessibility (nie wymaga trybu DIRECT/SAFE)
-        val wszystkieDostępności = actions.filter {
-            it is Action.ReadText || it is Action.DescribeScene ||
-            it is Action.StartNavigation || it is Action.StopAccessibility
-        }
-        // Tryby dla niewidomych patrzą kamerą - w trybie bez kamery zostaje
-        // tylko ich wyłączenie.
-        val accessibilityActions = if (settings.isCameraFree()) {
-            wszystkieDostępności.filter { it is Action.StopAccessibility }
-        } else {
-            wszystkieDostępności
-        }
-        if (accessibilityActions.size < wszystkieDostępności.size) {
-            audio.speak(CAMERA_OFF_SPEECH, language = settings.getResponseLanguage())
-            if (actions.size == wszystkieDostępności.size && accessibilityActions.isEmpty()) {
-                _state.value = OrchestratorState.Completed(CAMERA_OFF_SPEECH)
-                conversationalMode.onAiFinishedSpeaking()
-                return
-            }
-        }
-
-        if (accessibilityActions.isNotEmpty()) {
-            scope.launch {
-                accessibilityActions.forEach { action ->
-                    when (action) {
-                        // W trybie czytania powtórzone "czytaj" znaczy KOLEJNĄ
-                        // stronę, nie ponowne włączenie trybu. Zdjęcie powstaje
-                        // dokładnie wtedy - patrz AccessibilityService.requestRead.
-                        is Action.ReadText ->
-                            if (!accessibility.requestRead()) accessibility.enableReadText()
-                        is Action.DescribeScene -> {
-                            // Jednorazowy opis
-                            val desc = accessibility.describeOnce()
-                            if (desc != null) {
-                                audio.speak(desc, language = "pl")
-                            }
-                        }
-                        is Action.StartNavigation -> accessibility.enableNavigate()
-                        is Action.StopAccessibility -> accessibility.disable()
-                        // Lista jest wcześniej przefiltrowana do akcji dostępności,
-                        // ale Kotlin wymaga wyczerpania when po typie Action.
-                        else -> Log.w(TAG, "Nieoczekiwana akcja w trybie dostępności: ${action.type}")
-                    }
-                }
-            }
-            // Jeśli wszystko to accessibility, zwracamy bezpośrednio.
-            // Idle nie przechodzi przez wznowienie nasłuchu (patrz init), więc
-            // tryb konwersacyjny wznawiamy tu wprost.
-            if (actions.size == accessibilityActions.size) {
-                _state.value = OrchestratorState.Idle
-                conversationalMode.onAiFinishedSpeaking()
-                return
-            }
-        }
-
-        // Trasa z asystentem: mapy mówią, GDZIE SKRĘCIĆ, a my - W CO SIĘ NIE
-        // WYWRÓCIĆ. To są dwie różne rzeczy i dopiero razem dają to, o co w tej
-        // aplikacji chodzi; osobno każda z nich ma sens i każda działa sama.
-        //
-        // Włączamy przed odpaleniem map, bo za chwilę na wierzchu będzie cudza
-        // aplikacja i nasz kod nie dostanie już okazji.
-        if (!settings.isCameraFree() &&
-            actions.any { it is Action.Navigate && it.assist == RouteAssist.ON }
-        ) {
-            scope.launch { accessibility.enableNavigate() }
-        }
-
-        val mode = ActionMode.fromName(settings.getActionMode())
-
-        scope.launch {
-            val results = actions.map { rawAction ->
-                // SmartActionDetector wyciąga z mowy samo słowo po "do"/"pod" - to
-                // zwykle nazwa kontaktu, nie numer. ActionExecutor (tryb SAFE) wsadza
-                // ten tekst wprost do intencji "tel:"/"smsto:" - Android nie rozwiązuje
-                // tam nazw, więc "zadzwoń do mamy" bez tego kroku nigdy nie działało
-                // w domyślnym trybie. Rozwiązanie robimy raz, przed obiema ścieżkami.
-                val action = resolveContactIfNeeded(rawAction)
-                if (action == null) {
-                    val name = (rawAction as? Action.SendSms)?.to
-                        ?: (rawAction as? Action.MakeCall)?.to
-                    val failure = ActionResult.Failed("Nie znalazłem kontaktu „$name” w książce adresowej.")
-                    Log.w(TAG, "Kontakt nierozwiązany: $name")
-                    return@map rawAction to failure
-                }
-
-                // Spróbuj DIRECT jeśli tryb DIRECT i akcja to obsługuje
-                // Kalendarz: pisz przez konto Google, jeśli jest podłączone -
-                // NIEZALEŻNIE od trybu akcji. To była przyczyna zgłoszenia
-                // "mówi, że dodaje coś do kalendarza, a finalnie nie dodaje":
-                // domyślny tryb SAFE odpalał Intent, czyli otwierał formularz na
-                // telefonie i meldował sukces, choć nikt niczego nie zapisał.
-                val calendarViaApi = action is Action.CreateCalendarEvent &&
-                    directActionExecutor.canWriteCalendarDirectly()
-                // Mail z włączoną pocztą: wysyłka przez Gmail API (zatwierdzona
-                // wyżej pytaniem "Wysłać?"). Dotąd nawet po potwierdzeniu szedł
-                // do aplikacji poczty, bo tej gałęzi tu nie było.
-                val emailViaApi = action is Action.SendEmail &&
-                    directActionExecutor.canSendEmailDirectly()
-                val result = if (calendarViaApi || emailViaApi || (mode == ActionMode.DIRECT &&
-                    (action is Action.SendSms || action is Action.MakeCall ||
-                        action is Action.CreateCalendarEvent))) {
-                    val direct = directActionExecutor.executeDirect(action)
-                    if (action is Action.SendEmail) {
-                        runCatching {
-                            diag.event(
-                                DiagFormat.Phase.AKCJA,
-                                if (direct is ActionResult.Success) "mail WYSŁANY" else "mail NIE wysłany",
-                                mapOf(
-                                    "adresat" to (action.resolvedName ?: action.to),
-                                    "odpowiedź" to action.isReply,
-                                    "znaków" to action.body.length,
-                                    "powód" to (direct as? ActionResult.Failed)?.reason
-                                )
-                            )
-                        }
-                    }
-                    // Fallback do SAFE jeśli direct się nie udało - ale nie dla
-                    // maila: po nieudanej wysyłce otwarcie aplikacji poczty
-                    // zgłosiłoby "Otworzyłem", a człowiek musi usłyszeć, że mail
-                    // NIE poszedł.
-                    if (direct is ActionResult.Failed && !emailViaApi) {
-                        Log.w(TAG, "DIRECT failed, falling back to SAFE: ${direct.reason}")
-                        actionExecutor.execute(action)
-                    } else direct
-                } else {
-                    actionExecutor.execute(action)
-                }
-                Log.d(TAG, "Action ${action.type}: $result")
-                action to result
-            }
-
-            // Zbuduj odpowiedź głosową
-            val speech = when {
-                results.all { it.second is ActionResult.Success } -> {
-                    // Z WYNIKU, nie z opisu akcji. Opis akcji to zamiar ("dodaj
-                    // do kalendarza") i brzmi jak wykonany, cokolwiek się
-                    // wydarzyło - a część dróg tylko otwiera okno i czeka na
-                    // użytkownika. Wynik wie, co naprawdę zaszło.
-                    // Akcje bez własnego komunikatu zbieramy w JEDNO zdanie, a
-                    // nie w łańcuszek "OK, ... OK, ...". Te z komunikatem mówią
-                    // same za siebie i idą po nim.
-                    val plain = results
-                        .filter { (_, r) -> (r as ActionResult.Success).message == GENERIC_ACTION_SUCCESS }
-                        .map { (action, _) -> action.description.lowercase() }
-                    val spoken = results
-                        .map { (_, r) -> (r as ActionResult.Success).message }
-                        .filter { it != GENERIC_ACTION_SUCCESS }
-                    val head = if (plain.isEmpty()) null else "OK, ${plain.joinToString(", ")}."
-                    (listOfNotNull(head) + spoken).joinToString(" ")
-                }
-                results.any { it.second is ActionResult.Failed } -> {
-                    val failed = results.filter { it.second is ActionResult.Failed }
-                    "Nie udało się: ${failed.joinToString { (it.second as ActionResult.Failed).reason }}"
-                }
-                else -> "Wykonano"
-            }
-
-            // Mów i pokaż. Czekamy na koniec wypowiedzi, bo w trybie
-            // konwersacyjnym zaraz potem wraca nasłuch - inaczej mikrofon
-            // łapałby potwierdzenie akcji jako kolejne pytanie.
-            conversationalMode.onAiStartedSpeaking()
-            audio.speakAndAwait(speech, language = settings.getResponseLanguage())
-            _state.value = OrchestratorState.Completed(speech)
-            conversationalMode.onAiFinishedSpeaking()
-        }
-    }
-
-    /**
-     * Zadaje pytanie o potwierdzenie na głos i słucha odpowiedzi.
-     *
-     * ## Dlaczego niejednoznaczna odpowiedź NIE wykonuje akcji
-     * Bo te akcje wysyłają maile, dzwonią i dodają wydarzenia - żadnej z nich nie
-     * da się cofnąć słowem. Przy głosie nie ma drugiego ekranu, na którym dałoby
-     * się złapać pomyłkę, więc wszystko poza wyraźnym "tak" zostawia decyzję
-     * użytkownikowi. Okno na telefonie czeka dalej.
-     *
-     * @param question pytanie do wypowiedzenia
-     */
-    /**
-     * Nasłuch potwierdzenia - do przerwania, gdy rusza nowa tura.
-     *
-     * Bez tego naciśnięcie przycisku w trakcie pytania "Dodać do kalendarza?"
-     * zostawiało DWA nasłuchy walczące o jeden mikrofon: ten i ten z nowej
-     * tury. Zgłoszone jako "gdy ekran potwierdzenia się wyświetla, zadawanie
-     * pytań się blokuje".
-     */
-    private var confirmationJob: kotlinx.coroutines.Job? = null
-
-    private fun listenForConfirmation(question: String) {
-        confirmationJob?.cancel()
-        confirmationJob = scope.launch {
-            val language = settings.getResponseLanguage()
-            diag.event(
-                DiagFormat.Phase.AKCJA, "pytam o potwierdzenie",
-                mapOf("pytanie" to question.take(80))
-            )
-            // ŁĄCZE DO MIKROFONU ZESTAWU ZESTAWIAMY W TLE, W TRAKCIE PYTANIA.
-            //
-            // Do mikrofonu okularów prowadzi wyłącznie profil rozmowy (SCO), a
-            // jego negocjacja trwa do czterech sekund. Gdyby szła po pytaniu,
-            // użytkownik usłyszałby "Dodać do kalendarza?" i musiał odczekać w
-            // ciszy, zanim ktokolwiek zacznie go słuchać - a "tak" pada od razu
-            // po pytaniu i przepadłoby. Czytanie pytania trwa mniej więcej tyle
-            // samo, więc jedno chowa się za drugim.
-            val routing = async { runCatching { audio.beginConversationRouting() }
-                .getOrDefault(false) }
-            // speakAndAwait, nie speak: nasłuch nie może ruszyć w trakcie
-            // czytania pytania, bo nagrałby własny głos asystenta.
-            audio.speakAndAwait(question, language = language)
-            val routed = routing.await()
-
-            // PROFIL ROZMOWY ZWALNIAMY W `finally`, A NIE PO NASŁUCHU.
-            //
-            // Odkąd ten nasłuch da się PRZERWAĆ (robi to każda nowa tura -
-            // patrz `confirmationJob`), zwolnienie ustawione po nim wykonałoby
-            // się tylko wtedy, gdy nikt nie przerwał. Naciśnięcie przycisku w
-            // trakcie pytania zostawiałoby podniesione SCO na zawsze - czyli
-            // dokładnie tę usterkę, przez którą wczoraj urywały się odpowiedzi.
-            val heard = try {
-                if (_pendingActionConfirmation.value == null) return@launch
-                runCatching {
-                    conversationalMode.listenOnce(
-                        languageTag = languageTagFor(language),
-                        timeoutMs = CONFIRMATION_TIMEOUT_MS
-                    )
-                }.getOrNull()
-            } finally {
-                // withContext(NonCancellable): zwykłe wywołanie zawieszalne w
-                // `finally` anulowanej korutyny rzuca natychmiast i nie zdąży
-                // niczego zwolnić.
-                if (routed) {
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
-                        audio.endConversationRouting()
-                    }
-                }
-            }
-
-            // PRZERWANY NASŁUCH TO NIE "NIEZROZUMIAŁA ODPOWIEDŹ".
-            //
-            // Nową turą ten nasłuch jest anulowany, ale runCatching wyżej
-            // połyka anulowanie i oddaje null - a to parsowało się jako
-            // UNCLEAR i "Nie odczytałem odpowiedzi..." wchodziło w nową turę,
-            // ucinając jej sygnał nasłuchu albo odpowiedź.
-            currentCoroutineContext().ensureActive()
-
-            // Użytkownik mógł w tym czasie kliknąć w oknie - wtedy nie ma już
-            // czego potwierdzać i nie wolno wykonać akcji drugi raz.
-            if (_pendingActionConfirmation.value == null) return@launch
-
-            // MAIL: poprawka ("popraw...", "zmień...") PRZED tak/nie - parse()
-            // czytałoby "popraw, napisz że nie przyjdę" jako odmowę.
-            val emailDraft = _pendingActionConfirmation.value?.actions?.singleOrNull() as? Action.SendEmail
-            val remark = emailDraft?.let { pl.victor.app.actions.EmailVoice.correction(heard) }
-            if (emailDraft != null && remark != null) {
-                reviseEmailDraft(emailDraft, remark)
-                return@launch
-            }
-            // MAIL: cisza to rezygnacja (szkic zostaje w Gmailu) - mail nie
-            // może wisieć bez końca w oknie, którego nikt w okularach nie widzi.
-            if (emailDraft != null && pl.victor.app.actions.EmailVoice.isSilence(heard)) {
-                diag.event(DiagFormat.Phase.AKCJA, "mail: cisza po pytaniu o wysłanie - anuluję")
-                cancelAction()
-                return@launch
-            }
-
-            when (pl.victor.app.actions.ConfirmationReply.parse(heard)) {
-                pl.victor.app.actions.ConfirmationReply.Reply.YES -> {
-                    Log.i(TAG, "Potwierdzenie głosem: tak")
-                    diag.event(
-                        DiagFormat.Phase.AKCJA, "potwierdzenie głosem",
-                        mapOf("odpowiedź" to "TAK", "usłyszano" to heard?.take(40))
-                    )
-                    confirmAction()
-                }
-                pl.victor.app.actions.ConfirmationReply.Reply.NO -> {
-                    Log.i(TAG, "Potwierdzenie głosem: nie")
-                    diag.event(
-                        DiagFormat.Phase.AKCJA, "potwierdzenie głosem",
-                        mapOf("odpowiedź" to "NIE", "usłyszano" to heard?.take(40))
-                    )
-                    cancelAction()
-                }
-                pl.victor.app.actions.ConfirmationReply.Reply.UNCLEAR -> {
-                    diag.event(
-                        DiagFormat.Phase.AKCJA, "potwierdzenie NIEROZSTRZYGNIĘTE",
-                        mapOf("usłyszano" to heard?.take(40))
-                    )
-                    // Milczenie i wahanie traktujemy tak samo: nie wykonujemy.
-                    Log.i(TAG, "Potwierdzenie głosem nierozstrzygnięte: \"$heard\"")
-                    audio.speak(
-                        "Nie odczytałem odpowiedzi, więc nic nie robię. " +
-                            "Powiedz \"tak\" albo potwierdź w aplikacji.",
-                        language = language
-                    )
-                }
-            }
-        }
-    }
-
-    /**
-     * Potwierdzenie akcji przez usera (z dialogu albo głosem).
-     */
-    fun confirmAction() {
-        val pending = _pendingActionConfirmation.value
-        if (pending != null) {
-            Log.i(TAG, "User confirmed action: ${pending.actions}")
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.AKCJA, "akcja POTWIERDZONA",
-                    mapOf("co" to (if (pending.homeCommand != null) "DOM" else pending.actions.joinToString { it.type.name }))
-                )
-            }
-            confirmationJob?.cancel()
-            _pendingActionConfirmation.value = null
-            // Polecenie dla domu (zamek, brama, alarm) nie jest akcją telefonu -
-            // po "tak" idzie do Home Assistant.
-            val dom = pending.homeCommand
-            if (dom != null) {
-                runHomeCommand(TriggerSource.VOICE, dom, dom)
-            } else {
-                executeActionsList(pending.actions)
-            }
-        }
-    }
-
-    /**
-     * Anulowanie akcji przez usera.
-     */
-    fun cancelAction() {
-        val pending = _pendingActionConfirmation.value
-        if (pending != null) {
-            Log.i(TAG, "User cancelled action: ${pending.actions}")
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.AKCJA, "akcja ANULOWANA",
-                    mapOf("co" to pending.actions.joinToString { it.type.name })
-                )
-            }
-            confirmationJob?.cancel()
-            _pendingActionConfirmation.value = null
-            // Niewysłany mail zostaje w szkicach Gmaila - ułożona treść nie
-            // przepada przez jedno "nie" albo chwilę ciszy.
-            val emailDraft = pending.actions.singleOrNull() as? Action.SendEmail
-            if (emailDraft != null && directActionExecutor.canSendEmailDirectly()) {
-                scope.launch {
-                    val saved = runCatching { directActionExecutor.saveEmailDraft(emailDraft) }
-                        .getOrDefault(false)
-                    runCatching {
-                        diag.event(
-                            DiagFormat.Phase.AKCJA, "mail anulowany",
-                            mapOf(
-                                "adresat" to (emailDraft.resolvedName ?: emailDraft.to),
-                                "szkic" to saved
-                            )
-                        )
-                    }
-                    val speech = if (saved) "Anulowano. Mail został w szkicach Gmaila." else "Anulowano."
-                    conversationalMode.onAiStartedSpeaking()
-                    audio.speakAndAwait(speech, language = settings.getResponseLanguage())
-                    _state.value = OrchestratorState.Idle
-                    conversationalMode.onAiFinishedSpeaking()
-                }
-                return
-            }
-            audio.speak("Anulowano", language = settings.getResponseLanguage())
-            _state.value = OrchestratorState.Idle
-            // Idle nie wznawia nasłuchu samo (patrz init) - a anulowanie kończy
-            // turę tak samo jak wykonanie akcji.
-            conversationalMode.onAiFinishedSpeaking()
-        }
-    }
-
-    /**
-     * Poprawka szkicu maila według uwagi użytkownika - i ponowne "Wysłać?".
-     *
-     * Model dostaje szkic i uwagę, oddaje temat i treść (patrz
-     * [pl.victor.app.actions.EmailVoice.revisePrompt]). Adresat i wątek się NIE
-     * zmieniają - tych model nie dotyka, a odpowiedź zostaje odpowiedzią. Gdy
-     * model zawiedzie, wraca poprzednia wersja, a nie pusty mail.
-     *
-     * Osobna korutyna, bo bywa wołane z wnętrza nasłuchu potwierdzenia, który
-     * nowe pytanie zaraz przerywa.
-     */
-    private fun reviseEmailDraft(draft: Action.SendEmail, remark: String) {
-        confirmationJob?.cancel()
-        _pendingActionConfirmation.value = null
-        val who = draft.resolvedName ?: draft.to
-        runCatching {
-            diag.event(
-                DiagFormat.Phase.AKCJA, "mail: poprawka szkicu",
-                mapOf("adresat" to who, "uwaga" to remark.take(120))
-            )
-        }
-        scope.launch {
-            audio.speak("Poprawiam.", language = settings.getResponseLanguage())
-            val reply = askModelPlain(
-                pl.victor.app.actions.EmailVoice.revisePrompt(who, draft.subject, draft.body, remark)
-            )
-            val revised = pl.victor.app.actions.EmailVoice.parseRevision(reply, draft.subject)
-            val next = if (revised == null) {
-                runCatching {
-                    diag.event(DiagFormat.Phase.AKCJA, "mail: poprawka nieudana - zostaje poprzednia wersja")
-                }
-                audio.speakAndAwait(
-                    "Nie udało się poprawić - zostaje poprzednia wersja.",
-                    language = settings.getResponseLanguage()
-                )
-                draft
-            } else {
-                // Odpowiedź trzyma temat "Re: ..." - zmiana tematu rozbiłaby wątek
-                // u adresata, który skleja go po temacie.
-                draft.copy(
-                    subject = if (draft.isReply) draft.subject else revised.first,
-                    body = revised.second
-                )
-            }
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.AKCJA, "mail: nowa wersja",
-                    mapOf("adresat" to who, "znaków" to next.body.length)
-                )
-            }
-            handlePreparedActions(listOf(next))
-        }
-    }
-
-    /**
      * Sprawdza czy user chce informacji o URL z QR.
      * Słowa kluczowe: "co to", "co tam jest", "co na stronie", "co jest na stronie",
      * "co na tej", "co to za", "powiedz mi o", "czytaj", "streść"
@@ -8446,219 +6060,22 @@ class AIOrchestrator(
         return triggers.any { lower.contains(it) } || text.isBlank()
     }
 
+    /** Obraz ze strumienia pod litery i kody - patrz [pl.victor.app.orchestrator.CodeStreamScanner]. */
+    private val codeStream = pl.victor.app.orchestrator.CodeStreamScanner(
+        settings = settings,
+        scope = scope,
+        glassesManager = glassesManager,
+        qrScanner = qrScanner,
+        ocrReader = ocrReader,
+        state = _state,
+        dziennik = { diag }
+    )
+
     /**
      * Sprawdza czy user chce OCR - czytanie tekstu z otoczenia.
      * Słowa kluczowe: "przeczytaj", "co pisze", "co jest napisane",
      * "przetłumacz", "menu", "etykieta", "tablica"
      */
-    /**
-     * Ostatnia droga do LITER, gdy Wi-Fi Direct tu nie wstaje.
-     *
-     * ## Czemu to nie przeczy wąskiemu warunkowi wyżej
-     * Tamten mówi: nie podnoś strumienia pod jedno pytanie, bo kosztuje circa
-     * 12 s, a migawka odda ostre zdjęcie szybciej. To prawda, DOPÓKI migawka
-     * faktycznie je oddaje. Gdy bezpiecznik Wi-Fi Direct jest zatrzaśnięty,
-     * wiemy z POMIARU, że nie odda - wróci miniatura, na której liter nie ma.
-     * Wtedy wybór nie brzmi "szybciej czy wolniej", tylko "czekanie czy
-     * odpowiedź zgadywana z szarej plamy".
-     *
-     * ## Ile to naprawdę kosztuje, łącznie z gorszym przypadkiem
-     * Circa 12 s, gdy strumień wstaje - i to jest przypadek typowy. Gdy NIE
-     * wstaje, [pl.victor.app.ble.VictorManager.startLiveVision] czeka na
-     * pierwszą klatkę do dwudziestu sekund, zanim się podda. Tyle wynosi
-     * sufit, i dopiero po nim schodzimy na zwykłą drogę ze zdjęciem.
-     *
-     * Ten sufit jest świadomie przyjęty: dotyczy wyłącznie pytań O LITERY przy
-     * zatrzaśniętym bezpieczniku, czyli sytuacji, w której druga droga jest
-     * już zmierzona jako nieskuteczna. Gdyby pomiar z terenu pokazał, że
-     * strumień też tam nie wstaje, ten warunek trzeba będzie odwołać - i
-     * dlatego wynik idzie do dziennika z czasem.
-     *
-     * Dziennik z 21:55 pokazuje obie strony naraz: pobranie oryginału zawiodło
-     * po 10,4 s i model dostał 17 761 bajtów, a strumień w tym samym czasie
-     * oddawał 1600x1200 bez zarzutu.
-     *
-     * ## Warunki są wąskie z rozmysłu
-     * Wchodzi wyłącznie wtedy, gdy pytanie DOTYCZY liter, strumień jeszcze nie
-     * stoi, a bezpiecznik jest zatrzaśnięty. Przy "co przede mną jest"
-     * miniatura wystarcza i nikt nie ma czekać 12 sekund za nic.
-     *
-     * Strumień jest po wszystkim gaszony: podniesiony pod jedno pytanie i
-     * zostawiony trzymałby łącze oraz baterię okularów bez powodu.
-     */
-    /** Strumień podnoszony z wyprzedzeniem pod pytanie o kod - patrz [warmUpStreamForCode]. */
-    @Volatile
-    private var codeStreamWarmup: kotlinx.coroutines.Deferred<Boolean>? = null
-
-    /**
-     * Zaczyna podnosić strumień, gdy z samego nasłuchu wiadomo, że pytanie
-     * dotyczy kodu. Odbiera go [streamFrameForText] (i on go gasi); gdy tura
-     * po strumień nie sięgnie, gasimy go sami po [CODE_WARMUP_MAX_MS].
-     */
-    private fun warmUpStreamForCode(heard: String) {
-        if (settings.isCameraFree()) return
-        if (!pl.victor.app.ai.VisionDetail.isAboutCode(heard)) return
-        if (codeStreamWarmup != null || glassesManager.isLiveVisionRunning) return
-        if (!glassesManager.isConnected()) return
-        val warm = scope.async { glassesManager.startLiveVision() }
-        codeStreamWarmup = warm
-        runCatching { diag.event(DiagFormat.Phase.ZDJĘCIE, "strumień pod kod rusza z wyprzedzeniem") }
-        scope.launch {
-            delay(CODE_WARMUP_MAX_MS)
-            if (codeStreamWarmup === warm) {
-                codeStreamWarmup = null
-                if (warm.await()) glassesManager.stopLiveVision()
-            }
-        }
-    }
-
-    private suspend fun streamFrameForText(useVision: Boolean, textQuestion: String): ByteArray? {
-        if (!useVision) return null
-        if (glassesManager.isLiveVisionRunning && codeStreamWarmup == null) return null
-        // KOD IDZIE STRUMIENIEM OD RAZU, nie dopiero po zatrzaśniętym
-        // bezpieczniku. Dziennik z biegu 152: pierwsza próba szła migawką -
-        // miniatura bez kodu, potem 41 s nieudanego dołączania do sieci
-        // okularów - a druga, już strumieniem, miała klatkę 1600x1200 po
-        // dziewięciu sekundach. Do kodu potrzeba pełnej rozdzielczości i kilku
-        // szans (patrz [scanStreamForCode]), a migawka daje jedną miniaturę.
-        val forCode = pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)
-        // Ostateczne pytanie jednak nie o kod - strumień z wyprzedzeniem
-        // gasimy od razu, żeby nie wisiał przy robieniu zdjęcia.
-        if (!forCode) {
-            codeStreamWarmup?.let { warm ->
-                codeStreamWarmup = null
-                scope.launch { if (warm.await()) glassesManager.stopLiveVision() }
-            }
-        }
-        if (!glassesManager.wifiDirectKnownBroken && !forCode) return null
-        // "co jest pod tym kodem kreskowym" łapie isAboutCode, ale nie
-        // needsDetail - i w biegu 153 szło przez to migawką, z miniaturą.
-        if (!forCode && !pl.victor.app.ai.VisionDetail.needsDetail(textQuestion)) return null
-
-        _state.value = OrchestratorState.Capturing(
-            progress = 1,
-            total = 1,
-            label = "Ostre zdjęcie tu nie przechodzi - biorę obraz ze strumienia. " +
-                "Chwilę to potrwa."
-        )
-        val startedAt = System.currentTimeMillis()
-        val warm = codeStreamWarmup?.also { codeStreamWarmup = null }
-        // try obejmuje TAKŻE czekanie na start: anulowanie tury w trakcie 8-25 s
-        // podnoszenia strumienia zostawiało go włączonego na stałe (bateria
-        // okularów), bo finally zaczynało się dopiero po udanym starcie.
-        var failedCleanly = false
-        return try {
-            if (!(warm?.await() ?: glassesManager.startLiveVision())) {
-                // POWÓD, NIE TYLKO CZAS. Pierwszy pomiar z terenu oddał samo
-                // "nie wstał ms=1242" i trzeba było szukać przyczyny trzy wiersze
-                // wyżej, w zdarzeniu z innej fazy. A przyczyna była jedna i
-                // banalna: wyłączone Wi-Fi w telefonie, które blokuje OBIE drogi
-                // do ostrego obrazu naraz.
-                diag.event(
-                    DiagFormat.Phase.ZDJĘCIE, "strumień dla liter nie wstał",
-                    mapOf(
-                        "ms" to (System.currentTimeMillis() - startedAt),
-                        "powód" to glassesManager.lastTransferFailure
-                    )
-                )
-                failedCleanly = true
-                null
-            } else {
-                glassesManager.liveFrame(detail = true)?.also { frame ->
-                    diag.event(
-                        DiagFormat.Phase.ZDJĘCIE, "litery ze strumienia zamiast miniatury",
-                        mapOf(
-                            "bajtów" to frame.size,
-                            "ms" to (System.currentTimeMillis() - startedAt)
-                        )
-                    )
-                }?.let { frame ->
-                    // Skanowanie PRZED zgaszeniem strumienia - po nim nie ma już
-                    // skąd brać kolejnych klatek.
-                    if (pl.victor.app.ai.VisionDetail.isAboutCode(textQuestion)) scanStreamForCode(frame) else frame
-                }
-            }
-        } finally {
-            if (!failedCleanly) glassesManager.stopLiveVision()
-        }
-    }
-
-    /**
-     * Przy pytaniu o kod: skanuje KOLEJNE klatki strumienia, aż któraś da kod.
-     *
-     * Dziennik z biegu 152 (17:51): strumień wstał, pierwsza klatka 1600x1200
-     * przyszła sekundę po starcie - i kodu na niej nie było. Jedna klatka to
-     * jeden moment: kamera tuż po starcie jeszcze ustawia ostrość i
-     * naświetlenie, a głowa się rusza. Aplikacja gasiła wtedy strumień i szła
-     * po "ostre zdjęcie", które przez Wi-Fi okularów nie doszło, więc po 30 s
-     * skończyło się miniaturą bez kodu. Strumień daje kilka klatek na sekundę
-     * w pełnej rozdzielczości, a ML Kit czyta klatkę w ułamku sekundy - kilka
-     * sekund skanowania to kilkanaście szans zamiast jednej.
-     *
-     * @return klatka z kodem, a gdy żadna go nie dała - ostatnia klatka
-     */
-    private suspend fun scanStreamForCode(first: ByteArray): ByteArray {
-        if (qrScanner.scanImageBytesSync(first).isNotEmpty()) return first
-        val startedAt = System.currentTimeMillis()
-        var last = first
-        var klatek = 1
-        var seen = glassesManager.liveFrameCount()
-        var ostatniOcr = 0L
-        _state.value = OrchestratorState.Capturing(
-            progress = 1,
-            total = 1,
-            label = "Szukam kodu w obrazie z okularów - patrz chwilę na kod."
-        )
-        while (System.currentTimeMillis() - startedAt < CODE_STREAM_SCAN_MS) {
-            delay(CODE_STREAM_POLL_MS)
-            val count = glassesManager.liveFrameCount()
-            if (count == seen) continue
-            seen = count
-            val frame = glassesManager.liveFrame(detail = true) ?: continue
-            klatek++
-            last = frame
-            if (qrScanner.scanImageBytesSync(frame).isNotEmpty()) {
-                diag.event(
-                    DiagFormat.Phase.ZDJĘCIE, "kod znaleziony w strumieniu",
-                    mapOf("klatek" to klatek, "ms" to (System.currentTimeMillis() - startedAt))
-                )
-                return frame
-            }
-            // Co druga klatka - środek kadru w powiększeniu, patrz scanCenterSync.
-            if (klatek % 2 == 0 && qrScanner.scanCenterSync(frame).isNotEmpty()) {
-                diag.event(
-                    DiagFormat.Phase.ZDJĘCIE, "kod znaleziony w strumieniu - środek kadru",
-                    mapOf("klatek" to klatek, "ms" to (System.currentTimeMillis() - startedAt))
-                )
-                return frame
-            }
-            // CYFRY POD KRESKAMI TEŻ SĄ KODEM.
-            //
-            // W biegu 153 to one, odczytane z ostatniej klatki, rozpoznały
-            // produkt (Alpro), gdy kreski nie wyszły z żadnej z 38. Rozpoznanie
-            // tekstu jest wolniejsze, więc najwyżej raz na [CODE_STREAM_OCR_MS].
-            val teraz = System.currentTimeMillis()
-            if (teraz - ostatniOcr >= CODE_STREAM_OCR_MS) {
-                ostatniOcr = teraz
-                val cyfry = runCatching { ocrReader.readBytes(frame) }.getOrNull()
-                    ?.takeIf { it.isSuccess }
-                    ?.let { pl.victor.app.vision.EanFromText.find(it.fullText) }
-                if (cyfry != null) {
-                    diag.event(
-                        DiagFormat.Phase.ZDJĘCIE, "cyfry kodu odczytane ze strumienia",
-                        mapOf("kod" to cyfry, "klatek" to klatek, "ms" to (teraz - startedAt))
-                    )
-                    return frame
-                }
-            }
-        }
-        diag.event(
-            DiagFormat.Phase.ZDJĘCIE, "strumień bez kodu",
-            mapOf("klatek" to klatek, "ms" to (System.currentTimeMillis() - startedAt))
-        )
-        return last
-    }
-
     private fun shouldRunOcr(text: String): Boolean {
         val triggers = listOf(
             "przeczytaj", "co pisze", "co napisane", "co tu pisze",
@@ -8682,142 +6099,6 @@ class AIOrchestrator(
     fun getConversationSize(): Int = conversationContext.size()
 
     /**
-     * Publikuje model wynikający z BIEŻĄCYCH ustawień, bez tworzenia providera i bez sieci.
-     *
-     * [_currentModelId] było dotąd aktualizowane wyłącznie w [getOrCreateProvider], czyli
-     * dopiero przy pierwszym realnym zapytaniu do AI. Po zmianie modelu w ustawieniach
-     * badge na ekranie głównym pokazywał więc poprzedni model aż do następnego pytania.
-     * Ekran główny woła to przy wejściu i po powrocie z ustawień.
-     */
-    fun publishConfiguredModel() {
-        val providerId = settings.getActiveProvider()
-        _currentModelId.value = settings.getSelectedModel(providerId)
-            ?: pl.victor.app.data.ModelRegistry.defaultFor(providerId)?.id
-    }
-
-    // === Private ===
-
-    private suspend fun getOrCreateProvider(): AIProvider {
-        val providerId = settings.getActiveProvider()
-
-        val apiKey = settings.getApiKey(providerId)
-            ?: throw AIProviderException(
-                "Brak klucza API dla $providerId. Ustaw go w ustawieniach.",
-                providerId = providerId,
-                isRetryable = false
-            )
-
-        val preferredModel = settings.getSelectedModel(providerId)
-
-        // Sprawdź czy trzeba odświeżyć (provider lub model się zmienił)
-        if (currentProviderId != providerId || activeModelId != preferredModel) {
-
-            // Walidacja modeli u providera (async, nie blokuje UI)
-            val available = try {
-                val validator = RemoteModelValidator(apiKey, providerId)
-                validator.fetchAvailableModels()
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not validate models", e)
-                emptyList()
-            }
-
-            // Stwórz provider z resolverem
-            val withMetadata = AIProviderFactory.create(
-                providerId = providerId,
-                apiKey = apiKey,
-                context = context,
-                preferredModelId = preferredModel,
-                availableFromProvider = available
-            )
-
-            currentProvider = withMetadata.provider
-            currentProviderId = providerId
-            activeModelId = withMetadata.modelId
-            _currentModelId.value = withMetadata.modelId  // publikuj dla UI
-
-            // Pokaż ostrzeżenie jeśli model jest deprecated lub zmigrowany
-            withMetadata.resolution.warning?.let { warning ->
-                _modelWarning.value = warning.toUserMessage()
-                Log.w(TAG, "Model warning: ${warning.toUserMessage()}")
-            }
-
-            // Jeśli automatyczna migracja - zaktualizuj ustawienia
-            if (withMetadata.resolution.source ==
-                pl.victor.app.data.ModelSource.AUTO_MIGRATED) {
-                withMetadata.resolution.warning?.let { warning ->
-                    if (warning is pl.victor.app.data.ModelWarning.AutoMigrated) {
-                        settings.setSelectedModel(providerId, warning.newModelId)
-                    }
-                }
-            }
-        }
-        return currentProvider!!
-    }
-
-    /**
-     * Kolejność providerów do próby: aktywny z Ustawień pierwszy, potem reszta
-     * providerów, dla których user w ogóle ma wpisany klucz API - w kolejności
-     * z [AIProviderFactory.supportedProviders]. Nie próbujemy providera bez klucza,
-     * bo to i tak od razu by zawiodło.
-     */
-    private fun fallbackProviderOrder(needsAudio: Boolean = false, needsImages: Boolean = false): List<String> {
-        val primary = settings.getActiveProvider()
-        val others = AIProviderFactory.supportedProviders()
-            .map { it.id }
-            .filter { it != primary && settings.hasApiKey(it) }
-            // Zapasowy dostawca musi UMIEĆ to, czego wymaga tura: nagranie i zdjęcia
-            // nie mają sensu dla modelu tekstowego - dostawał polecenie "odpowiedz
-            // na pytanie z nagrania" bez nagrania i odpowiadał (płatnie) bzdurę.
-            .filter { id ->
-                val info = pl.victor.app.data.ModelRegistry.defaultFor(id)
-                (!needsAudio || info?.supportsAudio == true) && (!needsImages || info?.supportsVision == true)
-            }
-        // DOSTAWCA Z MARTWYM MODELEM IDZIE NA KONIEC, NIE ZNIKA.
-        //
-        // Znikanie byłoby groźne: gdyby wszystkie okazały się martwe, kolejka
-        // zrobiłaby się pusta i tura padałaby na indeksie zamiast na modelu.
-        // Przesunięcie kosztuje tyle samo, a zachowuje ostatnią deskę ratunku.
-        return deadModels.przestaw(listOf(primary) + others) {
-            settings.getSelectedModel(it)
-        }
-    }
-
-    /**
-     * Buduje provider dla próby fallbacku - celowo NIE dotyka `currentProvider`/
-     * `currentProviderId` ani ustawień. Fallback jest jednorazowy, dla tego
-     * konkretnego zapytania - nie zmienia trwale wybranego providera usera.
-     */
-    private suspend fun buildProviderForFallback(providerId: String): AIProvider {
-        val apiKey = settings.getApiKey(providerId)
-            ?: throw AIProviderException(
-                "Brak klucza API dla $providerId",
-                providerId = providerId,
-                isRetryable = false
-            )
-        val preferredModel = settings.getSelectedModel(providerId)
-        val available = try {
-            RemoteModelValidator(apiKey, providerId).fetchAvailableModels()
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not validate models for fallback provider $providerId", e)
-            emptyList()
-        }
-        return AIProviderFactory.create(
-            providerId = providerId,
-            apiKey = apiKey,
-            context = context,
-            preferredModelId = preferredModel,
-            availableFromProvider = available
-        ).provider
-    }
-
-    /**
-     * Czyści aktywne ostrzeżenie (po wyświetleniu użytkownikowi).
-     */
-    fun clearModelWarning() {
-        _modelWarning.value = null
-    }
-
-    /**
      * Pobiera aktywną personę na podstawie ustawień.
      * Jeśli wybrano "custom" - używa wpisanego promptu.
      */
@@ -8836,133 +6117,10 @@ class AIOrchestrator(
         }
     }
 
-    /**
-     * Szuka w historii rozmów podobnych do bieżącego pytania i buduje z nich kontekst.
-     * Respektuje przełącznik "pamięć długoterminowa" w ustawieniach.
-     *
-     * @return fragment promptu albo `null` gdy wyłączone lub brak trafień
-     */
     /** Dociągnięcie wektorów pamięci po znaczeniu (np. po włączeniu w Ustawieniach). */
     fun requestSemanticIndexing(reason: String) = semanticMemory.requestSync(reason)
 
-    private suspend fun buildMemoryContext(
-        question: String,
-        notesInPrompt: Boolean = false,
-        audioTurn: Boolean = false
-    ): String? {
-        if (!settings.isLongTermMemoryEnabled()) return null
-        // PO ZNACZENIU, gdy włączone: "gdzie zostawiłem klucze?" znajduje
-        // notatkę "położyłem klucze na szafce", czego słowa nie umiały.
-        // Szuka w rozmowach, notatkach (w tym podsumowaniach spotkań) i
-        // faktach naraz; słowa nadal biorą udział w wyniku. Wektor pytania ma
-        // limit czasu, więc tura nie zwalnia - po nim zostają same słowa.
-        //
-        // Przy pytaniu NAGRANIEM `question` to tylko instrukcja ("odpowiedz na
-        // pytanie z nagrania"), bez słów użytkownika - jej wektor trafiałby w
-        // przypadkowe wpisy i kosztował zapytanie na nic. Taka tura idzie jak
-        // dotąd.
-        if (!audioTurn && settings.isSemanticMemoryEnabled()) {
-            try {
-                // Fakty z polecenia i - gdy pytanie dokleiło je w całości -
-                // notatki nie mogą wejść drugi raz.
-                val factsInPrompt = settings.getFacts()
-                    .take(pl.victor.app.memory.UserFacts.PROMPT_LIMIT)
-                    .map { pl.victor.app.memory.SemanticMemory.factDoc(it.text, it.createdAtMs).key }
-                    .toSet()
-                val outcome = semanticMemory.search(
-                    question,
-                    excludeKinds = if (notesInPrompt) setOf(pl.victor.app.memory.SemanticMemory.Kind.NOTATKA) else emptySet(),
-                    excludeKeys = factsInPrompt
-                )
-                return pl.victor.app.memory.SemanticMemory.buildPromptContext(outcome.docs)
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // Awaria nowej drogi nie może zabrać starej - schodzimy do słów.
-                Log.w(TAG, "Pamięć po znaczeniu niedostępna - szukam słowami", e)
-            }
-        }
-        return try {
-            val entries = history.getRecent(MEMORY_SEARCH_POOL)
-            if (entries.isEmpty()) return null
-
-            val matches = longTermMemory
-                .findSimilar(question, entries, limit = MEMORY_MAX_MATCHES)
-                .filter { it.score >= MEMORY_MIN_SCORE }
-            // Ślad także dla darmowej drogi - porównanie "ile znalazły słowa,
-            // ile znaczenie" wymaga obu wierszy w dzienniku.
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.KONTEKST, "pamięć: wyszukiwanie słowami",
-                    mapOf("rozmów" to entries.size, "zSłów" to matches.size)
-                )
-            }
-            if (matches.isEmpty()) return null
-
-            Log.i(TAG, "Pamięć: ${matches.size} podobnych rozmów (najlepsza ${matches.first().score})")
-            buildString {
-                append("Wcześniejsze rozmowy z tym użytkownikiem na podobny temat:\n")
-                matches.forEach { match ->
-                    append("- Pytanie: ").append(match.entry.userQuestion.take(200)).append('\n')
-                    append("  Odpowiedź: ").append(match.entry.aiResponse.take(300)).append('\n')
-                }
-                append("Wykorzystaj to jeśli pomaga, ale nie powtarzaj bez potrzeby.")
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Pamięć długoterminowa niedostępna", e)
-            null
-        }
-    }
-
-    /**
-     * Tłumaczy tekst odczytany przez OCR na język docelowy z ustawień,
-     * ale tylko gdy użytkownik faktycznie prosi o tłumaczenie.
-     */
-    private suspend fun translateOcrIfRequested(question: String, ocr: OCRResult?): String? {
-        if (ocr == null || !ocr.isSuccess || ocr.fullText.isBlank()) return null
-        if (!wantsTranslation(question)) return null
-
-        val target = settings.getTranslationTarget()
-        return try {
-            val source = settings.getResponseLanguage().take(2).lowercase()
-            // PRZYCIĘCIE MA BYĆ WIDOCZNE, NIE MILCZĄCE.
-            //
-            // Stało tu `ocr.fullText.take(1000)` - urwanie w połowie zdania bez
-            // żadnego śladu. Tłumaczenie wyglądało na kompletne i po prostu
-            // kończyło się w środku. Zgłoszone jako "gdy proszę o tłumaczenie
-            // większego tekstu, tłumaczy tylko fragment".
-            val cięcie = pl.victor.app.translation.LongTextCut.przytnij(ocr.fullText)
-            val translated = translator.translate(cięcie.tekst, source, target)
-            if (translated.isBlank() || translated == ocr.fullText) return null
-            val targetName = pl.victor.app.translation.SimultaneousTranslator.languageName(target)
-            Log.i(TAG, "Przetłumaczono OCR na $target (przycięte=${cięcie.przycięte})")
-            val ogon = if (cięcie.przycięte) {
-                "\n(To jest POCZĄTEK tekstu - reszta się nie zmieściła. " +
-                    "Powiedz to użytkownikowi jednym zdaniem na końcu.)"
-            } else {
-                ""
-            }
-            "Tłumaczenie odczytanego tekstu ($targetName):\n$translated$ogon"
-        } catch (e: Exception) {
-            Log.w(TAG, "Tłumaczenie OCR nie powiodło się", e)
-            null
-        }
-    }
-
-    /** Czy pytanie użytkownika dotyczy tłumaczenia. */
-    private fun wantsTranslation(question: String): Boolean {
-        val q = question.lowercase()
-        return TRANSLATION_KEYWORDS.any { q.contains(it) }
-    }
-
     companion object {
-        /** Klucze tematów kontekstu - patrz [openContextTopics]. */
-        private const val TOPIC_CALENDAR = "kalendarz"
-        private const val TOPIC_WEATHER = "pogoda"
-        private const val TOPIC_MAIL = "poczta"
-        private const val TOPIC_NOTES = "notatki"
-        private const val TOPIC_LOCATION = "położenie"
-
         /**
          * Wspólny prompt systemowy dla trybów dostępności.
          * Model widzi pojedyncze zdjęcie z okularów - nie ma czujnika odległości
@@ -9039,14 +6197,6 @@ class AIOrchestrator(
         const val SOURCE_AUDIO_TO_MODEL = "Bez transkrypcji - nagranie do modelu"
 
         /**
-         * Ile czekamy na "tak" albo "nie" po pytaniu o potwierdzenie.
-         *
-         * Krócej niż zwykły nasłuch: to jest odpowiedź na pytanie zamknięte, więc
-         * albo pada od razu, albo użytkownik sięga po telefon.
-         */
-        private const val CONFIRMATION_TIMEOUT_MS = 7_000L
-
-        /**
          * Bezpiecznik blokady uśpienia na czas NASŁUCHU.
          *
          * Nasłuch ma własny limit i nie może trwać dłużej - dziewięćdziesiąt sekund
@@ -9054,55 +6204,20 @@ class AIOrchestrator(
          */
         private const val LISTEN_WAKE_LOCK_MS = 90_000L
 
-        /**
-         * Po tylu nasłuchach bez dźwięku tłumaczenie ze słuchu samo się kończy.
-         *
-         * Tryb trzyma mikrofon i procesor - zostawiony włączony w kieszeni
-         * zjadłby baterię do rana. Pięć pustych nasłuchów to około minuta ciszy;
-         * krócej znaczyłoby wyłączać się w przerwie w rozmowie.
-         */
-        private const val EAR_MAX_PUSTYCH = 5
-
-        /** Tyle najdłużej czeka przekład Twojego zdania z modelu, potem tłumacz w telefonie. */
-        private const val MY_TURN_MODEL_MS = 6_000L
-
-        /** Najdłużej tyle czeka lista miejsc z OpenStreetMap (wspólny termin kontekstów i tak obowiązuje). */
-        private const val OSM_PLACES_MS = 4_000L
-
         /** Na świeże położenie przy pytaniu o odjazdy - przystanek obok to kilkadziesiąt metrów. */
         private const val TRANSIT_LOCATION_MS = 4_500L
 
         /** Overpass z trasami linii bywa wolniejszy niż zwykłe miejsca. */
         private const val TRANSIT_OSM_MS = 9_000L
 
-        /** Pytanie o telefon albo wiadomość do kogoś - patrz [buildContactsContext]. */
-        private val KONTAKT_PYTANIE = Regex(
-            """(zadzwo|dzwo[nń]|po[lł][aą]cz (si[eę] )?z|wybierz numer|napisz|wy[sś]lij|sms|esemes|wiadomo[sś][cć] do|odpisz|numer (do|telefonu)|kontakt)"""
-        )
-
         /** Tyle zapowiedź skrętu czeka na koniec bieżącej wypowiedzi. */
         private const val NAV_WAIT_MS = 4_000L
-
-        /** Ile czekamy na gotowość sesji na żywo, zanim przejdziemy na telefon. */
-        private const val EAR_LIVE_CONNECT_MS = 8_000L
 
         /** Ile najwyżej czekamy na położenie do instrukcji rozmowy na żywo. */
         private const val LIVE_LOCATION_MS = 1_500L
 
-        /** Co ile pętla na żywo zagląda, czy tryb wciąż trwa. */
-        private const val EAR_LIVE_POLL_MS = 250L
-
-        /** Po przekładzie z głośnika telefonu mikrofon milczy jeszcze tyle (pogłos). */
-        private const val EAR_LIVE_ECHO_TAIL_MS = 700L
-
-        /** Najdłuższe wyciszenie mikrofonu tłumacza z rzędu - patrz bezpiecznik w [earLiveLoop]. */
-        private const val EAR_LIVE_MAX_MUTE_MS = 10_000L
-
-        /** Co ile podsumowanie mikrofonu tłumacza w dzienniku. */
-        private const val EAR_LIVE_SUMMARY_MS = 10_000L
-
         /** Jak często pętla tłumaczenia sprawdza, czy skończyła się Twoja kolej. */
-        private const val EAR_TURN_POLL_MS = 200L
+        internal const val EAR_TURN_POLL_MS = 200L
 
         /** Ile po geście lub nasłuchu tło (przewodnik, wiadomości) milczy - patrz [ciszaWTle]. */
         private const val CISZA_PO_AKTYWNOŚCI_MS = 20_000L
@@ -9110,48 +6225,18 @@ class AIOrchestrator(
         /** Ile po wypowiedzi asystenta tło milczy - patrz [ciszaWTle]. */
         private const val CISZA_PO_MOWIE_MS = 8_000L
 
-        /** Po tylu pustych przepisaniach nagrania okularów z rzędu bierzemy od razu tekst z telefonu. */
-        private const val GLASSES_TRANSCRIPT_MAX_MISSES = 3
-
         /**
          * Najgłośniejsze okno (20 ms, RMS) nagrania z okularów, poniżej którego
          * nie ma w nim mowy. Z dzienników: nagrania bez mowy mają szczyt 100-360,
          * z mową - od ok. 1500 wzwyż.
          */
-        private const val RECORDING_SPEECH_PEAK = 800.0
-
-        /** Umówiona odpowiedź modelu "w nagraniu nie ma mowy" - patrz [transcribeWithModel]. */
-        private const val MODEL_NO_SPEECH = "BRAK"
-
-        /** Dłuższy "przepis" krótkiej wypowiedzi to model, który się rozgadał. */
-        private const val MODEL_TRANSCRIPT_MAX_CHARS = 400
-
-        /** Stan, który ma przetrwać restart aplikacji, a nie jest ustawieniem. */
-        private const val RUNTIME_PREFS = "victor_runtime"
-        private const val KEY_GLASSES_TRANSCRIPT_MISSES = "glasses_transcript_misses"
-
-        /** Po tylu ms nieodebrany strumień z wyprzedzeniem gaśnie - patrz [warmUpStreamForCode]. */
-        private const val CODE_WARMUP_MAX_MS = 75_000L
-
-        /** Jak długo skanować strumień w poszukiwaniu kodu - patrz [scanStreamForCode]. */
-        private const val CODE_STREAM_SCAN_MS = 6_000L
-
-        private const val CODE_STREAM_POLL_MS = 150L
-
-        /** Jak często w skanie strumienia czytać cyfry pod kodem. */
-        private const val CODE_STREAM_OCR_MS = 1_200L
+        internal const val RECORDING_SPEECH_PEAK = 800.0
 
         /** Okno, w którym ramka "ucisz" jest echem naszej komendy odtwarzania. */
         private const val PLAYBACK_ECHO_WINDOW_MS = 1_500L
 
-        /** Ile czekać, aż tura, która włączyła tłumaczenie, posprząta po sobie. */
-        private const val EAR_TURN_WAIT_MS = 5_000L
-
-        /** Górna granica jednego nasłuchu tłumaczenia - patrz strażnik w pętli. */
-        private const val EAR_LISTEN_MAX_MS = 30_000L
-
         /** Karencja wybudzenia z dźwięku po końcu tłumaczenia. */
-        private const val EAR_MIC_WAKE_GRACE_MS = 8_000L
+        internal const val EAR_MIC_WAKE_GRACE_MS = 8_000L
 
         /** Puls "wciąż mówię" dla okularów - odstęp jak u producenta. */
         private const val PLAYBACK_PULSE_MS = 2_000L
@@ -9191,12 +6276,6 @@ class AIOrchestrator(
         /** Polecenie kafelka "Wiadomości" i podwójnego kliknięcia w trybie bez kamery. */
         const val READ_MESSAGES_PROMPT = "Przeczytaj moje nowe wiadomości"
 
-        /** Film nagrywany na komendę kończymy sami po tylu minutach. */
-        private const val VIDEO_MAX_MS = 5 * 60 * 1000L
-
-        /** Ile dać okularom na zapisanie filmu, zanim zapytamy o liczniki. */
-        private const val VIDEO_SAVE_SETTLE_MS = 2_500L
-
         /** Ile po powrocie okularów czekamy z zaległymi alertami. */
         private const val MISSED_ALERTS_DELAY_MS = 8_000L
         private const val MISSED_ALERTS_ATTEMPTS = 6
@@ -9208,7 +6287,7 @@ class AIOrchestrator(
         private const val LOCK_LISTENING = "Nasluch"
         private const val LOCK_TURN = "Tura"
 
-        private const val PLAIN_TASK_SYSTEM_PROMPT =
+        internal const val PLAIN_TASK_SYSTEM_PROMPT =
             "Jesteś narzędziem tekstowym. Wykonujesz dokładnie to, o co prosi " +
                 "polecenie, i odpowiadasz samą treścią wyniku - bez powitania, " +
                 "bez komentarza, bez pytań zwrotnych i bez cudzysłowów."
@@ -9276,28 +6355,10 @@ class AIOrchestrator(
                 "centymetrach i nigdy nie zapewniaj, że droga jest wolna lub bezpieczna. " +
                 "Gdy czegoś nie widzisz wyraźnie - powiedz to. Mów krótko, rzeczowo, po polsku."
 
-        /** Ile ostatnich rozmów przeszukiwać w pamięci długoterminowej. */
-        private const val MEMORY_SEARCH_POOL = 50
-        private const val MEMORY_MAX_MATCHES = 3
-        private const val MEMORY_MIN_SCORE = 0.15f
-
-        private val TRANSLATION_KEYWORDS = listOf(
-            "przetłumacz", "tłumacz", "translate", "po angielsku", "po niemiecku",
-            "po polsku", "co to znaczy", "what does it mean"
-        )
-
         private const val TAG = "AIOrchestrator"
 
         /** Najkrótszy odstęp między wysyłkami dziennika - patrz uploadDiagnosticsInBackground. */
         private const val DIAG_UPLOAD_INTERVAL_MS = 60_000L
-
-        /**
-         * Komunikat, który [ActionExecutor] zwraca, gdy nie ma nic ciekawego do
-         * powiedzenia. Wtedy - i tylko wtedy - opowiadamy o akcji jej własnym
-         * opisem. Bierzemy go STAMTĄD, żeby zmiana po tamtej stronie nie
-         * rozjechała tego porównania po cichu.
-         */
-        private const val GENERIC_ACTION_SUCCESS = ActionExecutor.GENERIC_SUCCESS
 
         /**
          * Po tylu cichych turach z rzędu przez SCO aplikacja sama wraca na

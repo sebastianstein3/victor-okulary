@@ -28,7 +28,8 @@ class TwoWayMyTurnTest {
 
     @Test
     fun `moja kolej slucha telefonem w moim jezyku`() {
-        val plik = zrodlo("src/main/java/pl/victor/app/AIOrchestrator.kt")
+        // Tryb tłumaczenia (z myTurn) żyje w module wydzielonym z orkiestratora.
+        val plik = zrodlo("src/main/java/pl/victor/app/orchestrator/EarTranslationController.kt")
         assumeTrue("brak źródła orkiestratora", plik != null)
         val kod = plik!!.readText()
         val start = kod.indexOf("fun myTurn(zOkularów: Boolean)")
@@ -51,7 +52,7 @@ class TwoWayMyTurnTest {
         val kod = plik!!.readText()
         assertTrue(
             kod.contains(
-                "if (_earTranslation.value && _earTwoWay.value && action == ButtonAction.QUICK_QUESTION) {\n" +
+                "if (earTranslation.value && earTwoWay.value && action == ButtonAction.QUICK_QUESTION) {\n" +
                     "            myTurn(zOkularów = true)"
             )
         )
