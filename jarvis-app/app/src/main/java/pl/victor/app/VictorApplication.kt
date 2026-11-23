@@ -138,6 +138,13 @@ class VictorApplication : Application() {
                     // rozstrzygał dotąd dopiero wiersz WAKE "żądano=false" -
                     // czyli aplikacja SAMA kazała okularom nie słuchać.
                     "fraza wybudzenia w okularach: ${settings.isGlassesWakeWordEnabled()}",
+                    // "Hej Wiktor" (nasłuch w telefonie) - włączony, wybrany silnik
+                    // i czy wyłączyło go oszczędzanie baterii. Dziennik 22.11 nie
+                    // miał o tym ani słowa, a nasłuch nie działał cały bieg.
+                    "Hej Wiktor przy starcie: włączony=${settings.isWakeWordEnabled()} " +
+                        "silnik=${settings.getWakeEngine()} " +
+                        "wyłączyłaOszczędnośćBaterii=${settings.isWakeDisabledByPower()} " +
+                        "mikrofonOkularów=${settings.isWakeWordOverGlassesMic()}",
                     // Prośba o ograniczenie myślenia zmienia KSZTAŁT zapytania do
                     // Gemini - a dziennik z biegu 152 to sześćdziesiąt odmów 400
                     // bez słowa o tym, co w zapytaniu było.
@@ -290,6 +297,12 @@ class VictorApplication : Application() {
         if (error == null) {
             lastWakeStartError = null
             Log.i(TAG, "Nasłuch „Hej Wiktor” uruchomiony")
+            // Raz po starcie aplikacji i po każdym wyłączeniu - nie po każdej
+            // turze (tura tylko pożycza mikrofon, to nie zdarzenie).
+            if (wakeLogStart) {
+                wakeLogStart = false
+                wakeDiag("nasłuch „Hej Wiktor” uruchomiony")
+            }
         } else if (error != lastWakeStartError) {
             // Raz na powód, nie przy każdym odświeżeniu - brak modelu to stan,
             // a nie zdarzenie, i zalałby dziennik.
@@ -310,6 +323,22 @@ class VictorApplication : Application() {
         if (!wakeRunning) return
         phoneWake.stop()
         wakeRunning = false
+        wakeLogStart = true
+        wakeDiag("nasłuch „Hej Wiktor” zatrzymany")
+    }
+
+    /** Czy następny udany start nasłuchu zapisać w dzienniku. */
+    private var wakeLogStart = true
+
+    /** Start/stop nasłuchu w dzienniku - bez tego "Hej Wiktor nie działa" nie miało śladu. */
+    private fun wakeDiag(opis: String, pola: Map<String, Any?> = emptyMap()) {
+        runCatching {
+            diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                opis,
+                pola + mapOf("czekająNaMikrofon" to wakePauses.joinToString(",").ifEmpty { null })
+            )
+        }
     }
 
     /**

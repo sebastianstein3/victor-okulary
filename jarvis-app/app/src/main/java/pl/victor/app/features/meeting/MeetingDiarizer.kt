@@ -62,9 +62,11 @@ class MeetingDiarizer(private val apiKey: String) {
                         }
                     } else {
                         val o = SpeakerTranscript.parsuj(tekst)
+                        // Bez treści odpowiedzi - to transkrypcja rozmowy, a dziennik
+                        // jest publiczny. Długość i klucze wystarczą do diagnozy.
                         val b = when {
-                            o == null -> "nieczytelna odpowiedź: ${tekst.take(200)}"
-                            !o.maMówców -> "bez mówców w odpowiedzi: ${tekst.take(200)}"
+                            o == null -> "nieczytelna odpowiedź (${tekst.length} znaków, klucze: ${kluczeJson(tekst)})"
+                            !o.maMówców -> "bez mówców w odpowiedzi (${tekst.length} znaków, klucze: ${kluczeJson(tekst)})"
                             else -> null
                         }
                         return@withContext Wynik(o, b, System.currentTimeMillis() - od, próba)
@@ -103,4 +105,9 @@ class MeetingDiarizer(private val apiKey: String) {
         private const val PRÓB = 2
         private const val PRZERWA_MS = 5_000L
     }
+
+    /** Nazwy kluczy JSON z odpowiedzi (bez wartości) - do dziennika. */
+    private fun kluczeJson(tekst: String): String =
+        Regex("\"([A-Za-z_]+)\"\\s*:").findAll(tekst).map { it.groupValues[1] }
+            .distinct().take(12).joinToString(",").ifEmpty { "-" }
 }

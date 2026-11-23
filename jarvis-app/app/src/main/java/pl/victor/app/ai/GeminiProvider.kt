@@ -296,6 +296,11 @@ class GeminiProvider(
             systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.system))),
             toolConfig = toolConfigDlaMap(maps)
         )
+        // Położenie jest JEDNORAZOWE - na to jedno zapytanie. Zostawione w polu
+        // szło potem z każdym podsumowaniem spotkania czy porządkowaniem
+        // notatki (płatne Mapy i lokalizacja, także po "Tylko darmowe";
+        // przegląd 22.11). Orkiestrator ustawia je przed każdą próbą tury.
+        mapsLocation = null
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
             .toRequestBody("application/json".toMediaType())
@@ -778,6 +783,11 @@ class GeminiProvider(
             systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.system))),
             toolConfig = toolConfigDlaMap(maps)
         )
+        // Położenie jest JEDNORAZOWE - na to jedno zapytanie. Zostawione w polu
+        // szło potem z każdym podsumowaniem spotkania czy porządkowaniem
+        // notatki (płatne Mapy i lokalizacja, także po "Tylko darmowe";
+        // przegląd 22.11). Orkiestrator ustawia je przed każdą próbą tury.
+        mapsLocation = null
 
         val requestBody = json.encodeToString(GeminiRequest.serializer(), request)
             .toRequestBody("application/json".toMediaType())

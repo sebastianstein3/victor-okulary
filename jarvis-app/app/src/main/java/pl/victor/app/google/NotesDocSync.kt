@@ -74,7 +74,11 @@ class NotesDocSync(context: Context) {
             val fileId = existingFileId?.let { id ->
                 try {
                     drive.files().update(id, null, content).execute().id
-                } catch (e: Exception) {
+                } catch (e: com.google.api.client.googleapis.json.GoogleJsonResponseException) {
+                    // TYLKO zniknięty plik (404/410) zastępujemy nowym. Każdy inny
+                    // błąd (sieć, 429, 5xx) tworzył nowy dokument, a źródło w
+                    // NotebookLM zostawało przy starym (przegląd 22.11).
+                    if (e.statusCode != 404 && e.statusCode != 410) throw e
                     Log.w(tag, "Dokument $id niedostępny - tworzę nowy", e)
                     null
                 }

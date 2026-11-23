@@ -220,9 +220,14 @@ object PlaceMemory {
     fun recallRequest(text: String): String? {
         val t = simplify(text)
         if (ASK_OPENERS.none { t.startsWith(it) }) return null
+        // Tylko pytania o WŁASNE auto albo zapamiętane miejsce. Dawniej
+        // wystarczało "parking"/"auto" gdziekolwiek w zdaniu (także wewnątrz
+        // słowa): "znajdź hotele ... z parkingiem" dostawało odpowiedź "nie mam
+        // zapisanego miejsca parkowania" (dziennik 22.11), a "gdzie jest
+        // przystanek autobusowy" też by tu trafiło.
         return when {
-            CAR_WORDS.any { t.contains(it) } -> CAR
-            PLACE_WORDS.any { t.contains(it) } -> SPOT
+            RECALL_CAR.containsMatchIn(t) -> CAR
+            RECALL_PLACE.containsMatchIn(t) -> SPOT
             else -> null
         }
     }
@@ -252,6 +257,21 @@ object PlaceMemory {
     private val PLACE_WORDS = listOf(
         "to miejsce", "tego miejsca", "tym miejscu", "gdzie jestem", "gdzie stoje",
         "miejsce", "miejsca"
+    )
+
+    /**
+     * Pytanie o własne auto: czas przeszły parkowania ("gdzie zaparkowałem")
+     * albo auto z "mój"/"do"/"zostawiłem" ("gdzie jest mój samochód", "zaprowadź mnie do
+     * auta"). Samo "parking" to pytanie o okolicę, nie o zapamiętane miejsce.
+     */
+    private val RECALL_CAR = Regex(
+        """\b(za)?parkowal(em|am|es|as|ismy|ysmy)?\b""" +
+            """|\b(moj|moje|mojego|moim|nasz|nasze|naszego|naszym|do|zostawil\w*)\s+(samochod\w*|auto|auta|woz|wozu)\b"""
+    )
+
+    /** Pytanie o miejsce zapamiętane przez "zapamiętaj to miejsce". */
+    private val RECALL_PLACE = Regex(
+        """\b(to|tego|tym) miejsc(e|a|u)\b|\bzapamietan\w* miejsc"""
     )
 
     private val COMPASS = listOf(

@@ -2,7 +2,10 @@ package pl.victor.app.lists
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import pl.victor.app.data.SettingsRepository
 import pl.victor.app.google.TasksSync
@@ -118,7 +121,11 @@ class ListsAssistant(
     /** Dociąga zmiany z Google przed odczytem - najwyżej [PULL_TIMEOUT_MS]. */
     private suspend fun pullBeforeRead(name: String) {
         if (!syncEnabled()) return
-        val done = withTimeoutOrNull(PULL_TIMEOUT_MS) { syncNow(name) }
+        // Synchronizacja idzie w osobnej korutynie: limit przerywa CZEKANIE, nie
+        // ją samą. Blokujące wywołania Google i tak nie dają się anulować, a
+        // anulowanie gubiło ich wynik, choć zmiany w Google już zaszły.
+        val sync = scope.async { syncNow(name) }
+        val done = withTimeoutOrNull(PULL_TIMEOUT_MS) { sync.await() }
         if (done == null) log("lista: Google Tasks za wolno - czytam lokalną", name, emptyMap())
     }
 
@@ -133,7 +140,16 @@ class ListsAssistant(
      * (ktoś dopisał coś głosem), nie nadpisujemy tej zmiany wynikiem: dopisujemy
      * tylko identyfikatory utworzonych zadań i synchronizujemy jeszcze raz.
      */
-    suspend fun syncNow(name: String): TasksSync.Result {
+    suspend fun syncNow(name: String): TasksSync.Result = syncLock.withLock { syncLocked(name) }
+
+    /**
+     * Jedna synchronizacja naraz. Dwie równoległe ("dodaj mleko", zaraz potem
+     * "dodaj chleb") obie widziały w Google stan bez mleka i obie je tworzyły -
+     * duplikaty w Google i na liście (przegląd 22.11).
+     */
+    private val syncLock = Mutex()
+
+    private suspend fun syncLocked(name: String): TasksSync.Result {
         val before = UserLists.find(store.all(), name) ?: return TasksSync.Result.Failed("brak listy")
         val result = tasks.sync(before)
         when (result) {

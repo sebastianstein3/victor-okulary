@@ -361,8 +361,9 @@ class MeetingRecorder(
             nieprzepisanych = nieprzepisanych
         )
         withContext(Dispatchers.IO) {
-            store.zapisz(m)
-            store.usuńCzęściowe(m.id)
+            // Kopię roboczą kasujemy TYLKO po udanym zapisie - przy pełnym
+            // dysku znikała razem z całą transkrypcją (przegląd 22.11).
+            if (store.zapisz(m)) store.usuńCzęściowe(m.id)
         }
         _stan.value = Stan.Bezczynny
         return m

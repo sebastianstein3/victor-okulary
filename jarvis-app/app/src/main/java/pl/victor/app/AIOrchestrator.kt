@@ -5753,10 +5753,33 @@ class AIOrchestrator(
             )
 
             val prompt = pl.victor.app.proactive.DailyBriefing.buildPrompt(material, preferences)
+            diag.event(
+                DiagFormat.Phase.SESJA,
+                "mój dzień",
+                mapOf(
+                    "kalendarz" to (material.calendar != null),
+                    "pogoda" to (material.weather != null),
+                    "poczta" to (material.mail != null),
+                    "jestOCzymMówić" to (prompt != null)
+                )
+            )
             if (prompt == null) {
-                // Milczenie jest tu lepsze niż "nie mam żadnych informacji" -
-                // to drugie budzi i nic nie wnosi.
+                // Kafelek "Mój dzień" bez żadnej reakcji wyglądał na zepsuty
+                // (dziennik 22.11: bez sieci nic nie przyszło, a aplikacja
+                // milczała). Zawsze odpowiadamy - krótko i z powodem.
                 Log.i(TAG, "Briefing pominięty - nie ma o czym mówić")
+                val maSieć = runCatching {
+                    val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+                        as android.net.ConnectivityManager
+                    cm.getNetworkCapabilities(cm.activeNetwork)
+                        ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+                }.getOrDefault(true)
+                val powód = if (!maSieć) {
+                    "Nie mam teraz internetu, więc nie pobiorę kalendarza, pogody ani poczty."
+                } else {
+                    "Nie mam dziś nic do podsumowania: kalendarz, pogoda i poczta nic nie zwróciły."
+                }
+                audio.speak(powód, language = settings.getResponseLanguage())
                 return@launch
             }
             handleUserTrigger(TriggerSource.TEXT_INPUT, prompt, internalPrompt = true)

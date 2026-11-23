@@ -171,7 +171,33 @@ class SettingsRepository private constructor(private val context: Context) {
             }.apply()
             if (wybranoTelefon) return true
         }
+        // Druga naprawa (dziennik 22.11): tryb oszczędzania baterii wyłączał
+        // nasłuch, a to, że TO ON go wyłączył, pamiętał tylko w pamięci
+        // procesu - po restarcie aplikacji "Hej Wiktor" zostawał wyłączony na
+        // zawsze, choć w Ustawieniach wybrany. Jednorazowo włączamy z powrotem
+        // tym, którzy mają wybrane "Hej Wiktor"; od teraz flaga jest trwała
+        // ([isWakeDisabledByPower]).
+        if (!prefs.getBoolean(KEY_WAKE_FIX_196, false)) {
+            val wybranoTelefon = prefs.getString(KEY_WAKE_ENGINE, null) == WAKE_ENGINE_HEJ_WIKTOR
+            prefs.edit().apply {
+                putBoolean(KEY_WAKE_FIX_196, true)
+                if (wybranoTelefon) putBoolean(KEY_WAKE_WORD_ENABLED, true)
+            }.apply()
+            if (wybranoTelefon) return true
+        }
         return prefs.getBoolean(KEY_WAKE_WORD_ENABLED, false)
+    }
+
+    /**
+     * Czy nasłuch frazy wyłączył tryb oszczędzania baterii (a nie człowiek).
+     *
+     * Trwałe, bo tylko wtedy tryb może go potem sam włączyć z powrotem - także
+     * po restarcie aplikacji. Patrz [pl.victor.app.power.PowerManager].
+     */
+    fun isWakeDisabledByPower(): Boolean = prefs.getBoolean(KEY_WAKE_DISABLED_BY_POWER, false)
+
+    fun setWakeDisabledByPower(value: Boolean) {
+        prefs.edit().putBoolean(KEY_WAKE_DISABLED_BY_POWER, value).apply()
     }
     val wakeWordEnabledFlow: StateFlow<Boolean> = _wakeWordEnabledFlow.asStateFlow()
 
@@ -1472,6 +1498,8 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_RESPONSE_LANG = "response_lang"
         private const val KEY_WAKE_WORD_ENABLED = "wake_word_enabled"
         private const val KEY_WAKE_FIX_184 = "wake_enabled_fix_184"
+        private const val KEY_WAKE_FIX_196 = "wake_enabled_fix_196"
+        private const val KEY_WAKE_DISABLED_BY_POWER = "wake_disabled_by_power"
         private const val KEY_WAKE_WORD_GLASSES_MIC = "wake_word_glasses_mic"
         private const val KEY_WAKE_ONLY_MY_VOICE = "wake_only_my_voice"
         private const val KEY_CLOUD_TRANSCRIPTION = "cloud_transcription"

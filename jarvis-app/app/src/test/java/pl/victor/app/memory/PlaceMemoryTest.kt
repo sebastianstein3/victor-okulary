@@ -143,6 +143,24 @@ class PlaceMemoryPhrasesTest {
         assertNull(PlaceMemory.recallRequest("gdzie jest najbliższa apteka"))
         assertNull(PlaceMemory.recallRequest("gdzie leży Bodrum"))
     }
+
+    @Test
+    fun `parking albo auto w innym pytaniu nie porywa pamieci parkowania`() {
+        // Dziennik 22.11: pytanie o hotele dostało "nie mam zapisanego miejsca".
+        assertNull(
+            PlaceMemory.recallRequest(
+                "znajdź hotele w Rudzie Śląskiej w dobrej cenie ze śniadaniem, z parkingiem, dwa pokoje"
+            )
+        )
+        assertNull(PlaceMemory.recallRequest("gdzie jest najbliższy parking"))
+        assertNull(PlaceMemory.recallRequest("gdzie jest przystanek autobusowy"))
+        assertNull(PlaceMemory.recallRequest("znajdź auto do wynajęcia w Krakowie"))
+        assertNull(PlaceMemory.recallRequest("znajdź miejsca w restauracji na sobotę"))
+        // A prawdziwe pytania dalej działają.
+        assertEquals(PlaceMemory.CAR, PlaceMemory.recallRequest("znajdź mój samochód"))
+        assertEquals(PlaceMemory.CAR, PlaceMemory.recallRequest("gdzie zostawiłem auto"))
+        assertEquals(PlaceMemory.SPOT, PlaceMemory.recallRequest("zaprowadź mnie do tego miejsca"))
+    }
 }
 
 

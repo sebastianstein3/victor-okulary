@@ -144,8 +144,16 @@ class PowerManager(
     /**
      * Aplikuje ustawienia trybu (wyłącza usługi których tryb nie potrzebuje).
      */
-    @Volatile
-    private var wakeWordDisabledByPower = false
+    /** Wpis do dziennika diagnostycznego - zmiana nasłuchu musi być widoczna w logu. */
+    private fun diagWake(opis: String, mode: PowerMode) {
+        runCatching {
+            (context.applicationContext as pl.victor.app.VictorApplication).diag.event(
+                pl.victor.app.diagnostics.DiagFormat.Phase.WAKE,
+                opis,
+                mapOf("tryb" to mode.name, "bateria" to _batteryState.value.percent)
+            )
+        }
+    }
 
     private fun applyModeSettings(mode: PowerMode) {
         // 1. Wake word
@@ -154,15 +162,22 @@ class PowerManager(
         // Tryb zasilania może wyłączyć nasłuch frazy, ale TYLKO WŁĄCZAĆ to, co sam
         // wyłączył: wcześniej po podłączeniu ładowarki włączał go nawet komuś, kto
         // świadomie go wyłączył - telefon zaczynał słuchać bez zgody (audyt 28.10).
+        // To, że wyłączył on, jest zapisane w ustawieniach, nie w pamięci: po
+        // restarcie aplikacji "Hej Wiktor" zostawał wyłączony na zawsze
+        // (dziennik 22.11).
         if (currentlyHasWakeWord && !shouldHaveWakeWord) {
             Log.d(tag, "Wake word: wyłączam na czas oszczędzania baterii")
-            wakeWordDisabledByPower = true
+            settings.setWakeDisabledByPower(true)
             settings.setWakeWordEnabled(false)
-            // (w MainActivity jest listener który to obsłuży)
-        } else if (!currentlyHasWakeWord && shouldHaveWakeWord && wakeWordDisabledByPower) {
+            diagWake("nasłuch „Hej Wiktor” wyłączony - oszczędzanie baterii", mode)
+        } else if (!currentlyHasWakeWord && shouldHaveWakeWord && settings.isWakeDisabledByPower()) {
             Log.d(tag, "Wake word: przywracam po oszczędzaniu baterii")
-            wakeWordDisabledByPower = false
+            settings.setWakeDisabledByPower(false)
             settings.setWakeWordEnabled(true)
+            diagWake("nasłuch „Hej Wiktor” przywrócony po oszczędzaniu baterii", mode)
+        } else if (currentlyHasWakeWord && settings.isWakeDisabledByPower()) {
+            // Człowiek włączył go sam w trakcie oszczędzania - flaga już nieaktualna.
+            settings.setWakeDisabledByPower(false)
         }
 
         // 2. Proaktywne alerty - zmiana interwału

@@ -99,7 +99,10 @@ class EmailPreparer(context: Context) {
             val sender = EmailCompose.pickSender(gmail.getReplyCandidates(), to)
             if (sender != null) {
                 return Result.Ready(
-                    withSubject.copy(to = sender.email, resolvedName = sender.name ?: to),
+                    // Bez nazwy w nagłówku nie podstawiamy imienia z polecenia:
+                    // "Mail do: Marek" przy adresie newslettera ukrywało, dokąd
+                    // mail naprawdę idzie. Pytanie "Wysłać?" przeczyta wtedy adres.
+                    withSubject.copy(to = sender.email, resolvedName = sender.name),
                     "nadawcy maili"
                 )
             }
