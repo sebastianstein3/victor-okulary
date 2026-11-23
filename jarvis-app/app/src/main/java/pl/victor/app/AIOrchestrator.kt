@@ -128,13 +128,22 @@ class AIOrchestrator(
     private val _lastResponse = MutableStateFlow<AIResponse?>(null)
     val lastResponse: StateFlow<AIResponse?> = _lastResponse.asStateFlow()
 
-    // Ostrzeżenia o modelu (deprecated, migration, itd.)
-    private val _modelWarning = MutableStateFlow<String?>(null)
-    val modelWarning: StateFlow<String?> = _modelWarning.asStateFlow()
+    /** Dostawcy modelu - patrz [pl.victor.app.orchestrator.ProviderManager]. */
+    private val providers = pl.victor.app.orchestrator.ProviderManager(context, settings)
 
-    // Aktualnie używany model
-    private val _currentModelId = MutableStateFlow<String?>(null)
-    val currentModelId: StateFlow<String?> = _currentModelId.asStateFlow()
+    /** Ostrzeżenia o modelu (deprecated, migration, itd.). */
+    val modelWarning: StateFlow<String?> get() = providers.modelWarning
+
+    /** Aktualnie używany model. */
+    val currentModelId: StateFlow<String?> get() = providers.currentModelId
+
+    /** Publikuje model z bieżących ustawień - patrz [pl.victor.app.orchestrator.ProviderManager.publishConfiguredModel]. */
+    fun publishConfiguredModel() = providers.publishConfiguredModel()
+
+    /** Czyści aktywne ostrzeżenie (po wyświetleniu użytkownikowi). */
+    fun clearModelWarning() = providers.clearModelWarning()
+
+    private suspend fun getOrCreateProvider(): AIProvider = providers.getOrCreateProvider()
 
     // HeyCyan BLE manager (singleton z vendor SDK)
     private val glassesManager: VictorManager = VictorManager.getInstance(context)
@@ -828,10 +837,6 @@ class AIOrchestrator(
         translator = translator
     )
 
-
-    private var currentProvider: AIProvider? = null
-    private var currentProviderId: String? = null
-    private var activeModelId: String? = null
 
     init {
         // Jedno miejsce, w którym mierzymy wiek stanu - patrz [stateChangedAtMs].
@@ -1654,13 +1659,6 @@ class AIOrchestrator(
         }
         startVoiceTurn(fromGlasses = true)
     }
-
-    /**
-     * Modele, które w tej sesji odpowiedziały "nie ma takiego modelu".
-     *
-     * Patrz [pl.victor.app.ai.DeadModels] - powód i koszt są tam opisane.
-     */
-    private val deadModels = pl.victor.app.ai.DeadModels()
 
     /** Czy można teraz mówić bez wchodzenia w słowo - dla trybów działających w tle. */
     private fun ciszaWTle(): Boolean {
@@ -5049,7 +5047,7 @@ class AIOrchestrator(
                 // zmiana zachowania, nie tylko naprawa - user może wolieć jasny błąd
                 // od cichej podmiany providera.
                 val candidates = if (settings.isAutoProviderFallbackEnabled()) {
-                    fallbackProviderOrder(needsAudio = audioQuestion != null, needsImages = photos.isNotEmpty())
+                    providers.fallbackProviderOrder(needsAudio = audioQuestion != null, needsImages = photos.isNotEmpty())
                 } else {
                     listOf(settings.getActiveProvider())
                 }
@@ -5077,10 +5075,10 @@ class AIOrchestrator(
                     // bywa innym dostawcą niż główny. Numer próby wysyłał wtedy
                     // pytanie do martwego modelu głównego, podpisując to w
                     // dzienniku (i w odstawieniu) nazwą następnego w kolejce.
-                    val attemptProvider = if (attemptProviderId == currentProviderId) {
+                    val attemptProvider = if (attemptProviderId == providers.currentProviderId) {
                         provider
                     } else {
-                        buildProviderForFallback(attemptProviderId)
+                        providers.buildProviderForFallback(attemptProviderId)
                     }
                     try {
                         // LIMIT CZASU NA JEDNEGO DOSTAWCĘ.
@@ -5235,7 +5233,7 @@ class AIOrchestrator(
                         // opóźnieniem doliczonym do odpowiedzi.
                         if (pl.victor.app.ai.ProviderFailure.isMissingModel(e.message)) {
                             val martwyModel = settings.getSelectedModel(attemptProviderId)
-                            val pierwszyRaz = deadModels.zapamiętaj(attemptProviderId, martwyModel)
+                            val pierwszyRaz = providers.deadModels.zapamiętaj(attemptProviderId, martwyModel)
                             diag.event(
                                 DiagFormat.Phase.MODEL, "model nie istnieje - odstawiam go na tę sesję",
                                 mapOf(
@@ -6096,142 +6094,6 @@ class AIOrchestrator(
      * Ile jest wymian w kontekście.
      */
     fun getConversationSize(): Int = conversationContext.size()
-
-    /**
-     * Publikuje model wynikający z BIEŻĄCYCH ustawień, bez tworzenia providera i bez sieci.
-     *
-     * [_currentModelId] było dotąd aktualizowane wyłącznie w [getOrCreateProvider], czyli
-     * dopiero przy pierwszym realnym zapytaniu do AI. Po zmianie modelu w ustawieniach
-     * badge na ekranie głównym pokazywał więc poprzedni model aż do następnego pytania.
-     * Ekran główny woła to przy wejściu i po powrocie z ustawień.
-     */
-    fun publishConfiguredModel() {
-        val providerId = settings.getActiveProvider()
-        _currentModelId.value = settings.getSelectedModel(providerId)
-            ?: pl.victor.app.data.ModelRegistry.defaultFor(providerId)?.id
-    }
-
-    // === Private ===
-
-    private suspend fun getOrCreateProvider(): AIProvider {
-        val providerId = settings.getActiveProvider()
-
-        val apiKey = settings.getApiKey(providerId)
-            ?: throw AIProviderException(
-                "Brak klucza API dla $providerId. Ustaw go w ustawieniach.",
-                providerId = providerId,
-                isRetryable = false
-            )
-
-        val preferredModel = settings.getSelectedModel(providerId)
-
-        // Sprawdź czy trzeba odświeżyć (provider lub model się zmienił)
-        if (currentProviderId != providerId || activeModelId != preferredModel) {
-
-            // Walidacja modeli u providera (async, nie blokuje UI)
-            val available = try {
-                val validator = RemoteModelValidator(apiKey, providerId)
-                validator.fetchAvailableModels()
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not validate models", e)
-                emptyList()
-            }
-
-            // Stwórz provider z resolverem
-            val withMetadata = AIProviderFactory.create(
-                providerId = providerId,
-                apiKey = apiKey,
-                context = context,
-                preferredModelId = preferredModel,
-                availableFromProvider = available
-            )
-
-            currentProvider = withMetadata.provider
-            currentProviderId = providerId
-            activeModelId = withMetadata.modelId
-            _currentModelId.value = withMetadata.modelId  // publikuj dla UI
-
-            // Pokaż ostrzeżenie jeśli model jest deprecated lub zmigrowany
-            withMetadata.resolution.warning?.let { warning ->
-                _modelWarning.value = warning.toUserMessage()
-                Log.w(TAG, "Model warning: ${warning.toUserMessage()}")
-            }
-
-            // Jeśli automatyczna migracja - zaktualizuj ustawienia
-            if (withMetadata.resolution.source ==
-                pl.victor.app.data.ModelSource.AUTO_MIGRATED) {
-                withMetadata.resolution.warning?.let { warning ->
-                    if (warning is pl.victor.app.data.ModelWarning.AutoMigrated) {
-                        settings.setSelectedModel(providerId, warning.newModelId)
-                    }
-                }
-            }
-        }
-        return currentProvider!!
-    }
-
-    /**
-     * Kolejność providerów do próby: aktywny z Ustawień pierwszy, potem reszta
-     * providerów, dla których user w ogóle ma wpisany klucz API - w kolejności
-     * z [AIProviderFactory.supportedProviders]. Nie próbujemy providera bez klucza,
-     * bo to i tak od razu by zawiodło.
-     */
-    private fun fallbackProviderOrder(needsAudio: Boolean = false, needsImages: Boolean = false): List<String> {
-        val primary = settings.getActiveProvider()
-        val others = AIProviderFactory.supportedProviders()
-            .map { it.id }
-            .filter { it != primary && settings.hasApiKey(it) }
-            // Zapasowy dostawca musi UMIEĆ to, czego wymaga tura: nagranie i zdjęcia
-            // nie mają sensu dla modelu tekstowego - dostawał polecenie "odpowiedz
-            // na pytanie z nagrania" bez nagrania i odpowiadał (płatnie) bzdurę.
-            .filter { id ->
-                val info = pl.victor.app.data.ModelRegistry.defaultFor(id)
-                (!needsAudio || info?.supportsAudio == true) && (!needsImages || info?.supportsVision == true)
-            }
-        // DOSTAWCA Z MARTWYM MODELEM IDZIE NA KONIEC, NIE ZNIKA.
-        //
-        // Znikanie byłoby groźne: gdyby wszystkie okazały się martwe, kolejka
-        // zrobiłaby się pusta i tura padałaby na indeksie zamiast na modelu.
-        // Przesunięcie kosztuje tyle samo, a zachowuje ostatnią deskę ratunku.
-        return deadModels.przestaw(listOf(primary) + others) {
-            settings.getSelectedModel(it)
-        }
-    }
-
-    /**
-     * Buduje provider dla próby fallbacku - celowo NIE dotyka `currentProvider`/
-     * `currentProviderId` ani ustawień. Fallback jest jednorazowy, dla tego
-     * konkretnego zapytania - nie zmienia trwale wybranego providera usera.
-     */
-    private suspend fun buildProviderForFallback(providerId: String): AIProvider {
-        val apiKey = settings.getApiKey(providerId)
-            ?: throw AIProviderException(
-                "Brak klucza API dla $providerId",
-                providerId = providerId,
-                isRetryable = false
-            )
-        val preferredModel = settings.getSelectedModel(providerId)
-        val available = try {
-            RemoteModelValidator(apiKey, providerId).fetchAvailableModels()
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not validate models for fallback provider $providerId", e)
-            emptyList()
-        }
-        return AIProviderFactory.create(
-            providerId = providerId,
-            apiKey = apiKey,
-            context = context,
-            preferredModelId = preferredModel,
-            availableFromProvider = available
-        ).provider
-    }
-
-    /**
-     * Czyści aktywne ostrzeżenie (po wyświetleniu użytkownikowi).
-     */
-    fun clearModelWarning() {
-        _modelWarning.value = null
-    }
 
     /**
      * Pobiera aktywną personę na podstawie ustawień.
