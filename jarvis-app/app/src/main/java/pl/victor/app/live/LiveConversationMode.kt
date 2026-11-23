@@ -389,7 +389,9 @@ class LiveConversationMode(
                         )
                     )
                 }
-                pożegnanie?.let { tekst -> runCatching { audio.speak(tekst, language = język) } }
+                // Tylko nasza sesja się żegna: po szybkim stop/start "Kończę
+                // rozmowę." starej sesji nakładało się na zapowiedź nowej.
+                if (nasza) pożegnanie?.let { tekst -> runCatching { audio.speak(tekst, language = język) } }
             }
         }
     }

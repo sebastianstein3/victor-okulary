@@ -617,6 +617,12 @@ class AIOrchestrator(
                 wybrany?.nazwa ?: pytanie.przystanek ?: "komunikacji miejskiej",
                 tu?.miasto
             )
+            // Wiszące potwierdzenie czegoś innego (np. SMS) ma pierwszeństwo -
+            // nie nadpisujemy go propozycją Map (przegląd 22.11).
+            if (pendingActionConfirmation.value != null) {
+                audio.speak(mowa, language = settings.getResponseLanguage())
+                return@launch
+            }
             actionFlow.requestConfirmation(
                 PendingActionConfirmation(
                     actions = listOf(Action.ShowOnMap(doMap)),
@@ -1761,6 +1767,24 @@ class AIOrchestrator(
      */
     fun startMeeting(): Boolean {
         if (meeting.nagrywa) return true
+        // Rozmowa na żywo i tłumaczenie trzymają mikrofon - drugi nagrywający
+        // dostawał ciszę, a "Nagrywam spotkanie" szło do Gemini (przegląd 22.11).
+        // Rozmowa na żywo odmawia startu przy spotkaniu; tu odwrotnie.
+        if (liveMode.aktywna.value || earTranslation.value) {
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AUDIO, "spotkanie: odmowa - mikrofon zajęty",
+                    mapOf("rozmowaNaŻywo" to liveMode.aktywna.value, "tłumaczenie" to earTranslation.value)
+                )
+            }
+            audio.speak(
+                "Mikrofon jest zajęty przez " +
+                    (if (earTranslation.value) "tłumaczenie" else "rozmowę na żywo") +
+                    ". Zakończ je, zanim zacznę nagrywać spotkanie.",
+                language = settings.getResponseLanguage()
+            )
+            return false
+        }
         if (!canTranscribeRecordings()) {
             audio.speak(
                 "Nie mogę nagrywać spotkania: ten telefon nie ma czym przepisać mowy. Włącz " +
@@ -2031,6 +2055,13 @@ class AIOrchestrator(
                 diag.event(DiagFormat.Phase.AUDIO, "rozmowa na żywo: odmowa - spotkanie", mapOf("źródło" to źródło))
             }
             audio.speak(komunikat, language = settings.getResponseLanguage())
+            return
+        }
+        // Najpierw sprawdzić, czy rozmowa w ogóle ruszy - kafelek przy "tylko
+        // darmowych" zabijał trwające tłumaczenie i nic nie startował
+        // (przegląd 22.11). start() przy odmowie sam mówi powód.
+        if (liveMode.dostępność() != pl.victor.app.live.LiveConversationLogic.Dostępność.MOŻNA) {
+            liveMode.start(null, źródło)
             return
         }
         if (earTranslation.value) stopEarTranslation("start rozmowy na żywo")
@@ -3645,7 +3676,9 @@ class AIOrchestrator(
         // "zrób zdjęcie" - a wypowiedź musi składać się WYŁĄCZNIE ze słów
         // zgody/odmowy ("dodaj mleko" i "zrób zdjęcie" to polecenia, nie "tak").
         val pending = pendingActionConfirmation.value
-        if (pending != null && System.currentTimeMillis() - pending.createdAtMs > CONFIRMATION_VOICE_TTL_MS) {
+        if (pending != null && pending.createdAtMs != 0L &&
+            System.currentTimeMillis() - pending.createdAtMs > CONFIRMATION_VOICE_TTL_MS
+        ) {
             diag.event(DiagFormat.Phase.AKCJA, "potwierdzenie wygasło - głosem już nie przyjmuję")
         }
         if (textIsQuestion && pending != null &&
@@ -3658,7 +3691,7 @@ class AIOrchestrator(
             val emailDraft = pending.actions.singleOrNull() as? Action.SendEmail
             val remark = emailDraft?.takeIf {
                 pl.victor.app.lists.ListCommands.parse(textQuestion) == null
-            }?.let { pl.victor.app.actions.EmailVoice.correction(textQuestion) }
+            }?.let { pl.victor.app.actions.EmailVoice.correctionInNewTurn(textQuestion) }
             if (emailDraft != null && remark != null) {
                 actionFlow.reviseEmailDraft(emailDraft, remark)
                 return
@@ -3685,6 +3718,9 @@ class AIOrchestrator(
         // jednym mikrofonie blokują się nawzajem. Samo okno zostaje - decyzja
         // ma dokąd wrócić.
         actionFlow.stopListeningForConfirmation()
+        // Ta tura NIE była odpowiedzią na pytanie - od teraz "tak" tylko w
+        // okienku. Inaczej "dobra, dzięki" po innej rozmowie wykonywało akcję.
+        if (textIsQuestion && pending != null) actionFlow.closeVoiceConfirmation()
 
         // === KOMENDY STERUJĄCE ROZMOWĄ (persona, reset) - zanim cokolwiek innego ===
         // Muszą być sprawdzone przed detekcją akcji: "bądź Sterna" nie pasuje do

@@ -1279,6 +1279,10 @@ class AudioManager(
         cloudVoice.stop()
         _speaking.value = false
         completeAllPending(false)
+        // Przerwane PRZED pierwszym dźwiękiem: stan "mówię" nie zmienił się z
+        // true na false, więc przywrócenie podbitej głośności nigdy nie ruszało
+        // (przegląd 22.11). No-op, gdy nic nie było podbite.
+        planujPrzywróceniePoPorażce()
     }
 
     /**

@@ -65,6 +65,22 @@ internal class ActionFlow(
 
     // Akcja oczekująca na potwierdzenie (null = nic nie czeka)
     private val _pendingActionConfirmation = MutableStateFlow<PendingActionConfirmation?>(null)
+
+    /**
+     * Zamyka potwierdzanie GŁOSEM z nowej tury - okno w aplikacji zostaje.
+     *
+     * Woła to tura, która nie była odpowiedzią na pytanie. Bez tego przez
+     * minutę "dobra, dzięki" po zupełnie innej rozmowie dzwoniło do Janusza
+     * albo otwierało bramę (przegląd 22.11).
+     */
+    fun closeVoiceConfirmation() {
+        val p = _pendingActionConfirmation.value ?: return
+        if (p.createdAtMs == 0L) return
+        _pendingActionConfirmation.value = p.copy(createdAtMs = 0L)
+        runCatching {
+            diag.event(DiagFormat.Phase.AKCJA, "potwierdzenie głosem zamknięte - nowa tura", emptyMap())
+        }
+    }
     val pendingActionConfirmation: StateFlow<PendingActionConfirmation?> =
         _pendingActionConfirmation.asStateFlow()
 

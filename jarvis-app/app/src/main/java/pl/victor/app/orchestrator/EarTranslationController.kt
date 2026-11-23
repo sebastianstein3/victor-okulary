@@ -312,8 +312,12 @@ internal class EarTranslationController(
         settings.setEarTranslationTo(to)
         _earTranscript.value = _earTranscript.value.copy(z = from, na = to)
         if (_earTranslation.value) {
+            // Rozmowa w dwie strony zostaje rozmową - stop zerował ten tryb i
+            // po zmianie języka wracało zwykłe tłumaczenie bez "Mówię ja"
+            // (przegląd 22.11).
+            val dwieStrony = _earTwoWay.value
             stopEarTranslation("zmiana języków")
-            startEarTranslation()
+            if (dwieStrony) startTwoWayTranslation(from) else startEarTranslation()
         }
     }
 
@@ -490,31 +494,6 @@ internal class EarTranslationController(
                 )
             }
         }
-        // Tryb SAM trzyma mikrofon: nasłuch frazy na telefonie i wybudzenie z
-        // dźwięku okularów tylko by mu go podbierały - i odpalały tury w trakcie.
-        host.pauseWakeWordMic()
-        glassesManager.suspendMicWake(true)
-        // Zapowiedź idzie w JĘZYKU DOCELOWYM, bo w nim człowiek będzie słyszał
-        // wszystko, co dalej - i od razu słychać, czy syntezator ten język ma.
-        // Przy wyciszonym trybie (przekład tylko w panelu) - bez zapowiedzi.
-        val mówić = settings.isEarTranslationSpoken()
-        if (mówić) {
-            val zapowiedźOd = System.currentTimeMillis()
-            val zapowiedź = if (_earTwoWay.value) {
-                // W rozmowie zapowiedź mówi, JAK oddać głos - bez tego tryb
-                // dwustronny wygląda jak zwykłe tłumaczenie ze słuchu.
-                pl.victor.app.translation.TwoWay.zapowiedź(fromName)
-            } else {
-                "Tłumaczę z $fromName na $toName."
-            }
-            val powiedziane = audio.speakAndAwait(zapowiedź, language = if (_earTwoWay.value) settings.getResponseLanguage() else to)
-            runCatching {
-                diag.event(
-                    DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: zapowiedź",
-                    mapOf("ms" to (System.currentTimeMillis() - zapowiedźOd), "powiedziane" to powiedziane)
-                )
-            }
-        }
         // POTKNIĘCIE JEDNEGO ZDANIA NIE MOŻE KOŃCZYĆ TRYBU.
         //
         // Przy mowie ciągłej wyjątek z rozpoznawania albo z tłumacza jest
@@ -525,6 +504,35 @@ internal class EarTranslationController(
         // tylko w logu"). Liczymy je więc i poddajemy się dopiero po serii.
         var zRzędu = 0
         try {
+            // Wstrzymanie nasłuchu i zapowiedź są W ŚRODKU try: zatrzymanie
+            // tłumaczenia w trakcie zapowiedzi omijało finally - budzenie z
+            // okularów i "Hej Wiktor" zostawały wyłączone, a spotkanie
+            // wstrzymane (przegląd 22.11).
+            // Tryb SAM trzyma mikrofon: nasłuch frazy na telefonie i wybudzenie z
+            // dźwięku okularów tylko by mu go podbierały - i odpalały tury w trakcie.
+            host.pauseWakeWordMic()
+            glassesManager.suspendMicWake(true)
+            // Zapowiedź idzie w JĘZYKU DOCELOWYM, bo w nim człowiek będzie słyszał
+            // wszystko, co dalej - i od razu słychać, czy syntezator ten język ma.
+            // Przy wyciszonym trybie (przekład tylko w panelu) - bez zapowiedzi.
+            val mówić = settings.isEarTranslationSpoken()
+            if (mówić) {
+                val zapowiedźOd = System.currentTimeMillis()
+                val zapowiedź = if (_earTwoWay.value) {
+                    // W rozmowie zapowiedź mówi, JAK oddać głos - bez tego tryb
+                    // dwustronny wygląda jak zwykłe tłumaczenie ze słuchu.
+                    pl.victor.app.translation.TwoWay.zapowiedź(fromName)
+                } else {
+                    "Tłumaczę z $fromName na $toName."
+                }
+                val powiedziane = audio.speakAndAwait(zapowiedź, language = if (_earTwoWay.value) settings.getResponseLanguage() else to)
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.NASŁUCH, "tłumaczenie ze słuchu: zapowiedź",
+                        mapOf("ms" to (System.currentTimeMillis() - zapowiedźOd), "powiedziane" to powiedziane)
+                    )
+                }
+            }
             // NA ŻYWO PRZEZ CHMURĘ, gdy się da - patrz [earLiveLoop]. Gdy nie
             // (brak klucza, sieci, zerwana sesja), dalej idzie dotychczasowa
             // pętla w telefonie, bez wyłączania trybu.
@@ -721,7 +729,11 @@ internal class EarTranslationController(
             if (earJob === mójJob || earJob == null) {
                 // Okulary nadają jeszcze chwilę po ostatnim nasłuchu - bez
                 // karencji ten ogon odpalał turę z przypadkowym pytaniem.
-                glassesManager.suspendMicWake(false, graceMs = EAR_MIC_WAKE_GRACE_MS)
+                // Rozmowa na żywo, która właśnie przejęła mikrofon, sama trzyma
+                // tę blokadę - nie zdejmujemy jej za nią (przegląd 22.11).
+                if (!host.liveConversationOn()) {
+                    glassesManager.suspendMicWake(false, graceMs = EAR_MIC_WAKE_GRACE_MS)
+                }
                 // Najpierw flaga, potem nasłuch: resumeWakeWordMic nie oddaje
                 // mikrofonu, dopóki tłumaczenie trwa.
                 _earTranslation.value = false
@@ -892,7 +904,9 @@ internal class EarTranslationController(
                     val z = odebrane?.let { it.getOrNull() ?: pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Zamknięte }
                     when (z) {
                         is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Dźwięk ->
-                            if (mówić) doZagrania.trySend(z.pcm)
+                            // Czytane przy każdym kawałku: "Wycisz przekład" w panelu
+                            // ma działać od razu, nie od następnej sesji.
+                            if (settings.isEarTranslationSpoken()) doZagrania.trySend(z.pcm)
                         is pl.victor.app.translation.LiveTranslationProtocol.Zdarzenie.Oryginał -> {
                             bufor.dodajOryginał(z.tekst, teraz)
                             val przed = wykrywanie.pewny

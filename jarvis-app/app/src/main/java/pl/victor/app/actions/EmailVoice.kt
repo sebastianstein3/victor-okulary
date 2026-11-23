@@ -32,6 +32,26 @@ object EmailVoice {
         return t.takeIf { it.split(Regex("\\s+")).size >= 2 }
     }
 
+    /**
+     * Poprawka maila w NOWEJ turze (poza nasłuchem "Wysłać?"). Ostrzej niż
+     * [correction]: "zmień motyw na ciemny", "usuń ostatnią notatkę" czy
+     * "mniej więcej ile to kosztuje?" to polecenia, nie uwagi do szkicu
+     * (przegląd 22.11). Wymagamy jednoznacznego czasownika redakcji albo
+     * słowa o mailu.
+     */
+    fun correctionInNewTurn(text: String): String? {
+        val t = correction(text) ?: return null
+        val lower = t.lowercase()
+            .replace('ą', 'a').replace('ć', 'c').replace('ę', 'e').replace('ł', 'l')
+            .replace('ń', 'n').replace('ó', 'o').replace('ś', 's').replace('ź', 'z').replace('ż', 'z')
+        val jednoznaczne = listOf(
+            "popraw", "dopisz", "przeredaguj", "przepisz", "napisz raczej", "napisz ze",
+            "dodaj ze", "dodaj, ze", "niech bedzie", "skroc", "wydluz"
+        ).any { lower.startsWith(it) }
+        val oMailu = Regex("""\b(mail\w*|tresc\w*|temat\w*|wiadomosc\w*|odpowiedz\w*|szkic\w*)\b""").containsMatchIn(lower)
+        return t.takeIf { jednoznaczne || oMailu }
+    }
+
     private val CORRECTION_STARTS = listOf(
         "popraw", "zmien", "zamien", "dopisz", "dodaj ze", "dodaj, ze", "usun", "wytnij",
         "skroc", "wydluz", "napisz raczej", "napisz ze", "zamiast", "niech bedzie",
