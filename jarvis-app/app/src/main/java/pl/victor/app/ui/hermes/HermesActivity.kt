@@ -159,8 +159,8 @@ fun HermesScreen(onBack: () -> Unit) {
     var podążaj by remember { mutableStateOf(true) }
     // Użytkownik przewinął w górę = przestajemy go ciągnąć na dół.
     LaunchedEffect(listState) {
-        snapshotFlow { listState.isScrollInProgress }.collect { w ruchu ->
-            if (!w ruchu) podążaj = !listState.canScrollForward
+        snapshotFlow { listState.isScrollInProgress }.collect { wRuchu ->
+            if (!wRuchu) podążaj = !listState.canScrollForward
         }
     }
     val klucz = wpisy.lastOrNull().let { w ->
