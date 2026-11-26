@@ -647,6 +647,20 @@ class SettingsRepository private constructor(private val context: Context) {
     }
 
     /**
+     * "Hermes jako główny mózg": fakty o użytkowniku, notatki, kalendarz, poczta
+     * i Dysk idą do Hermesa zamiast do lokalnych funkcji - patrz
+     * [pl.victor.app.hermes.HermesMózg]. Domyślnie wyłączone: dane zaczynają wtedy
+     * żyć u Hermesa, a nie w telefonie.
+     */
+    fun isHermesBrain(): Boolean = prefs.getBoolean(KEY_HERMES_BRAIN, false) && isHermesEnabled()
+
+    fun isHermesBrainPref(): Boolean = prefs.getBoolean(KEY_HERMES_BRAIN, false)
+
+    fun setHermesBrain(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HERMES_BRAIN, enabled).apply()
+    }
+
+    /**
      * Adres mostu plików (`tools/hermes-pliki`), przez który Victor otwiera pliki
      * i obrazy wygenerowane przez Hermesa. Puste = ten sam komputer co brama,
      * port 8643 - patrz [pl.victor.app.hermes.HermesPlikiAdres.pochodny].
@@ -1615,6 +1629,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_HERMES_SESSION = "hermes_session_key"
         private const val KEY_HERMES_AUTO = "hermes_auto_route"
         private const val KEY_HERMES_FILES_URL = "hermes_files_url"
+        private const val KEY_HERMES_BRAIN = "hermes_brain"
         private const val KEY_HA_TOKEN = "home_assistant_token"
         private const val KEY_HA_AREAS = "home_assistant_areas"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"

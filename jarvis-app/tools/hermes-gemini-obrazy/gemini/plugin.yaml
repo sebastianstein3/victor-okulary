@@ -1,0 +1,5 @@
+name: gemini
+version: 0.1.0
+description: Generowanie obrazów modelami Gemini (Nano Banana) przez GEMINI_API_KEY - bez FAL i OpenRouter
+author: Victor
+kind: backend

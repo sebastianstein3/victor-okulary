@@ -600,6 +600,26 @@ class AIOrchestrator(
     }
 
     /**
+     * Tryb "Hermes jako główny mózg" - [pl.victor.app.hermes.HermesMózg] wybiera
+     * zdania, które idą do agenta. Gdy tryb jest wyłączony albo Hermes
+     * niedostępny, zdanie leci dalej do lokalnych funkcji (cichy powrót: nikt nie
+     * prosił o Hermesa po imieniu).
+     */
+    private fun handleHermesBrain(question: String): Boolean {
+        if (!settings.isHermesBrain()) return false
+        if (settings.hermesAvailability() != pl.victor.app.hermes.HermesDostępność.MOŻNA) return false
+        val p = pl.victor.app.hermes.HermesMózg.rozpoznaj(question) ?: return false
+        runCatching {
+            diag.event(
+                DiagFormat.Phase.AKCJA, "hermes: tryb głównego mózgu",
+                mapOf("zdanie" to question.take(80))
+            )
+        }
+        runHermes(p)
+        return true
+    }
+
+    /**
      * Rozmowa z Hermesem pokazywana w panelu aplikacji - dostają ją i
      * polecenia głosowe z okularów, i to, co wpiszesz w panelu.
      */
@@ -4239,6 +4259,13 @@ class AIOrchestrator(
                     return
                 }
             }
+
+            // "HERMES JAKO GŁÓWNY MÓZG" - fakty, notatki, kalendarz, poczta, Dysk.
+            // PRZED lokalnymi faktami i notatkami, bo to one przejmują te zdania;
+            // pamięć miejsca (parking) i komendy urządzenia zostały wyżej i
+            // zostają lokalne. Wysyłanie maili i SMS-ów też zostaje u nas -
+            // patrz [pl.victor.app.hermes.HermesMózg].
+            if (handleHermesBrain(textQuestion)) return
 
             // FAKTY O UŻYTKOWNIKU - przed notatkami, bo granica jest tu prosta i
             // ma taka zostać: "zapamiętaj" mówi o CZŁOWIEKU, "zapisz" o zadaniu.

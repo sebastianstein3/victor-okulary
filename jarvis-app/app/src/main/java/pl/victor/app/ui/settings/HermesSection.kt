@@ -42,6 +42,7 @@ internal fun HermesSection() {
     var session by remember { mutableStateOf(settings.getHermesSessionKey()) }
     var auto by remember { mutableStateOf(settings.isHermesAutoRoute()) }
     var filesUrl by remember { mutableStateOf(settings.getHermesFilesUrl()) }
+    var brain by remember { mutableStateOf(settings.isHermesBrainPref()) }
     var status by remember { mutableStateOf<String?>(null) }
     var checking by remember { mutableStateOf(false) }
     val client = remember {
@@ -138,6 +139,23 @@ internal fun HermesSection() {
             },
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
         )
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text("Hermes jako główny mózg", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "Fakty o Tobie, notatki, kalendarz, poczta i Dysk idą do Hermesa (jego pamięć i narzędzia Google " +
+                        "na komputerze) zamiast do lokalnych funkcji Victora. Wysyłanie maili i SMS-ów oraz komendy " +
+                        "urządzenia zostają w Victorze. Dane zapisane przez Hermesa nie pojawiają się w lokalnych " +
+                        "Notatkach i „Co o Tobie wiem”.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Switch(checked = brain, onCheckedChange = {
+                brain = it
+                settings.setHermesBrain(it)
+            })
+        }
 
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Column(Modifier.weight(1f)) {
