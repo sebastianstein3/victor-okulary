@@ -352,6 +352,8 @@ fun SettingsScreen(
                 HorizontalDivider()
                 HomeAssistantSection()
                 HorizontalDivider()
+                HermesSection()
+                HorizontalDivider()
                 ProactiveAlertsSection()
                 DailyBriefingSection()
                 HorizontalDivider()

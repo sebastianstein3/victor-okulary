@@ -590,6 +590,66 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putString(KEY_HA_AREAS, areas.joinToString("\n")).apply()
     }
 
+    // === Hermes Agent (komputer użytkownika) jako "mózg" do zadań ===
+    //
+    // Hermes działa na własnym komputerze użytkownika (Mac mini) i ma własny
+    // model, pamięć i narzędzia. Aplikacja nie zna jego kosztów, więc "Tylko
+    // darmowe funkcje" go pomija. Domyślnie WYŁĄCZONE: zdania nie mogą nagle
+    // zacząć iść do serwera, którego nikt nie skonfigurował.
+
+    /** Surowy przełącznik - do ekranu ustawień. */
+    fun isHermesPrefOn(): Boolean = prefs.getBoolean(KEY_HERMES_ENABLED, false)
+
+    /** Czy Hermes może obsługiwać polecenia (przełącznik i brak "tylko darmowe"). */
+    fun isHermesEnabled(): Boolean = isHermesPrefOn() && !isFreeOnly()
+
+    fun setHermesEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HERMES_ENABLED, enabled).apply()
+    }
+
+    /** Adres bramy, np. `http://mac-mini.local:8642` - patrz [pl.victor.app.hermes.HermesAdres]. */
+    fun getHermesUrl(): String = prefs.getString(KEY_HERMES_URL, "") ?: ""
+
+    fun setHermesUrl(url: String) {
+        prefs.edit().putString(KEY_HERMES_URL, url.trim()).apply()
+    }
+
+    /**
+     * Klucz bramy (`API_SERVER_KEY`) - w tych samych szyfrowanych preferencjach
+     * co klucze API. Nie trafia do dziennika ani do modelu.
+     */
+    fun getHermesKey(): String? = prefs.getString(KEY_HERMES_KEY, null)?.takeIf { it.isNotBlank() }
+
+    fun setHermesKey(key: String) {
+        // Bez białych znaków: klucz wklejony z nową linią psuje nagłówek.
+        prefs.edit().putString(KEY_HERMES_KEY, key.filterNot { it.isWhitespace() }).apply()
+    }
+
+    /** Stały identyfikator kanału (trwała pamięć Hermesa) - nagłówek `X-Hermes-Session-Key`. */
+    fun getHermesSessionKey(): String =
+        prefs.getString(KEY_HERMES_SESSION, null)?.takeIf { it.isNotBlank() }
+            ?: pl.victor.app.hermes.HermesProtocol.DOMYŚLNY_KLUCZ_SESJI
+
+    fun setHermesSessionKey(key: String) {
+        prefs.edit().putString(KEY_HERMES_SESSION, key.trim()).apply()
+    }
+
+    /**
+     * Czy do Hermesa idą też zadania na plikach i komputerze bez wołania go
+     * po imieniu ("znajdź plik z fakturą"). Domyślnie wyłączone - wolne
+     * zadanie agenta nie może zabierać pytań, które szybki model załatwia w
+     * sekundę.
+     */
+    fun isHermesAutoRoute(): Boolean = prefs.getBoolean(KEY_HERMES_AUTO, false)
+
+    fun setHermesAutoRoute(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HERMES_AUTO, enabled).apply()
+    }
+
+    /** Dlaczego Hermes może albo nie może teraz działać. */
+    fun hermesAvailability(): pl.victor.app.hermes.HermesDostępność =
+        pl.victor.app.hermes.HermesDostępność.z(isHermesPrefOn(), isFreeOnly(), getHermesUrl(), getHermesKey())
+
     /** Mapy Google dla pytań o okolicę (opinie, godziny otwarcia) - tylko Gemini 3+. */
     fun isMapsGroundingEnabled(): Boolean = prefs.getBoolean(KEY_MAPS_GROUNDING, true) && !isFreeOnly()
 
@@ -1533,6 +1593,11 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_OSM_PLACES = "osm_places"
         private const val KEY_HA_ENABLED = "home_assistant_enabled"
         private const val KEY_HA_URL = "home_assistant_url"
+        private const val KEY_HERMES_ENABLED = "hermes_enabled"
+        private const val KEY_HERMES_URL = "hermes_url"
+        private const val KEY_HERMES_KEY = "hermes_key"
+        private const val KEY_HERMES_SESSION = "hermes_session_key"
+        private const val KEY_HERMES_AUTO = "hermes_auto_route"
         private const val KEY_HA_TOKEN = "home_assistant_token"
         private const val KEY_HA_AREAS = "home_assistant_areas"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"

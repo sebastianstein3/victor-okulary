@@ -16,7 +16,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import pl.victor.app.ai.AIProvider
 import pl.victor.app.ai.AIProviderException
@@ -553,6 +555,197 @@ class AIOrchestrator(
                 }
             }
         }
+    }
+
+    /** Hermes Agent użytkownika - adres i klucz czytane przy każdym wywołaniu. */
+    private val hermes by lazy {
+        pl.victor.app.hermes.HermesClient(
+            adres = { settings.getHermesUrl() },
+            klucz = { settings.getHermesKey() },
+            kluczSesji = { settings.getHermesSessionKey() }
+        )
+    }
+
+    /**
+     * Zadanie dla Hermesa ("Hermes, znajdź w Dokumentach fakturę…").
+     *
+     * ## Czemu osobna ścieżka, a nie kolejny dostawca modelu
+     * Hermes to agent z własnym modelem, narzędziami i pamięcią - nie dostaje
+     * promptu Victora, zdjęć ani znaczników akcji. Dostaje tekst, a odpowiedź
+     * wraca strumieniem i jest czytana na głos zdanie po zdaniu.
+     *
+     * @return `true`, gdy zdanie zostało obsłużone (także wyjaśnieniem, że
+     *   Hermes jest wyłączony - ale tylko przy jawnym wołaniu po imieniu)
+     */
+    private fun handleHermes(trigger: TriggerSource, question: String): Boolean {
+        val p = pl.victor.app.hermes.HermesRouting.rozpoznaj(question, settings.isHermesAutoRoute()) ?: return false
+        val dostępność = settings.hermesAvailability()
+        if (dostępność != pl.victor.app.hermes.HermesDostępność.MOŻNA) {
+            // Bez Hermesa zdanie idzie dalej jak dotąd. Tylko jawne wołanie po
+            // imieniu dostaje wyjaśnienie, czemu nic się nie stało.
+            if (!p.jawne) return false
+            val mowa = dostępność.komunikat.orEmpty()
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "hermes: niedostępny",
+                    mapOf("powód" to dostępność.name, "tekst" to p.tekst.take(120))
+                )
+            }
+            audio.speak(mowa, language = settings.getResponseLanguage())
+            _state.value = OrchestratorState.Completed(mowa)
+            return true
+        }
+        runHermes(p)
+        return true
+    }
+
+    /**
+     * Wysyła zadanie do Hermesa i czyta odpowiedź na głos w miarę jej
+     * przychodzenia.
+     *
+     * To prawdziwa tura ([launchTurn]): "przerwij", dotknięcie zausznika i
+     * nowe pytanie przerywają zapytanie (zamykają połączenie), a mikrofon
+     * frazy i blokada uśpienia są brane i zwalniane jak przy zwykłej turze.
+     */
+    private fun runHermes(p: pl.victor.app.hermes.HermesPolecenie) {
+        val micHold = java.util.concurrent.atomic.AtomicBoolean(true)
+        holdMicForTurn()
+        val releaseMic = { if (micHold.compareAndSet(true, false)) releaseMicAfterTurn() }
+        val lockTurn = "$LOCK_TURN#${turnSeq.incrementAndGet()}"
+        val turnJob = launchTurn {
+            var audioHeld = false
+            try {
+                // Zadanie agenta bywa długie - blokada na kwadranse, nie na 4 minuty.
+                wakeLock.acquire(lockTurn, HERMES_WAKE_LOCK_MS)
+                _state.value = OrchestratorState.Thinking
+                val canUseMedia = audio.canSpeakOverMedia()
+                if (!canUseMedia) glassesManager.requestClassicAudio("brak A2DP przed odpowiedzią Hermesa")
+                audioHeld = if (canUseMedia) false else audio.beginConversationRouting(waitForLink = false)
+                conversationalMode.onAiStartedSpeaking()
+                audio.beginStream("pl")
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.MODEL, "hermes: zapytanie",
+                        mapOf(
+                            "tekst" to p.tekst.take(120),
+                            "jawne" to p.jawne,
+                            "wiadomościHistorii" to hermes.historia.wiadomości(System.currentTimeMillis()).size
+                        )
+                    )
+                }
+                // Jedno miejsce, które pisze do strumienia mowy: ramki z sieci
+                // (wątek IO) i zdania o cierpliwości (osobna korutyna) nie mogą
+                // dopisywać do bufora jednocześnie.
+                val mówienie = kotlinx.coroutines.sync.Mutex()
+                val cierpliwość = pl.victor.app.hermes.HermesCierpliwość()
+                cierpliwość.start(System.currentTimeMillis())
+                val czujka = launch {
+                    while (isActive) {
+                        kotlinx.coroutines.delay(1_000)
+                        cierpliwość.zapytaj(System.currentTimeMillis())?.let { zdanie ->
+                            mówienie.withLock { audio.addStreamFragment(zdanie) }
+                        }
+                    }
+                }
+                val widoczny = StringBuilder()
+                var zgodaOgłoszona = false
+                var logowanychNarzędzi = 0
+                var logowanychNieznanych = 0
+                val wynik = try {
+                    hermes.zapytaj(p.tekst) { r ->
+                        when (r) {
+                            is pl.victor.app.hermes.HermesRamka.Tekst -> if (r.kawałek.isNotEmpty()) {
+                                cierpliwość.usłyszano(System.currentTimeMillis())
+                                widoczny.append(r.kawałek)
+                                mówienie.withLock { audio.addStreamFragment(r.kawałek) }
+                                _state.value = OrchestratorState.Streaming(widoczny.toString())
+                            }
+                            is pl.victor.app.hermes.HermesRamka.Narzędzie -> if (logowanychNarzędzi++ < 20) {
+                                runCatching {
+                                    diag.event(DiagFormat.Phase.MODEL, "hermes: narzędzie", mapOf("opis" to r.opis))
+                                }
+                            }
+                            is pl.victor.app.hermes.HermesRamka.Zgoda -> {
+                                // FORMAT PROŚBY O ZGODĘ JESZCZE NIEZNANY - zapisujemy ramkę w całości
+                                // (początek), żeby dało się dopisać odpowiedź. Hermes czeka na
+                                // zgodę do 300 s, więc użytkownik musi o tym wiedzieć.
+                                runCatching {
+                                    diag.event(
+                                        DiagFormat.Phase.MODEL, "hermes: prośba o zgodę (ramka)",
+                                        mapOf("początek" to r.początek)
+                                    )
+                                }
+                                if (!zgodaOgłoszona) {
+                                    zgodaOgłoszona = true
+                                    cierpliwość.usłyszano(System.currentTimeMillis())
+                                    mówienie.withLock {
+                                        audio.addStreamFragment(
+                                            "Hermes prosi o zgodę na operację. Nie umiem jeszcze jej przekazać, " +
+                                                "zatwierdź ją na komputerze. "
+                                        )
+                                    }
+                                }
+                            }
+                            is pl.victor.app.hermes.HermesRamka.Nieznana -> if (logowanychNieznanych++ < 10) {
+                                runCatching {
+                                    diag.event(
+                                        DiagFormat.Phase.MODEL, "hermes: nieznana ramka",
+                                        mapOf("zdarzenie" to r.zdarzenie, "początek" to r.początek)
+                                    )
+                                }
+                            }
+                            else -> Unit
+                        }
+                    }
+                } finally {
+                    czujka.cancel()
+                }
+                mówienie.withLock { audio.flushStream() }
+                audio.awaitStreamSpoken()
+                runCatching {
+                    diag.event(
+                        DiagFormat.Phase.MODEL, "hermes: odpowiedź",
+                        mapOf(
+                            "ms" to wynik.ms,
+                            "pierwszyTekstMs" to wynik.pierwszyTekstMs,
+                            "znaków" to wynik.tekst.length,
+                            "narzędzi" to wynik.narzędzi,
+                            "zgód" to wynik.zgód,
+                            "nieznanychRamek" to wynik.nieznanychRamek,
+                            "http" to wynik.kodHttp,
+                            "błąd" to wynik.błąd?.name,
+                            "szczegół" to wynik.szczegół
+                        )
+                    )
+                }
+                val błąd = wynik.błąd
+                if (błąd == null) {
+                    _state.value = OrchestratorState.Completed(wynik.tekst)
+                } else {
+                    // Błąd po części odpowiedzi: człowiek już coś usłyszał - dopowiadamy,
+                    // co poszło nie tak. Bez żadnej odpowiedzi mówimy tylko to.
+                    val powód = błąd.mowa + (wynik.szczegół?.takeIf { błąd == pl.victor.app.hermes.HermesBłąd.SERWER }
+                        ?.let { " $it." } ?: "")
+                    audio.speakAndAwait(powód, language = "pl")
+                    _state.value = if (wynik.tekst.isBlank()) OrchestratorState.Error(powód)
+                    else OrchestratorState.Completed(wynik.tekst)
+                }
+                conversationalMode.onAiFinishedSpeaking()
+            } finally {
+                if (audioHeld) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        audio.endConversationRouting()
+                    }
+                }
+                if (glassesManager.isConnected() && !audio.canSpeakOverMedia()) {
+                    glassesManager.requestClassicAudioWhenIdle("po odpowiedzi Hermesa bez trybu multimediów")
+                }
+                wakeLock.release(lockTurn)
+                releaseMic()
+            }
+        }
+        // Tura anulowana, ZANIM jej korutyna ruszyła, nie ma `finally`.
+        turnJob.invokeOnCompletion { releaseMic() }
     }
 
     /**
@@ -4102,6 +4295,12 @@ class AIOrchestrator(
                 return
             }
 
+            // "Hermes, znajdź…" - zadanie dla agenta na komputerze użytkownika.
+            // Przed resztą warstwy 0: jawne wywołanie po imieniu jest mocniejszą
+            // deklaracją intencji niż nasze wzorce ("Hermes, zgaś światło" ma
+            // pójść do Hermesa, nie do domu).
+            if (handleHermes(trigger, textQuestion)) return
+
             // "Kiedy najbliższy tramwaj?" - przystanki i linie z OpenStreetMap
             // za darmo; z płatnymi Mapami Google pytanie idzie do modelu.
             if (handleTransitDepartures(textQuestion)) return
@@ -6300,6 +6499,9 @@ class AIOrchestrator(
          * turę, a nie wygaśnięcie blokady.
          */
         private const val TURN_WAKE_LOCK_MS = 240_000L
+
+        /** Zadanie Hermesa może trwać kwadranse - dłuższa blokada niż zwykła tura. */
+        private const val HERMES_WAKE_LOCK_MS = 15 * 60_000L
 
         /** Nazwy właścicieli blokady - patrz [pl.victor.app.power.WakelockHelper]. */
         /** Nie częściej mówimy o pełnej pamięci okularów. */

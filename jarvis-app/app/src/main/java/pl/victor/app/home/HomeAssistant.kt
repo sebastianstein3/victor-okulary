@@ -247,7 +247,9 @@ object HaAdres {
         return LOKALNE_DOMENY.any { host.endsWith(it) }
     }
 
-    private val LOKALNE_DOMENY = listOf(".local", ".lan", ".home", ".home.arpa", ".internal", ".localdomain", ".fritz.box")
+    private val LOKALNE_DOMENY = listOf(".local", ".lan", ".home", ".home.arpa", ".internal", ".localdomain", ".fritz.box",
+        // Nazwy MagicDNS Tailscale: ruch idzie szyfrowanym tunelem WireGuard.
+        ".ts.net")
 }
 
 /** JSON dla API HA - przez kotlinx.serialization, bez org.json. */
