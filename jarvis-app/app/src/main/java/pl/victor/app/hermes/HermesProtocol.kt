@@ -195,13 +195,28 @@ sealed class HermesRamka {
     /** Kawałek odpowiedzi do przeczytania. */
     data class Tekst(val kawałek: String) : HermesRamka()
 
-    /** Hermes zaczyna narzędzie (np. czyta plik) - [opis] może być pusty. */
-    data class Narzędzie(val opis: String?) : HermesRamka()
+    /**
+     * Narzędzie Hermesa (np. czyta plik) - [opis] może być pusty;
+     * [zakończone] to ramka końca narzędzia (nie liczymy jej jako nowego).
+     */
+    data class Narzędzie(val opis: String?, val zakończone: Boolean = false) : HermesRamka()
 
-    /** Prośba o zgodę na operację - format nieznany, [początek] to surowe dane. */
-    data class Zgoda(val początek: String) : HermesRamka()
+    /**
+     * Prośba o zgodę na operację. Pola poza [początek] są wyciągane
+     * ostrożnie z danych (format ramki jest opisany w dokumentacji tylko
+     * częściowo) i mogą być `null`; [runId] dopisuje klient.
+     */
+    data class Zgoda(
+        val początek: String,
+        val requestId: String? = null,
+        val generacja: Int? = null,
+        val polecenie: String? = null,
+        val opis: String? = null,
+        val runId: String? = null
+    ) : HermesRamka()
 
-    data class Koniec(val powód: String?) : HermesRamka()
+    /** Koniec odpowiedzi; [wynik] to końcowy tekst, jeśli zdarzenie go niosło. */
+    data class Koniec(val powód: String?, val wynik: String? = null) : HermesRamka()
     object Gotowe : HermesRamka()
     data class Błąd(val komunikat: String) : HermesRamka()
 
@@ -366,6 +381,192 @@ object HermesProtocol {
             is JsonPrimitive -> e.contentOrNull
             else -> null
         }?.take(200)
+    }
+}
+
+/**
+ * Zadania (`/v1/runs`) - jedyna droga, na której klient może odpowiedzieć na
+ * prośbę Hermesa o zgodę (`POST /v1/runs/{id}/approval`). Strumień
+ * `chat/completions` nie ujawnia identyfikatora zadania.
+ *
+ * Z dokumentacji: start zwraca `{"run_id", "status"}` (202), zdarzenia SSE:
+ * `message.delta`, `message.interim`, `tool.started`, `tool.completed`,
+ * `approval.request`, `run.completed` / `run.failed` / `run.cancelled` /
+ * `run.interrupted`. Zgoda: `{"request_id", "execution_generation", "choice"}`.
+ *
+ * NIE znamy pól ładunków (poza tymi z przykładów), dlatego odczyt jest
+ * odporny: kilka możliwych nazw pól, nazwa zdarzenia z linii `event:` albo
+ * z JSON-a, a końcowy tekst w razie czego z `GET /v1/runs/{id}` (`output`).
+ */
+object HermesRuns {
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    fun żądanieStartu(tekst: String, historia: List<HermesProtocol.Wiadomość> = emptyList()): String =
+        buildJsonObject {
+            put("input", tekst)
+            put("instructions", HermesProtocol.WSKAZÓWKA_GŁOSOWA)
+            if (historia.isNotEmpty()) {
+                put("conversation_history", buildJsonArray {
+                    historia.forEach { w ->
+                        add(buildJsonObject {
+                            put("role", w.rola)
+                            put("content", w.treść)
+                        })
+                    }
+                })
+            }
+        }.toString()
+
+    fun runId(ciało: String?): String? =
+        (runCatching { json.parseToJsonElement(ciało.orEmpty()) }.getOrNull() as? JsonObject)
+            ?.let { znajdźTekst(it, listOf("run_id", "id")) }
+
+    /** `{"request_id": …, "execution_generation": …, "choice": "once"|"deny"}`. */
+    fun żądanieZgody(requestId: String, generacja: Int?, zezwól: Boolean): String =
+        buildJsonObject {
+            put("request_id", requestId)
+            if (generacja != null) put("execution_generation", generacja)
+            // Tylko "once": zgoda na stałe ("session"/"always") nie może paść
+            // przypadkiem z jednego słowa "tak" w okularach.
+            put("choice", if (zezwól) "once" else "deny")
+        }.toString()
+
+    /** Tekst końcowy z `GET /v1/runs/{id}` (`output`) i jego status. */
+    fun stanRuna(ciało: String?): Pair<String?, String?> {
+        val o = runCatching { json.parseToJsonElement(ciało.orEmpty()) }.getOrNull() as? JsonObject
+            ?: return null to null
+        return znajdźTekst(o, listOf("status"), 1) to znajdźTekst(o, listOf("output"), 1)
+    }
+
+    /** Oczekujące zgody z `GET /v1/runs/{id}` (`pending_controls`). */
+    fun oczekująceZgody(ciało: String?): List<HermesRamka.Zgoda> {
+        val o = runCatching { json.parseToJsonElement(ciało.orEmpty()) }.getOrNull() as? JsonObject
+            ?: return emptyList()
+        val lista = o["pending_controls"] as? JsonArray ?: return emptyList()
+        return lista.mapNotNull { (it as? JsonObject)?.let { e -> zgodaZ(e, HermesProtocol.początek(e.toString())) } }
+    }
+
+    fun zgodaZ(o: JsonObject?, początek: String): HermesRamka.Zgoda = HermesRamka.Zgoda(
+        początek = początek,
+        requestId = o?.let { znajdźTekst(it, listOf("request_id", "prompt_id", "id")) },
+        generacja = o?.let { znajdźLiczbę(it, listOf("execution_generation", "generation")) },
+        polecenie = o?.let { znajdźTekst(it, listOf("command", "cmd")) },
+        opis = o?.let { znajdźTekst(it, listOf("description", "message", "preview", "prompt", "title", "text")) }
+    )
+
+    /** Zamienia zdarzenie SSE z `/v1/runs/{id}/events` na ramkę. */
+    fun interpretuj(z: SseZdarzenie): HermesRamka {
+        val dane = z.dane.trim()
+        val element = runCatching { json.parseToJsonElement(dane) }.getOrNull()
+        val o = element as? JsonObject
+        val nazwa = (z.zdarzenie ?: o?.let { znajdźTekst(it, listOf("type", "event", "name"), 1) })?.lowercase()
+            ?: return HermesRamka.Nieznana(null, HermesProtocol.początek(dane))
+        return when {
+            nazwa == "message.delta" -> HermesRamka.Tekst(
+                znajdźTekst(o, listOf("delta", "text", "content"))
+                    ?: dane.takeIf { o == null && it.isNotEmpty() && !it.startsWith("[") && !it.startsWith("{") }
+                    ?: ""
+            )
+            nazwa == "message.interim" -> {
+                // Pośredni komentarz ("sprawdzę pliki") - tylko jeśli nie poszedł już deltami.
+                val juz = (o?.get("already_streamed") as? JsonPrimitive)?.contentOrNull == "true"
+                val t = znajdźTekst(o, listOf("text", "content")).orEmpty().trim()
+                HermesRamka.Tekst(if (juz || t.isEmpty()) "" else "$t ")
+            }
+            nazwa.startsWith("tool.") -> HermesRamka.Narzędzie(
+                opis = listOfNotNull(
+                    znajdźTekst(o, listOf("tool", "name"), 1),
+                    znajdźTekst(o, listOf("preview"), 1)
+                ).joinToString(": ").take(80).ifEmpty { null },
+                zakończone = nazwa != "tool.started"
+            )
+            nazwa.contains("approv") -> zgodaZ(o, HermesProtocol.początek(dane))
+            nazwa == "run.completed" -> HermesRamka.Koniec(
+                "completed", znajdźTekst(o, listOf("output", "answer", "final", "text", "content"), 1)
+            )
+            nazwa == "run.failed" -> HermesRamka.Błąd(
+                znajdźTekst(o, listOf("error", "message", "reason")) ?: "zadanie nie powiodło się"
+            )
+            nazwa == "run.cancelled" || nazwa == "run.interrupted" ->
+                HermesRamka.Koniec(nazwa.substringAfter("run."))
+            // Znane, ale nic do powiedzenia.
+            nazwa.startsWith("subagent") || nazwa == "run.steered" -> HermesRamka.Tekst("")
+            else -> HermesRamka.Nieznana(z.zdarzenie ?: nazwa, HermesProtocol.początek(dane))
+        }
+    }
+
+    /** Pierwszy tekst o jednej z nazw (także w zagnieżdżonym obiekcie, do [głębokość]). */
+    fun znajdźTekst(el: JsonElement?, klucze: List<String>, głębokość: Int = 2): String? {
+        val o = el as? JsonObject ?: return null
+        for (k in klucze) {
+            when (val v = o[k]) {
+                is JsonPrimitive -> if (v !is JsonNull && v.contentOrNull != null && v.isString) return v.content
+                is JsonObject -> if (głębokość > 0) {
+                    znajdźTekst(v, listOf("content", "text", "message", "command", "description"), głębokość - 1)
+                        ?.let { return it }
+                }
+                else -> Unit
+            }
+        }
+        if (głębokość > 0) {
+            for ((_, v) in o) {
+                if (v is JsonObject) znajdźTekst(v, klucze, głębokość - 1)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    fun znajdźLiczbę(o: JsonObject, klucze: List<String>, głębokość: Int = 2): Int? {
+        for (k in klucze) {
+            (o[k] as? JsonPrimitive)?.takeIf { it !is JsonNull }?.contentOrNull?.toIntOrNull()?.let { return it }
+        }
+        if (głębokość > 0) {
+            for ((_, v) in o) {
+                if (v is JsonObject) znajdźLiczbę(v, klucze, głębokość - 1)?.let { return it }
+            }
+        }
+        return null
+    }
+}
+
+/** Zdania o zgodach Hermesa - czytane na głos. */
+object HermesMowa {
+
+    private fun skróć(t: String, max: Int = 140): String {
+        val jedna = t.replace(Regex("""\s+"""), " ").trim()
+        return if (jedna.length <= max) jedna else jedna.take(max).trimEnd() + " i dalej"
+    }
+
+    /** Co Hermes chce zrobić - po polsku, do wstawienia po "zgodę na". */
+    fun opisZgody(z: HermesRamka.Zgoda): String = when {
+        !z.polecenie.isNullOrBlank() -> "wykonanie polecenia: ${skróć(z.polecenie)}"
+        !z.opis.isNullOrBlank() -> skróć(z.opis)
+        else -> "operację, której opisu nie podał"
+    }
+
+    fun pytanieOZgodę(z: HermesRamka.Zgoda, powtórka: Boolean = false): String =
+        if (powtórka) "Czekam na decyzję: ${opisZgody(z)}. Zezwolić? Powiedz tak albo nie."
+        else "Hermes prosi o zgodę na ${opisZgody(z)}. Zezwolić? Powiedz tak albo nie."
+
+    const val ZGODA_WYGASŁA = "Ta zgoda już wygasła, Hermes jej nie przyjął."
+    const val ZGODA_BRAK_ZADANIA = "Hermes nie zna już tego zadania."
+    const val ZGODA_BRAK_ODPOWIEDZI = "Nie usłyszałem odpowiedzi, więc odmawiam."
+    const val ZGODA_BŁĄD = "Nie udało się przekazać decyzji do Hermesa."
+}
+
+/** Wynik odpowiedzi na prośbę o zgodę. */
+enum class WynikZgody { OK, WYGASŁA, BRAK_ZADANIA, KLUCZ, SIEĆ, INNE;
+
+    companion object {
+        fun zKoduHttp(kod: Int?): WynikZgody = when (kod) {
+            null -> SIEĆ
+            in 200..299 -> OK
+            409 -> WYGASŁA
+            404 -> BRAK_ZADANIA
+            401, 403 -> KLUCZ
+            else -> INNE
+        }
     }
 }
 

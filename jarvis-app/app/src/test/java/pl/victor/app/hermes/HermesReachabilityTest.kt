@@ -65,4 +65,21 @@ class HermesReachabilityTest {
         val ciało = kod.substring(start, kod.indexOf("runHermes(p)", start))
         assertTrue("bez jawnego wołania zdanie ma iść dalej", ciało.contains("if (!p.jawne) return false"))
     }
+
+    @Test
+    fun `zgody Hermesa nie przyjmuja glosu z nowej tury i sa czyszczone po zadaniu`() {
+        val kod = zrodlo()
+        assumeTrue("brak źródła orkiestratora", kod != null)
+        // Przypadkowe "ok" po innej rozmowie nie może zatwierdzić polecenia na komputerze.
+        assertTrue(
+            "nowa tura nie może zatwierdzać zgód Hermesa",
+            kod!!.contains("if (textIsQuestion && pending != null && pending.głosZNowejTury &&")
+        )
+        val start = kod.indexOf("private fun runHermes(")
+        val koniec = kod.indexOf("turnJob.invokeOnCompletion { releaseMic() }", start)
+        val ciało = kod.substring(start, koniec)
+        assertTrue("zgoda ma być pytana bez głosu z nowej tury", ciało.contains("głosZNowejTury = false"))
+        assertTrue("wisząca zgoda musi znikać po zadaniu", ciało.contains("actionFlow.clearHermesApproval()"))
+        assertTrue("zgoda to tylko jednorazowe once/deny", !ciało.contains("always") && !ciało.contains("\"session\""))
+    }
 }

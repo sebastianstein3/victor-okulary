@@ -648,7 +648,7 @@ class AIOrchestrator(
                     }
                 }
                 val widoczny = StringBuilder()
-                var zgodaOgłoszona = false
+                var ostatniaZgoda: String? = null
                 var logowanychNarzędzi = 0
                 var logowanychNieznanych = 0
                 val wynik = try {
@@ -660,30 +660,55 @@ class AIOrchestrator(
                                 mówienie.withLock { audio.addStreamFragment(r.kawałek) }
                                 _state.value = OrchestratorState.Streaming(widoczny.toString())
                             }
-                            is pl.victor.app.hermes.HermesRamka.Narzędzie -> if (logowanychNarzędzi++ < 20) {
+                            is pl.victor.app.hermes.HermesRamka.Narzędzie -> if (logowanychNarzędzi++ < 30) {
                                 runCatching {
-                                    diag.event(DiagFormat.Phase.MODEL, "hermes: narzędzie", mapOf("opis" to r.opis))
+                                    diag.event(
+                                        DiagFormat.Phase.MODEL,
+                                        if (r.zakończone) "hermes: narzędzie zakończone" else "hermes: narzędzie",
+                                        mapOf("opis" to r.opis)
+                                    )
                                 }
                             }
                             is pl.victor.app.hermes.HermesRamka.Zgoda -> {
-                                // FORMAT PROŚBY O ZGODĘ JESZCZE NIEZNANY - zapisujemy ramkę w całości
-                                // (początek), żeby dało się dopisać odpowiedź. Hermes czeka na
-                                // zgodę do 300 s, więc użytkownik musi o tym wiedzieć.
+                                // Hermes czeka na zgodę (do 300 s, potem sam odmawia). Pytamy
+                                // głosem i w oknie; decyzja idzie do komputera przez
+                                // odpowiedzNaZgodęHermesa. Ta sama zgoda w dwóch ramkach
+                                // (powtórzenie) nie może pytać dwa razy.
+                                val powtórka = r.requestId != null && r.requestId == ostatniaZgoda
                                 runCatching {
                                     diag.event(
-                                        DiagFormat.Phase.MODEL, "hermes: prośba o zgodę (ramka)",
-                                        mapOf("początek" to r.początek)
+                                        DiagFormat.Phase.MODEL, "hermes: prośba o zgodę",
+                                        mapOf(
+                                            "powtórka" to powtórka,
+                                            "runId" to r.runId,
+                                            "requestId" to r.requestId,
+                                            "generacja" to r.generacja,
+                                            "polecenie" to r.polecenie?.take(160),
+                                            "opis" to r.opis?.take(160),
+                                            // Surowe dane tylko dopóki format nie jest sprawdzony na żywo.
+                                            "początek" to r.początek.take(300)
+                                        )
                                     )
                                 }
-                                if (!zgodaOgłoszona) {
-                                    zgodaOgłoszona = true
+                                if (!powtórka) {
+                                    ostatniaZgoda = r.requestId
                                     cierpliwość.usłyszano(System.currentTimeMillis())
-                                    mówienie.withLock {
-                                        audio.addStreamFragment(
-                                            "Hermes prosi o zgodę na operację. Nie umiem jeszcze jej przekazać, " +
-                                                "zatwierdź ją na komputerze. "
-                                        )
-                                    }
+                                    // Najpierw niech wybrzmi to, co Hermes już powiedział.
+                                    mówienie.withLock { audio.flushStream() }
+                                    audio.awaitStreamSpoken()
+                                    audio.beginStream("pl")
+                                    actionFlow.requestConfirmation(
+                                        PendingActionConfirmation(
+                                            actions = emptyList(),
+                                            title = "Hermes prosi o zgodę",
+                                            message = pl.victor.app.hermes.HermesMowa.opisZgody(r),
+                                            confirmText = "✅ Zezwól",
+                                            cancelText = "⛔ Odmów",
+                                            hermesZgoda = r,
+                                            głosZNowejTury = false
+                                        ),
+                                        pl.victor.app.hermes.HermesMowa.pytanieOZgodę(r)
+                                    )
                                 }
                             }
                             is pl.victor.app.hermes.HermesRamka.Nieznana -> if (logowanychNieznanych++ < 10) {
@@ -740,12 +765,47 @@ class AIOrchestrator(
                 if (glassesManager.isConnected() && !audio.canSpeakOverMedia()) {
                     glassesManager.requestClassicAudioWhenIdle("po odpowiedzi Hermesa bez trybu multimediów")
                 }
+                // Zadanie skończone albo przerwane - wisząca prośba o zgodę nie ma
+                // już komu odpowiedzieć.
+                actionFlow.clearHermesApproval()
                 wakeLock.release(lockTurn)
                 releaseMic()
             }
         }
         // Tura anulowana, ZANIM jej korutyna ruszyła, nie ma `finally`.
         turnJob.invokeOnCompletion { releaseMic() }
+    }
+
+    /**
+     * Decyzja użytkownika o zgodzie Hermesa ("tak"/"nie" głosem albo przycisk
+     * w oknie) - idzie do komputera. Zadanie trwa dalej: po odmowie Hermes
+     * sam decyduje, co zrobić (według dokumentacji odmowa kończy narzędzie
+     * błędem, a agent szuka innej drogi).
+     */
+    private fun odpowiedzNaZgodęHermesa(zgoda: pl.victor.app.hermes.HermesRamka.Zgoda, zezwól: Boolean) {
+        scope.launch {
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "hermes: decyzja o zgodzie",
+                    mapOf("decyzja" to if (zezwól) "ZEZWOLONO" else "ODMÓWIONO", "runId" to zgoda.runId)
+                )
+            }
+            _state.value = OrchestratorState.Thinking
+            val (wynik, kod) = hermes.odpowiedzNaZgodę(zgoda, zezwól)
+            runCatching {
+                diag.event(
+                    DiagFormat.Phase.AKCJA, "hermes: odpowiedź na zgodę",
+                    mapOf("wynik" to wynik.name, "http" to kod)
+                )
+            }
+            val komunikat = when (wynik) {
+                pl.victor.app.hermes.WynikZgody.OK -> null
+                pl.victor.app.hermes.WynikZgody.WYGASŁA -> pl.victor.app.hermes.HermesMowa.ZGODA_WYGASŁA
+                pl.victor.app.hermes.WynikZgody.BRAK_ZADANIA -> pl.victor.app.hermes.HermesMowa.ZGODA_BRAK_ZADANIA
+                else -> pl.victor.app.hermes.HermesMowa.ZGODA_BŁĄD
+            }
+            komunikat?.let { audio.speak(it, language = "pl") }
+        }
     }
 
     /**
@@ -886,7 +946,8 @@ class AIOrchestrator(
         state = _state,
         dziennik = { diag },
         askModelPlain = { prompt -> askModelPlain(prompt) },
-        runHomeCommand = { trigger, question, tekst -> runHomeCommand(trigger, question, tekst) }
+        runHomeCommand = { trigger, question, tekst -> runHomeCommand(trigger, question, tekst) },
+        odpowiedzNaZgodęHermesa = { zgoda, zezwól -> odpowiedzNaZgodęHermesa(zgoda, zezwól) }
     )
 
     /** Akcja oczekująca na potwierdzenie (null = nic nie czeka). */
@@ -3874,7 +3935,7 @@ class AIOrchestrator(
         ) {
             diag.event(DiagFormat.Phase.AKCJA, "potwierdzenie wygasło - głosem już nie przyjmuję")
         }
-        if (textIsQuestion && pending != null &&
+        if (textIsQuestion && pending != null && pending.głosZNowejTury &&
             System.currentTimeMillis() - pending.createdAtMs <= CONFIRMATION_VOICE_TTL_MS
         ) {
             // POPRAWKA MAILA - "popraw, napisz że będę o piątej" przy wiszącym
@@ -6760,5 +6821,18 @@ data class PendingActionConfirmation(
      * wtedy [actions] jest puste, a [AIOrchestrator.confirmAction] wysyła to
      * zdanie do domu.
      */
-    val homeCommand: String? = null
+    val homeCommand: String? = null,
+    /**
+     * Prośba Hermesa o zgodę na operację na komputerze. "Tak"/"nie" (głosem
+     * albo w oknie) wysyła decyzję do Hermesa, a nie wykonuje akcji telefonu.
+     */
+    val hermesZgoda: pl.victor.app.hermes.HermesRamka.Zgoda? = null,
+    /**
+     * Czy "tak"/"nie" z NOWEJ tury wolno uznać za odpowiedź. Dla zgód Hermesa
+     * nie: przypadkowe "ok" po innej rozmowie nie może zatwierdzić polecenia
+     * na komputerze - decyduje nasłuch tuż po pytaniu albo okno w aplikacji.
+     */
+    val głosZNowejTury: Boolean = true,
+    /** Ile razy powtórzono pytanie, bo odpowiedź była niezrozumiała. */
+    val powtórzeń: Int = 0
 )

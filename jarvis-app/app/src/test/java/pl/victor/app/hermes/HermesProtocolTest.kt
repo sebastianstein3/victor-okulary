@@ -353,3 +353,191 @@ class HermesCierpliwoscTest {
         assertNull(HermesCierpliwość().zapytaj(100_000))
     }
 }
+
+class HermesRunsTest {
+
+    private fun ramka(zdarzenie: String?, dane: String) = HermesRuns.interpretuj(SseZdarzenie(zdarzenie, dane))
+
+    @Test
+    fun `start zadania niesie pytanie wskazowke i historie`() {
+        val o = Json.parseToJsonElement(
+            HermesRuns.żądanieStartu(
+                "znajdź fakturę",
+                listOf(HermesProtocol.Wiadomość("user", "cześć"), HermesProtocol.Wiadomość("assistant", "Cześć!"))
+            )
+        ).jsonObject
+        assertEquals("znajdź fakturę", o["input"]!!.jsonPrimitive.content)
+        assertEquals(HermesProtocol.WSKAZÓWKA_GŁOSOWA, o["instructions"]!!.jsonPrimitive.content)
+        val h = o["conversation_history"]!!.jsonArray.map { it.jsonObject }
+        assertEquals(listOf("user", "assistant"), h.map { it["role"]!!.jsonPrimitive.content })
+    }
+
+    @Test
+    fun `bez historii nie ma pola conversation_history`() {
+        val o = Json.parseToJsonElement(HermesRuns.żądanieStartu("test")).jsonObject
+        assertFalse(o.containsKey("conversation_history"))
+    }
+
+    @Test
+    fun `identyfikator zadania z odpowiedzi startu`() {
+        assertEquals("run_abc123", HermesRuns.runId("""{"run_id":"run_abc123","status":"started"}"""))
+        assertNull(HermesRuns.runId("""{"status":"started"}"""))
+        assertNull(HermesRuns.runId("<html>"))
+        assertNull(HermesRuns.runId(null))
+    }
+
+    @Test
+    fun `zgoda to once albo deny z identyfikatorem i generacja`() {
+        val tak = Json.parseToJsonElement(HermesRuns.żądanieZgody("p1", 3, true)).jsonObject
+        assertEquals("p1", tak["request_id"]!!.jsonPrimitive.content)
+        assertEquals("3", tak["execution_generation"]!!.jsonPrimitive.content)
+        assertEquals("once", tak["choice"]!!.jsonPrimitive.content)
+        val nie = Json.parseToJsonElement(HermesRuns.żądanieZgody("p1", null, false)).jsonObject
+        assertEquals("deny", nie["choice"]!!.jsonPrimitive.content)
+        assertFalse(nie.containsKey("execution_generation"))
+    }
+
+    @Test
+    fun `zgoda glosem nigdy nie jest na stale`() {
+        // "session" i "always" nie mogą paść z jednego "tak" w okularach.
+        val json = HermesRuns.żądanieZgody("p1", 1, true)
+        assertFalse(json.contains("session"))
+        assertFalse(json.contains("always"))
+    }
+
+    @Test
+    fun `tekst z delt i pomijanie pustych`() {
+        assertEquals(HermesRamka.Tekst("Cześć"), ramka("message.delta", """{"delta":"Cześć"}"""))
+        assertEquals(HermesRamka.Tekst("Hej"), ramka("message.delta", """{"text":"Hej"}"""))
+        assertEquals(HermesRamka.Tekst("Zagnieżdżone"), ramka("message.delta", """{"delta":{"content":"Zagnieżdżone"}}"""))
+        assertEquals(HermesRamka.Tekst("zwykły tekst"), ramka("message.delta", "zwykły tekst"))
+    }
+
+    @Test
+    fun `nazwa zdarzenia moze byc w json zamiast w linii event`() {
+        assertEquals(HermesRamka.Tekst("A"), ramka(null, """{"type":"message.delta","delta":"A"}"""))
+    }
+
+    @Test
+    fun `komentarz posredni tylko gdy nie poszedl deltami`() {
+        assertEquals(HermesRamka.Tekst("Sprawdzę pliki. "), ramka("message.interim", """{"text":"Sprawdzę pliki.","already_streamed":false}"""))
+        assertEquals(HermesRamka.Tekst(""), ramka("message.interim", """{"text":"Sprawdzę pliki.","already_streamed":true}"""))
+    }
+
+    @Test
+    fun `narzedzia start i koniec`() {
+        assertEquals(
+            HermesRamka.Narzędzie("read_file: /tmp/a", false),
+            ramka("tool.started", """{"tool":"read_file","preview":"/tmp/a"}""")
+        )
+        val k = ramka("tool.completed", """{"tool":"read_file","duration":0.2,"error":false}""")
+        assertTrue(k is HermesRamka.Narzędzie && k.zakończone)
+    }
+
+    @Test
+    fun `koniec zadania z tekstem i bez`() {
+        assertEquals(HermesRamka.Koniec("completed", "Gotowe."), ramka("run.completed", """{"output":"Gotowe.","usage":{}}"""))
+        assertEquals(HermesRamka.Koniec("completed", null), ramka("run.completed", """{"completed":true}"""))
+        assertEquals(HermesRamka.Koniec("cancelled"), ramka("run.cancelled", "{}"))
+        assertEquals(HermesRamka.Koniec("interrupted"), ramka("run.interrupted", "{}"))
+        assertEquals(HermesRamka.Błąd("brak miejsca"), ramka("run.failed", """{"error":"brak miejsca"}"""))
+        assertTrue(ramka("run.failed", "{}") is HermesRamka.Błąd)
+    }
+
+    @Test
+    fun `prosba o zgode - pola z kilku mozliwych nazw`() {
+        val z = ramka(
+            "approval.request",
+            """{"prompt_id":"pr-9","execution_generation":3,"command":"rm -r build","description":"usuwa katalog"}"""
+        ) as HermesRamka.Zgoda
+        assertEquals("pr-9", z.requestId)
+        assertEquals(3, z.generacja)
+        assertEquals("rm -r build", z.polecenie)
+        assertEquals("usuwa katalog", z.opis)
+    }
+
+    @Test
+    fun `prosba o zgode - pola w zagniezdzonym obiekcie`() {
+        val z = ramka(
+            "approval.request",
+            """{"control":{"request_id":"r7","execution_generation":"2","command":"git push"}}"""
+        ) as HermesRamka.Zgoda
+        assertEquals("r7", z.requestId)
+        assertEquals(2, z.generacja)
+        assertEquals("git push", z.polecenie)
+    }
+
+    @Test
+    fun `prosba o zgode bez znanych pol nadal jest zgoda z poczatkiem do dziennika`() {
+        val z = ramka("approval.request", """{"cos":"innego"}""") as HermesRamka.Zgoda
+        assertNull(z.requestId)
+        assertNull(z.polecenie)
+        assertTrue(z.początek.contains("innego"))
+    }
+
+    @Test
+    fun `oczekujace zgody z pending_controls`() {
+        val z = HermesRuns.oczekująceZgody(
+            """{"status":"waiting_for_approval","pending_controls":[{"prompt_id":"pr-1","execution_generation":4,"command":"sudo ls"}]}"""
+        )
+        assertEquals(1, z.size)
+        assertEquals("pr-1", z[0].requestId)
+        assertEquals(4, z[0].generacja)
+        assertTrue(HermesRuns.oczekująceZgody("""{"status":"running"}""").isEmpty())
+        assertTrue(HermesRuns.oczekująceZgody("nie json").isEmpty())
+    }
+
+    @Test
+    fun `stan zadania - status i output`() {
+        val (s, o) = HermesRuns.stanRuna("""{"object":"hermes.run","run_id":"r","status":"completed","output":"Done."}""")
+        assertEquals("completed", s)
+        assertEquals("Done.", o)
+        assertEquals(null to null, HermesRuns.stanRuna(null))
+    }
+
+    @Test
+    fun `nieznane zdarzenie idzie do dziennika a znane ciche nie`() {
+        assertTrue(ramka("hermes.cos", """{"a":1}""") is HermesRamka.Nieznana)
+        assertEquals(HermesRamka.Tekst(""), ramka("subagent.start", "{}"))
+        assertEquals(HermesRamka.Tekst(""), ramka("run.steered", "{}"))
+    }
+}
+
+class HermesMowaTest {
+
+    @Test
+    fun `pytanie o zgode czyta polecenie`() {
+        val z = HermesRamka.Zgoda("x", polecenie = "rm -r build")
+        assertEquals(
+            "Hermes prosi o zgodę na wykonanie polecenia: rm -r build. Zezwolić? Powiedz tak albo nie.",
+            HermesMowa.pytanieOZgodę(z)
+        )
+        assertTrue(HermesMowa.pytanieOZgodę(z, powtórka = true).startsWith("Czekam na decyzję"))
+    }
+
+    @Test
+    fun `bez polecenia opis a bez opisu uczciwie ze nie wiadomo`() {
+        assertEquals("usuwa katalog", HermesMowa.opisZgody(HermesRamka.Zgoda("x", opis = "usuwa katalog")))
+        assertEquals("operację, której opisu nie podał", HermesMowa.opisZgody(HermesRamka.Zgoda("x")))
+    }
+
+    @Test
+    fun `dlugie polecenie jest skracane do jednej linii`() {
+        val z = HermesRamka.Zgoda("x", polecenie = "a\n\nb " + "c".repeat(400))
+        val opis = HermesMowa.opisZgody(z)
+        assertFalse(opis.contains('\n'))
+        assertTrue(opis.endsWith("i dalej"))
+        assertTrue(opis.length < 200)
+    }
+
+    @Test
+    fun `kody http na wynik zgody`() {
+        assertEquals(WynikZgody.OK, WynikZgody.zKoduHttp(200))
+        assertEquals(WynikZgody.OK, WynikZgody.zKoduHttp(204))
+        assertEquals(WynikZgody.WYGASŁA, WynikZgody.zKoduHttp(409))
+        assertEquals(WynikZgody.BRAK_ZADANIA, WynikZgody.zKoduHttp(404))
+        assertEquals(WynikZgody.KLUCZ, WynikZgody.zKoduHttp(401))
+        assertEquals(WynikZgody.SIEĆ, WynikZgody.zKoduHttp(null))
+        assertEquals(WynikZgody.INNE, WynikZgody.zKoduHttp(500))
+    }
+}

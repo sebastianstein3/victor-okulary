@@ -58,7 +58,9 @@ internal class ActionFlow(
     /** Pytanie pomocnicze do modelu (poprawka maila) - patrz `AIOrchestrator.askModelPlain`. */
     private val askModelPlain: suspend (String) -> String?,
     /** Polecenie dla Home Assistant po "tak" - patrz `AIOrchestrator.runHomeCommand`. */
-    private val runHomeCommand: (TriggerSource, String, String) -> Unit
+    private val runHomeCommand: (TriggerSource, String, String) -> Unit,
+    /** Decyzja użytkownika o zgodzie Hermesa - patrz `AIOrchestrator.odpowiedzNaZgodęHermesa`. */
+    private val odpowiedzNaZgodęHermesa: (pl.victor.app.hermes.HermesRamka.Zgoda, Boolean) -> Unit
 ) {
     private val diag: pl.victor.app.diagnostics.DiagnosticLog
         get() = dziennik()
@@ -664,6 +666,22 @@ internal class ActionFlow(
                         DiagFormat.Phase.AKCJA, "potwierdzenie NIEROZSTRZYGNIĘTE",
                         mapOf("usłyszano" to heard?.take(40))
                     )
+                    // ZGODA HERMESA: operacja na komputerze czeka, a w okularach nikt
+                    // nie widzi okna - pytamy jeszcze dwa razy, potem odmawiamy
+                    // (bezpieczna odpowiedź; Hermes i tak odmówiłby sam po 5 minutach).
+                    val oczekujące = _pendingActionConfirmation.value
+                    val hz = oczekujące?.hermesZgoda
+                    if (hz != null && oczekujące != null) {
+                        if (oczekujące.powtórzeń < 2) {
+                            _pendingActionConfirmation.value = oczekujące.copy(powtórzeń = oczekujące.powtórzeń + 1)
+                            listenForConfirmation(pl.victor.app.hermes.HermesMowa.pytanieOZgodę(hz, powtórka = true))
+                        } else {
+                            diag.event(DiagFormat.Phase.AKCJA, "zgoda Hermesa: brak odpowiedzi - odmawiam")
+                            audio.speak(pl.victor.app.hermes.HermesMowa.ZGODA_BRAK_ODPOWIEDZI, language = language)
+                            cancelAction()
+                        }
+                        return@launch
+                    }
                     // Milczenie i wahanie traktujemy tak samo: nie wykonujemy.
                     Log.i(TAG, "Potwierdzenie głosem nierozstrzygnięte: \"$heard\"")
                     audio.speak(
@@ -686,11 +704,19 @@ internal class ActionFlow(
             runCatching {
                 diag.event(
                     DiagFormat.Phase.AKCJA, "akcja POTWIERDZONA",
-                    mapOf("co" to (if (pending.homeCommand != null) "DOM" else pending.actions.joinToString { it.type.name }))
+                    mapOf(
+                        "co" to when {
+                            pending.hermesZgoda != null -> "ZGODA HERMESA"
+                            pending.homeCommand != null -> "DOM"
+                            else -> pending.actions.joinToString { it.type.name }
+                        }
+                    )
                 )
             }
             confirmationJob?.cancel()
             _pendingActionConfirmation.value = null
+            // Zgoda Hermesa: "tak" idzie do komputera, nie do telefonu.
+            pending.hermesZgoda?.let { odpowiedzNaZgodęHermesa(it, true); return }
             // Polecenie dla domu (zamek, brama, alarm) nie jest akcją telefonu -
             // po "tak" idzie do Home Assistant.
             val dom = pending.homeCommand
@@ -712,11 +738,15 @@ internal class ActionFlow(
             runCatching {
                 diag.event(
                     DiagFormat.Phase.AKCJA, "akcja ANULOWANA",
-                    mapOf("co" to pending.actions.joinToString { it.type.name })
+                    mapOf("co" to (if (pending.hermesZgoda != null) "ZGODA HERMESA" else pending.actions.joinToString { it.type.name }))
                 )
             }
             confirmationJob?.cancel()
             _pendingActionConfirmation.value = null
+            // Odmowa zgody Hermesa: decyzja idzie do komputera. Bez "Anulowano" i
+            // bez stanu Idle - zadanie trwa dalej (Hermes dostaje odmowę i
+            // sam decyduje, co z tym zrobi).
+            pending.hermesZgoda?.let { odpowiedzNaZgodęHermesa(it, false); return }
             // Niewysłany mail zostaje w szkicach Gmaila - ułożona treść nie
             // przepada przez jedno "nie" albo chwilę ciszy.
             val emailDraft = pending.actions.singleOrNull() as? Action.SendEmail
@@ -810,6 +840,17 @@ internal class ActionFlow(
     fun requestConfirmation(pending: PendingActionConfirmation, question: String) {
         _pendingActionConfirmation.value = pending
         listenForConfirmation(question)
+    }
+
+    /**
+     * Zadanie Hermesa się skończyło (albo je przerwano) - wisząca prośba o
+     * jego zgodę nie ma już komu odpowiedzieć i nie może zostać w oknie.
+     */
+    fun clearHermesApproval() {
+        val p = _pendingActionConfirmation.value ?: return
+        if (p.hermesZgoda == null) return
+        confirmationJob?.cancel()
+        _pendingActionConfirmation.value = null
     }
 
     /**
