@@ -241,6 +241,11 @@
             android:exported="false"
             android:label="Tłumaczenie na żywo" />
         <activity
+            android:name=".ui.hermes.HermesActivity"
+            android:exported="false"
+            android:label="Hermes"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ui.memory.FactsActivity"
             android:exported="false"
             android:label="Co o Tobie wiem" />

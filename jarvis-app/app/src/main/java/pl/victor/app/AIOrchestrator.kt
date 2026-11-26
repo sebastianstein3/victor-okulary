@@ -600,6 +600,45 @@ class AIOrchestrator(
     }
 
     /**
+     * Rozmowa z Hermesem pokazywana w panelu aplikacji - dostają ją i
+     * polecenia głosowe z okularów, i to, co wpiszesz w panelu.
+     */
+    val hermesPanel = pl.victor.app.hermes.HermesPanelStore()
+
+    /**
+     * Zadanie wpisane w panelu Hermesa.
+     *
+     * @param mów czy odpowiedź ma być też czytana na głos (w panelu przy
+     *   biurku zwykle nie - wtedy nie dotykamy mikrofonu ani audio)
+     */
+    fun wyślijDoHermesa(tekst: String, mów: Boolean) {
+        val t = tekst.trim()
+        if (t.isEmpty()) return
+        val dostępność = settings.hermesAvailability()
+        if (dostępność != pl.victor.app.hermes.HermesDostępność.MOŻNA) {
+            hermesPanel.informacja(dostępność.komunikat ?: "Hermes jest niedostępny.", błąd = true)
+            return
+        }
+        if (hermesPanel.trwa.value) {
+            hermesPanel.informacja("Hermes jeszcze pracuje nad poprzednim zadaniem - poczekaj albo je zatrzymaj.")
+            return
+        }
+        // Bez przejmowania: gdy asystent akurat z kimś rozmawia, nie przerywamy tego.
+        if (!claimIdle()) {
+            hermesPanel.informacja("Asystent jest teraz zajęty inną rozmową. Spróbuj za chwilę albo go przerwij.")
+            return
+        }
+        runHermes(pl.victor.app.hermes.HermesPolecenie(t, jawne = true), mów = mów, głosem = false)
+    }
+
+    /** "Zatrzymaj" w panelu - kończy zadanie także po stronie komputera. */
+    fun zatrzymajHermesa() {
+        cancelCurrentTurn("zatrzymanie z panelu Hermesa")
+        // Tura mogła już nie żyć (np. czekała tylko na zgodę) - panel i tak ma się domknąć.
+        if (hermesPanel.trwa.value) hermesPanel.zakończ("Zatrzymano.")
+    }
+
+    /**
      * Wysyła zadanie do Hermesa i czyta odpowiedź na głos w miarę jej
      * przychodzenia.
      *
@@ -607,9 +646,20 @@ class AIOrchestrator(
      * nowe pytanie przerywają zapytanie (zamykają połączenie), a mikrofon
      * frazy i blokada uśpienia są brane i zwalniane jak przy zwykłej turze.
      */
-    private fun runHermes(p: pl.victor.app.hermes.HermesPolecenie) {
-        val micHold = java.util.concurrent.atomic.AtomicBoolean(true)
-        holdMicForTurn()
+    /** Czy bieżące zadanie Hermesa czyta odpowiedź na głos (zgody i błędy mówią tak samo). */
+    @Volatile
+    private var hermesMówi = true
+
+    private fun runHermes(
+        p: pl.victor.app.hermes.HermesPolecenie,
+        mów: Boolean = true,
+        głosem: Boolean = true
+    ) {
+        hermesMówi = mów
+        // Bez mówienia (zadanie wpisane w panelu) nie bierzemy mikrofonu frazy
+        // ani audio - tura tylko pracuje w sieci i pisze do panelu.
+        val micHold = java.util.concurrent.atomic.AtomicBoolean(mów)
+        if (mów) holdMicForTurn()
         val releaseMic = { if (micHold.compareAndSet(true, false)) releaseMicAfterTurn() }
         val lockTurn = "$LOCK_TURN#${turnSeq.incrementAndGet()}"
         val turnJob = launchTurn {
@@ -618,17 +668,21 @@ class AIOrchestrator(
                 // Zadanie agenta bywa długie - blokada na kwadranse, nie na 4 minuty.
                 wakeLock.acquire(lockTurn, HERMES_WAKE_LOCK_MS)
                 _state.value = OrchestratorState.Thinking
-                val canUseMedia = audio.canSpeakOverMedia()
-                if (!canUseMedia) glassesManager.requestClassicAudio("brak A2DP przed odpowiedzią Hermesa")
-                audioHeld = if (canUseMedia) false else audio.beginConversationRouting(waitForLink = false)
-                conversationalMode.onAiStartedSpeaking()
-                audio.beginStream("pl")
+                if (mów) {
+                    val canUseMedia = audio.canSpeakOverMedia()
+                    if (!canUseMedia) glassesManager.requestClassicAudio("brak A2DP przed odpowiedzią Hermesa")
+                    audioHeld = if (canUseMedia) false else audio.beginConversationRouting(waitForLink = false)
+                    conversationalMode.onAiStartedSpeaking()
+                    audio.beginStream("pl")
+                }
+                hermesPanel.rozpocznij(p.tekst, głosem)
                 runCatching {
                     diag.event(
                         DiagFormat.Phase.MODEL, "hermes: zapytanie",
                         mapOf(
                             "tekst" to p.tekst.take(120),
                             "jawne" to p.jawne,
+                            "mówi" to mów,
                             "wiadomościHistorii" to hermes.historia.wiadomości(System.currentTimeMillis()).size
                         )
                     )
@@ -639,7 +693,8 @@ class AIOrchestrator(
                 val mówienie = kotlinx.coroutines.sync.Mutex()
                 val cierpliwość = pl.victor.app.hermes.HermesCierpliwość()
                 cierpliwość.start(System.currentTimeMillis())
-                val czujka = launch {
+                // Zdania o cierpliwości są tylko dla ucha - panel pokazuje, że praca trwa.
+                val czujka = if (!mów) null else launch {
                     while (isActive) {
                         kotlinx.coroutines.delay(1_000)
                         cierpliwość.zapytaj(System.currentTimeMillis())?.let { zdanie ->
@@ -657,16 +712,20 @@ class AIOrchestrator(
                             is pl.victor.app.hermes.HermesRamka.Tekst -> if (r.kawałek.isNotEmpty()) {
                                 cierpliwość.usłyszano(System.currentTimeMillis())
                                 widoczny.append(r.kawałek)
-                                mówienie.withLock { audio.addStreamFragment(r.kawałek) }
+                                if (mów) mówienie.withLock { audio.addStreamFragment(r.kawałek) }
+                                hermesPanel.tekst(r.kawałek)
                                 _state.value = OrchestratorState.Streaming(widoczny.toString())
                             }
-                            is pl.victor.app.hermes.HermesRamka.Narzędzie -> if (logowanychNarzędzi++ < 30) {
-                                runCatching {
-                                    diag.event(
-                                        DiagFormat.Phase.MODEL,
-                                        if (r.zakończone) "hermes: narzędzie zakończone" else "hermes: narzędzie",
-                                        mapOf("opis" to r.opis)
-                                    )
+                            is pl.victor.app.hermes.HermesRamka.Narzędzie -> {
+                                hermesPanel.narzędzie(r.opis.orEmpty(), r.zakończone)
+                                if (logowanychNarzędzi++ < 30) {
+                                    runCatching {
+                                        diag.event(
+                                            DiagFormat.Phase.MODEL,
+                                            if (r.zakończone) "hermes: narzędzie zakończone" else "hermes: narzędzie",
+                                            mapOf("opis" to r.opis)
+                                        )
+                                    }
                                 }
                             }
                             is pl.victor.app.hermes.HermesRamka.Zgoda -> {
@@ -693,22 +752,28 @@ class AIOrchestrator(
                                 if (!powtórka) {
                                     ostatniaZgoda = r.requestId
                                     cierpliwość.usłyszano(System.currentTimeMillis())
-                                    // Najpierw niech wybrzmi to, co Hermes już powiedział.
-                                    mówienie.withLock { audio.flushStream() }
-                                    audio.awaitStreamSpoken()
-                                    audio.beginStream("pl")
-                                    actionFlow.requestConfirmation(
-                                        PendingActionConfirmation(
-                                            actions = emptyList(),
-                                            title = "Hermes prosi o zgodę",
-                                            message = pl.victor.app.hermes.HermesMowa.opisZgody(r),
-                                            confirmText = "✅ Zezwól",
-                                            cancelText = "⛔ Odmów",
-                                            hermesZgoda = r,
-                                            głosZNowejTury = false
-                                        ),
-                                        pl.victor.app.hermes.HermesMowa.pytanieOZgodę(r)
+                                    hermesPanel.zgoda(pl.victor.app.hermes.HermesMowa.opisZgody(r), r.requestId)
+                                    val prośba = PendingActionConfirmation(
+                                        actions = emptyList(),
+                                        title = "Hermes prosi o zgodę",
+                                        message = pl.victor.app.hermes.HermesMowa.opisZgody(r),
+                                        confirmText = "✅ Zezwól",
+                                        cancelText = "⛔ Odmów",
+                                        hermesZgoda = r,
+                                        głosZNowejTury = false
                                     )
+                                    if (mów) {
+                                        // Najpierw niech wybrzmi to, co Hermes już powiedział.
+                                        mówienie.withLock { audio.flushStream() }
+                                        audio.awaitStreamSpoken()
+                                        audio.beginStream("pl")
+                                        actionFlow.requestConfirmation(
+                                            prośba, pl.victor.app.hermes.HermesMowa.pytanieOZgodę(r)
+                                        )
+                                    } else {
+                                        // Nikt nie słucha - tylko przyciski (panel albo okno).
+                                        actionFlow.showConfirmationQuiet(prośba)
+                                    }
                                 }
                             }
                             is pl.victor.app.hermes.HermesRamka.Nieznana -> if (logowanychNieznanych++ < 10) {
@@ -723,10 +788,12 @@ class AIOrchestrator(
                         }
                     }
                 } finally {
-                    czujka.cancel()
+                    czujka?.cancel()
                 }
-                mówienie.withLock { audio.flushStream() }
-                audio.awaitStreamSpoken()
+                if (mów) {
+                    mówienie.withLock { audio.flushStream() }
+                    audio.awaitStreamSpoken()
+                }
                 runCatching {
                     diag.event(
                         DiagFormat.Phase.MODEL, "hermes: odpowiedź",
@@ -745,24 +812,28 @@ class AIOrchestrator(
                 }
                 val błąd = wynik.błąd
                 if (błąd == null) {
+                    hermesPanel.zakończ()
                     _state.value = OrchestratorState.Completed(wynik.tekst)
                 } else {
                     // Błąd po części odpowiedzi: człowiek już coś usłyszał - dopowiadamy,
                     // co poszło nie tak. Bez żadnej odpowiedzi mówimy tylko to.
                     val powód = błąd.mowa + (wynik.szczegół?.takeIf { błąd == pl.victor.app.hermes.HermesBłąd.SERWER }
                         ?.let { " $it." } ?: "")
-                    audio.speakAndAwait(powód, language = "pl")
+                    hermesPanel.zakończ(powód)
+                    if (mów) audio.speakAndAwait(powód, language = "pl")
                     _state.value = if (wynik.tekst.isBlank()) OrchestratorState.Error(powód)
                     else OrchestratorState.Completed(wynik.tekst)
                 }
-                conversationalMode.onAiFinishedSpeaking()
+                if (mów) conversationalMode.onAiFinishedSpeaking()
             } finally {
+                // Tura przerwana albo zginęła wyjątkiem, zanim panel dostał koniec.
+                if (hermesPanel.trwa.value) hermesPanel.zakończ("Przerwano.")
                 if (audioHeld) {
                     kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
                         audio.endConversationRouting()
                     }
                 }
-                if (glassesManager.isConnected() && !audio.canSpeakOverMedia()) {
+                if (mów && glassesManager.isConnected() && !audio.canSpeakOverMedia()) {
                     glassesManager.requestClassicAudioWhenIdle("po odpowiedzi Hermesa bez trybu multimediów")
                 }
                 // Zadanie skończone albo przerwane - wisząca prośba o zgodę nie ma
@@ -783,6 +854,7 @@ class AIOrchestrator(
      * błędem, a agent szuka innej drogi).
      */
     private fun odpowiedzNaZgodęHermesa(zgoda: pl.victor.app.hermes.HermesRamka.Zgoda, zezwól: Boolean) {
+        hermesPanel.rozstrzygnijZgodę(zezwól)
         scope.launch {
             runCatching {
                 diag.event(
@@ -804,7 +876,10 @@ class AIOrchestrator(
                 pl.victor.app.hermes.WynikZgody.BRAK_ZADANIA -> pl.victor.app.hermes.HermesMowa.ZGODA_BRAK_ZADANIA
                 else -> pl.victor.app.hermes.HermesMowa.ZGODA_BŁĄD
             }
-            komunikat?.let { audio.speak(it, language = "pl") }
+            komunikat?.let {
+                hermesPanel.informacja(it, błąd = true)
+                if (hermesMówi) audio.speak(it, language = "pl")
+            }
         }
     }
 

@@ -843,6 +843,19 @@ internal class ActionFlow(
     }
 
     /**
+     * Prośba o zgodę BEZ mówienia i bez nasłuchu - dla zadania wpisanego w
+     * panelu Hermesa, gdzie nikt nie słucha. Decyzja zapada przyciskiem
+     * (w panelu albo w oknie).
+     *
+     * `createdAtMs = 0` zamyka przy tym odpowiedź głosem z innych tur, więc
+     * przypadkowe "ok" powiedziane gdzie indziej niczego nie zatwierdzi.
+     */
+    fun showConfirmationQuiet(pending: PendingActionConfirmation) {
+        confirmationJob?.cancel()
+        _pendingActionConfirmation.value = pending.copy(createdAtMs = 0L)
+    }
+
+    /**
      * Zadanie Hermesa się skończyło (albo je przerwano) - wisząca prośba o
      * jego zgodę nie ma już komu odpowiedzieć i nie może zostać w oknie.
      */

@@ -82,4 +82,39 @@ class HermesReachabilityTest {
         assertTrue("wisząca zgoda musi znikać po zadaniu", ciało.contains("actionFlow.clearHermesApproval()"))
         assertTrue("zgoda to tylko jednorazowe once/deny", !ciało.contains("always") && !ciało.contains("\"session\""))
     }
+
+    @Test
+    fun `panel dostaje rozmowe, a zadanie bez mowy nie rusza mikrofonu ani audio`() {
+        val kod = zrodlo()
+        assumeTrue("brak źródła orkiestratora", kod != null)
+        val start = kod!!.indexOf("private fun runHermes(")
+        val koniec = kod.indexOf("turnJob.invokeOnCompletion { releaseMic() }", start)
+        val ciało = kod.substring(start, koniec)
+        for (wywołanie in listOf("hermesPanel.rozpocznij(", "hermesPanel.tekst(", "hermesPanel.narzędzie(", "hermesPanel.zgoda(", "hermesPanel.zakończ(")) {
+            assertTrue("panel nie dostaje: $wywołanie", ciało.contains(wywołanie))
+        }
+        assertTrue("mikrofon frazy tylko gdy zadanie mówi", ciało.contains("if (mów) holdMicForTurn()"))
+        assertTrue("strumień mowy tylko gdy zadanie mówi", ciało.contains("if (mów) mówienie.withLock { audio.addStreamFragment("))
+        assertTrue("zgoda bez mowy ma iść bez nasłuchu", ciało.contains("actionFlow.showConfirmationQuiet("))
+        assertTrue("panel ma się domknąć nawet po przerwaniu", ciało.contains("if (hermesPanel.trwa.value) hermesPanel.zakończ("))
+    }
+
+    @Test
+    fun `zgoda bez mowy zamyka odpowiedz glosem z innych tur`() {
+        var dir: File? = File("").absoluteFile
+        var kod: String? = null
+        while (dir != null && kod == null) {
+            kod = listOf(
+                File(dir, "jarvis-app/app/src/main/java/pl/victor/app/orchestrator/ActionFlow.kt"),
+                File(dir, "src/main/java/pl/victor/app/orchestrator/ActionFlow.kt")
+            ).firstOrNull { it.isFile }?.readText()
+            dir = dir.parentFile
+        }
+        assumeTrue("brak źródła ActionFlow", kod != null)
+        val start = kod!!.indexOf("fun showConfirmationQuiet(")
+        assertTrue("brak showConfirmationQuiet", start > 0)
+        val ciało = kod.substring(start, kod.indexOf("}", kod.indexOf("_pendingActionConfirmation.value", start)))
+        assertTrue("zgoda bez mowy musi mieć createdAtMs = 0", ciało.contains("createdAtMs = 0L"))
+        assertTrue("zgoda bez mowy nie może zostawiać nasłuchu", ciało.contains("confirmationJob?.cancel()"))
+    }
 }

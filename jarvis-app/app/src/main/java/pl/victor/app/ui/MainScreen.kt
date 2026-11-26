@@ -85,6 +85,7 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.FormatListNumbered
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Hearing
@@ -660,6 +661,9 @@ private fun IdleContent(
     val factsTile = HomeTileSpec("Co o mnie wiesz", Icons.Default.Face) {
         open(pl.victor.app.ui.memory.FactsActivity::class.java)
     }
+    val hermesTile = HomeTileSpec("Hermes", Icons.Default.Computer) {
+        open(pl.victor.app.ui.hermes.HermesActivity::class.java)
+    }
     val commandsTile = HomeTileSpec("Wszystkie komendy", Icons.Default.List) {
         open(pl.victor.app.ui.commands.CommandsActivity::class.java)
     }
@@ -690,7 +694,7 @@ private fun IdleContent(
                 HomeTileSpec("Mój dzień", Icons.Default.WbSunny) { orch.runBriefing() }
             ),
             "Zapamiętaj" to rememberGroup,
-            "W drodze i moje" to listOf(guideTile, factsTile, commandsTile)
+            "W drodze i moje" to listOf(guideTile, hermesTile, factsTile, commandsTile)
         )
     } else {
         listOf(
@@ -716,6 +720,7 @@ private fun IdleContent(
                 HomeTileSpec("Galeria", Icons.Default.PhotoLibrary) {
                     open(pl.victor.app.ui.media.MediaActivity::class.java)
                 },
+                hermesTile,
                 factsTile,
                 commandsTile
             )
