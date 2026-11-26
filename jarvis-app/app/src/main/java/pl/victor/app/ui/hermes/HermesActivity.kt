@@ -1,7 +1,34 @@
 package pl.victor.app.ui.hermes
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.widget.Toast
+import androidx.core.content.FileProvider
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image as ImageIcon
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import pl.victor.app.hermes.HermesPlik
+import pl.victor.app.hermes.HermesPliki
+import pl.victor.app.hermes.HermesPlikiKlient
+import pl.victor.app.hermes.RodzajPliku
+import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -93,6 +120,34 @@ fun HermesScreen(onBack: () -> Unit) {
     val wpisy by orch.hermesPanel.wpisy.collectAsState()
     val trwa by orch.hermesPanel.trwa.collectAsState()
     val oczekująca by orch.pendingActionConfirmation.collectAsState()
+
+    val scope = rememberCoroutineScope()
+    val klientPlików = remember {
+        HermesPlikiKlient(
+            adresMostu = { settings.hermesFilesUrlEffective() },
+            klucz = { settings.getHermesKey() },
+            katalog = File(context.cacheDir, "hermes_pliki")
+        )
+    }
+    val stanyPlików = remember { mutableStateMapOf<String, StanPliku>() }
+
+    fun pobierz(p: HermesPlik, otwórzPo: Boolean) {
+        if (stanyPlików[p.odnośnik] is StanPliku.Pobieranie) return
+        stanyPlików[p.odnośnik] = StanPliku.Pobieranie
+        scope.launch {
+            when (val w = klientPlików.pobierz(p)) {
+                is HermesPlikiKlient.Wynik.Gotowy -> {
+                    val podgląd = if (w.mime.startsWith("image/") && w.mime != "image/svg+xml") {
+                        withContext(Dispatchers.IO) { wczytajPodgląd(w.plik) }
+                    } else null
+                    stanyPlików[p.odnośnik] = StanPliku.Gotowy(w.plik, w.mime, podgląd)
+                    // Obraz pokazujemy w karcie (dotknięcie otwiera go w galerii); resztę od razu otwieramy.
+                    if (otwórzPo && podgląd == null) otwórzPlik(context, w.plik, w.mime, udostępnij = false)
+                }
+                is HermesPlikiKlient.Wynik.Błąd -> stanyPlików[p.odnośnik] = StanPliku.Błąd(w.tekst)
+            }
+        }
+    }
 
     var draft by remember { mutableStateOf("") }
     // Domyślnie cicho: panel służy do czytania i pisania, a głos mają okulary.
@@ -240,9 +295,27 @@ fun HermesScreen(onBack: () -> Unit) {
                                 tekst = (if (w.głosem) "🎙 " else "") + w.tekst,
                                 zPrawej = true
                             )
-                            is HermesWpis.Hermes -> Dymek(
-                                tekst = w.tekst + if (w.trwa) " ▍" else "",
-                                zPrawej = false
+                            is HermesWpis.Hermes -> {
+                                // Linie `PLIK: …` pokazujemy jako karty plików, nie jako tekst.
+                                val widoczny = HermesPliki.bezZnaczników(w.tekst)
+                                if (widoczny.isNotEmpty() || w.trwa) {
+                                    Dymek(tekst = widoczny + if (w.trwa) " ▍" else "", zPrawej = false)
+                                }
+                            }
+                            is HermesWpis.Pliki -> KartaPlików(
+                                pliki = w.pliki,
+                                stany = stanyPlików,
+                                onOtwórz = { pobierz(it, otwórzPo = true) },
+                                onPodgląd = { p ->
+                                    (stanyPlików[p.odnośnik] as? StanPliku.Gotowy)?.let {
+                                        otwórzPlik(context, it.plik, it.mime, udostępnij = false)
+                                    }
+                                },
+                                onUdostępnij = { p ->
+                                    (stanyPlików[p.odnośnik] as? StanPliku.Gotowy)?.let {
+                                        otwórzPlik(context, it.plik, it.mime, udostępnij = true)
+                                    }
+                                }
                             )
                             is HermesWpis.Narzędzie -> Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -337,6 +410,118 @@ private fun KartaZgody(
                     },
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+        }
+    }
+}
+
+/** Stan jednego pliku od Hermesa w panelu. */
+private sealed interface StanPliku {
+    object Pobieranie : StanPliku
+    class Gotowy(val plik: File, val mime: String, val podgląd: ImageBitmap?) : StanPliku
+    class Błąd(val tekst: String) : StanPliku
+}
+
+/** Miniatura do karty - dekodowana z ograniczeniem rozmiaru, żeby duży obraz nie zapchał pamięci. */
+private fun wczytajPodgląd(plik: File): ImageBitmap? = runCatching {
+    val granice = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(plik.absolutePath, granice)
+    var próbkowanie = 1
+    while (granice.outWidth / próbkowanie > 1280 || granice.outHeight / próbkowanie > 1280) próbkowanie *= 2
+    val opcje = BitmapFactory.Options().apply { inSampleSize = próbkowanie }
+    BitmapFactory.decodeFile(plik.absolutePath, opcje)?.asImageBitmap()
+}.getOrNull()
+
+private fun otwórzPlik(context: Context, plik: File, mime: String, udostępnij: Boolean) {
+    val uri = runCatching {
+        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", plik)
+    }.getOrNull() ?: return
+    val intent = if (udostępnij) {
+        Intent.createChooser(
+            Intent(Intent.ACTION_SEND).apply {
+                type = mime
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            },
+            "Udostępnij plik"
+        )
+    } else {
+        Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mime)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, "Brak aplikacji, która otworzy ten plik.", Toast.LENGTH_LONG).show()
+    }
+}
+
+@Composable
+private fun KartaPlików(
+    pliki: List<HermesPlik>,
+    stany: Map<String, StanPliku>,
+    onOtwórz: (HermesPlik) -> Unit,
+    onPodgląd: (HermesPlik) -> Unit,
+    onUdostępnij: (HermesPlik) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Pliki od Hermesa", style = MaterialTheme.typography.titleSmall)
+            pliki.forEach { p ->
+                val stan = stany[p.odnośnik]
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(
+                            when (p.rodzaj) {
+                                RodzajPliku.OBRAZ -> Icons.Default.ImageIcon
+                                RodzajPliku.DOKUMENT -> Icons.Default.Description
+                                RodzajPliku.DANE -> Icons.Default.TableChart
+                                RodzajPliku.AUDIO -> Icons.Default.MusicNote
+                                RodzajPliku.WIDEO -> Icons.Default.Videocam
+                                RodzajPliku.ARCHIWUM -> Icons.Default.Archive
+                            },
+                            contentDescription = p.rodzaj.etykieta
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(p.nazwa, style = MaterialTheme.typography.bodyMedium)
+                            // Skąd plik pochodzi - adres z odpowiedzi agenta bywa podsunięty
+                            // przez czytaną przez niego stronę, więc widać go przed pobraniem.
+                            Text(
+                                if (p.zdalny) "z internetu: " + (runCatching { java.net.URI(p.odnośnik).host }.getOrNull() ?: "?")
+                                else "z komputera",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        when (stan) {
+                            is StanPliku.Pobieranie -> CircularProgressIndicator(
+                                modifier = Modifier.widthIn(max = 24.dp), strokeWidth = 2.dp
+                            )
+                            is StanPliku.Gotowy -> {
+                                IconButton(onClick = { onUdostępnij(p) }) {
+                                    Icon(Icons.Default.Share, contentDescription = "Udostępnij")
+                                }
+                                OutlinedButton(onClick = { onPodgląd(p) }) { Text("Otwórz") }
+                            }
+                            else -> OutlinedButton(onClick = { onOtwórz(p) }) {
+                                Text(if (stan is StanPliku.Błąd) "Ponów" else "Pobierz")
+                            }
+                        }
+                    }
+                    if (stan is StanPliku.Błąd) {
+                        Text(stan.tekst, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                    if (stan is StanPliku.Gotowy && stan.podgląd != null) {
+                        Image(
+                            bitmap = stan.podgląd,
+                            contentDescription = p.nazwa,
+                            contentScale = ContentScale.FillWidth,
+                            modifier = Modifier.fillMaxWidth().clickable { onPodgląd(p) }
+                        )
+                    }
+                }
             }
         }
     }

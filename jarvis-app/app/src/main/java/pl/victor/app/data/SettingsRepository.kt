@@ -646,6 +646,22 @@ class SettingsRepository private constructor(private val context: Context) {
         prefs.edit().putBoolean(KEY_HERMES_AUTO, enabled).apply()
     }
 
+    /**
+     * Adres mostu plików (`tools/hermes-pliki`), przez który Victor otwiera pliki
+     * i obrazy wygenerowane przez Hermesa. Puste = ten sam komputer co brama,
+     * port 8643 - patrz [pl.victor.app.hermes.HermesPlikiAdres.pochodny].
+     */
+    fun getHermesFilesUrl(): String = prefs.getString(KEY_HERMES_FILES_URL, "") ?: ""
+
+    fun setHermesFilesUrl(url: String) {
+        prefs.edit().putString(KEY_HERMES_FILES_URL, url.trim()).apply()
+    }
+
+    /** Adres mostu faktycznie używany: wpisany albo wyliczony z adresu bramy. */
+    fun hermesFilesUrlEffective(): String? =
+        getHermesFilesUrl().takeIf { it.isNotBlank() }
+            ?: pl.victor.app.hermes.HermesPlikiAdres.pochodny(getHermesUrl())
+
     /** Dlaczego Hermes może albo nie może teraz działać. */
     fun hermesAvailability(): pl.victor.app.hermes.HermesDostępność =
         pl.victor.app.hermes.HermesDostępność.z(isHermesPrefOn(), isFreeOnly(), getHermesUrl(), getHermesKey())
@@ -1598,6 +1614,7 @@ class SettingsRepository private constructor(private val context: Context) {
         private const val KEY_HERMES_KEY = "hermes_key"
         private const val KEY_HERMES_SESSION = "hermes_session_key"
         private const val KEY_HERMES_AUTO = "hermes_auto_route"
+        private const val KEY_HERMES_FILES_URL = "hermes_files_url"
         private const val KEY_HA_TOKEN = "home_assistant_token"
         private const val KEY_HA_AREAS = "home_assistant_areas"
         private const val KEY_NOISE_VOLUME = "noise_adaptive_volume"

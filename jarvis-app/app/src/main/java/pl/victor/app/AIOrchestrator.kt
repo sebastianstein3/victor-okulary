@@ -703,6 +703,8 @@ class AIOrchestrator(
                     }
                 }
                 val widoczny = StringBuilder()
+                // Linie `PLIK: …` idą do panelu, nie do mowy.
+                val filtrMowy = pl.victor.app.hermes.FiltrMowy()
                 var ostatniaZgoda: String? = null
                 var logowanychNarzędzi = 0
                 var logowanychNieznanych = 0
@@ -712,7 +714,10 @@ class AIOrchestrator(
                             is pl.victor.app.hermes.HermesRamka.Tekst -> if (r.kawałek.isNotEmpty()) {
                                 cierpliwość.usłyszano(System.currentTimeMillis())
                                 widoczny.append(r.kawałek)
-                                if (mów) mówienie.withLock { audio.addStreamFragment(r.kawałek) }
+                                if (mów) {
+                                    val doMowy = filtrMowy.przepuść(r.kawałek)
+                                    if (doMowy.isNotEmpty()) mówienie.withLock { audio.addStreamFragment(doMowy) }
+                                }
                                 hermesPanel.tekst(r.kawałek)
                                 _state.value = OrchestratorState.Streaming(widoczny.toString())
                             }
@@ -764,7 +769,10 @@ class AIOrchestrator(
                                     )
                                     if (mów) {
                                         // Najpierw niech wybrzmi to, co Hermes już powiedział.
-                                        mówienie.withLock { audio.flushStream() }
+                                        mówienie.withLock {
+                                            filtrMowy.koniec().takeIf { it.isNotEmpty() }?.let { audio.addStreamFragment(it) }
+                                            audio.flushStream()
+                                        }
                                         audio.awaitStreamSpoken()
                                         audio.beginStream("pl")
                                         actionFlow.requestConfirmation(
@@ -791,8 +799,28 @@ class AIOrchestrator(
                     czujka?.cancel()
                 }
                 if (mów) {
-                    mówienie.withLock { audio.flushStream() }
+                    mówienie.withLock {
+                        filtrMowy.koniec().takeIf { it.isNotEmpty() }?.let { audio.addStreamFragment(it) }
+                        audio.flushStream()
+                    }
                     audio.awaitStreamSpoken()
+                }
+                // Pliki i obrazy z odpowiedzi - do otwarcia w panelu.
+                if (wynik.tekst.isNotBlank()) {
+                    val znalezione = pl.victor.app.hermes.HermesPliki.znajdź(wynik.tekst)
+                    hermesPanel.pliki(znalezione)
+                    if (znalezione.isNotEmpty()) {
+                        runCatching {
+                            diag.event(
+                                DiagFormat.Phase.MODEL, "hermes: pliki w odpowiedzi",
+                                mapOf(
+                                    "ile" to znalezione.size,
+                                    "rodzaje" to znalezione.joinToString { it.rodzaj.name },
+                                    "zdalnych" to znalezione.count { it.zdalny }
+                                )
+                            )
+                        }
+                    }
                 }
                 runCatching {
                     diag.event(

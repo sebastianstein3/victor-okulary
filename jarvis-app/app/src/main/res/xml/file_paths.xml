@@ -11,4 +11,5 @@
     <files-path name="livestream_lab" path="livestream_lab/" />
     <cache-path name="glasses_media" path="glasses_media/" />
     <files-path name="diagnostics" path="diagnostics/" />
+    <cache-path name="hermes_pliki" path="hermes_pliki/" />
 </paths>

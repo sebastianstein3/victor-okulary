@@ -279,7 +279,8 @@ object HermesProtocol {
         "Rozmawiasz z użytkownikiem głosowo, przez jego okulary: Twoja odpowiedź zostanie przeczytana na głos. " +
             "Odpowiadaj po polsku, krótko i naturalnie, bez markdownu, list, tabel i bloków kodu. " +
             "Przy dłuższym zadaniu na początku powiedz jednym zdaniem, co robisz, a na końcu podsumuj w 1-3 zdaniach. " +
-            "Nie dyktuj długich wyników ani ścieżek - powiedz, gdzie je zapisałeś."
+            "Nie dyktuj długich wyników ani ścieżek - powiedz, gdzie je zapisałeś. " +
+            HermesPliki.WSKAZÓWKA
 
     /** Jedna wiadomość rozmowy (`user` albo `assistant`). */
     data class Wiadomość(val rola: String, val treść: String)

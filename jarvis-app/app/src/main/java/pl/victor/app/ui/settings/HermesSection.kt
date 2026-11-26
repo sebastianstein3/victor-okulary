@@ -41,6 +41,7 @@ internal fun HermesSection() {
     var hasKey by remember { mutableStateOf(settings.getHermesKey() != null) }
     var session by remember { mutableStateOf(settings.getHermesSessionKey()) }
     var auto by remember { mutableStateOf(settings.isHermesAutoRoute()) }
+    var filesUrl by remember { mutableStateOf(settings.getHermesFilesUrl()) }
     var status by remember { mutableStateOf<String?>(null) }
     var checking by remember { mutableStateOf(false) }
     val client = remember {
@@ -116,6 +117,25 @@ internal fun HermesSection() {
             label = { Text("Identyfikator kanału (pamięć Hermesa)") },
             singleLine = true,
             supportingText = { Text("Ten sam identyfikator = ta sama długa pamięć. Zwykle zostaw domyślny.") },
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+        )
+
+        OutlinedTextField(
+            value = filesUrl,
+            onValueChange = {
+                filesUrl = it
+                settings.setHermesFilesUrl(it)
+            },
+            label = { Text("Adres mostu plików (opcjonalnie)") },
+            placeholder = { Text(pl.victor.app.hermes.HermesPlikiAdres.pochodny(url) ?: "http://mac-mini.local:8643") },
+            singleLine = true,
+            isError = filesUrl.isNotBlank() && HermesAdres.sprawdź(filesUrl) is HermesAdres.Wynik.Zły,
+            supportingText = {
+                Text(
+                    "Do otwierania w Victorze obrazów i plików od Hermesa (skrypt tools/hermes-pliki na komputerze). " +
+                        "Puste = ten sam komputer, port 8643."
+                )
+            },
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
         )
 

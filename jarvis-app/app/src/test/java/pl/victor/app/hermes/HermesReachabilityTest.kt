@@ -94,7 +94,11 @@ class HermesReachabilityTest {
             assertTrue("panel nie dostaje: $wywołanie", ciało.contains(wywołanie))
         }
         assertTrue("mikrofon frazy tylko gdy zadanie mówi", ciało.contains("if (mów) holdMicForTurn()"))
-        assertTrue("strumień mowy tylko gdy zadanie mówi", ciało.contains("if (mów) mówienie.withLock { audio.addStreamFragment("))
+        assertTrue(
+            "strumień mowy tylko gdy zadanie mówi, i bez linii z plikami",
+            ciało.contains("if (mów) {\n                                    val doMowy = filtrMowy.przepuść(r.kawałek)")
+        )
+        assertTrue("pliki z odpowiedzi mają trafić do panelu", ciało.contains("hermesPanel.pliki("))
         assertTrue("zgoda bez mowy ma iść bez nasłuchu", ciało.contains("actionFlow.showConfirmationQuiet("))
         assertTrue("panel ma się domknąć nawet po przerwaniu", ciało.contains("if (hermesPanel.trwa.value) hermesPanel.zakończ("))
     }

@@ -36,6 +36,12 @@ sealed class HermesWpis {
         val opis: String, val requestId: String?, val status: StatusZgody
     ) : HermesWpis()
 
+    /** Pliki i obrazy, o których Hermes wspomniał w odpowiedzi - do otwarcia w panelu. */
+    data class Pliki(
+        override val id: Long, override val czas: Long,
+        val pliki: List<HermesPlik>
+    ) : HermesWpis()
+
     /** Komunikat Victora (nie Hermesa): błąd, wyjaśnienie, że Hermes jest wyłączony. */
     data class Informacja(
         override val id: Long, override val czas: Long,
@@ -158,6 +164,13 @@ class HermesPanelStore(
         }
     }
 
+    /** Pliki z odpowiedzi Hermesa (puste - bez wiersza). */
+    @Synchronized
+    fun pliki(lista: List<HermesPlik>) {
+        if (lista.isEmpty()) return
+        zmień { it + HermesWpis.Pliki(id(), teraz(), lista) }
+    }
+
     /** Komunikat Victora (nie odpowiedź Hermesa). */
     @Synchronized
     fun informacja(tekst: String, błąd: Boolean = false) {
@@ -203,7 +216,8 @@ class HermesPanelStore(
     fun jakoTekst(): String = _wpisy.value.joinToString("\n\n") {
         when (it) {
             is HermesWpis.Użytkownik -> "Ja: ${it.tekst}"
-            is HermesWpis.Hermes -> "Hermes: ${it.tekst}"
+            is HermesWpis.Hermes -> "Hermes: ${HermesPliki.bezZnaczników(it.tekst)}"
+            is HermesWpis.Pliki -> "[Pliki: ${it.pliki.joinToString { p -> p.nazwa }}]"
             is HermesWpis.Narzędzie -> "[${it.opis}]"
             is HermesWpis.Zgoda -> "[Zgoda: ${it.opis} - ${it.status.name.lowercase()}]"
             is HermesWpis.Informacja -> "(${it.tekst})"
